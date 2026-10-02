@@ -1,4 +1,0 @@
-# What each metric IS for this source. See docs/PACKS.md.
-# A room sensor's temperature and humidity is room air at the place, comparable with other indoor sensors.
-- { source: tuya-indoor, metric: temp,     role: ambient, comparable: true, unit: "°C" }
-- { source: tuya-indoor, metric: humidity, role: ambient, comparable: true, unit: "%" }

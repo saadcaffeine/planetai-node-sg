@@ -1,5 +1,0 @@
-# A weekly laboratory banding from NEA, for a beach that is not this house. Never comparable with a sensor here.
-- { source: singapore-beach, metric: beach_band,               role: index,   comparable: false, unit: "band 1-3" }
-- { source: singapore-beach, metric: beach_band_nearest,       role: index,   comparable: false, unit: "band 1-3" }
-- { source: singapore-beach, metric: beach_stretches_elevated, role: derived, comparable: false, unit: "stretches" }
-- { source: singapore-beach, metric: beach_advisory,           role: derived, comparable: false, unit: "0 or 1" }
