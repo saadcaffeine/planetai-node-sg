@@ -36,13 +36,13 @@ assert "/node/" not in js and "data.json" not in js and "flow.json" not in js, "
 assert "h3-js" not in html and not re.search(r"\bh3\.\w+\(", js), "the node computes the cells; the page draws them"
 print("doors: every file the page names is served by name, and no door reads the prototype's capture")
 
-# / and /?layout=doors serve the doors through the same shell route; ?layout=classic serves the classic dashboard.
+# singapore-node: / serves the classic dashboard (the Singapore wall lives there); /?layout=doors serves the doors.
 from fastapi.testclient import TestClient  # noqa: E402
 c = TestClient(main.app)
-assert c.get("/").text == html
+assert c.get("/").text == (STATIC / "index.html").read_text()
 assert c.get("/", params={"layout": "doors"}).text == html
 assert c.get("/", params={"layout": "classic"}).text == (STATIC / "index.html").read_text()
-print("doors: / and ?layout=doors is the doors, ?layout=classic the classic dashboard")
+print("doors: / and ?layout=classic is the classic dashboard, ?layout=doors the doors")
 
 if not shutil.which("node"):
     print("doors: node is not installed, skipping the loader checks (skipped)")

@@ -2242,16 +2242,18 @@ STATIC = Path(__file__).parent / "static"
 @app.get("/", include_in_schema=False)
 @app.get("/ui", include_in_schema=False)
 def ui(layout: str = ""):
-    """The dashboard: one HTML file, no build step, reads the same API everything else does. The five doors
-    layout is the default (doors.html, docs/decisions/2026-10-07-doors.md); `?layout=classic` serves the legacy
-    dashboard instead: the same shell route, so the same share rule, and both read the same routes with the same token.
+    """The dashboard: one HTML file, no build step, reads the same API everything else does. SINGAPORE NODE: the
+    classic dashboard is the default here, because the Singapore wall, the NEA columns and the alert buttons live in
+    it only; upstream serves the five doors layout (doors.html, docs/decisions/2026-10-07-doors.md) by default, and
+    this branch keeps it at `?layout=doors`. The same shell route either way, so the same share rule, and both read
+    the same routes with the same token.
 
     Sent with `cache-control: no-cache`. Without any cache header a browser is free to reuse this document for as
     long as it likes, and an ordinary reload does not always ask: after `planetai update` a screen kept running the
     previous dashboard, with the previous bugs, until someone thought to hard-reload. The node's whole update story
     depends on the page following the version."""
     from fastapi.responses import HTMLResponse
-    f = STATIC / ("index.html" if layout == "classic" else "doors.html")
+    f = STATIC / ("doors.html" if layout == "doors" else "index.html")   # singapore-node: classic is the default
     body = f.read_text() if f.exists() else "<h1>planetai-node</h1><p>GUI not shipped in this build.</p>"
     return HTMLResponse(body, headers={"cache-control": "no-cache, must-revalidate"})
 

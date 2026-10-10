@@ -149,7 +149,7 @@ class H(BaseHTTPRequestHandler):
                 self.send_header("Location", f"{p}?fixture={DEFAULT}")
                 self.end_headers()
                 return None
-            page = "index.html" if (q.get("layout") or [""])[0] == "classic" else "doors.html"   # app/main.py::ui
+            page = "doors.html" if (q.get("layout") or [""])[0] == "doors" else "index.html"   # app/main.py::ui
             return self.send(200, (ROOT / "app" / "static" / page).read_bytes(), "text/html")
 
         if p.startswith("/static/"):
