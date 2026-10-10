@@ -1,4 +1,5 @@
 # PLANETAI. Architecture
+<!-- checked: v0.80.10 -->
 
 The whole building, drawn once, so every brick knows where it goes. What exists today is marked. What doesn't is
 drawn anyway, because the contracts between layers are the thing that can't be retrofitted.
@@ -49,7 +50,7 @@ a node anywhere on earth can sample a global model at its coordinates. Same core
 
 | `sensors.kind` | what it is | cadence | scales it serves | shipped |
 |---|---|---|---|---|
-| `sensor` | a device on your LAN or a nearby public one | minutes | Community, City | Smart Citizen, AirGradient, PurpleAir |
+| `sensor` | a device on your LAN or a nearby public one | minutes | Community, City | Smart Citizen, Meshtastic over MQTT; AirGradient and PurpleAir written, not polled |
 | `portal` | an open-data or statistical API | days–months | City, Region, Bioregion | `ckan` (any CKAN portal) |
 | `model` | a global model sampled at a point | hours | Planet, Bioregion | `openmeteo` |
 | `survey` | people answering | campaign | Community, City | **not built**: the four empty Social cells |
@@ -78,7 +79,7 @@ don't summarise upward.
 
 Every layer speaks three protocols. Compute, apps, and partner systems attach by speaking one of them.
 
-**Every wire document says which document it is.** From v0.63 the five below carry a top-level `schema`
+**Every wire document says which document it is.** From v0.63 the ones below carry a top-level `schema`
 key, and `tools/check_wire.py` in `make lint` holds their top-level shape against a fixture in
 `tests/data/wire/`, so a key cannot be gained or lost without somebody editing that file on purpose.
 
@@ -89,6 +90,7 @@ key, and `tools/check_wire.py` in `make lint` holds their top-level shape agains
 | `report-v0` | `GET /report/latest` | `app/main.py::report_latest` |
 | `aggregates-v0` | the child's hourly push body | `app/main.py::push_aggregates` |
 | `events-v0` | the child's ρ push body | `app/main.py::push_events` |
+| `days-v0` | `GET /issues/days?days=` — the same hourly series over up to 90 days (v0.79) | `app/issues/engine.py::days` |
 
 A receiver that sees a `schema` it does not know **logs once and processes what it recognises. It never
 refuses** — a parent one release behind has to keep accepting a child one release ahead. A document with
@@ -109,6 +111,9 @@ pulls them. Provenance `state` travels end to end and is never upgraded on the w
 measured: detect (alert `ts`) → decide (`acknowledged`) → deploy (`acted`) → measure (`measured`, derived by the
 node and never posted). `decided` is a record and enters no ρ. Five FCC-era stages collapse to these four at an
 address; `fabricate` appears between decide and act when the action is a part.
+Since v0.77 an alert *event* (one story per issue per house, `ALERT_ENGINE=events`) is answered the same way with
+`{event_id, stage: acted|acknowledged|dismissed}`: Done, Not now, Doesn't fit. It is a row in `actions` with an
+`event_id` and no `alert_id`, and it enters no ρ.
 
 **Read API** (the Observe contract): `GET /sensors /readings /stats /aggregates /alerts /cells /rho /health`, plus
 `GET /report/latest` (the last report the node wrote) and `GET /report/bundle?hours=` (every number it was written
@@ -168,17 +173,16 @@ named sources for whatever your place has, and where it has none, the global mod
 |---|---|---|
 | `Environmental\|Community` | local sensors: PM2.5 24h mean; days over WHO 24h in last 30d; sensor count | **live** as soon as node #1 runs 24h |
 | `Governance\|Community` | ρ from the actions table; is a council/operator acknowledging alerts | **partial** until someone acts |
-| `Economic\|Community` | fablabs.io activity for Fab Lab Bali (Fab Lab Activity Index, Boeing 2024) | adapter not written; **planned** |
+| `Economic\|Community` | businesses per km² within the kilometre, from OpenStreetMap (`packs/place`); `packs/make` reads fablabs.io to name workshops and fills no cell | **partial** |
 | `Social\|Community` | participation: WhatsApp group size, campaign responses (Making Sense Bali pattern) | operator-entered; **mock → partial** |
 | `Environmental\|City` | Bali Air Dispatch ambient means (peer observatory) + OpenAQ | **partial** (reference, not ours) |
-| `Governance\|City` | Bali Satu Data open-data health | adapter not written; registry entry exists |
+| `Governance\|City` | Bali Satu Data open-data health, through the CKAN adapter (`CKAN_PORTALS` in `presets/bali.env`, `packs/open-data-health`) | **partial** |
 
 `GET /cells` emits whatever the node can compute, each row carrying its `state`. The rows it cannot
 compute are the more interesting half of the table, and the node carries the answer to them: a pinned
 snapshot of `awesome-fabcity-data` lives at `data/sources/` and is served at `GET /sources`, so a cell
 with no row can still say whether a source for it is registered and whether an adapter reads it. That
-is what the "adapter not written; registry entry exists" lines above are, as a query rather than as a
-sentence somebody wrote once.
+is how a cell with no adapter says so, as a query rather than as a sentence somebody wrote once.
 
 A source entry is upstream's to change. Add one by PR to `awesome-fabcity-data`, wait for the merge,
 then re-pin here with `tools/sync_registry.sh <merge sha>` and commit the diff — `docs/SOURCES.md`.
@@ -195,7 +199,8 @@ Not a roadmap. Each stage names what exists, what it proves, and the trigger for
 
 **Stage 0: now.** One node, two containers by default (a broker, a Reticulum bridge, the local model's loop and IPFS
 are optional profiles), Sense: adapters across sensor, portal, model and map classes, in the core and in packs.
-Observe: Postgres, hourly view, read API. Act: two domain-blind core rules plus whatever the loaded packs contribute — eighteen pack folders ship: to
+Observe: Postgres, hourly view, read API. Act: two domain-blind core rules plus whatever the loaded packs contribute
+(seventeen core packs ship, eighteen in v0.76 before `xiaomi-air` became wild, and wild packs are added per node), to
 Telegram, the mesh, and Home Assistant; `POST /actions` records what a person did.
 Index: `GET /cells` emits `Environmental|Community` live and ρ partial. Compute: one Mac mini. *Proves:* a reading
 becomes a message someone acts on, and the node reports that fact as a cell.
@@ -224,7 +229,7 @@ No raw readings leave the instance that recorded them. No cell is upgraded from 
 aggregation. No agent dispatches without a human row in `actions`. No layer requires a cloud provider to function.
 No scale is skipped: a city aggregator is built from nodes, not declared from above.
 
-The node's page is `index.html` and a fixed list of companion files served by name from `app/static/`, and stays
+The node's page is `doors.html` (the five doors) or `index.html` (the classic dashboard at `/?layout=classic`) and a fixed list of companion files served by name from `app/static/`, and stays
 so — no framework, no build step, nothing loaded from anywhere else, because a node serves it to a household network
 that may have no route out.
 `planetai.fab.city` may use a framework; the two never share code, and both read the programme layer, which is

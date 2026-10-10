@@ -10,7 +10,7 @@
 # never named. A statement about an instrument needs a week — a day of it says more about the weather and the hour
 # than about the sensor. The gate is written into each rule's SQL, and repeated three times, because a pack must
 # not depend on a loader change to be safe: a `min_history_days` rule key in app/packs.py is the right long-term
-# home for it and is noted in docs/HANDOFF_trust.md.
+# home for it and is noted in docs/archive/handoffs/HANDOFF_trust.md.
 
 # ---------------------------------------------------------------- a channel that stopped changing under a live kit
 - id: channel_dead

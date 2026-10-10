@@ -10,14 +10,16 @@ planetai ui        # the URLs, and the token that unlocks Set up
 
 ## The shape of it
 
-The page is read in the order the node works, and the node works in a loop of four:
+The node works in a loop of four:
 
 1. **Observe** — what is read, seen and heard about this place.
-2. **Decide** — what may be said about it, and at how coarse a resolution.
+2. **Decide** — what to do about it.
 3. **Act** — what has been asked, of whom.
 4. **Measure** — whether it worked, and how long it took.
 
-Every part of the page belongs to one of those four and is drawn under it, numbered. If a part has
+Every part of the page belongs to one of those four and is drawn under it. The heads carry no numbers, because
+Now does not draw them in the loop's order: it opens with Decide, since what asks for a person is read first,
+then Observe as the evidence for it, then Act and Measure. If a part has
 nothing to show — no sensor for it, a pack you have not installed — it prints one line saying which,
 and never a blank or a zero standing in for a reading nobody took.
 
@@ -28,18 +30,29 @@ to an edge, resolution 12 is 10 m, and the one you are standing on is lit. Rungs
 cell could leave your machine are textured; rungs finer than your node is willing to say where it is
 are struck through. Press one and the whole page re-answers at that resolution.
 
-Under the ladder, folded shut, is what one cell at that rung is worth: three hexagons to scale, the
-rung you are on against the one above and the one below, and what each thing your node speaks for
-costs to cover at it. Open it and step the ladder: at resolution 4 the sea takes five cells and your
+The ladder is one row. Under it a single chip, *one cell here*, opens what one cell at that rung is worth:
+a ruler from 10 m to 200 km, the key to the two textures, three hexagons to scale (the rung you are on
+against the one above and the one below), and what each thing your node speaks for costs to cover at it. Open it and step the ladder: at resolution 4 the sea takes five cells and your
 house takes one, and so does everything in between. That is the whole argument for resolution in one
 table.
 
 **Then the thing that matters.** The issue with most to say, as a sentence in your language, with its
-number beside it at the size of a headline — *"It feels like 33.9 °C in the house, under the line."*
-Under it, in smaller type, why that issue and not another. Then one rule between the issue's own two
+number beside it at the size of a headline — *"The heat is holding in the house, under the line."*
+Under it, one plain sentence carries the figures — *"In the house it is 33.9, and on the street 30.7.
+The line is 35, and nothing here is over it."* — and why that issue and not another. Then one rule between the issue's own two
 ends, a dot on it for each distance (the house, the street, the ring, the region) and the line in red
 where the issue has one, so you can see at a glance whether it is you or whether it is everywhere.
-The four distances in full are in the table further down.
+The four distances in full are in the table further down. The line at the end of the lead says what is
+open, in words, and links to Decide: *1 event open · heat · sustained since 13:00 · in Decide*, or *nothing
+open · 2 cleared today*.
+
+**Then Decide.** One card for each alert event that is open, and nothing else above the evidence. An event is
+one issue in one house, from when its rule first fires to when it clears. The card has the peak with what it
+is compared to (the usual at this hour, outside, the line), the one action your node chose, in its words, and
+three buttons: **Done**, **Not now** and **Doesn't fit**. Done closes the loop. Not now holds the card for
+three hours unless the reading reaches danger. Doesn't fit asks what you did instead. The message the node sent
+is under them, and so are links to the evidence: the issue at every distance, the day, the stations. A node that
+has not been switched to events keeps its alert cards, with **I did this** on them, and says so.
 
 Beside it, the ground: the map cell this node stands in, its six neighbours and the seven smaller
 cells inside it, with the buildings and roads of your own square kept on your own disk. The line
@@ -50,18 +63,18 @@ readings find their place without anybody being told where you live.
 
 - **Every issue at every distance**, as a table. Where a cell is empty it says why: *no kit outside
   on the street*, *no public station reporting*.
-- **The day this place just had** — twenty-four hours of the house, the ring and the region, with the
-  hours it was over the line marked under the axis, because eight hours over is the thing you act on
-  and a curve does not tell you that.
-- **What this page is made of** — your own stations, the borrowed ones faint, what only the satellite
+- **The day this place just had** — one drawing per issue of the last 24 hours at every distance, with the usual for
+  each hour, the hours over the line, and the alert event and its answer, and under it a strip of the last seven days,
+  one cell an hour. Point at an hour to read it in words.
+- **What this page is made of** (on Network) — your own stations, the borrowed ones faint, what only the satellite
   knows in orange, counted in signs rather than drawn as a chart.
-- **What this page asked of the world while you looked at it.** The offline plan asks nothing.
+- **What this page asked of the world while you looked at it** (on Network). The offline plan asks nothing.
   Switching the map to satellite asks twelve times, and tells that server which five kilometres of
   the planet you are looking at. Your node's own polls are counted apart, because they happen
   whether or not anybody is at the screen.
-- **What has been asked, of whom** — every alert that asked a person to do something, whether anybody
-  answered, and the button that records it when you do. And, when your node knows one, the nearest
-  place to make or fix something.
+- **What was asked, and what was answered** — one ring for each event of the last seven days, closed if
+  somebody answered it, with the action your node sent and the answer beside it. And, when your node knows
+  one, the nearest place to make or fix something.
 - **Whether it worked** — the share of alerts that got an answer, drawn as one ring per alert rather than
   one long bar, with the median minutes to the first answer. It is the one number on the page that
   comes from a person.
@@ -77,7 +90,7 @@ interrupted.
 |---|---|---|
 | **Now** | `/` | What is the air, the heat, the land and the coast doing here, this hour? |
 | **Historical** | `#historical` | What has this place looked like over the years the satellite has watched it, and how far back does each source go? |
-| **Network** | `#network` | What is this node connected to, what does it hear, and what could it read? |
+| **Network** | `#network` | What is this node connected to, what does it hear, what could it read, and what may it say and send? |
 | **Wall** | `#wall` | The same node at three metres, for a screen on a wall. Dark, and it stays dark. |
 | **Arrange** | `#arrange` | Which sections Now shows, and in what order. Saved on the node. |
 | **Set up** | `#setup` | Every setting, what it does, and where its value came from. Needs the token. |
@@ -87,7 +100,8 @@ interrupted.
 Three modes, in the header:
 
 - **Simple** — the three things a person in the house asks: is it fine, is anything changing, is there
-  something to do. One number with its rule, one plain sentence, the open alert with its button, the
+  something to do. One number with its rule, one plain sentence, the open event's action with its three
+  buttons, the
   ground, and one paragraph your node writes. The other issues sit on one line under it; press one to
   look at it, and **back** to return to the one your node picked. If your node is too old to send the
   paragraph, the page says so and names the version rather than making one up.

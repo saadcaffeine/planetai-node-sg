@@ -1,4 +1,5 @@
 # Introduction
+<!-- checked: v0.80.10 -->
 
 PLANETAI is hyperlocal compute and intelligence for distributed production, and a node is its
 unit: one computer per place, on hardware the place already owns. It reads what measures that place, from a
@@ -32,7 +33,7 @@ product in, trash out, and the one it builds DIDO, data in, data out: materials 
 moves between cities. On a node, raw readings stay on the machine and only summaries travel, to a parent node
 if you name one, to the [Fab City Index](https://index.fab.city), and to the models that need ground truth.
 
-In v0.75.3 a node reads air and heat from the sensors in and around the house, and land and coast from public
+In v0.80 a node reads air and heat from the sensors in and around the house, and land and coast from public
 and satellite sources. Water and soil have no pack yet. The `make` pack names the nearest fab lab in a
 sentence, and no node has yet handed a job to a workshop. What runs today is the loop from a reading to a
 person acting and to a measured result; the loop from a reading to something made nearby is the direction.
@@ -41,13 +42,13 @@ The programme behind it is at [planetai.fab.city](https://planetai.fab.city/).
 ## The loop a node runs
 
 Sensors, public stations, open-data portals and Earth models feed the node; that is *sense*. Everything after
-it is one loop in four stages, and the dashboard is laid out in the order the loop runs. The page describes
+it is one loop in four stages, and the dashboard has a part for each; Now draws Decide first. The page describes
 each stage in its own words:
 
 | stage | what it holds |
 |---|---|
 | observe | what is read, seen and heard about this place |
-| decide | what may be said about it, and at what resolution |
+| decide | what to do about it |
 | act | what has been asked, of whom |
 | measure | whether it worked, and how long it took |
 
@@ -57,9 +58,10 @@ only be measured where the alert is sent and the answer comes back, which is her
 definition.
 
 Since v0.72 the loop closes on the dashboard itself. An open act-level alert about one of the place's issues
-shows under Decide as "What to do about it", with the rule's own recommendation beside what was seen. A person records a decision there, then
-presses **I did this** under Act when it is done, and Measure shows ρ and, per rule, which acts were followed
-by the condition clearing. After a week of its own readings the node also draws "The day this place usually
+shows under Decide, with the rule's own recommendation beside what was seen. A person records a decision there, then
+presses **I did this** on the same card when it is done, and Measure shows ρ and, per rule, which acts were followed
+by the condition clearing. A node on `ALERT_ENGINE=shadow` or `events` draws each open event once instead, with the
+action the bot sent and Done, Not now and Doesn't fit. After a week of its own readings the node also draws "The day this place usually
 has" on the Historical view. [How it works](how-it-works.md) follows a reading through every step.
 
 The dashboard also explains itself and answers questions: learn mode puts a question mark at each part of the page, and pressing one quotes these pages for it in the pane beside the page. That pane asks the model Set up names about what the page shows: on this machine or on your own network, and online only when someone here chooses it ([Ask the node](ask.md)).
@@ -70,7 +72,9 @@ Raw readings stay on the machine. A parent node, if you name one, receives hourl
 this node's alerts. The daily open export carries hourly means with your own sensors named by role, the Index
 cells, the first line of each alert and ρ, under CC BY 4.0. A node that nobody has told otherwise sends no
 question to a model outside your network (`AGENT_PREFER=private` is the default), and the dashboard fetches no
-live map tiles until a keeper sets `MAP_TILES=on`. The full list is in
+live map tiles until a keeper sets `MAP_TILES=on`. Once a day it asks planetai.fab.city whether a newer version
+is out, which shows the house's internet address and nothing else about it; `UPDATE_CHECK=off` stops that. The
+full list is in
 [How it works](how-it-works.md#what-leaves-the-machine-and-what-never-does).
 
 ## What a node is not
@@ -104,7 +108,7 @@ alive and the alerts correct."
 
 ## What these pages are
 
-This is the reference for the node at v0.75.3, read from the code of that version. The pages under *Get
+This is the reference for the node at v0.80, read from the code of that version. The pages under *Get
 started* and *Operate* are for the person running one. *Alerts, reports and ρ*, *Packs*, *Dashboard* and
 *Agents* explain what the node does and how to change it. *Reference* is the [HTTP API](api.md), the
 [database](schema.md) and the [federation contracts](federation.md). *Project* holds the architecture and the

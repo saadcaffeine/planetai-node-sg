@@ -319,7 +319,7 @@ def purpleair(hc: httpx.Client, hosts: list[str], lat: float | None, lon: float 
 # ---------------------------------------------------------------- registry
 def enabled(hc: httpx.Client):
     """Yield (name, fetch) for every configured source. Failures are per-source, never fatal.
-    Core adapters first, then any from community packs (docs/PACKS.md)."""
+    Core adapters first, then any from packs, core and wild (docs/PACKS.md)."""
     out = []
     ids = {int(x) for x in settings.get("SC_DEVICES", "").replace(" ", "").split(",") if x}
     if settings.get("SC_USER", "").strip():
@@ -536,3 +536,83 @@ def meshtastic_downlink(root_topic: str, gateway_node_num: int, text: str, chann
     import json as _json
     text = text if len(text.encode()) <= 200 else text.encode()[:197].decode("utf-8", "ignore") + "..."
     return f"{root_topic}/2/json/mqtt/", _json.dumps({"from": gateway_node_num, "type": "sendtext", "payload": text, "channel": channel}).encode()
+
+
+# ---------------------------------------------------------------- Smart Citizen wire format, direct to this node's broker
+# A Smart Citizen Kit (`mqtt -host <node> -port 1883` in its USB shell) or a Making Sense Bali DIY node (v4 portal)
+# can publish to this node's Mosquitto instead of mqtt.smartcitizen.me. Same topics, same bytes, so no device needs a
+# second firmware, and the node can forward the message on to the platform unchanged (main.py, SC_FORWARD).
+#   device/sck/<token>/readings       {"data":[{"recorded_at":"...","sensors":[{"id":237,"value":28.3}]}]}   DIY node
+#   device/sck/<token>/readings/raw   {t:2026-10-07T04:10:00Z,55:28.3,56:71}                                 SCK 2.x
+#   device/sck/<token>/meta           {"name":..,"site":..,"height_m":..,"indoor":true,"hardware":..}       DIY v4, retained
+#   device/sck/<token>/hello | info   the device announcing itself; nothing in them is a reading
+# Sensor ids are the platform's catalogue numbers. A kit generation changes them, so this names the ones our hardware
+# publishes and logs any other once. The token is a credential (anyone holding it publishes as that device), so it
+# never becomes an id, a name or a meta field: the sensor is `sck-` + the first 8 hex of sha256(token).
+SC_WIRE_IDS = {
+    # Making Sense Bali DIY node: the BME68X and HM-3301 catalogue rows its firmware publishes
+    233: "pm1", 234: "pm25", 235: "pm10", 237: "temp", 238: "humidity", 239: "pressure", 240: "gas_resistance", 241: "bme_iaq",
+    # SCK 2.1 / 2.2 / 2.3 urban board (fablabbcn/smartcitizen-kit-21, lib/Sensors/Sensors.h). Pressure is kPa there too.
+    10: "battery_pct", 14: "light", 53: "noise", 55: "temp", 56: "humidity", 58: "pressure", 227: "pressure",
+    112: "eco2", 113: "tvoc", 87: "pm25", 88: "pm10", 89: "pm1",
+    182: "pm1", 183: "pm25", 185: "pm10", 193: "pm1", 194: "pm25", 196: "pm10", 158: "co2",
+}
+_SC_WIRE_UNKNOWN: set = set()
+
+
+def sc_sensor_id(token: str) -> str:
+    import hashlib
+    return "sck-" + hashlib.sha256(token.encode()).hexdigest()[:8]
+
+
+def smartcitizen_mqtt(topic: str, payload: bytes, meta: dict | None = None):
+    """One message from a kit or DIY node on this node's broker -> (sensors, readings, info). Pure, tested offline.
+    `meta` is the device's last retained meta message, if the caller kept one: it names the sensor and says whether
+    it is indoors, and it travels with every readings message so the sensors upsert never flips a room to outdoor."""
+    import json as _json
+    import logging as _logging
+    log = _logging.getLogger("planetai.sc-direct")
+    parts = topic.split("/")
+    if len(parts) < 4 or parts[0] != "device" or parts[1] != "sck":
+        return [], [], {}
+    token, kind = parts[2], "/".join(parts[3:])
+    sid = sc_sensor_id(token)
+    meta = dict(meta or {})
+    if kind == "meta":
+        try:
+            m = _json.loads(payload)
+            meta = m if isinstance(m, dict) else {}
+        except Exception:  # noqa: BLE001
+            return [], [], {"kind": kind, "sensor_id": sid}
+    sensor = {"sensor_id": sid, "source": "smartcitizen-direct", "name": (str(meta.get("name") or "").strip() or f"kit {sid[4:]}"),
+              "lat": None, "lon": None, "indoor": bool(meta.get("indoor", False)), "local": True, "kind": "sensor",
+              "scale": "community", "cadence": "PT1M",
+              "meta": {k: meta[k] for k in ("site", "height_m", "hardware", "fw") if meta.get(k) not in (None, "")}}
+    if kind == "meta":
+        return [sensor], [], {"kind": kind, "sensor_id": sid, "meta": meta}
+    if kind not in ("readings", "readings/raw"):
+        return [], [], {"kind": kind, "sensor_id": sid}
+    groups: list[tuple[datetime, dict]] = []      # (ts, {catalogue id: value})
+    try:
+        if kind == "readings":
+            data = _json.loads(payload)["data"]
+            for g in data if isinstance(data, list) else []:
+                ts = _iso(g.get("recorded_at")) or datetime.now(timezone.utc)
+                groups.append((ts, {int(x["id"]): float(x["value"]) for x in g.get("sensors") or []
+                                    if isinstance(x, dict) and x.get("value") is not None}))
+        else:
+            items = [p.split(":", 1) for p in payload.decode("ascii", "ignore").strip().strip("{}").split(",") if ":" in p]
+            kv = {k.strip(): v.strip() for k, v in items}
+            ts = _iso(kv.pop("t", None)) or datetime.now(timezone.utc)
+            groups.append((ts, {int(k): float(v) for k, v in kv.items() if k.isdigit()}))
+    except Exception:  # noqa: BLE001  — a malformed message is ignored, never fatal to the thread
+        return [], [], {"kind": kind, "sensor_id": sid}
+    readings = []
+    for ts, vals in groups:
+        for cid, v in vals.items():
+            metric = SC_WIRE_IDS.get(cid)
+            if metric:
+                readings.append((ts, sid, metric, v))
+            elif cid and cid not in _SC_WIRE_UNKNOWN:
+                _SC_WIRE_UNKNOWN.add(cid); log.info("sc-direct: catalogue id %s not in SC_WIRE_IDS (value %r) — add it if it matters", cid, v)
+    return [sensor], readings, {"kind": kind, "sensor_id": sid}

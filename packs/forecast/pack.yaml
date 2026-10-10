@@ -22,6 +22,9 @@ env:
   - "# forecast: how often to ask, in hours. Both sources publish a few times a day, so six is the"
   - "# publishers own cadence rather than a number this pack invented."
   - "FORECAST_POLL_HOURS=6"
+  - "# forecast: the wind field the map draws moving (Open-Meteo, so only with FORECAST_OPENMETEO=1): points a side, and half-width in km"
+  - "FORECAST_WIND_N=8"
+  - "FORECAST_WIND_KM=30"
 needs:
   - api.bmkg.go.id
   - api.open-meteo.com

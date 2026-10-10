@@ -69,51 +69,86 @@ distances:
     function: apparent
 
 sentences:
-  # Heat has verbs now, like air: the last three hours against the three before them. "Warming to
-  # 31 °C in the room" is a different evening from "Cooling to 31 °C", and the number alone could
-  # not tell them apart. Steady keeps the old opening.
+  # Its own skeletons, not air's with the noun swapped (docs/SPEC_language.md): {line} names this
+  # house's own line, {event} the day it crossed and came back, and the comparisons are heat's.
   en:
     verbs:
-      rising:  "Warming to"
-      steady:  "It feels like"
-      falling: "Cooling to"
+      rising:  "building"
+      steady:  "holding"
+      falling: "easing"
+    line:
+      over:  "past this house's own line"
+      near:  "near this house's own line"
+      under: "under this house's own line"
+    event:
+      earlier: "It crossed the line earlier today."
+    cmp_words:
+      over:  "hotter than {noun}"
+      under: "cooler than {noun}"
+      level: "about as hot as {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, under the line. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, warmer than anywhere around it. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, and it is this warm everywhere around. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}, cooler than the street. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "The heat is {verb} {where}, {line}. {cmp} {event}"
+      inside:        "The heat is {verb} {where}, {line} — the house is the hot spot around here. {cmp} {event}"
+      everywhere:    "The heat is {verb} {where}, {line}, and it is this hot all over the area. {cmp} {event}"
+      outside_worse: "The heat is {verb} {where}, {line}. The house is holding off a hotter street. {cmp} {event}"
+      mixed:         "The heat is {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "The heat is {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "Nothing here reports both temperature and humidity, so there is no apparent temperature to give."
   id:
     verbs:
-      rising:  "Memanas ke"
-      steady:  "Terasa seperti"
-      falling: "Mendingin ke"
+      rising:  "memanas"
+      steady:  "bertahan"
+      falling: "mereda"
+    line:
+      over:  "di atas batas rumah ini"
+      near:  "mendekati batas rumah ini"
+      under: "di bawah batas rumah ini"
+    event:
+      earlier: "Tadi sempat melewati batas."
+    cmp_words:
+      over:  "lebih panas daripada {noun}"
+      under: "lebih sejuk daripada {noun}"
+      level: "kurang lebih sama dengan {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, di bawah batas. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, lebih panas daripada mana pun di sekitarnya. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, dan sepanas ini di seluruh sekitar. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}, lebih sejuk daripada di jalan. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "Panas {verb} {where}, {line}. {cmp} {event}"
+      inside:        "Panas {verb} {where}, {line} — rumah ini titik terpanas di sekitarnya. {cmp} {event}"
+      everywhere:    "Panas {verb} {where}, {line}, dan seluruh daerah ini sama panasnya. {cmp} {event}"
+      outside_worse: "Panas {verb} {where}, {line}. Rumah menahan jalan yang lebih panas. {cmp} {event}"
+      mixed:         "Panas {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "Panas {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "Tidak ada di sini yang melaporkan suhu dan kelembapan sekaligus, jadi suhu terasa tidak bisa dihitung."
   es:
     verbs:
-      rising:  "Calentándose hasta"
-      steady:  "Se siente como"
-      falling: "Enfriándose hasta"
+      rising:  "está subiendo"
+      steady:  "se mantiene"
+      falling: "está cediendo"
+    line:
+      over:  "por encima del límite de esta casa"
+      near:  "cerca del límite de esta casa"
+      under: "por debajo del límite de esta casa"
+    event:
+      earlier: "Hoy cruzó el límite."
+    cmp_words:
+      over:  "más calor que {noun}"
+      under: "más fresco que {noun}"
+      level: "igual que {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, por debajo del límite. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, más calor que en cualquier sitio alrededor. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, y hace este calor en todo el alrededor. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}, más fresco que la calle. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "El calor {verb} {where}, {line}. {cmp} {event}"
+      inside:        "El calor {verb} {where}, {line}, y la casa es el sitio más caliente de la zona. {cmp} {event}"
+      everywhere:    "El calor {verb} {where}, {line}, y hace este calor en toda la zona. {cmp} {event}"
+      outside_worse: "El calor {verb} {where}, {line}. La casa aguanta una calle más caliente. {cmp} {event}"
+      mixed:         "El calor {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "El calor {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "Nada de aquí informa temperatura y humedad a la vez, así que no hay temperatura aparente que dar."
+
+# The supporting layer (docs/SPEC_language.md): what apparent temperature is and whose line this is.
+about:
+  en: "'Feels like' counts humidity with the temperature, because wet air slows the sweat that cools you. The line — 35 °C — is this place's own, measured here, not a global one."
+  id: "'Terasa seperti' menghitung kelembapan bersama suhu, karena udara lembap memperlambat keringat yang mendinginkan tubuh. Batasnya — 35 °C — adalah milik tempat ini, diukur di sini, bukan global."
+  es: "La 'sensación' cuenta la humedad junto con la temperatura, porque el aire húmedo frena el sudor que te enfría. El límite — 35 °C — es propio de este lugar, medido aquí, no uno global."
 
 hero:
   sign: sign-heat
@@ -155,3 +190,54 @@ readouts:
     unit: UV
     dp: 0
     label: { en: UV index, id: indeks UV, es: índice UV }
+
+# Events (docs/SPEC_alerts.md §4–§5). One message per heat event at this house, whichever rooms it spans; one
+# action, the first below whose `when:` holds. The id and es strings are ASSISTANT-WRITTEN.
+events:
+  unusual:
+    en: "🌡️ Hotter than usual in {rooms}: it feels like {peak} °C, well above this room's normal for the hour."
+    id: "🌡️ Lebih panas dari biasanya di {rooms}: terasa seperti {peak} °C, jauh di atas biasanya untuk jam ini."
+    es: "🌡️ Más calor de lo habitual en {rooms}: la sensación es de {peak} °C, muy por encima de lo normal a esta hora."
+  sustained:
+    en: "🥵 {rooms} has been hot for hours: it feels like {peak} °C, longer than this room usually stays there."
+    id: "🥵 {rooms} sudah panas berjam-jam: terasa seperti {peak} °C, lebih lama dari biasanya."
+    es: "🥵 {rooms} lleva horas con calor: la sensación es de {peak} °C, más tiempo del que suele durar."
+  danger:
+    en: "🚨🥵 DANGER in {rooms}: it feels like {peak} °C — past this house's own line of {line}. The body cannot shed heat at this level."
+    id: "🚨🥵 BAHAYA di {rooms}: terasa seperti {peak} °C — melewati batas milik rumah ini, {line}. Tubuh tidak bisa membuang panas di tingkat ini."
+    es: "🚨🥵 PELIGRO en {rooms}: la sensación es de {peak} °C — por encima del límite propio de esta casa, {line}. A este nivel el cuerpo no consigue soltar calor."
+  clear:
+    en: "✅ {rooms} has cooled back to its usual."
+    id: "✅ {rooms} sudah kembali sejuk seperti biasa."
+    es: "✅ {rooms} ha vuelto a su temperatura habitual."
+actions:
+  - id: heat/leave_or_cool
+    when: {kind: [danger]}
+    say:
+      en: "Cool the room or leave it: wet skin, a fan, shade, water. Do not leave anyone alone in it."
+      id: "Dinginkan ruangan atau keluar: basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian."
+      es: "Enfría la habitación o sal de ella: piel mojada, ventilador, sombra, agua. No dejes a nadie solo ahí."
+  - id: heat/open_up
+    when: {outside_cooler_by: 2, outside_pm25_below: 35}
+    say:
+      en: "Open up now: {outside_source} is {outside_temp} and inside is {inside_temp}."
+      id: "Buka sekarang: {outside_source} {outside_temp}, di dalam {inside_temp}."
+      es: "Abre ahora: {outside_source} está a {outside_temp} y dentro hay {inside_temp}."
+  - id: heat/keep_shut_shaded
+    when: {outside_hotter: true}
+    say:
+      en: "Keep it shut and shaded: outside ({outside_temp}) is hotter than inside for now."
+      id: "Tutup dan beri peneduh: di luar ({outside_temp}) masih lebih panas dari dalam."
+      es: "Mantén cerrado y a la sombra: fuera ({outside_temp}) hace más calor que dentro por ahora."
+  - id: heat/cool_sleeping_room
+    when: {kind: [sustained], home_has: ac, hour_from: 17, hour_to: 23}
+    say:
+      en: "Cool the room you sleep in before 22:00."
+      id: "Dinginkan kamar tidur sebelum pukul 22:00."
+      es: "Enfría la habitación donde duermes antes de las 22:00."
+  - id: heat/water_and_rest
+    when: {}
+    say:
+      en: "Drink water, move air, and ease off hard work until it drops."
+      id: "Minum air, gerakkan udara, dan kurangi kerja berat sampai turun."
+      es: "Bebe agua, mueve el aire y afloja el trabajo duro hasta que baje."

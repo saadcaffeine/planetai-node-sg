@@ -1,4 +1,5 @@
 # The bot and the model ladder
+<!-- checked: v0.80.10 -->
 
 The bot adds conversation to a node. Somebody in the house asks "is the air bad right now?" on Telegram and
 gets an answer read from the node's own tools; somebody says "I closed the windows" and that is recorded, in
@@ -8,7 +9,8 @@ reads its sensors, evaluates its rules, writes its report and sends its alerts w
 The model is a client of the node, not a component of it. It runs in its own container, `agent`, running
 `app/agent_loop.py`, started by `planetai agent local`. Alerts and reports never pass through it: the app
 container writes and sends those itself, and the agent container has no clock and sends nothing on a
-schedule.
+schedule. That holds for the alert-event engine's messages too (`ALERT_ENGINE=events`, see [Alerts](alerts.md)):
+the app container sends them, they carry no buttons and no id yet, and `/act` below answers an alert, never an event.
 
 ## Setting it up
 
@@ -46,7 +48,7 @@ tailnet still has all twenty; see [MCP](mcp.md).
 `act` needs the person's own words. A model cannot write `acted`, `done` or `ok` as the note: the tool
 refuses a placeholder and tells the model to ask.
 
-> **Gap in v0.75.3.** The bot's system prompt tells the model to "give the exact command from
+> **Gap in v0.80.10.** The bot's system prompt tells the model to "give the exact command from
 > `maintenance`" for a task that needs the node's shell, and `maintenance` is one of the four tools the loop
 > withholds. Asked to update or back up the node, the bot cannot look the command up; the commands are in
 > [The command line](cli.md).
@@ -73,7 +75,7 @@ The dashboard's ask pane walks the same ladder, from the same settings and the s
 choice governs both. Its local rung is there only when `planetai agent local` set one up, and it runs
 read tools only, never a write; see [Ask the node](ask.md).
 
-> **Gap in v0.75.3.** The Agent group's description in Set up still reads "The strongest one the node can
+> **Gap in v0.80.10.** The Model group's description in Set up, on the dashboard and on the doors' Set up page, still reads "The strongest one the node can
 > reach is used." The default is `private`, and `/model` in Telegram prints the order in force.
 
 `tools/remote-model.sh gptoss` runs llama.cpp's server on a laptop or workstation with gpt-oss-120b (about
@@ -106,8 +108,9 @@ set to Bahasa Indonesia they fall back to English, while the model's answers fol
 |---|---|
 | `/act 12 closed the windows` | records the action on alert 12 in those words, with the actor `<AGENT_NAME>/telegram`; replies "Recorded: you acted on #12." |
 | `/act 12` | records nothing and asks "What did you do about #12?", with the form to send it in: `/act 12 <what you did>` |
-| `/stack [issue]` | the issue's state, its sentence in your language, the four distances with their provenance and unit, and up to two open alerts: a template over the `issues` tool, no model ever |
+| `/stack [issue]` | the issue's state, its sentence in your language, the four distances with their provenance and unit, and up to two open alerts (on a node whose alert engine is `shadow` or `events`, not the heat and air alerts an event stands for): a template over the `issues` tool, no model ever |
 | `/model [local\|remote\|online\|auto]` | pins a rung for this chat and prints the ladder: each rung, its model, its host, whether it is currently skipped, and what `AGENT_PREFER` means (`private`: "the node's own machines only, nothing leaves the network") |
+| Event buttons | When the bot has announced itself (`TELEGRAM_BUTTONS=1`), event messages carry three buttons: Done (`acted`), Not now (`acknowledged`), Doesn't fit (`dismissed`). Pressing one posts `POST /actions` with `event_id`, `stage`, `actor`, `note`; Doesn't fit asks "what did you do instead?" and keeps the reply as the note. Labels in en/id/es. |
 
 ## What leaves the network
 

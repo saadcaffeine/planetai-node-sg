@@ -38,7 +38,8 @@ Then: what you did, what happened, and what you expected instead. A node's own n
 that output; nothing else about the household is.
 
 **Never send `.env`.** Not in an advisory, not in an issue, not in a chat, not redacted. It holds the
-database password, the admin token, the backup token and the Telegram bot token, and the four commands
+database password, the admin token, the backup token, the Telegram bot token and any key a pack asked for, and the
+four commands
 above answer every question `.env` would. If a report needs a setting, name the setting.
 
 The same goes for raw container logs. Versions before v0.4.3 wrote Telegram bot tokens into them; if you
@@ -70,10 +71,18 @@ If they disagree, something replaced the node's copy of the CLI, and the CLI is 
 **Where the private half lives.** With the Fab City Foundation: in the Foundation's password manager,
 with one working copy on the machine that cuts releases. It is not in this repository, not in the
 tarball, not in CI and not in a log, and `tools/release.sh` refuses to run if it is pointed at a key
-inside the repository. Rotation is in [`docs/HANDOFF_signing.md`](docs/HANDOFF_signing.md).
+inside the repository. Rotation is in [`docs/SIGNING.md`](docs/SIGNING.md).
 
 **Every release is published twice** — at `planetai.fab.city/node0/get` and as a GitHub Release — from
 the same bytes with the same signature, so the two copies can be compared by anyone.
+
+**A wild pack is not signed.** `planetai packs add` fetches a pack from GitHub at a pinned commit, and the node
+records which commit in `packs/<id>/.wild`, but nobody's key vouches for it, and `listed` at
+fabcity/planetai-wild-packs means it passed the checks, not that anyone read it. A data pack is SQL and words, and
+its SQL runs as `planetai_ro`: it can read every table but `settings`, and write none. A code pack's `adapter.py`
+runs as Python with the node's privileges, and only once `PACKS_ALLOW_CODE=1` is set: read the adapter before you
+set it. A vulnerability in a core pack is reported here; one in a wild pack goes to its author, and to us as well
+if it shows a way past those limits.
 
 ## What is not covered
 

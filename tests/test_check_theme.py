@@ -8,6 +8,7 @@ an edit that passes CI is on every screen in the house after the next update.)
 
 Runs against a copy of the real tree, so it tests the file in tools/ rather than a paraphrase.
 """
+import os
 import pathlib
 import shutil
 import subprocess
@@ -66,10 +67,13 @@ try:
     # two commits, because that is the smallest thing that has a "before" and an "after".
     design = pathlib.Path(tmp) / "design"
     design.mkdir()
+    # identity from the environment, not `git config`: a GIT_DIR leaked from a hook beats -C, and a
+    # config write under it lands in the real checkout (test_ship_gate.sh did that, 267 commits as t@t)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env.update(GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
     def git(*a):
-        return subprocess.run(["git", "-C", str(design), *a], capture_output=True, text=True)
+        return subprocess.run(["git", "-C", str(design), *a], capture_output=True, text=True, env=env)
     git("init", "-q", "-b", "main")
-    git("config", "user.email", "t@t"); git("config", "user.name", "t")
     theme = design / "planetai-theme.css"
     (design / "assets" / "signs").mkdir(parents=True)
     (design / "assets" / "h3").mkdir(parents=True)

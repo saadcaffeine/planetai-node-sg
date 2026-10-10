@@ -45,7 +45,7 @@ services:
       RETICULUM_URL: ${RETICULUM_URL:-}
     volumes:
       - ./config:/app/config:ro      # a directory, not a file: editors that save-by-replace would break a single-file mount
-      - ./packs:/app/packs:ro        # community packs — see docs/PACKS.md
+      - ./packs:/app/packs:ro        # packs, core and wild — see docs/PACKS.md
       - ./presets:/app/presets:ro    # site presets: `planetai run earth similar` reads the pilots' coordinates from here
       - ./data:/app/data:ro          # the vendored source registry (data/sources) and the platform floors — read, never written
       - ./out:/app/out               # the one writable path: artifacts a pack makes for you (images, charts, briefs)

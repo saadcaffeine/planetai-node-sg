@@ -1,0 +1,13 @@
+{
+  "schema": "days-v0",
+  "source": "app/issues/engine.py::days",
+  "keys": [
+    "as_of",
+    "buckets",
+    "days",
+    "events",
+    "issues",
+    "schema",
+    "tz"
+  ]
+}

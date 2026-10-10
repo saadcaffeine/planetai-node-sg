@@ -367,6 +367,7 @@ T = {
     "en": {
         "folded": "Overnight and this morning.",
         "state_hot": "🥵 It is dangerously hot inside.",
+        "state_heat": "🌡️ It is hot inside: it feels like 35 °C or more.",
         "state_bad": "😷 The air inside is unhealthy right now.",
         "state_warm": "🌫️ The air inside is middling: not clean, not unhealthy.",
         "state_clean": "✅ The air inside is clean.",
@@ -393,6 +394,7 @@ T = {
     "id": {
         "folded": "Semalam dan pagi ini.",
         "state_hot": "🥵 Di dalam panasnya berbahaya.",
+        "state_heat": "🌡️ Di dalam panas: terasa 35 °C atau lebih.",
         "state_bad": "😷 Udara di dalam sedang tidak sehat.",
         "state_warm": "🌫️ Udara di dalam sedang-sedang: belum bersih, belum tidak sehat.",
         "state_clean": "✅ Udara di dalam bersih.",
@@ -418,6 +420,7 @@ T = {
     "es": {
         "folded": "La noche y esta mañana.",
         "state_hot": "🥵 Dentro hace un calor peligroso.",
+        "state_heat": "🌡️ Dentro hace calor: la sensación es de 35 °C o más.",
         "state_bad": "😷 El aire de dentro está insalubre ahora mismo.",
         "state_warm": "🌫️ El aire de dentro está a medias: ni limpio ni insalubre.",
         "state_clean": "✅ El aire de dentro está limpio.",
@@ -467,8 +470,12 @@ def sheet(b: dict, locale: str = "en") -> str:
     indoor = [r.get("mean_15m") or r.get("mean_1h") or r.get("last")
               for r in now if r.get("local") and r.get("indoor") and r["metric"] == "pm25"]
     indoor = [v for v in indoor if v is not None]
-    if any((a.get("rule") or "").startswith("heat/") for a in b.get("open_act") or []):
-        parts.append(lead + t["state_hot"])
+    heat = [(a.get("rule") or "") for a in b.get("open_act") or [] if (a.get("rule") or "").startswith("heat/")]
+    if "heat/heat_danger" in heat:
+        parts.append(lead + t["state_hot"])          # feels like 40 °C or more: the one heat line called danger
+    elif heat:
+        # heat_stress_now's 35 is node #1's ordinary afternoon (SPEC_alerts §1): said as a fact, never as danger
+        parts.append(lead + t["state_heat"])
     elif not indoor:
         # No indoor air sensor, but a room with a thermometer is still "a sensor inside". The one the household chose
         # as its reference (not a `secondary` room) speaks for the house.

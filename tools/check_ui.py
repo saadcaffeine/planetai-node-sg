@@ -301,6 +301,9 @@ _refs |= {m.split("#")[0] for m in re.findall(r'href="([^"${}]+)"', js) if "/" i
 # character class above excludes `${}` — which is the same way a reference dropping its prefix
 # dropped out, two comments up. The asset is the path; the query is not part of the allowlist.
 _refs |= set(re.findall(r'src="([^"${}?]+)\?[^"]*"', js))
+# The map ground (UI_GROUND=map) loads its libraries by building the element in script, as
+# `{ src: 'static/maplibre-gl.js' }`, so the attribute forms above never see them.
+_refs |= set(re.findall(r"(?:src|href):\s*'(static/[^'${}]+)'", js))
 for ref in sorted(_refs):
     ref = ref.strip("'\"").split("?")[0]
     # A link OUT (the documentation, the programme) or to one of this node's own routes (the foot's
@@ -311,6 +314,18 @@ for ref in sorted(_refs):
         errs.append(f"the page loads {ref}, which is not under static/ — app/main.py serves nothing else")
     elif ref[len("static/"):] not in served:
         errs.append(f"the page loads {ref}, which app/main.py's COMPANIONS allowlist does not serve")
+
+# --- 8b. the page computes no H3 ---------------------------------------------------------------------------------
+# The node computes, the page draws: every cell ring the page draws arrives as `cells_ll` in /issues' geometry. A
+# browser that imports h3-js, or hands deck.gl an H3 id to turn into a hexagon, is computing a boundary the node
+# did not send — and at a resolution the node may have refused to publish. deck.gl's bundle carries the H3 layers;
+# the page must not reach for them.
+_h3 = re.findall(r"h3-js|H3HexagonLayer|H3ClusterLayer|\bh3\.(?:latLngToCell|cellToBoundary|cellToLatLng|gridDisk|"
+                 r"polygonToCells|cellToParent|cellToChildren|compactCells|geoToH3|h3ToGeoBoundary|kRing)\b",
+                 strip_comments(js))
+if _h3:
+    errs.append(f"the page computes H3 itself ({', '.join(sorted(set(_h3)))}). The node sends every ring it may "
+                f"draw as cells_ll; draw those with PolygonLayer, and add a route to app/main.py if one is missing.")
 
 # --- 9. the stylesheets the page loads ------------------------------------------------------------
 # Everything under app/static/*.css is served to a household LAN by the COMPANIONS allowlist in

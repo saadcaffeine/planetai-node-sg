@@ -116,10 +116,12 @@ assert "contributes: report" in open("packs/insight/rules.yml").read(), "the dig
 assert "def contributors" in open("app/packs.py").read() and "def alerts" in open("app/packs.py").read(), "packs.py: a contributor is not an alert"
 print("one report, its table, its endpoints, its settings and its command all ship")
 # v0.32.1 — a reinstall over an earlier node's volume left an app that could not log in while every check said fine
-# Was pinned to the literal "planetai_db", which is only the volume's name when the node happens to
-# live in a folder called planetai. The guard reads the compose project now, so assert that instead.
+# The guard once looked for "planetai_db" literally, then derived the name from the folder's basename —
+# both wrong in one direction each: docker-compose.yml pins `name: planetai`, so the volume is planetai_db
+# whatever the folder is called (a tarball install lives in planetai-node), and COMPOSE_PROJECT_NAME is the
+# only override. Assert the pin, not a derivation.
 _ish = open("install.sh").read()
-assert 'DBVOL="${COMPOSE_PROJECT_NAME:-$(basename "$PWD")}_db"' in _ish and 'docker volume inspect "$DBVOL"' in _ish \
+assert 'DBVOL="${COMPOSE_PROJECT_NAME:-planetai}_db"' in _ish and 'docker volume inspect "$DBVOL"' in _ish \
     and "NEWPW" in _ish, "install.sh: refuse a new password over an old volume, whatever the folder is called"
 assert "app logs in to the database" in cli, "doctor: the locked-out app must be a named failure"
 print("reinstall over a leftover volume is refused and diagnosed")
@@ -207,7 +209,7 @@ assert '/earth/frame.png?source=sentinel' in gui, "gui: the imagery frames"
 assert re.search(r'class="[^"]*\bprov\b', gui), "gui: the satellite card needs its provenance pill"
 assert "planetai run earth fetch" in gui, "gui: the empty state must name the command that fills it"
 # v0.33.6 — the dashboard must not be cacheable: a node that updates has to reach the screens looking at it
-_ui = re.search(r"^def ui\(\):(.*?)(?=^def |\Z)", main, re.M | re.S).group(1)
+_ui = re.search(r"^def ui\([^)]*\):(.*?)(?=^def |\Z)", main, re.M | re.S).group(1)
 assert "no-cache" in _ui, "the dashboard route must send a cache-control header, or an update never reaches an open browser"
 print("the dashboard is not cacheable")
 # v0.33.7 — one unusual OpenStreetMap object must not blank the plan. A poi mapped as an open way made
@@ -299,17 +301,19 @@ assert "alive AS (\n          SELECT sensor_id, max(ts) AS kit_ts FROM readings\
 assert "JOIN alive a USING (sensor_id)" in main, "frozen_channels must be gated by the kit still being alive, not just by the flat hours"
 # v0.33.8 — the heat rule fired on Kuta Selatan's ordinary weather: node #1's hot room was over 32 °C apparent for
 # 86% of every reading, so 32 was its baseline, not an event. The line is 35 for the rule and 32 for the cell (a
-# count of exposure is not an interruption), and the alert texts must not move without Tomas.
+# count of exposure is not an interruption), and the alert texts must not move without Tomas. 9 October: they
+# moved WITH him — release D of the language split names whose line in every threshold alert (rule 10 of
+# docs/SPEC_language.md), and heat_stress_now drops "dangerously" (danger is a register, not a volume).
 _heat = {r["id"]: r for r in yaml.safe_load(open("packs/heat/rules.yml"))}
 assert ">= 35" in _heat["heat_stress_now"]["sql"], "heat_stress_now: 32 is node #1's baseline; the line is 35"
 assert ">= 40" in _heat["heat_danger"]["sql"], "heat_danger stays at the heat-index danger line"
 assert ">= 32" in open("packs/heat/cells.yml").read(), "the Social cell counts hours over 32, unchanged"
 assert _heat["heat_stress_now"]["cooldown_minutes"] == 240, "at 35 the cooldown stops mattering; it stays 240"
-for _r, _lang, _words in (("heat_stress_now", "en", "It is dangerously hot at {name}: it feels like {at} °C."),
-                          ("heat_danger", "en", "DANGER at {name}: it feels like {at} °C.")):
+for _r, _lang, _words in (("heat_stress_now", "en", "It is too hot at {name}: it feels like {at} °C — this house's own line is {line} °C, measured here."),
+                          ("heat_danger", "en", "DANGER at {name}: it feels like {at} °C — the danger line here is {line} °C.")):
     assert _words in _heat[_r]["message"][_lang], f"{_r} [{_lang}]: the message template needs Tomas's sign-off to change"
 assert "Kuta Selatan" in open("packs/heat/README.md").read(), "docs/PACKS.md: say which place you wrote for"
-print("the heat line is this place's, and the alert texts are untouched")
+print("the heat line is this place's, and every threshold alert names whose line it is")
 
 # v0.38 — the hero's ground is the node's own cell, drawn from NODE_LAT/NODE_LON, and the line naming that
 # cell is on the page rather than stamped in the drawing, where object-fit:cover crops it away.
@@ -555,7 +559,7 @@ agent = open("app/agent_loop.py").read()
 assert "async def node_session(" in agent, "agent_loop.py: the node_session helper"
 assert agent.count("streamable_http_client(") == 1, \
     "agent_loop.py: only node_session may open an MCP session — a second one is a session outliving a question"
-assert re.search(r"^    offset, history, pins = ", agent, re.M), \
+assert re.search(r"^    offset, history, pins, pending = ", agent, re.M), \
     "agent_loop.py: main's poll loop must sit at the top of main, outside any MCP session — indented deeper it is " \
     "nested in one again, and that session outlives the question (refresh_ladder has a `while True` of its own, so " \
     "the loop keyword alone proves nothing)"

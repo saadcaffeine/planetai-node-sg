@@ -2,13 +2,349 @@
 
 ## Unreleased
 
-- **2026-09-30 · The FAB26 experiment has a page.** `docs/FAB26_EXPERIMENT.md` is the participant-facing
-  instructions for the October–December workshop cohort experiment: the two all-hands calls, the biweekly
-  check-in through the experiment bot (@planetai_exp_bot), the build track, and a section for the workshop
-  sensor kit (XIAO ESP32-S3 + Wio-SX1262, Grove shield, BME680, HM3001) with the Making Sense Bali enclosure
-  link and the warning that stock Meshtastic firmware reads the BME680 but not the HM3001.
+## v0.80.10 — 2026-10-10 — The boot screen is the loading screen
 
-- **2026-09-30 · A node says when a new version is out.** Once a day the node asks planetai.fab.city which
+- **No dead shell before the asking face, on either face of the node.** The doors and the classic dashboard
+  used to paint their chrome — the nav, the register buttons, the empty middle — for a breath or two before
+  any script arrived to open the asking overlay. Both overlays now ship already on: the first paint is the
+  asking face, whose brand, frame and blink are CSS and move before a line of JS runs, and the glyph globe
+  joins when the page's own `open()` wires the canvas over it (its `on` is a JS flag, so the pre-shown face
+  does not stop it). Every path out closes it as before, and a browser with scripting off gets the shell
+  instead of a spinner that would lie (`@media (scripting: none)` — not a `noscript` style tag, which the
+  page architecture forbids and check_ui would rightly trip on).
+
+## v0.80.9 — 2026-10-10 — The split reaches the Now door's hour scrubber
+
+- **The Now door titles with the split, live hour and past.** v0.80.8 split the hero and the wall but missed
+  the doors Now door's own sentence line: the live hour still drew the whole sentence bold, and a past hour
+  still opened with the reading — "At 04:00 the air in the house read 8 µg/m³, under the line." The live hour
+  now draws `title` + `tagline` like every other surface, and a past hour splits the same way on the page's
+  own words: the title is what it meant ("The air in the house was under the line."), the tagline what it
+  measured ("At 04:00 it read 8 µg/m³.") — smaller, not bold, muted. First the meaning, then the instrument.
+
+## v0.80.8 — 2026-10-10 — The title says what is happening; the readings arrive a beat later
+
+- **The sentence splits into `title` + `tagline` (SPEC_language, the progressive-disclosure pattern applied to
+  the title itself).** The headline a page shows is no longer the whole sentence: the title is the qualitative
+  head — "The air is getting worse in the house" — with no number and no indicator in it, and the tagline is
+  the explanation set smaller and muted beneath — "Under the WHO line. Level with the street, the ring and the
+  region." A household reads the situation first and meets the instruments one line down; the numeral and
+  `plain` stay where they were. The split is engine work (`_sentence_parts`, at the `{line}` clause), so it
+  holds in en/id/es and for every issue, and templates without a `{line}` clause do not split. The full
+  `sentence` stays on the wire for prose — the bot, the asks, the wall's thinking-aloud. The doors wall takes
+  the same split, which is also its fix: release C's clause-headlines had grown the wall's sentence past its
+  screen (the visual gate caught 1,113 px on a 1,080 px wall at release C and every commit since), and the
+  title/tagline split brings the wall back to exactly its viewport — verified against the fixture render.
+  v0.80.7 was tagged but never shipped: CI held it on exactly this wall failure, and this is the fix it was
+  waiting for.
+
+## v0.80.7 — 2026-10-10 — The loop closes from the phone, and the card says whose answer it carries
+
+- **The answer carries the household's own words, and the page insists on a name.** The wire's `answer` now
+  carries `note`, and the card draws it in quotes — `Doesn't fit · tomas · 13:20 — "opened the west side"` —
+  so the reply to the bot's one question is visible where the answer lives. And the card's form no longer
+  sends an anonymous answer: five nameless rows landed on node #1 the morning the card looked frozen — the
+  presses worked, but the record could not say whose they were. (curl may still post an empty `actor`; a LoRa
+  bridge may not know names, and the card says "somebody" for those. spec §4.2 amended.)
+- **Telegram buttons close the loop (SPEC_alerts §7, Plan 2's first half).** An event's message now carries
+  Done / Not now / Doesn't fit when the bot in the agent container has announced itself (`TELEGRAM_BUTTONS=1`,
+  set on startup; a node without the bot sends the same message bare). The press is the same `POST /actions`
+  the dashboard makes — page and phone write one row — then the keyboard lifts and the chat carries the record
+  (`Done · tomas`). *Doesn't fit* asks the one optional question and keeps the reply as the note: the dismissal
+  is recorded at the press, a free-text line within ten minutes rides a second row, and the wire's latest answer
+  is the one carrying the note. Labels are the wire's own in en/id/es. The learning from these answers (§5) and
+  ρ over events (§7's decision record) are still owed. Tested live on node #1 the same morning: a press and a
+  note landed as two rows, fourteen seconds apart, and the card showed both.
+- **The Decide card says it is watching.** An open event's card now carries "watching — last seen …" in its
+  header, from the wire's `last_seen_at`, ticking up on every poll: the visible proof the feed is alive while an
+  event sits open for hours. The margin that keeps such events open on hot nights stays as written — the stillness
+  was the card's, not the engine's (`docs/decisions/2026-10-10-heat-margin.md`, spec §4.2 amended).
+- **`node_url()` replaces the `MCP_URL.replace("/mcp", …)` munge** at its three call sites (the Cowork audit's
+  caveat): the bot's plain-HTTP URLs no longer depend on the letters "/mcp" being present in the setting.
+- **The pre-commit hook adopts the brew `PATH` export and keeps its test gate.** The export was working-tree
+  drift from a GUI-fired session (hooks inherit no shell profile); the drift's other half — `make test`
+  commented out — was refused: a hook that skips the suite teaches `--no-verify`.
+
+## v0.80.6 — 2026-10-10 — The alerts name whose line it is
+
+Tagged at `aeb5a27`, the last commit whose tree holds no `app/static` change — Rule 2: page and packs ship in
+separate releases, so "was it the page or the data" has one answer. The page half is v0.80.7.
+
+- **Every threshold alert names whose line it is (release D of the language split).** The audit of
+  releases A–C found the gap: `docs/SPEC_language.md` rule 10 was delivered in the event templates
+  but not in the pack messages a household receives. The heat and air-quality act rules now say it —
+  "this house's own line is {line} °C, measured here" for heat, "past the US EPA line ({line} µg/m³)"
+  for air — filled from `watch.over` by `main.py`, so the number is never a second copy. `heat_stress_now`
+  drops "dangerously" (danger is a register, not a volume; `heat_danger` keeps it, and keeps being the
+  only place it appears). `tools/check_rules.py` fails any act/warn rule with a `watch.over` whose
+  message skips the `{line}` clause, and any `{line}` with no `watch.over` to fill it — the gate that
+  would have caught the gap. The sign-off pins in `tests/test_shipped.py` moved with Tomas's approval.
+- **Headlines assembled from clauses (release C).** The review found the titles repetitive and flat:
+  `{line}` (over · near · under, computed from the live value, named per issue), `{event}` ("It crossed
+  the line earlier today"), and per-issue `cmp_words` ("cleaner than the street" for air, "cooler than
+  the street" for heat). Heat's skeletons are its own; coast and land headlines dropped the jargon.
+
+## v0.80.5 — 2026-10-09 — The page speaks the three layers, and the Wall's voice lives on the node
+
+- **The page speaks the three layers, and the Wall's voice lives on the node.** The second half of
+  the language split (`docs/SPEC_language.md`): the crossed mark moved out of the sentence (words
+  only since the last release) and onto the figure inside `plain` when it is over the line; the
+  wall card drops `plain`'s first clause, which only repeated the numeral drawn above it; and the
+  Wall's thinking-aloud prompt moved from the page into the node as `WALL_SYSTEM` beside the other
+  two prompts — the page asks for it by name (`prompt: 'wall'` on `/ask`), the node rotates the
+  angle, and the scrubbed figures ride in the system prompt as they always did. The "How a
+  sentence is built" panel now describes the three layers: the headline in words, `plain` the
+  figures, `about` the meaning.
+- Registry pin: `awesome-fabcity-data @ 851b8db` (269 entries; content unchanged, stamp current).
+
+## v0.80.4 — 2026-10-09 — The headline speaks in words, and update says what blocks it
+
+- **`planetai update` says what blocks it, and what "nothing moved" means.** A failed pull on a git
+  install now names the dirty files and the local-only commits (git's own error does not), and a
+  pull that moves nothing asks the channel: if the site serves a release whose tag has not landed
+  on the branch yet, it says the release is still shipping instead of staying silent (node #1 ran
+  three no-op updates in a day chasing v0.80.3). The Set up → Updates row now says *checked N h ago*
+  instead of a bare date, so a stale "this node has it" reads stale. `.gitignore` now covers the
+  operational files a git install writes (`.planetai-*`, `.env.before-*`,
+  `config/rules.yml.before-update`) — a `git add -A` used to sweep them in, and a tracked update log
+  made every later pull refuse.
+
+- **the headline goes words-only, and `plain` carries the figures** (SPEC_language, release A). The
+  lead sentence speaks in words — "The air is getting worse in the house, and the source is inside
+  the house" — and the plain sentence under it holds the numbers: the numeral distance first, then
+  the others, then the line. Context issues (coast, land) get word headlines; their figures move to
+  `context_plain`. Each issue gains an `about` text — what the metric is and whose line it is — on
+  `/issues` and in the ask pane. Alerts name whose line it is (the WHO's, or this house's own).
+  Event figures honour the issue's `dp` (42, not 42.0) and `outside_*` values carry their units.
+  The bot and the ask pane gain the layers rule and the no-lecture rule; the pane gains the
+  one-number rule it lacked. The page half (the crossed mark, WALL_SYSTEM) follows in release B.
+
+## v0.80.3 — 2026-10-08 — The doors open on a node that reads nothing yet
+
+- **the doors dashboard no longer crashes on a node with no local sensors.** Since v0.80.1 made the doors
+  the default page, `dayWeek` assumed every issue carries an hourly series for its hero distance. A node
+  that reads the issue at no distance — a model-only node, and every fresh install until its first sensor —
+  is answered `distance: null` with every band null by /issues/days, and `it.series[null]` threw before the
+  page could draw. The boot's catch-all then showed the locked screen, telling a household whose node was
+  sharing fine that "this node is not sharing its readings with this screen". The day now draws with no
+  line, the node's own sentence carries the view, and the throw is gone. Found on a tester's node in
+  Menorca; reproduced and verified against it live.
+
+## v0.80.2 — 2026-10-08 — A reinstall over an old database is refused, and posidonia joins the wild packs
+
+- **a reinstall over an earlier node's database is refused again.** Since v0.42 the install's old-database
+  guard derived the Docker volume name from the folder's basename, but docker-compose.yml has always pinned
+  `name: planetai`, so the volume is `planetai_db` whatever the folder is called. A reinstall in a folder
+  named anything else (every tarball install: `planetai-node`) sailed past the guard with a fresh
+  POSTGRES_PASSWORD, and the app was locked out of its own database: /health answered "pre-0.4 (run
+  ./update.sh)", /rho answered 500, and only `planetai doctor` guessed why. The guard now checks the volume
+  compose actually names. /health says "unreachable" for a login failure and keeps "pre-0.4" for a schema
+  that predates schema_version, and the doctor's row names both with their different ways out. Install
+  warnings now land in `.planetai-install.log` as well as on the screen.
+- **posidonia is a wild pack.** The Posidonia seagrass meadow pack leaves core and is listed at
+  `fabcity/planetai-wild-packs`. Only Mediterranean coastal nodes need it. **If you use it:** run
+  `planetai packs add posidonia` after updating. A node that updates with git loses the folder on update;
+  a node updated from a tarball keeps the folder, which `packs add` will not replace until `packs/posidonia`
+  is deleted. Stored readings are untouched.
+
+## v0.80.1 — 2026-10-08 — The doors view is the default dashboard
+
+- **posidonia is a wild pack.** The Posidonia seagrass meadow pack leaves core and is listed at
+  fabcity/planetai-wild-packs. Only Mediterranean coastal nodes need it. **If you use it:** run
+  `planetai packs add posidonia` after updating. A node that updates with git loses the folder on
+  update; a node updated from a tarball keeps the folder, which `packs add` will not replace until
+  `packs/posidonia` is deleted.
+- **The five doors layout is now the default dashboard**: root `/` serves `doors.html`; `/?layout=classic` serves the legacy dashboard (`index.html`). The footer link in `doors-core.js` now points to `/?layout=classic`.
+
+## v0.80 — 2026-10-07 — The ground becomes a map, and the node opens five doors
+
+- **v0.80 carries two page changes and two pack scripts, against `docs/NEXT_RELEASE.md` rules 2 and 3.** Tomas asked
+  to pack the map and the five doors into one release. Both page changes are opt-in: the map ground draws only with
+  `UI_GROUND=map`, and the doors only at `/?layout=doors`; `/` is the v0.79 dashboard on a node that changes nothing.
+  So "was it the page or the data", and "which page", still have one answer each. Node #1 has run both since 7 October.
+- **The five doors, on trial at `/?layout=doors`**: Now, Place, Data, Wall and Node,
+  the redesign from planetai-design, drawn from the node's own routes with the screen's token. Without the token a
+  door draws what `SHARE_LEVEL` gives and says what it is not drawing; the map, the cells, the distances and the
+  hourly table stay token-only. Done, Not now and Doesn't fit and the ask pane write to the node as the dashboard
+  does. The Wall's drawing is a living map: the node's dark street map, the wind now, and every station's hourly mean replayed as discs; Now draws the stations around the house on a map with the node's rings and cells. The Wall thinks aloud: every ten minutes, with a countdown, the node's model, the one chosen under Set up → Model, says in plain words what the figures mean and what the next hours may bring, and names itself. Set up is a page of its own behind a gear, and its Machine section reads two new token-only routes: `GET /machine` (processor, load, memory, temperature, uptime, system, database) and `GET /storage` (what the node keeps, the free disk, and the days it lasts at the last week's rate). The dashboard at `/` is unchanged. `docs/decisions/2026-10-07-doors.md`.
+- **The map ground's half of rule 2, as v0.77 did.** The
+  map ground changes `app/static`, and `place` and `earth-engine` gain a `basemap` script that the map's own bases
+  read. The scripts only run when somebody types the command, and the map ground is off unless `UI_GROUND=map`, so
+  "was it the page or the data" still has one answer on a node that has not opted in. The figures shipped alone in
+  v0.79.
+- **The ground can be a map** (`UI_GROUND=map`, default `svg`): MapLibre draws the base and deck.gl the cells and
+  stations, so it pans and zooms. Without WebGL2 it draws the svg ground and says why. The two libraries are served
+  by the node (860 kB gzipped) and fetched only when the ground is drawn this way. Simple mode and the wall keep
+  the svg ground. `docs/decisions/2026-10-06-ground-map.md` holds the measurements.
+- **A detailed map kept on the node.** `planetai run place basemap` keeps OpenStreetMap vector tiles (cut out of
+  Protomaps' daily build, with the label fonts) and any OpenAerialMap drone mosaic (CC BY 4.0) that crosses the
+  node's area; `planetai run earth-engine basemap` builds the node's own cloud-free Sentinel-2 picture of the last
+  twelve months. Each says what it reveals before it runs, once. The map ground offers them as bases that send
+  nothing: "street map, on this node", "satellite, on this node" and "drone, on this node".
+- `GET /geo/grid`, `/geo/cell` (with `children` and `polar`), `/geo/measure` (with `each`), `/geo/rings` and
+  `/geo/planet` answer the shapes and distances a map draws, so the page computes no H3 and no distance; `GET /ground/meta`, `/ground/{vector,drone,imagery}/{z}/{x}/{y}` and
+  `/ground/glyphs/…` serve the kept map. All need a token or this machine, like `/place/geojson`.
+  `tools/check_ui.py` now fails a page that imports h3-js or calls an H3 function.
+- **The wind, as a field.** With `FORECAST_OPENMETEO=1` the forecast pack also keeps Open-Meteo's hourly 10 m wind
+  for the next day at 8 × 8 points over ±30 km round the node, and the node's own point, in one request
+  (`GET /ground/wind`, private; `planetai run forecast windfield` refreshes it now). It asks with
+  `cell_selection=nearest`: the default moved sea points up to 12 km onto land. A model's field for drawing, never
+  a reading.
+- A Making Sense Bali DIY node can publish to this node's own broker instead of to smartcitizen.me: `planetai broker`
+  prints what to type into the node's setup portal. The node keeps every reading with the device's own timestamp, the
+  retained `meta` message gives the device its name and says whether it is indoors, and the tokens listed in
+  `SC_FORWARD` are passed on to the platform unchanged, through a queue that waits out an internet outage. `/health`
+  gains `direct` (devices, messages, forwarded, queued). The parser also reads a Smart Citizen Kit's own `readings/raw`
+  format, but this node's broker still refuses a kit, because the kit's firmware cannot send a password.
+
+## v0.79 — 2026-10-07 — The dashboard draws the day
+
+- The dashboard draws each issue's day once, as one drawing you can point at: every distance, the usual for each hour,
+  the hours over the line, the alert event and its answer, and the event's own rooms, with the hour read out in words
+  (the arrow keys work too). Under it, a strip of the last seven days, one cell an hour; Historical draws every day
+  the node holds. Each station row draws its day, and a station that stopped reporting is kept in a fold with when it
+  was last heard. Measure counts the hours over the line. The drawings use Observable Plot, served by the node itself.
+- `GET /issues` carries what the page's new drawings need: each issue's usual day (`usual`), an open event's own rooms
+  hour by hour (`events.open[].series`), and, apart from `stations`, the stations that stopped reporting in the last
+  30 days (`stations_silent.stations`), kept with when they were last heard (relays of kits that still report are
+  left out). `GET /issues/days?days=7` (up to 90) gives the
+  same hourly series over many days with the hours over the line counted per day, and `planetai snapshot` captures it.
+
+## v0.78 — 2026-10-06 — The dashboard tells the bot's story
+
+- The dashboard opens on what is happening now: each open alert event once, with the action the bot sent and Done,
+  Not now and Doesn't fit, then the readings that explain it. Act is the record of what was asked and answered, and
+  four sections about resolution and custody moved to Network. A node still on the old engine keeps its alert cards,
+  with "I did this" on them.
+
+- On a node whose alert engine is `shadow` or `events`, an issue's state follows its alert event: `act` while it is
+  open and unanswered, `notable` once somebody answers, and for a day after it clears. The old heat and air alerts
+  no longer count as open asks there, so the page's lead, the ask pane and the bot agree with what Decide shows.
+
+## v0.77 — 2026-10-06 — Alert events: one message per story, with one action
+
+- **2026-10-06 · The source registry is re-pinned to `awesome-fabcity-data` at `851b8db`** (from `88f5c73`), 269 entries: the Global Power Plant Database is filed as an Environmental|Region candidate (registry #79). `docs/NEXT_RELEASE.md` rule 4.
+- `GET /issues` carries the alert events (`events`): what is open, its one action as it was sent, its latest answer, and the alerts it covers; an open event now leads the page. `POST /actions` takes an `event_id` with Done (`acted`), Not now (`acknowledged`) or Doesn't fit (`dismissed`), and `GET /actions?events=1` lists those answers. The page that draws them is v0.78; the Telegram buttons are Plan 2.
+- **2026-10-05 · The report says "dangerously hot" only at real danger.** It opened with "🥵 It is dangerously hot
+  inside" whenever any heat alert was open, so node #1's 13:00 report said it on an ordinary 35 °C afternoon, as the
+  old alert did. Now "dangerously hot" is said only when `heat_danger` (feels like 40 °C or more) is open; the 35 °C
+  line reads "🌡️ It is hot inside: it feels like 35 °C or more."
+
+- **2026-10-05 · `ALERT_ENGINE=events` sends.** The event engine's heat and air messages go to Telegram, one per
+  event, with quiet hours and a daily ceiling; the old heat and air rules still record their alerts (the dashboard,
+  rho and Home Assistant read those) but stop sending. Every other alert and the reports are unchanged. No buttons yet:
+  those, and learning which action worked, come next. Node #1 sent "dangerously hot" twice at 35.0 °C on an ordinary
+  afternoon the day this was written; in events mode an ordinary afternoon sends nothing.
+
+- **2026-10-05 · `planetai test-alert` finds its own alert.** It decided whether the test fired by counting the rows
+  `GET /alerts` returned, which is at most 50 by default, so on any node with 50 or more alerts it said "no alert fired
+  in 90 seconds" while the alert had reached Telegram, and the one-minute test rule fired a second time while it waited.
+  It now looks for the run's own rule id and removes the rule the moment it is seen: one test message, and the right
+  answer.
+
+- **2026-10-05 · Alerts become events, in shadow** (docs/SPEC_alerts.md). Node #1 sent about 13 messages a day,
+  "dangerously hot" on 14 of 14 ordinary days, and its household answered 2.5%. A new engine folds rule rows into one
+  story per issue per house (open, escalate, clear), sends only danger in quiet hours, keeps a daily ceiling, and picks
+  one action from inside against outside, the hour and what the home has. It runs only with `ALERT_ENGINE=shadow`,
+  which records what it would send and sends nothing; the default, `rules`, is unchanged. On node #1's month it would
+  have sent 4 a day instead of 9 (2 without all-clears), none at night, and no "dangerously hot" below 32 °C
+  (docs/plans/2026-10-04-alert-events-replay.md). Three fixes from that replay: a Meshtastic radio's own box
+  temperature is never read as a room; a room's usual for the hour is the fourteen complete days before today, so a
+  long hot run does not raise its own bar; and air danger re-sends only when its value doubles, never within 30 min.
+
+- **2026-10-05 · `uncovered_asks` leaves out the alerts of the packs the engine replaced.** The event engine runs only
+  with `ALERT_ENGINE=shadow` or `events`, and only for heat and air-quality; their old rules' alerts are what the events
+  stand for. On the dashboard, `GET /issues` includes the event engine's answers in `events.uncovered_asks`, but those
+  answers now leave out the heat and air-quality alerts the events replaced, so a reader of the open asks sees one
+  number instead of the old alerts plus the new events.
+
+- **2026-10-03 · The docs site cannot fall behind a release again.** v0.76's site still described v0.75.3 on its
+  packs pages: four pack.yaml fields, the wild tier and `requires` enforcement were in the code and in PACKS.md,
+  and every gate was green. `make lint` now checks both directions: every CLI command, MCP tool, route, setting
+  and pack.yaml field the code has must be on its docs page. And every page of the site carries
+  `<!-- checked: vX -->`, the release it was last read against, which must equal the newest release in this file;
+  the release pull request fails until each page has been read again (`skills/release-docs/`). Every page was
+  read against v0.76 and main for this change; features on main and not in v0.76 say so where they are described.
+
+- **2026-10-03 · xiaomi-air is a wild pack.** The Xiaomi purifier pack leaves the release and is listed at
+  fabcity/planetai-wild-packs, with its test. Only a household with Mi Home purifiers needs it, and it installs
+  python-miio, which is GPL-3.0-only. **If you use it:** after updating, run `planetai packs add xiaomi-air`. Your
+  `XIAOMI_PURIFIERS` line stays. A node that updates with git loses the folder on update, and the purifiers go
+  quiet until the pack is added. A node updated from a tarball keeps the old folder, which `packs add` will not
+  replace: delete `packs/xiaomi-air` first. Stored readings are untouched.
+
+- **2026-10-03 · Xiaomi purifier tokens are masked.** `XIAOMI_PURIFIERS` holds each purifier's device token, and the
+  xiaomi-air pack did not list it under `secrets:`, so Set up and the agent's `settings_get` showed the tokens in full
+  to anyone holding the admin token. The pack-secrets entry below was wrong to say no shipped pack holds a secret. It is listed
+  now, and a test fails if any shipped pack key whose name or description says token, key or password is not.
+
+- **2026-10-03 · A wild pack's scripts reach an agent only when it says so** (#168). The agent's `run_pack_script`
+  ran any pack's script and handed back what it printed. A wild camera pack keeps motion off the readings on
+  purpose, and its `events` script printed a year of the household's motion to whoever asked. A wild pack's
+  scripts now reach an agent only when its pack.yaml lists them under `agent_scripts:`; the refusal says to run it
+  from the node's terminal, where `planetai run` runs every script as before. Core packs are unchanged, except that
+  an agent can no longer run a pack's `adapter.py` as if it were a script.
+
+- **2026-10-03 · A pack's secrets are masked like the node's own.** Every key a pack declared reached Set up as
+  plain text, so a pack's API key or token was shown to anyone holding the admin token, and through the agent's
+  settings tool. A pack now lists its secret keys under `secrets:` in its pack.yaml, and Set up masks them once
+  saved and never shows them again, as it does the Telegram token. Keys a pack does not list behave as before. No
+  shipped pack holds a secret today; wild packs that do, such as a camera bridge token, should list it.
+
+- **2026-10-02 · The page no longer describes a pack that does not exist.** Every node's Measure notes explained
+  "a slot this page has no place for" with "the water pack's gauge" as the example. There is no water pack, and the
+  contributions vocabulary behind the note, a pack filling a slot inside an issue's card, was built for the
+  September prototypes' sample data and never produced by any node. It is removed. A pack's number on an issue is
+  a readout, a pack's own band is a declared section, and no pack fills an issue's distance column
+  (`docs/decisions/2026-10-01-packs.md`, point 4). Nothing a node draws today changes except that one note.
+
+## v0.76 — 2026-10-02 — Wild packs: added from anywhere, drawn on the page, refused when too new
+
+*Packs in this repository are core; every other pack is wild, listed at fabcity/planetai-wild-packs and added to a
+node with `planetai packs add`, pinned to a commit, without git. A pack can now add readouts to an issue and
+declare a section of the dashboard as data, drawn with the page's own cards and never with the pack's own code.
+A pack written for a newer node is refused whole, and an update stops before it would overwrite a wild pack that
+became core. Also: a node says when a new version is out, and the FAB26 experiment has a page.*
+
+- **`planetai packs add` fetches a wild pack.** Packs in this repository are core; every other pack is
+  wild, listed at fabcity/planetai-wild-packs (`docs/decisions/2026-10-01-packs.md`). `planetai packs add <id>` takes
+  one from that list at the commit it was listed at; `planetai packs add <owner>/<repo>[/<folder>][@<ref>]` takes any
+  pack on GitHub, and a branch or tag is pinned to the commit it names. It fetches with curl and tar, because a node
+  installed the default way has no git, writes where the pack came from and at which commit to `packs/<id>/.wild`, and
+  runs `packs install`. It never replaces a folder that did not come from it, so a core pack cannot be overwritten, and
+  it refuses symbolic links, an id that is not the folder shape, and an id the list and the pack disagree on.
+  `planetai packs` now lists core and wild apart. Removing one is deleting its folder.
+
+- **A pack can add readouts to an issue.** A pack's `pack.yaml` can declare `readouts:` for an issue,
+  in the shape an issue file uses, and the node adds them after the issue's own while the pack is enabled: rows in
+  Figures, and words in a context issue's sentence. This is how a wild pack shows its numbers on Air, Heat or Coast
+  without editing `app/issues/` (`docs/decisions/2026-10-01-packs.md`, point 4). It adds and never replaces: the same
+  sensor and metric is not shown twice, and a readout naming no issue, or missing its unit or a label, is left out
+  with a line in the log. No shipped pack declares readouts, so `/issues` on every node is unchanged.
+
+- **A pack can declare a section of the dashboard.** A pack's `pack.yaml` can now list `sections:`, each
+  a stage, a title and the readouts it shows. The node fills them with its own rows and serves them in `/issues` as
+  `sections`, and the page draws each one as a band on Now with its own readout cards, and as columns on the wall
+  when the pack asks. The pack ships no code for the page: a script there could read the admin token, so only core
+  packs ship script (`docs/decisions/2026-10-01-packs.md`, point 5). A reading the node has no row for is not drawn,
+  and the band says how many have not arrived. No shipped pack declares a section, so every node's page is unchanged.
+  Also: a pack's malformed readout or section is now logged once, not on every `/issues` request.
+
+- **A pack written for a newer node is not loaded.** Every pack's `requires: { node: ... }` is now
+  enforced: a node that does not match leaves the pack out whole, rules and adapter alike, says so once in its log,
+  and `planetai packs` lists it under "not loaded" with the reason (`it needs a node >=0.80.0 and this node is
+  v0.75.8; planetai update first`). `planetai packs add` warns at once. A node that cannot name its release, such as
+  a developer's checkout, loads everything. The rule is `app/requires.py`, shared by the loader and the CLI, which
+  runs it on the node's own Python 3.9. Every shipped pack loads on v0.75.8, and a test keeps it that way.
+
+- **`planetai update` stops for a promoted wild pack.** When the version arriving ships a core pack
+  with the same id as a wild pack on the node (one `planetai packs add` fetched), the update stops before anything
+  moves, names the wild copy and where it came from, and asks for it to be deleted. Without this, the tarball path
+  unpacked the core pack's files over the wild copy and left a folder that was neither, and the git path refused the
+  pull and blamed untracked files. The check runs after the release is downloaded and verified and before it is
+  copied over the node, and on a git checkout after the fetch and before the pull. The backup has already been taken.
+
+- **A node says when a new version is out.** Once a day the node asks planetai.fab.city which
   version is current. When a newer one is out, the page's header says so ("PLANETAI v0.75.8 is out · on the
   node: planetai update"), `planetai doctor` shows it as an amber line, and Telegram says it once per version,
   after quiet hours. Nothing is installed: `planetai update` stays the household's to run, and it backs up
@@ -16,6 +352,20 @@
   City's host, so it is a setting under Set up → Sharing, `UPDATE_CHECK`, on by default. `off` means the node
   never asks. A node with no route out stays quiet and is not reported as broken. The Spanish and Bahasa
   message has not yet been read by a native speaker.
+- **The FAB26 experiment has a page.** `docs/FAB26_EXPERIMENT.md` is the participant-facing
+  instructions for the October–December workshop cohort experiment: the two all-hands calls, the biweekly
+  check-in through the experiment bot (@planetai_exp_bot), the build track, and a section for the workshop
+  sensor kit (XIAO ESP32-S3 + Wio-SX1262, Grove shield, BME680, HM3001) with the Making Sense Bali enclosure
+  link and the warning that stock Meshtastic firmware reads the BME680 but not the HM3001.
+
+- **Two command hints said nothing where they meant a word.** `planetai doctor` printed "a space after = makes
+  the shell run the value, and a  after it hands the container the comment": the `#` was in backticks inside
+  double quotes, so bash ran it as a command. `planetai agent` printed "note: command not found" the same way.
+  Both are escaped now, and a search found no others.
+- **A test no longer writes its git identity into the checkout it runs from.** `tests/test_ship_gate.sh` set a
+  placeholder author after a `cd` it never checked; when the `cd` failed, the placeholder landed in the real
+  repository's settings. The tests now take their identity from the environment and never write git config,
+  and the suite checks the invoking repository's identity is unchanged.
 
 ## v0.75.8 — 2026-09-29 — Set up in eight tabs, and an ask pane that answers faster
 

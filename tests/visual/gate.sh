@@ -22,13 +22,16 @@ DESIGN="$(cd "${PAI_DESIGN_REPO:-../planetai-design}" 2>/dev/null && pwd)" || DE
 [ -n "$DESIGN" ] && [ -d "$DESIGN/node_modules/playwright" ] || { echo "  playwright is not in ${PAI_DESIGN_REPO:-../planetai-design} (resolved: ${DESIGN:-<not found>}); npm install there"; exit 2; }
 
 OUT="${PAI_OUT:-/tmp/pai-gate}"; mkdir -p "$OUT"
-export PAI_STATIC="$PWD/app/static" PAI_OUT="$OUT" PAI_DESIGN_REPO="$DESIGN" PAI_Q="?fixture=node1-2026-09-21d"
+export PAI_STATIC="$PWD/app/static" PAI_OUT="$OUT" PAI_DESIGN_REPO="$DESIGN" PAI_Q="?fixture=node1-2026-10-06-figures"
 
 # now_populated_390/1440: everything T1-T5 below is read off these two. wall_populated_1920_dark:
 # T7 and the 1,080 px check. All three go through serveNodeAPI() in measure.mjs — no node, no
 # container, no network; see that function's own comment for what changed on 2026-09 and why.
 node tests/visual/measure.mjs render now_populated_1440 now_populated_390 >/dev/null
-PAI_Q="?fixture=node1-2026-09-21d&view=wall" node tests/visual/measure.mjs render wall_populated_1920_dark >/dev/null
+PAI_Q="?fixture=node1-2026-10-06-figures&view=wall" node tests/visual/measure.mjs render wall_populated_1920_dark >/dev/null
+# The ruler is now inside the railfold and visible only with ?worth=1. PAI_TAG appends _worth1 to the
+# output filename, so the measurement is stored as now_populated_1440_worth1.json, which the ruler check reads.
+PAI_TAG=worth1 PAI_Q="$PAI_Q&worth=1" node tests/visual/measure.mjs render now_populated_1440 >/dev/null
 node tests/visual/measure.mjs shots now_populated_1440 now_populated_390 wall_populated_1920_dark >/dev/null
 
 # A press must redraw. Every check below this line measures one render, and since v0.55 a control
@@ -56,6 +59,10 @@ node tests/visual/measure.mjs extend
 # view are the same string; `#stage-act` routed to a view of that name and drew a blank page in
 # v0.71. Static checks cannot see it — the id is built from a template and the failure is the router.
 node tests/visual/measure.mjs anchors
+# The same walk on Network and Historical: an anchor there sent the reader back to Now, because the
+# hash that replaced `#network` named no view and readView() fell through to 'now'.
+PAI_VIEW=network node tests/visual/measure.mjs anchors
+PAI_VIEW=historical node tests/visual/measure.mjs anchors
 
 node - <<'JS'
 const fs = require('fs'), out = process.env.PAI_OUT;
@@ -167,8 +174,24 @@ function t1legs(d) {
 // re-recorded here; see above for why 390's stays at 37.7.
 //
 // Previous, from d9a9316 on node1-2026-09-21c: 390: 15893 px, 1440: 10051 px.
-const HEIGHT_SHIPPED = { now_populated_390: 17357, now_populated_1440: 10764 };
-const EMPTY_SHIPPED = { now_populated_390: 37.7, now_populated_1440: 57.4 };
+//
+// 6 Oct 2026: re-recorded for v0.78 on the events fixture: Decide first, the four sections on
+// Network, the rail in one row. The fixture is node1-2026-10-06-events, node #1 at 09:00 Bali with
+// air event 2 open (danger), so the event card and the lead-by-event path are measured for the first
+// time. Heights fall because four sections left Now for Network. 390's emptiness is re-recorded UP,
+// from 37.7 to 44.7, and that is a decision, not noise: the first viewport is now Decide's event card
+// and the one-row rail rather than the strip, and the old 37.7 was measured on another page and
+// another fixture. 1440's falls from 57.4 to 55.1.
+//
+// Previous, from ebefea8 on node1-2026-09-21d: 390: 17357 px / 37.7%, 1440: 10764 px / 57.4%.
+// 6 Oct 2026, v0.79: re-recorded for the day figure and the strips, on node1-2026-10-06-figures (a fresh
+// capture of node #1 that carries issues_days). Each issue's day is one drawing with a strip of the last 168
+// hours under it, eight local dates, so each issue gains eight rows; the barcode and Measure's second trace are gone, and the net is +509 px at
+// 390 and +14 px at 1440 (the fixture also changed). Emptiness falls: 390's from 44.7 to 42.5 and 1440's from
+// 55.1 to 52.7; both are lower, never higher, so no margin was spent.
+// Previous, on node1-2026-10-06-events: 390: 13294 px / 44.7%, 1440: 8728 px / 55.1%.
+const HEIGHT_SHIPPED = { now_populated_390: 13803, now_populated_1440: 8742 };
+const EMPTY_SHIPPED = { now_populated_390: 42.5, now_populated_1440: 52.7 };
 const HEIGHT_MARGIN = 1.08, EMPTY_MARGIN = 6;
 
 for (const n of ['now_populated_1440', 'now_populated_390']) {
@@ -205,7 +228,7 @@ if (w.doc.h > 1080) fails.push(`wall is ${w.doc.h} px on a 1,080 px screen`);
 // backwards. Read off the rendered text lines inside the ruler's own box, so it checks the drawing
 // rather than the source.
 {
-  const d = j('now_populated_1440');
+  const d = j('now_populated_1440_worth1');
   const r = d.els.find(e => (e.cls || '').split(/\s+/).includes('ruler'));
   if (!r) fails.push('no ruler under the rail');
   else {

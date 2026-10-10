@@ -5626,6 +5626,49 @@
     "url": "https://pc-axis.geostat.ge/PXWeb/pxweb/en/Database/Environment%20Statistics"
   },
   {
+    "added": "2026-09-29",
+    "api": "https://raw.githubusercontent.com/wri/global-power-plant-database/master/output_database/global_power_plant_database.csv",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Region",
+    "description": "WRI's open list of the world's power plants: 34,936 geolocated plants in 167\ncountries with capacity in MW, primary fuel, commissioning year, owner and\nreported or estimated annual generation 2013-2019. Frozen at v1.3.0; WRI says\nit is no longer maintained.\n",
+    "feeds_cells": [
+      "Environmental|Region"
+    ],
+    "license": "CC-BY-4.0",
+    "name": "Global Power Plant Database v1.3.0 (WRI)",
+    "notes": "VERIFIED 2026-09-29, nothing read for a real territory yet. Found while reading\nResource Watch, which carries an archive banner; filed from the publisher, not\nfrom RW's 2018 Carto copy (powerwatch_data_20180102).\n\nLICENCE. README of github.com/wri/global-power-plant-database: \"The latest\ndatabase release (v1.3.0) is available in CSV format [at datasets.wri.org] under\na Creative Commons-Attribution 4.0 (CC BY 4.0) license.\" The WRI Data Explorer\nrecord (CKAN id 53623dfd-3df6-4f15-a091-67457cdb571f, metadata_modified\n2025-10-06) says license_id cc-by. The code is MIT; the data licence is the\nCC BY sentence above.\n\nENDPOINT. The Data Explorer's three ZIP resources sit under /private-admin/ and\nanswered 302 then 403 on 2026-09-29, so the publisher's own download is broken.\nThe CSV that works is the repo's output_database/global_power_plant_database.csv\n(12.0 MB, no key); DATABASE_VERSION beside it reads 1.3.0. Read today: 34,936\nrows; columns country, name, gppd_idnr, capacity_mw, latitude, longitude,\nprimary_fuel, commissioning_year, owner, source, year_of_capacity_data,\ngeneration_gwh_2013..2019, estimated_generation_gwh_2013..2017. Country totals:\nESP 829 plants / 79,035 MW; USA 9,833 / 1,204,638; CHL 315 / 22,476;\nIDN 178 / 48,751. Pilot reads by bounding box, because the file carries no admin\ncode; a real read clips to the region polygon, and a box spills over borders\n(the Massachusetts one catches Millstone in Connecticut). Renewable here means\nprimary_fuel in Solar, Wind, Hydro, Geothermal, Biomass, Wave and Tidal.\n  Catalonia box 40.5-42.9N 0.15-3.35E: 107 plants, 10,778 MW, 3,414 MW renewable\n    (Asco 1,990.5 MW nuclear 1983; Besos 5 1,670.8 MW gas 2010; source\n    Red Electrica de Espana).\n  Massachusetts box 41.2-42.9N 69.9-73.5W: 637 plants, 27,647 MW, 3,538 MW\n    renewable (388 solar sites; Mystic 2,375.6 MW gas; source US EIA,\n    capacity year 2019).\n  Region Metropolitana box 32.9-34.3S 69.8-71.8W: 51 plants, 4,051 MW, 1,329 MW\n    renewable (Nehuenco 874.7 MW gas; source Energia Abierta, capacity year 2016).\n  Bali island box 8.05-8.95S 114.4-115.75E: 8 plants, 980 MW, 0 MW renewable\n    (Celukan Bawang 381 MW coal 2015; PLTG Pesanggaran 122 MW gas).\n\nWHY THIS CELL. Environmental|Region lists \"renewable energy capacity\" as an\nindicator category, and its notes say no source in this list published installed\ncapacity at region scale. This one does: every plant is a point with capacity_mw\nand primary_fuel, so capacity by fuel inside any region polygon is a spatial join,\nand generation_gwh_2019 gives the cell's minimum (renewable generation, GWh/yr)\nwhere a plant reported it. The same clip would serve Environmental|City for a\ncity that hosts plants; Barcelona's box holds four (Besos, Port de Barcelona,\nGarraf landfill gas, Seat al Sol). Not claimed here.\n\nWHAT IT DOES NOT CLAIM. The list stops around 2019: the README says \"This project\nis not currently maintained by WRI. There are no planned updates as of this time\n(early 2022).\" Everything built since, most of it solar and wind, is missing, so\na renewable share read from it is a floor, not a figure. Rooftop and small\ndistributed solar were never in scope. Reported generation exists for a minority\nof plants (EIA, Energia Abierta); the rest is model-estimated, and the estimate\ncolumns end in 2017. year_of_capacity_data is blank for Spain and Indonesia.\nCoordinates come from mixed sources (the geolocation_source field says which),\nand a plant a few hundred metres over a border lands in the wrong region.\n\nSTILL MISSING. A read against a real region polygon (Catalonia first: ICAEN\npublishes current capacity to compare against), a decision whether a 2019\nvintage can feed a cell or only anchor a baseline, and a look at Global Energy\nMonitor's trackers as the maintained successor for anything built after 2019.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [
+      "barcelona",
+      "boston",
+      "santiago",
+      "bali"
+    ],
+    "places": [
+      "bali",
+      "barcelona",
+      "boston",
+      "santiago-de-chile"
+    ],
+    "reviews": [],
+    "scale": "region",
+    "slug": "environmental/region/global-power-plant-database",
+    "status": "candidate",
+    "tags": [
+      "energy",
+      "power-plants",
+      "installed-capacity",
+      "renewable-energy",
+      "generation",
+      "geospatial",
+      "point-data",
+      "wri"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://datasets.wri.org/dataset/globalpowerplantdatabase"
+  },
+  {
     "added": "2026-09-09",
     "api": null,
     "cell": "Environmental|Region",

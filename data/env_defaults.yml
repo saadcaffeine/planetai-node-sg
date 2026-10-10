@@ -95,6 +95,9 @@ TELEGRAM_BOT_TOKEN:
 TELEGRAM_CHAT_IDS:
   default: ""
   help: "comma-separated chat ids. Add the bot to a group, get the id from getUpdates."
+TELEGRAM_BUTTONS:
+  default: "0"
+  help: "1 = event messages carry Done / Not now / Doesn't fit. The bot in the agent container sets this on startup so the buttons ride only while somebody answers them (SPEC_alerts §7); leave it alone."
 REPORT_EVERY:
   default: ""
   help: "One report every REPORT_EVERY hours in the node's own time zone, and what is allowed to interrupt you between them. These three ship blank on purpose: `update.sh` copies new keys here into your .env with whatever value they carry, and a node that was reporting twice a day should keep doing that until you say otherwise, not take a new default. 3 | 4 | 6 | 8 | 12 | 24 hours between reports. Blank = 6, which is four a day."
@@ -119,6 +122,15 @@ QUIET_TO:
 ALERT_LOCALE:
   default: "en"
   help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report. en | id | es   (every rules.yml carries all three)"
+ALERT_ENGINE:
+  default: "rules"
+  help: "rules (default) | shadow | events. docs/SPEC_alerts.md: shadow records what the event engine would send and sends nothing; events sends the engine's heat and air messages instead of the old heat and air rules."
+ALERT_MAX_PER_DAY:
+  default: "4"
+  help: "With the event engine: pushes a day outside danger."
+HOME_HAS:
+  default: ""
+  help: "What this home has, comma-separated: purifier, ac, fan, windows."
 PARENT_API_URL:
   default: ""
   help: "---- network (v0.2, leave empty on node #1) ---- http://<district-node>:8080  → hourly aggregates go up"
@@ -143,6 +155,9 @@ MQTT_USER:
 MQTT_PASS:
   default: ""
   help: "Meshtastic via MQTT. The gateway radio publishes to the node's Mosquitto with these credentials."
+SC_FORWARD:
+  default: ""
+  help: "Smart Citizen Kits and DIY nodes can publish to this broker instead of the platform (`planetai broker`). The tokens listed here are forwarded on to smartcitizen.me unchanged; anything not listed stays in the house."
 MESH_INDOOR_NODES:
   default: ""
   help: "Mesh node ids that are indoors, e.g. !abcd1234,!beef5678  (mesh sensors default to outdoor)"
@@ -160,7 +175,7 @@ RETICULUM_ALERT_DESTINATIONS:
   help: "Reticulum bridge (LXMF). Alert destinations: LXMF address hashes from Sideband, comma-separated, no spaces."
 PACKS_ENABLED:
   default: ""
-  help: "---- packs (community extensions — docs/PACKS.md) ---- Empty = load every pack in packs/. Or list ids to load only those."
+  help: "---- packs: core ones ship here, wild ones are added with planetai packs add (docs/PACKS.md) ---- Empty = load every pack in packs/. Or list ids to load only those."
 PACKS_ALLOW_CODE:
   default: "0"
   help: "Data packs (rules/cells) always load. Code packs (adapter.py) run Python with this node's privileges: read the code, then set this to 1."
@@ -197,6 +212,9 @@ UI_MODE:
 UI_ASK:
   default: "on"
   help: "dashboard: a toggle that opens a pane asking this node's own model, on this machine, about what the page shows. It reads and changes nothing; nothing typed there is kept. on | off"
+UI_GROUND:
+  default: "svg"
+  help: "dashboard: how the ground is drawn. svg is the drawing the page has always made; map draws it with MapLibre and deck.gl, which pan and zoom and need WebGL2. Changes nothing that leaves the house. svg | map"
 RETICULUM_PRESENCE:
   default: "0"
   help: "radio: announce this node's presence over Reticulum, and at what H3 resolution. 0 is off, and off is the default — a node says nothing to the mesh until somebody here decides it should. The resolution is the floor a cell may be published at: 3 is about 160 km across, so a listener learns a region and never an address."

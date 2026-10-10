@@ -147,7 +147,7 @@ watch_run() {         # watch_run "why it failed" cmd...  — run it, heartbeat 
 }
 
 say()  { printf '\033[1;32m>>\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; printf '!! %s\n' "$*" >>"${LOG_FILE:-/dev/null}" 2>/dev/null || true; }  # a refusal nobody sees twice is a refusal lost: warnings belong in the install log too
 # Every exit goes through the reporter. `die` predates it and there are a dozen calls: the old-database
 # guard, the missing coordinates, the port clash. Each one used to print a bare xx line with no step
 # name, no elapsed time and no way back — the shape the tester met on 7 September. Now they all carry
@@ -332,7 +332,7 @@ elif ! need docker && need podman; then
   # alone — works unchanged, which is why this is two lines of instruction and not a refactor.
   #
   # NOT TESTED ON A NODE. No CI leg runs under Podman and nobody has carried a node on it, so this says
-  # what to do and stops rather than installing something and claiming it works. docs/HANDOFF_arm64.md
+  # what to do and stops rather than installing something and claiming it works. docs/ARM64.md
   # carries what proving it would take.
   warn "Podman is installed here and Docker is not. Not installing Docker over it."
   echo "     The node drives a runtime through the 'docker' command, and Podman can provide one:"
@@ -453,10 +453,12 @@ grep -q '^POSTGRES_PASSWORD=change-me' .env && { setenv POSTGRES_PASSWORD "$(ope
 # call while pg_isready and the install's own doctor say the database is fine. Refuse now and say which way out.
 if [[ $NEWPW -eq 1 ]]; then
   DATA_DIR_SET="$(grep '^DATA_DIR=' .env | cut -d= -f2 | sed 's/[[:space:]]*#.*$//' | tr -d ' ')"
-  # The volume is named after the compose project, which is the folder's basename unless
-  # COMPOSE_PROJECT_NAME says otherwise. This used to look for "planetai_db" literally, so it saw
-  # nothing whenever the node lived in a folder called anything else.
-  DBVOL="${COMPOSE_PROJECT_NAME:-$(basename "$PWD")}_db"
+  # The volume is named after the compose project, and docker-compose.yml pins `name: planetai`, so the
+  # volume is planetai_db whatever the folder is called — a tarball install lives in `planetai-node`, and a
+  # guard that derives the name from the folder looks for planetai-node_db, finds nothing, and waves a
+  # password-changing reinstall past the old node's data (the v0.80.1 update reports). COMPOSE_PROJECT_NAME
+  # overrides the pin, so honour it first.
+  DBVOL="${COMPOSE_PROJECT_NAME:-planetai}_db"
   if { [[ -z "$DATA_DIR_SET" ]] && docker volume inspect "$DBVOL" >/dev/null 2>&1; } || { [[ -n "$DATA_DIR_SET" && -f "$DATA_DIR_SET/PG_VERSION" ]]; }; then
     warn "a database from an earlier node is still on this machine (${DATA_DIR_SET:-Docker volume $DBVOL}), and this is a new .env,"
     warn "so its password cannot match. Two ways out:"

@@ -21,6 +21,7 @@ import httpx
 from mcp.server.mcpserver import MCPServer
 
 import settings
+from packs import PACKS_DIR, agent_scripts
 from tool_classes import PLACEHOLDER_NOTES, TOOL_CLASS  # noqa: F401 — re-exported; `planetai agent` and the loop read them
 
 API = f"http://127.0.0.1:{os.getenv('PORT', '8080')}"
@@ -280,9 +281,14 @@ def export_day(day: str | None = None) -> dict:
 def run_pack_script(pack: str, script: str, args: list[str] | None = None, agent: str = "agent") -> dict:
     """Run a script a pack ships (e.g. earth-engine verify, earth-engine timelapse). Runs in the app container; output files land in out/.
     Returns stdout/stderr and the exit code."""
-    p = Path("/app/packs") / Path(pack).name / (Path(script).name + ".py")
-    if not p.exists():
-        return {"error": f"no such script: {pack}/{script}", "available": [f"{q.parent.name}/{q.stem}" for q in Path("/app/packs").glob("*/*.py") if q.stem != "adapter"]}
+    pack, script = Path(pack).name, Path(script).name
+    p = PACKS_DIR / pack / (script + ".py")
+    reachable = agent_scripts()
+    if f"{pack}/{script}" not in reachable:
+        why = (f"{pack}/{script} is in a wild pack that does not list it under agent_scripts:, so only the node's own "
+               f"terminal runs it: planetai run {pack} {script}") if p.is_file() and (p.parent / ".wild").is_file() \
+            else f"no such script: {pack}/{script}"
+        return {"error": why, "available": reachable}
     r = subprocess.run(["python", str(p), *(args or [])], capture_output=True, text=True, timeout=900, env={**os.environ, "PACK_OUT": "/app/out"})
     return {"exit": r.returncode, "stdout": r.stdout[-6000:], "stderr": r.stderr[-2000:], "by": agent}
 

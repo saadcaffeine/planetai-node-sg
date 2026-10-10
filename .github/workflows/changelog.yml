@@ -1,0 +1,31 @@
+name: changelog
+# Its own workflow so a label change re-runs this check alone, not the whole lint and install matrix.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+jobs:
+  # A change a node runs reaches the next release's notes, or the PR says why not. The release is everything on main
+  # when it is tagged, and its notes are CHANGELOG.md's "Unreleased" section (docs/WORKFLOW.md), so a code change
+  # without a line there ships unannounced. A PR that truly needs none carries the label `no changelog`.
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: a change a node runs has a CHANGELOG line
+        env:
+          BASE: ${{ github.base_ref }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          changed="$(git diff --name-only "origin/$BASE...HEAD")"
+          NODE='^(app/|bin/|packs/|config/|presets/|init\.sql$|install$|install\.sh$|update\.sh$|backup\.sh$|docker-compose\.yml$)'
+          if echo "$changed" | grep -qE "$NODE" && ! echo "$changed" | grep -qx 'CHANGELOG.md'; then
+            if echo ",$LABELS," | grep -q ',no changelog,'; then
+              echo "no CHANGELOG line, and the PR is labelled 'no changelog'"
+            else
+              echo "::error::This PR changes what a node runs and adds no line to CHANGELOG.md's Unreleased section:"
+              echo "$changed" | grep -E "$NODE"
+              echo "Add one (docs/WORKFLOW.md), or label the PR 'no changelog' if it truly needs none."
+              exit 1
+            fi
+          fi

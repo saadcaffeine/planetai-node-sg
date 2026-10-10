@@ -6,8 +6,8 @@
 #
 # The private half is the Foundation's. It is generated once, on Tomas's machine, lives in the
 # Foundation's password manager with one copy on the ship machine, and never enters this repository,
-# the tarball or a log. docs/HANDOFF_signing.md has the command that makes it and the rotation.
+# the tarball or a log. docs/SIGNING.md has the command that makes it and the rotation.
 #
 # ISSUED 19 September 2026, fingerprint SHA256:1+MvZWJUBWisjY08E1KR77znXLs2lVWgVkh+Z++8IL4.
-# Rotation, and what to do if the private half is ever exposed, are in docs/HANDOFF_signing.md.
+# Rotation, and what to do if the private half is ever exposed, are in docs/SIGNING.md.
 fabcity ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbgbaRosyOEVk7c4iBHc5iXn9H7F1s9QGwhXBGt+qay fabcity

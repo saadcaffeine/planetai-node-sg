@@ -43,6 +43,9 @@ DOCS_COPY = next((p for p in (HERE / "data" / "docs_site.json", HERE.parent / "d
                   if p.exists()), HERE / "data" / "docs_site.json")
 LOCALES = ("en", "id", "es")
 
+# Wall narration rotation state (module-level counter, matching the client-side NARR_TURN behavior)
+WALL_NARR_TURN = 0
+
 # Keys that name a place, a device or a household's own words about its kit. Dropped wherever they occur.
 DROP = frozenset({"lat", "lon", "latitude", "longitude", "centroid", "center", "position", "sensor_id", "sensor_ids",
                   "sensors", "name", "source", "meta", "stations", "geometry", "host", "hostname", "mesh_node",
@@ -119,10 +122,12 @@ def context(doc: dict, loc: str, view: str, mode: str, focus: str | None = None,
         "view": view, "mode": mode, "node_version": version,
         "lead": {"issue": lead, "picked_by": (doc.get("lead") or {}).get("by"),
                  "value": h.get("value"), "unit": h.get("unit"), "stamp": L(h.get("stamp")),
-                 "sentence": L(h.get("sentence")), "plain": L(h.get("plain"))},
+                 "sentence": L(h.get("sentence")), "plain": L(h.get("plain")),
+                 "about": L((iss.get(lead) or {}).get("about") or {})},
         "digest": {k: L(v) for k, v in (doc.get("digest") or {}).items()},
         "issues": [{"issue": k, "name": L(v.get("name")), "state": v.get("state"), "why": L(v.get("reason_text")),
                     "unit": v.get("unit"), "line": (v.get("line") or {}).get("value"),
+                    "about": L(v.get("about") or {}),
                     "at": {d: c.get("value") for d, c in (v.get("stack") or {}).items() if c}}
                    for k, v in iss.items() if v.get("watched") is not False],
         "open_alerts": [{"id": a.get("id"), "issue": k, "at": a.get("ts"), "says": str(a.get("text") or "").split("\n")[0]}
@@ -207,6 +212,7 @@ class AskBody(BaseModel):
     view: str = Field("now", max_length=20)
     mode: str = Field("advanced", max_length=20)
     focus: str | None = Field(None, max_length=40)
+    prompt: str | None = Field(None, max_length=50)  # optional: 'wall' for wall narration
 
 
 def _proposal(p: dict, loc: str) -> dict:
@@ -267,8 +273,19 @@ async def ask(body: AskBody):
     loc = settings.get("ALERT_LOCALE", "en") or "en"
     learn = json.loads(LEARN.read_text()) if body.focus and LEARN.exists() else None
     ctx = scrub.value(context(doc, loc, body.view, body.mode, body.focus, learn, os.getenv("NODE_VERSION", "")))
-    system = agent_loop.PANE_SYSTEM.format(node=os.getenv("NODE_NAME", "node"),
-                                           lang=agent_loop.LANG_NAME, context=_json(ctx))
+
+    # Compose system prompt: wall narration uses WALL_SYSTEM with rotating angle; otherwise PANE_SYSTEM.
+    # Either way the scrubbed context rides in the system prompt — the wall's voice lives on its figures.
+    if body.prompt == "wall":
+        global WALL_NARR_TURN
+        angle = agent_loop.WALL_ANGLES[WALL_NARR_TURN % len(agent_loop.WALL_ANGLES)]
+        WALL_NARR_TURN += 1
+        system = (agent_loop.WALL_SYSTEM
+                  + f" This time, start from {angle}; if your context cannot say, speak about the air now."
+                  + f"\n\nThe page's context:\n{_json(ctx)}")
+    else:
+        system = agent_loop.PANE_SYSTEM.format(node=os.getenv("NODE_NAME", "node"),
+                                               lang=agent_loop.LANG_NAME, context=_json(ctx))
     hc = httpx.AsyncClient(headers={"Authorization": f"Bearer {os.getenv('ADMIN_TOKEN', '')}",
                                     "X-Agent": agent_loop.AUDIT_PANE}, timeout=60)
     url = f"http://127.0.0.1:{os.getenv('PORT', '8080')}/mcp"

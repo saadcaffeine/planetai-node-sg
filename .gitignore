@@ -1,5 +1,13 @@
 .env
 backups*/
+
+# operational files a git install writes beside the code: update.sh's own log and its before-copies,
+# the setup and cron logs, the signature receipt. A `git add -A` sweeps them into the repo, and a
+# tracked .planetai-update.log then makes every later update dirty its own tree — the pull refuses
+# with "unstaged changes" and the node cannot update (node #1, bayu-ungasan, 2026-10-09).
+.env.before-*
+config/rules.yml.before-update
+.planetai-*
 __pycache__/
 # litter from early bugs, in case a node still has them
 {app,docs}/

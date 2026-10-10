@@ -4,7 +4,7 @@
    "anchor": "tables",
    "more": "The note column is shown here only to a reader with a token, because GET /actions is on no sharing allowlist.",
    "page": "schema.md",
-   "page_title": "Database schema",
+   "page_title": "Data schema",
    "questions": {
     "en": [
      "What is recorded when someone acts?",
@@ -23,30 +23,6 @@
    "section": "Tables",
    "title": "The table ρ is counted from",
    "url": "https://planetai.fab.city/docs/schema/#tables"
-  },
-  "agent": {
-   "anchor": "",
-   "more": "The `issues` tool an agent holds over POST /mcp returns the same object this card is drawn from, so it may draft what to do. The decision recorded here carries the name of whoever is deciding.",
-   "page": "agents.md",
-   "page_title": "Bring your own agent",
-   "questions": {
-    "en": [
-     "What may an agent do on this node?",
-     "How do I connect my own agent?"
-    ],
-    "es": [
-     "¿Qué puede hacer un agente en este nodo?",
-     "¿Cómo conecto mi propio agente?"
-    ],
-    "id": [
-     "Apa yang boleh dilakukan agen di node ini?",
-     "Bagaimana cara menghubungkan agen saya sendiri?"
-    ]
-   },
-   "quote": "An agent is a guest on the machine, never a part of it. It can read everything the node knows and help the\nperson in front of it operate the node; it drafts, and a person dispatches.",
-   "section": "",
-   "title": "An agent drafts, a person dispatches",
-   "url": "https://planetai.fab.city/docs/agents/"
   },
   "bot": {
    "anchor": "",
@@ -71,6 +47,30 @@
    "section": "",
    "title": "An answer in the household's words",
    "url": "https://planetai.fab.city/docs/bot/"
+  },
+  "buttons": {
+   "anchor": "the-sections",
+   "more": "The first press asks for a name, and this browser keeps it for the next. The labels come from the node, and an answer needs the act token from another device. ρ does not count events yet, so none of the three moves it.",
+   "page": "dashboard.md",
+   "page_title": "The dashboard",
+   "questions": {
+    "en": [
+     "What does each of the three buttons record?",
+     "What happens to the card when I put it off?"
+    ],
+    "es": [
+     "¿Qué registra cada uno de los tres botones?",
+     "¿Qué pasa con la tarjeta si la dejo para más tarde?"
+    ],
+    "id": [
+     "Apa yang dicatat oleh masing-masing dari tiga tombol itu?",
+     "Apa yang terjadi pada kartu jika saya menundanya?"
+    ]
+   },
+   "quote": "**Done**, **Not now** and **Doesn't fit** each write one answer to the event: who pressed, and when. Done closes the loop and shows a closed ring. Not now holds the card, muted, for three hours unless the reading reaches danger. Doesn't fit asks one optional question, what did you do instead, and keeps the answer as the note.",
+   "section": "The sections",
+   "title": "Done, Not now and Doesn't fit",
+   "url": "https://planetai.fab.city/docs/dashboard/#the-sections"
   },
   "cards": {
    "anchor": "the-sections",
@@ -146,7 +146,7 @@
   },
   "containment": {
    "anchor": "the-lead",
-   "more": "That is the documentation's example resolution line. The one under Decide is tonight's, read from this node, and when the neighbouring rungs give the same answer the page says so.",
+   "more": "That is the documentation's example resolution line. The one on Network, under What each rung is worth, is tonight's, read from this node, and when the neighbouring rungs give the same answer the page says so.",
    "page": "dashboard.md",
    "page_title": "The dashboard",
    "questions": {
@@ -360,6 +360,54 @@
    "title": "Elapsed time, not an effect",
    "url": "https://planetai.fab.city/docs/rho/#what-worked-per-rule"
   },
+  "events": {
+   "anchor": "the-sections",
+   "more": "Decide is the first section under the lead. The numeral is red only when the peak is past the issue's line, and the action and the message are the node's words, in the household's language: this page holds no copy of either.",
+   "page": "dashboard.md",
+   "page_title": "The dashboard",
+   "questions": {
+    "en": [
+     "What is an alert event, and how is it different from an alert?",
+     "Why is there one card for several rule rows?"
+    ],
+    "es": [
+     "¿Qué es un evento de alerta, y en qué se diferencia de una alerta?",
+     "¿Por qué hay una sola tarjeta para varias filas de reglas?"
+    ],
+    "id": [
+     "Apa itu kejadian peringatan, dan apa bedanya dengan peringatan?",
+     "Mengapa hanya ada satu kartu untuk beberapa baris aturan?"
+    ]
+   },
+   "quote": "An event is the bot's own unit: one issue in one house, from when its rule first fires to when it clears, however many rule rows that took. Decide draws one card for each open event: the peak with its comparisons, the action the node chose, and the message it sent.",
+   "section": "The sections",
+   "title": "What an alert event is",
+   "url": "https://planetai.fab.city/docs/dashboard/#the-sections"
+  },
+  "figure": {
+   "anchor": "the-day-figure",
+   "more": "The figure reads the node's own 24 hourly values for every distance, the usual for each hour from usual_by_hour, and the alert events from /issues. The page draws them; all it counts is the hours over the line and above the usual that it draws.",
+   "page": "dashboard.md",
+   "page_title": "The dashboard",
+   "questions": {
+    "en": [
+     "What does the grey band mean?",
+     "Which hours were over the line today?"
+    ],
+    "es": [
+     "¿Qué significa la banda gris?",
+     "¿Qué horas pasaron la línea hoy?"
+    ],
+    "id": [
+     "Apa arti pita abu-abu itu?",
+     "Jam berapa saja yang melewati garis hari ini?"
+    ]
+   },
+   "quote": "Each issue with a day has one drawing of its last 24 hours. Every distance is a trace in ink, dashed by distance, and\nan hour nothing was recorded is a gap in it, never a line drawn across. The grey band is the usual for each hour,\nfrom the node's own last 14 days.",
+   "section": "The day figure",
+   "title": "The day, drawn once",
+   "url": "https://planetai.fab.city/docs/dashboard/#the-day-figure"
+  },
   "figures": {
    "anchor": "",
    "more": "Every row here arrived in GET /issues as provenance: the figure, its value, where it came from, the node's word for it and its age. A script or a spreadsheet reads the same route, with a token, or with none at SHARE_LEVEL=open.",
@@ -451,7 +499,7 @@
      "Apa yang membuat isu lain memimpin?"
     ]
    },
-   "quote": "The first thing on Now is the ladder, and under it the lead: the headline issue's kicker, its numeral and pictogram, the sentence, a why line and the rule. The last line gives when the numeral was read, the as-of time, how many alerts are open and in which stage, and a pill: `live`, `stale` or `cached`.",
+   "quote": "The first thing on Now is the ladder, and under it the lead: the headline issue's kicker, its numeral and pictogram, the title (the sentence's qualitative head — no number, no indicator) with its tagline smaller beneath (the line, the comparison, the day's event), a why line and the rule.",
    "section": "The lead",
    "title": "The lead",
    "url": "https://planetai.fab.city/docs/dashboard/#the-lead"
@@ -479,30 +527,6 @@
    "section": "Levels",
    "title": "Three levels, one floor",
    "url": "https://planetai.fab.city/docs/alerts/#levels"
-  },
-  "looked": {
-   "anchor": "when-a-real-alert-arrives",
-   "more": "With DECISION_REQUIRED=1 (Set up → Alerts) the node refuses an act that has no decision recorded before it, with 409, however the act arrives.",
-   "page": "first-ten-minutes.md",
-   "page_title": "First ten minutes",
-   "questions": {
-    "en": [
-     "What is the difference between deciding and doing?",
-     "What should I record when I act?"
-    ],
-    "es": [
-     "¿Qué diferencia hay entre decidir y hacer?",
-     "¿Qué debo anotar cuando actúo?"
-    ],
-    "id": [
-     "Apa beda memutuskan dan melakukan?",
-     "Apa yang harus saya catat saat bertindak?"
-    ]
-   },
-   "quote": "A decision closes no alert and does not enter ρ. It is the record that somebody looked.",
-   "section": "When a real alert arrives",
-   "title": "A decision moves nothing",
-   "url": "https://planetai.fab.city/docs/first-ten-minutes/#when-a-real-alert-arrives"
   },
   "mcp": {
    "anchor": "",
@@ -698,7 +722,7 @@
   },
   "raw": {
    "anchor": "what-leaves-the-machine-and-what-never-does",
-   "more": "The barcode under Observe is hourly means of the house's PM2.5: the finest time step this page shows, and still not a raw reading.",
+   "more": "The strips under Observe are hourly means, one cell an hour: the finest time step this page shows, and still not a raw reading.",
    "page": "how-it-works.md",
    "page_title": "How it works",
    "questions": {
@@ -743,30 +767,6 @@
    "section": "",
    "title": "Where this node's own line starts",
    "url": "https://planetai.fab.city/docs/install/"
-  },
-  "recommend": {
-   "anchor": "rules",
-   "more": "Record the decision posts `stage: decided` to POST /actions with your name and what will be done; Take its word fills in the rule's own line. The act comes after it, under Act.",
-   "page": "packs.md",
-   "page_title": "Packs",
-   "questions": {
-    "en": [
-     "What does this node suggest I do?",
-     "Where does that suggestion come from?"
-    ],
-    "es": [
-     "¿Qué me sugiere hacer este nodo?",
-     "¿De dónde sale esa sugerencia?"
-    ],
-    "id": [
-     "Apa yang disarankan node ini untuk saya lakukan?",
-     "Dari mana saran itu berasal?"
-    ]
-   },
-   "quote": "End a message with a paragraph that starts with 👉 and says what a person does. The dashboard's Decide card\nlifts that paragraph out and shows it on its own as \"what this node suggests\"; a rule without one gets a line\nsaying the rule carries no recommendation, because the page will not invent one.",
-   "section": "Rules",
-   "title": "What this node suggests",
-   "url": "https://planetai.fab.city/docs/packs/#rules"
   },
   "refusals": {
    "anchor": "refusals-that-hold-at-every-stage",
@@ -866,7 +866,7 @@
   },
   "shape": {
    "anchor": "sensors-and-readings",
-   "more": "The page waits for seven local days before it draws a day, and until then says how many it has. GET /shape?metric=pm25 returns the same hours, with how many hourly means went into each.",
+   "more": "The page waits for seven local days before it names the worst hour, and until then says how many it has. GET /shape?metric=pm25 returns the same hours, with how many hourly means went into each.",
    "page": "api.md",
    "page_title": "HTTP API",
    "questions": {
@@ -938,7 +938,7 @@
   },
   "stages": {
    "anchor": "the-sections",
-   "more": "Observe, decide, act, measure: the four stages this page is read in. A section whose data is not on this node prints one honest line in its place, never a blank and never a guess.",
+   "more": "Observe, decide, act, measure: the four stages of the loop. Now draws Decide first, because what asks for a person is read first. A section whose data is not on this node prints one honest line in its place, never a blank and never a guess.",
    "page": "dashboard.md",
    "page_title": "The dashboard",
    "questions": {
@@ -955,7 +955,7 @@
      "Apa yang terjadi antara memutuskan dan bertindak?"
     ]
    },
-   "quote": "Every section is registered with the page contract: `id`, `pack`, `stage`, `title`, `reads` and `render` (or `lead`), and optionally `order`, `needs`, `controls`, `wall`, `learn`, `notes`, `level` and `anchor`. The shell draws each one in the stage it belongs to, in the order the loop runs: observe, decide, act, measure.",
+   "quote": "Every section is registered with the page contract: `id`, `pack`, `stage`, `title`, `reads` and `render` (or `lead`), and optionally `order`, `needs`, `controls`, `wall`, `learn`, `notes`, `level` and `anchor`. The shell draws each one in the stage it belongs to. The loop runs observe, decide, act, measure, and Now draws Decide first.",
    "section": "The sections",
    "title": "The order the loop runs",
    "url": "https://planetai.fab.city/docs/dashboard/#the-sections"
@@ -983,6 +983,30 @@
    "section": "Issues, states and distances",
    "title": "States, in weight not hue",
    "url": "https://planetai.fab.city/docs/dashboard/#issues-states-and-distances"
+  },
+  "strips": {
+   "anchor": "the-strips",
+   "more": "The strips read GET /issues/days: the same hourly values the lead uses, over up to 90 days, with the node's own count of hours over the line for each day.",
+   "page": "dashboard.md",
+   "page_title": "The dashboard",
+   "questions": {
+    "en": [
+     "At what hour is the air usually worst here?",
+     "Which days were over the line?"
+    ],
+    "es": [
+     "¿A qué hora suele estar peor el aire aquí?",
+     "¿Qué días pasaron la línea?"
+    ],
+    "id": [
+     "Jam berapa udara biasanya paling buruk di sini?",
+     "Hari apa saja yang melewati garis?"
+    ]
+   },
+   "quote": "One row a day and one cell an hour, the newest day at the bottom: the last seven days on Now under each day figure (the oldest row starts at this hour a week ago), and every\nday the node holds on Historical.",
+   "section": "The strips",
+   "title": "One row a day, one cell an hour",
+   "url": "https://planetai.fab.city/docs/dashboard/#the-strips"
   },
   "tiles": {
    "anchor": "the-ground",
@@ -1034,7 +1058,7 @@
   },
   "workshop": {
    "anchor": "what-it-is-for",
-   "more": "Under the alerts in Act, the row with the nearest fab lab is that sentence where the pack is on: the lab, how far, and the dated archive it came from. With MAKE_ENABLED off, the row is the node's own help text for that setting instead.",
+   "more": "In Act, under the record of what was asked, the row with the nearest fab lab is that sentence where the pack is on: the lab, how far, and the dated archive it came from. With MAKE_ENABLED off, the row is the node's own help text for that setting instead.",
    "page": "introduction.md",
    "page_title": "Introduction",
    "questions": {
@@ -1078,9 +1102,8 @@
   "counted",
   "dido",
   "forecast",
-  "recommend",
-  "looked",
-  "agent",
+  "events",
+  "buttons",
   "claims",
   "workshop",
   "note",
@@ -1089,6 +1112,8 @@
   "effect",
   "figures",
   "shape",
+  "figure",
+  "strips",
   "earth",
   "reach",
   "trust",

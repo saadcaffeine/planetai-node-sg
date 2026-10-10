@@ -1,4 +1,4 @@
-"""The five wire formats' top-level keys are a committed file, and changing one is a deliberate act.
+"""The six wire formats' top-level keys are a committed file, and changing one is a deliberate act.
 
 ARCHITECTURE.md §3 names the contracts that must not change casually. "Casually" is the operative
 word: nothing stopped a key being added to `/export` — pinned to IPFS forever — or dropped from
@@ -35,6 +35,7 @@ FORMATS = {
     "report-v0":     ("app/main.py", ("func", "report_latest")),
     "aggregates-v0": ("app/main.py", ("post", "push_aggregates")),
     "events-v0":     ("app/main.py", ("post", "push_events")),
+    "days-v0":       ("app/issues/engine.py", ("func", "days")),
 }
 
 errs: list[str] = []

@@ -205,8 +205,12 @@ CASES = {}
 CASES["a pot still on the stove"] = _indoor(_b(), 48.0)
 CASES["the room came back down"] = _b()
 CASES["a clean afternoon"] = _indoor(_b(series=[], alerts=[], open_act=[], sensors_quiet=[]), 6.0)
-CASES["dangerous heat"] = _b(open_act=[{"id": 9, "at": "2026-09-07T15:00:00+08:00", "rule": "heat/heat_stress_now",
-                                        "sensor_id": "sc-kitchen", "line": "🥵 It is dangerously hot"}])
+# "Dangerously hot" is said only at real danger (heat/heat_danger, feels like 40 °C or more). heat_stress_now's 35 is
+# node #1's ordinary afternoon: the report said "dangerously hot inside" on 14 of 14 ordinary days (SPEC_alerts §1).
+CASES["dangerous heat"] = _b(open_act=[{"id": 9, "at": "2026-09-07T15:00:00+08:00", "rule": "heat/heat_danger",
+                                        "sensor_id": "sc-kitchen", "line": "🚨🥵 DANGER"}])
+CASES["a hot afternoon"] = _b(open_act=[{"id": 9, "at": "2026-09-07T15:00:00+08:00", "rule": "heat/heat_stress_now",
+                                         "sensor_id": "sc-kitchen", "line": "🥵 It is dangerously hot"}])
 CASES["no sensor indoors"] = _b(now=[r for r in FIXTURE["now"] if not r["indoor"]], series=[], alerts=[], open_act=[])
 _swell = _b()
 for _o in _swell["observations"]:
@@ -268,6 +272,9 @@ assert len(_busy) == 4 and "What changed" in _busy[1] and "After the alert" in _
 assert "back under" in report.sheet(CASES["the room came back down"], "en")
 assert "still above" in report.sheet(CASES["a pot still on the stove"], "en")
 assert report.sheet(CASES["a node at minute five"], "es").startswith("🛰️"), "a node with no readings still speaks"
+assert "dangerously" not in report.sheet(CASES["a hot afternoon"], "en"), "an ordinary hot afternoon is not danger"
+assert report.T["en"]["state_heat"] in report.sheet(CASES["a hot afternoon"], "en")
+assert report.T["en"]["state_hot"] in report.sheet(CASES["dangerous heat"], "en")
 print(f"the sheet renders in three languages across {len(CASES)} states, under 100 words, with nothing unfilled")
 
 # Thermometers in a room count as "a sensor inside", the secondary room does not speak for the house, and the wind shows

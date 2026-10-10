@@ -148,6 +148,14 @@ broken("stylesheet off the allowlist",
        sub('href="static/dashboard.css"', 'href="static/theme2.css"'),
        r"COMPANIONS allowlist does not serve", where="index.html")
 
+# 8b. the page computes no H3: neither h3-js nor deck.gl's own hexagon layer, which computes the ring in the browser
+broken("h3-js on the page", prepend_js("window.x = new deck.H3HexagonLayer({ getHexagon: d => d.id });"),
+       r"computes H3 itself \(H3HexagonLayer\)", where="dashboard.js")
+broken("an h3 call on the page", prepend_js("const r = h3.cellToBoundary('8888');"),
+       r"computes H3 itself \(h3\.cellToBoundary\)", where="dashboard.js")
+broken("a vendored library off the allowlist", prepend_js("const L = { src: 'static/leaflet.js' };"),
+       r"loads static/leaflet\.js, which app/main\.py's COMPANIONS allowlist does not serve", where="dashboard.js")
+
 # 9. the stylesheets: a font nothing serves, and a CDN
 broken("font off the allowlist", prepend('@font-face{font-family:"Z";src:url("Nope.ttf")}'),
        r"loads Nope\.ttf, which app/main\.py's COMPANIONS allowlist does not serve")
@@ -184,7 +192,7 @@ broken("a viewport-height class on an element and its own ancestor",
 # Both are silent: the page renders either way and the only way to find out is to be the tester who
 # presses a question mark and gets nothing. So they are counted at build time instead.
 broken("a mark the layer does not have",
-       sub("learn: ['cards', 'raw']", "learn: ['cards', 'raw', 'weather']"),
+       sub("learn: ['cards', 'raw', 'figure']", "learn: ['cards', 'raw', 'figure', 'weather']"),
        r"draws a learn mark 'weather' that app/static/learn\.json does not have", where="dashboard.js")
 broken("an entry nothing on the page draws",
        sub("learn: ['rho', 'refusals']", "learn: ['rho']"),

@@ -1,4 +1,5 @@
 # Three things node #1 can tell you
+<!-- checked: v0.80.10 -->
 
 Computed on 5 September 2026 from seven days of data: three indoor kits at one house in Kuta Selatan, an outdoor kit
 a kilometre away, and the Copernicus model at the house.

@@ -232,45 +232,45 @@ strings:
     en: "and NASA POWER climatology for its coordinates, so it has something true to say before hardware arrives."
   - key: install:442
     en: "Add a sensor later with --sc / --airgradient / --purpleair, or edit .env."
-  - key: install:461
-    en: "a database from an earlier node is still on this machine ( :-Docker volume ), and this is a new .env,"
-  - key: install:462
-    en: "so its password cannot match. Two ways out"
   - key: install:463
-    en: "keep that data: put the earlier .env back in this folder, then run this again"
+    en: "a database from an earlier node is still on this machine ( :-Docker volume ), and this is a new .env,"
+  - key: install:464
+    en: "so its password cannot match. Two ways out"
   - key: install:465
+    en: "keep that data: put the earlier .env back in this folder, then run this again"
+  - key: install:467
     en: "not starting a node whose app cannot log in to its database"
-  - key: install:475
+  - key: install:477
     en: "port is already in use on this machine"
-  - key: install:476
+  - key: install:478
     en: "set APP_PORT=8081 (or any free port) in .env and re-run"
-  - key: install:480
+  - key: install:482
     en: "creating the folders the containers write to"
-  - key: install:490
+  - key: install:492
     en: "downloading the database image (about 162 MB)"
-  - key: install:497
+  - key: install:499
     en: "building this node's own image and starting both containers"
-  - key: install:503
+  - key: install:505
     en: "waiting for the database, then applying the schema"
-  - key: install:506
+  - key: install:508
     en: "s waiting for the database to accept connections"
-  - key: install:511
-    en: "the schema was already there (a fresh volume applies it itself)"
   - key: install:513
+    en: "the schema was already there (a fresh volume applies it itself)"
+  - key: install:515
     en: "the database did not answer in 60s — the checks below will say so"
-  - key: install:518
+  - key: install:520
     en: "checking what is running"
-  - key: install:528
+  - key: install:530
     en: "✓ backup.sh made executable"
-  - key: install:535
+  - key: install:537
     en: "nightly backup scheduled (03:17)"
-  - key: install:540
+  - key: install:542
     en: "a Telegram bot token is visible in this node's container logs (from a version before v0.4.3)."
-  - key: install:541
+  - key: install:543
     en: "Revoke it: message @BotFather -> /revoke -> pick the bot -> put the new token in .env -> make restart"
-  - key: install:546
+  - key: install:548
     en: "first start pulls ~2,200 rows of history for your location (CAMS 92 days + NASA POWER normals)."
-  - key: install:551
-    en: "install OK — , steps in s, on localhost"
   - key: install:553
+    en: "install OK — , steps in s, on localhost"
+  - key: install:555
     en: "First reading lands within s."

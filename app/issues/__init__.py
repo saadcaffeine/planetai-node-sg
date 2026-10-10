@@ -40,12 +40,15 @@ CLASSES = ("clear", "inside", "everywhere", "outside_worse", "mixed", "unknown")
 # `none` have nothing to attribute, so they are said with their own.
 STATE_SENTENCES = ("context", "none")
 
-# Everything a template may ask for, and nothing else. The engine fills all five; a template using
-# a name that is not here would render a literal brace to somebody's kitchen wall.
+# Everything a template may ask for, and nothing else. The engine fills all of them; a template
+# using a name that is not here would render a literal brace to somebody's kitchen wall.
 # `span` and `since` are the land record's own history: "between 2024 and 2025", "8.5 % since 2017".
 # They fill from the earth cell's `extra` and are empty for every other issue, so a template that
 # names them on an issue that cannot fill them renders a clean sentence rather than a brace.
-PLACEHOLDERS = ("verb", "n", "unit", "where", "cmp", "span", "since")
+# `line` is the live relation to the issue's line, computed from the value (over · near · under),
+# and `event` the clause for the day it crossed and came back — both empty when there is nothing
+# true to say, so the sentence never asserts what the reading denies.
+PLACEHOLDERS = ("verb", "n", "unit", "where", "cmp", "span", "since", "line", "event")
 
 WHERE_FROM = ("stats", "observations", "earth")
 AGGREGATES = ("mean", "median", "fenced_median")
@@ -306,15 +309,15 @@ PLAIN_WORDS = {
 # dashboard.js, where nothing connected the two. A ranking a reader cannot check is the one thing
 # this page does not do, so the explanation travels with the ranking.
 HEADLINE_RULE = {
-    "en": "The issue with most to say leads. Where two have as much to say, the one that has "
-          "moved most in the last three hours. An even tie goes to the order this place chose, under "
-          "Set up \u2192 Basics.",
-    "id": "Isu yang paling banyak bicara memimpin. Bila dua sama banyaknya, yang paling berubah "
-          "dalam tiga jam terakhir. Bila tetap seri, urutannya mengikuti pilihan tempat ini, di "
-          "Set up \u2192 Basics.",
-    "es": "Lidera el asunto que m\u00e1s tiene que decir. Si dos dicen otro tanto, el que m\u00e1s se ha "
-          "movido en las \u00faltimas tres horas. Si hay empate exacto, manda el orden que eligi\u00f3 este "
-          "lugar, en Set up \u2192 Basics.",
+    "en": "An open event leads, the most serious first. With none open, the issue with most to say leads. Where two "
+          "have as much to say, the one that has moved most in the last three hours. An even tie goes to the order "
+          "this place chose, under Set up \u2192 Basics.",
+    "id": "Kejadian yang masih terbuka memimpin, yang paling serius lebih dulu. Bila tidak ada, isu yang paling "
+          "banyak bicara memimpin. Bila dua sama banyaknya, yang paling berubah dalam tiga jam terakhir. Bila tetap "
+          "seri, urutannya mengikuti pilihan tempat ini, di Set up \u2192 Basics.",
+    "es": "Lidera un evento abierto, el m\u00e1s grave primero. Si no hay ninguno, lidera el asunto que m\u00e1s "
+          "tiene que decir. Si dos dicen otro tanto, el que m\u00e1s se ha movido en las \u00faltimas tres horas. Si "
+          "hay empate exacto, manda el orden que eligi\u00f3 este lugar, en Set up \u2192 Basics.",
 }
 REASON_WORDS = {
     "en": {
@@ -329,6 +332,10 @@ REASON_WORDS = {
         "ask_how":          "Reply /act {id} on Telegram and say what you did.",
         "not_watched":      "not watched here",
         "no_source":        "no source",
+        "event_open":       "an event open since {when} ({kind})",
+        "event_answered":   "answered at {when} by {who} ({word}); the node is watching",
+        "event_cleared":    "an event cleared at {when}",
+        "someone":          "someone",
     },
     "id": {
         "open_ask_current": "diminta pada {when}, dan masih berlaku",
@@ -342,6 +349,10 @@ REASON_WORDS = {
         "ask_how":          "Balas /act {id} di Telegram dan sebutkan apa yang Anda lakukan.",
         "not_watched":      "tidak dipantau di sini",
         "no_source":        "tidak ada sumber",
+        "event_open":       "kejadian terbuka sejak {when} ({kind})",
+        "event_answered":   "dijawab pada {when} oleh {who} ({word}); node sedang mengamati",
+        "event_cleared":    "kejadian selesai pada {when}",
+        "someone":          "seseorang",
     },
     "es": {
         "open_ask_current": "pedido a las {when}, y sigue vigente",
@@ -355,6 +366,10 @@ REASON_WORDS = {
         "ask_how":          "Responde /act {id} en Telegram y di qué hiciste.",
         "not_watched":      "no se vigila aquí",
         "no_source":        "sin fuente",
+        "event_open":       "un evento abierto desde las {when} ({kind})",
+        "event_answered":   "respondido a las {when} por {who} ({word}); el nodo lo vigila",
+        "event_cleared":    "un evento terminó a las {when}",
+        "someone":          "alguien",
     },
 }
 
@@ -419,10 +434,7 @@ def _problems(key: str, d: dict) -> list[str]:
             p += _distance_problems(f"{key}.distances.{name}", spec)
 
     for r in d.get("readouts") or []:
-        if not isinstance(r, dict) or not r.get("metric") or not r.get("sensor_id"):
-            p.append(f"{key}: a readout needs at least a metric and a sensor_id")
-        elif not all((r.get("label") or {}).get(loc) for loc in LOCALES):
-            p.append(f"{key}: the {r['metric']} readout needs a label in every locale")
+        p += [f"{key}: {x}" for x in _readout_problems(r)]
 
     if "hero" in d:
         p += _hero_problems(key, d)
@@ -462,6 +474,134 @@ def _problems(key: str, d: dict) -> list[str]:
             if w not in DISTANCES:
                 p.append(f"{key}: where.{loc}.{w} is not one of {', '.join(DISTANCES)}")
     return p
+
+
+_said: set[str] = set()
+
+
+def _warn_once(msg: str, *args) -> None:
+    """load() runs on every /issues request, so a pack's mistake is said once per process, not once per page view."""
+    text = msg % args if args else msg
+    if text not in _said:
+        _said.add(text)
+        log.warning(text)
+
+
+def _readout_problems(r) -> list[str]:
+    """One readout: a number from one sensor's latest row, shown with a unit and a label in every locale. The engine
+    reads `unit` and `label` without a default, so a readout missing either would take the issue down with it."""
+    if not isinstance(r, dict) or not r.get("metric") or not r.get("sensor_id"):
+        return ["a readout needs at least a metric and a sensor_id"]
+    p = []
+    if not isinstance(r.get("unit"), str) or not r["unit"]:
+        p.append(f"the {r['metric']} readout needs a unit")
+    if "dp" in r and (not isinstance(r["dp"], int) or isinstance(r["dp"], bool)):
+        p.append(f"the {r['metric']} readout's dp must be a whole number of decimal places")
+    if not all((r.get("label") or {}).get(loc) for loc in LOCALES):
+        p.append(f"the {r['metric']} readout needs a label in every locale")
+    return p
+
+
+def pack_readouts(decl: dict[str, dict], manifests: list[dict]) -> dict[str, dict]:
+    """Readouts a pack adds to an issue, after the issue's own, in the order of the packs' ids.
+
+    A pack declares them in its pack.yaml as `readouts: {<issue>: [<readout>, ...]}`, in the shape an issue file
+    uses. A pack adds and never replaces (docs/decisions/2026-10-01-packs.md): a readout already shown for the same
+    sensor and metric is not shown twice, and one that names no declared issue, or is not well formed, is logged and
+    left out. Only the readout is dropped, never the issue: one pack's mistake must not cost the household a band.
+    A readout whose sensor has no row on this node shows nothing, as an issue's own does, so a pack that is on but
+    has not fetched yet adds no invented number.
+    """
+    for m in sorted(manifests, key=lambda m: str(m.get("id", ""))):
+        pid, ro = m.get("id", "?"), m.get("readouts")
+        if not ro:
+            continue
+        if not isinstance(ro, dict):
+            _warn_once("pack %s: readouts must map an issue to a list of readouts; ignoring them", pid)
+            continue
+        for key, rows in ro.items():
+            if key not in decl:
+                _warn_once("pack %s: readouts for %r, which no app/issues/*.yml declares; ignoring them", pid, key)
+                continue
+            if not isinstance(rows, list):
+                _warn_once("pack %s: readouts.%s must be a list; ignoring it", pid, key)
+                continue
+            have = {(r.get("metric"), r.get("sensor_id")) for r in decl[key].get("readouts") or [] if isinstance(r, dict)}
+            for r in rows:
+                bad = _readout_problems(r)
+                if bad:
+                    _warn_once("pack %s: readouts.%s: %s; leaving it out", pid, key, "; ".join(bad))
+                    continue
+                if (r["metric"], r["sensor_id"]) in have:
+                    _warn_once("pack %s: readouts.%s: %s from %s is already shown; not twice", pid, key,
+                                r["metric"], r["sensor_id"])
+                    continue
+                decl[key].setdefault("readouts", []).append(dict(r))
+                have.add((r["metric"], r["sensor_id"]))
+    return decl
+
+
+SECTION_STAGES = ("observe", "decide", "act", "measure")
+SECTION_CARDS = ("readout",)
+
+
+def _section_problems(sec) -> list[str]:
+    """One section a pack declares in its pack.yaml, to be drawn by the page's own components."""
+    if not isinstance(sec, dict):
+        return ["a section must be a mapping"]
+    p = []
+    sid = sec.get("id")
+    if not isinstance(sid, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", sid):
+        p.append("its id must be lowercase letters, digits and hyphens")
+    if sec.get("stage") not in SECTION_STAGES:
+        p.append(f"its stage is {sec.get('stage')!r}; it must be one of {', '.join(SECTION_STAGES)}")
+    if not all((sec.get("title") or {}).get(loc) for loc in LOCALES):
+        p.append("it needs a title in every locale")
+    card = sec.get("card", "readout")
+    if card not in SECTION_CARDS:
+        p.append(f"its card is {card!r}. A declared section draws readout cards; a stack, a series or a row needs "
+                 f"the shell's own code, which is a reason to promote the pack")
+    rows = sec.get("readouts")
+    if not isinstance(rows, list) or not rows:
+        p.append("it needs at least one readout")
+    else:
+        for r in rows:
+            p += _readout_problems(r)
+    if "wall" in sec and not isinstance(sec["wall"], bool):
+        p.append("wall must be true or false")
+    if "order" in sec and (not isinstance(sec["order"], int) or isinstance(sec["order"], bool)):
+        p.append("order must be a whole number")
+    note = sec.get("note")
+    if note is not None and not (isinstance(note, dict) and all(note.get(loc) for loc in LOCALES)):
+        p.append("its note needs every locale, or no note at all")
+    return p
+
+
+def pack_sections(manifests: list[dict]) -> list[dict]:
+    """The sections the enabled packs declare (docs/decisions/2026-10-01-packs.md, point 5), in the order of the packs'
+    ids, each with the id of the pack that declared it. A wild pack ships no script: it says what its section is, and
+    the page draws it with its own readout cards, so it looks like the rest of the page and is measured with it. A
+    section that is not well formed, or whose id another pack already took, is left out with a line in the log."""
+    out, seen = [], set()
+    for m in sorted(manifests, key=lambda m: str(m.get("id", ""))):
+        pid, secs = m.get("id", "?"), m.get("sections")
+        if not secs:
+            continue
+        if not isinstance(secs, list):
+            _warn_once("pack %s: sections must be a list; ignoring them", pid)
+            continue
+        for sec in secs:
+            bad = _section_problems(sec)
+            if bad:
+                _warn_once("pack %s: section %s: %s; leaving it out", pid,
+                           (sec.get("id") if isinstance(sec, dict) else None) or "?", "; ".join(bad))
+                continue
+            if sec["id"] in seen:
+                _warn_once("pack %s: section %s is already declared by another pack; leaving it out", pid, sec["id"])
+                continue
+            seen.add(sec["id"])
+            out.append({**sec, "pack": pid})
+    return out
 
 
 def _sign_ids() -> set[str]:
@@ -562,7 +702,8 @@ def _distance_problems(where: str, spec) -> list[str]:
 
 
 def load(path: Path | str | None = None) -> dict[str, dict]:
-    """Every issue declared in `path` (this directory by default), keyed by file stem.
+    """Every issue declared in `path` (this directory by default), keyed by file stem. With the default, the
+    readouts the enabled packs add are merged in (`pack_readouts`).
 
     A file that does not parse or does not validate is logged and dropped: one bad issue must not
     cost the household the other three.
@@ -581,6 +722,14 @@ def load(path: Path | str | None = None) -> dict[str, dict]:
             continue
         d["key"] = f.stem
         out[f.stem] = d
+    if path is None:
+        # The node's own issues are what the files say plus what its enabled packs add. A validator or a test that
+        # names a directory gets the files alone.
+        try:
+            import packs  # app/packs.py: the one place that knows which packs are on
+            out = pack_readouts(out, packs.manifests())
+        except Exception as e:  # noqa: BLE001 — the packs are an addition; without them the issues still stand
+            log.warning("issues: could not read the packs' readouts (%s)", e)
     return out
 
 

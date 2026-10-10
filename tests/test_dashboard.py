@@ -77,37 +77,9 @@ _js = re.sub(r"(?m)^\s*//.*$", " ", _js)
 for _word in ("mad", "fence"):
     assert not re.search(rf"\b{_word}\s*=", _js), f"dashboard.js computes a {_word} again — it belongs in the engine"
 
-# A hole in a series must be a hole in the line.
-#
-# Both charts used to drop the nulls and join what was left, so a sensor that was off from 08:00 to 15:00 was drawn
-# as one straight segment bridging the hole. Rendered against the committed fixture with seven hours nulled, the room
-# trace ramped for six hours, CROSSED the WHO line the page judges against, and came back down: a threshold crossing
-# that never happened, on the chart a household reads to decide whether to open a window. 17 real points were drawn
-# as a 17-point line over 24 hours and nothing said which six were invented.
-#
-# Where a line breaks is drawing, not arithmetic, so `runs` lives in the page — and this lifts it out and runs it,
-# the way this suite ran the fence before the fence moved to the engine.
-if shutil.which("node"):
-    _runs = re.search(r"const runs = \(vals, at\) => \{.*?\n\};", _js, re.S)
-    assert _runs, "dashboard.js no longer defines runs() — the charts are joining across nulls again"
-    _cases = {
-        "a hole in the middle":   [1, 2, None, None, 5, 6],
-        "the fixture's own case": [*range(8), *([None] * 7), *range(15, 24)],
-        "no hole at all":         [1, 2, 3, 4],
-        "one reading alone":      [None, 5, None],
-        "nothing at all":         [None, None],
-    }
-    _prog = (_runs.group(0) + "\nconst at = (v, i) => [i, v];\n"
-             + "console.log(JSON.stringify(Object.fromEntries(Object.entries("
-             + json.dumps(_cases) + ").map(([k, v]) => [k, runs(v, at).map(r => r.length)]))))")
-    _out = _node(_prog)
-    assert _out["a hole in the middle"] == [2, 2], f"one hole must give two lines, not one: {_out}"
-    assert _out["the fixture's own case"] == [8, 9], \
-        f"the seven nulled hours must split the day into 8 points and 9, not bridge into 17: {_out}"
-    assert _out["no hole at all"] == [4], f"an unbroken day is still one line: {_out}"
-    assert _out["one reading alone"] == [1], \
-        f"a lone reading between two holes must survive as a run of one — dropping it loses a datum silently: {_out}"
-    assert _out["nothing at all"] == [], f"a series with no readings draws nothing: {_out}"
+# A hole in a series must be a hole in the line. Plot breaks a line at a null by itself (its lineY treats null as
+# undefined), so the page keeps the nulls: what this holds is that a nulled hour reaches the day figure's readout as
+# "nothing recorded", never as a value. See A NODE THAT CHANGES CLOCK below.
 
 # --- the modular page: three files, one contract, ten sections -------------------------------------------------
 #
@@ -320,7 +292,7 @@ assert "packCard(p, rows.filter(r => r.pack === p.id).map(field)" in _js and "pa
 # Reported by Tomas from node #1 at v0.71, which is the release this fixes.
 assert "const VIEW_NAMES = new Set(" in _js, \
     "readView no longer has a list of what a view IS, so any hash is one again"
-assert re.search(r"VIEW = \(VIEW_NAMES\.has\(h\) \? h : ''\) \|\| q\.get\('view'\) \|\| 'now'", _js), \
+assert re.search(r"VIEW = VIEW_NAMES\.has\(h\) \? h : \(q\.get\('view'\) \|\| \(h && VIEW \? VIEW : 'now'\)\)", _js), \
     ("an unknown hash is being taken as a view again — `#stage-act` empties the page, and so does "
      "every link in the notes band")
 # Every hash the page itself writes must either name a view or name an element it draws.
@@ -331,13 +303,40 @@ assert _names == {"now", "historical", "network", "wall", "arrange", "setup"}, \
 # The one literal anchor the page writes is the lead's, and the element it points at is built from
 # a template — `id="stage-${key}"` — so there is no literal to grep for. Assert the pair instead:
 # the link, and the template that makes its target. The rig checks the live page lands on it.
-assert 'href="#stage-act"' in _js, "the lead no longer links to the Act stage"
+# (v0.78: it counts events and points at Decide, where the cards are, not at Act.)
+assert 'href="#stage-decide"' in _js, "the lead no longer links to the Decide stage"
 assert 'id="stage-${key}"' in _js, \
-    "the stages no longer carry an id, so the lead's link to #stage-act lands nowhere"
+    "the stages no longer carry an id, so the lead's link to #stage-decide lands nowhere"
 # And an anchor must not throw the page away: same view, so scroll rather than re-render.
 assert "if (VIEW === before)" in _js and "scrollIntoView({ block: 'start' })" in _js, \
     ("a hashchange that does not change the view re-renders the whole page, which loses the scroll "
      "position, the open folds and the learn panel for a link to somewhere already on screen")
+
+# AN IN-PAGE LINK KEEPS THE VIEW IT WAS CLICKED ON. The header's nav writes `#network`; a click on
+# `#grain` then replaced it, `grain` is no view and there is no ?view=, so readView() answered `now`
+# and the hashchange handler routed the reader back to Now. Every in-page link on Network and
+# Historical did it. This lifts readView and VIEW_NAMES and runs the sequence a reader makes.
+if shutil.which("node"):
+    _src = (ROOT / "app/static/dashboard.js").read_text()
+    _rv = _node("\n".join((
+        "globalThis.window = globalThis; let VIEW = 'now', STATE;",
+        re.search(r"const VIEW_NAMES = new Set\(.*?\);\n", _src).group(0),
+        re.search(r"function readView\(\) \{.*?\n\}\n", _src, re.S).group(0),
+        """const at = (search, hash) => { globalThis.location = { search, hash }; readView(); return VIEW; };
+const out = {};
+out.first_anchor = at('', '#grain');                     /* first load on an anchor, VIEW still 'now' */
+out.network = at('', '#network');
+out.keeps_network = at('', '#grain');                    /* the in-page link: no view, no query */
+out.keeps_again = at('', '#claims');
+out.hist_query = at('?view=historical', '#trust');
+out.keeps_hist = at('', '#grain');
+out.now = at('', '#now');
+out.now_no_hash = (at('', '#network'), at('', ''));      /* the Now button clears the hash */
+console.log(JSON.stringify(out));""")))
+    assert _rv == {"first_anchor": "now", "network": "network", "keeps_network": "network",
+                   "keeps_again": "network", "hist_query": "historical", "keeps_hist": "historical",
+                   "now": "now", "now_no_hash": "now"}, \
+        f"readView: an in-page anchor must keep the view the reader is on: {_rv}"
 
 # THE PAGE KEEPS UP WITH THE NODE, AND SAYS SO WHEN IT CANNOT.
 #
@@ -434,7 +433,8 @@ assert "opts && opts.keepGround" in _rd, "redraw() keeps the ground unconditiona
 # log R14); the wall keeps its own dial, which is a different control on a different surface.
 assert "VIEW === 'now' || VIEW === 'arrange'" in _js and 'class="railwrap"' in _js, \
     "the rail is no longer drawn for Now and Arrange, or is drawn for every view again"
-assert re.search(r"const ref = 'grain-line';", _js), \
+# (v0.78: the grain line moved to Network with its section, so the rail points at the ground figure.)
+assert re.search(r"const ref = 'ground-figure';", _js), \
     "the rail's link out is back to being chosen per view; only Now draws it now"
 # The zones are texture, not hue (design log R14). The cells blue has one meaning — a cell — and a
 # 12% wash of it for "may leave this machine" spent it on a second, vanished for a reader who cannot
@@ -486,7 +486,9 @@ for _v in ("NOW", "NETWORK", "HISTORICAL"):
 # registered section not typed into one of those arrays was filtered out of all three and drawn
 # nowhere: it registered, Set up listed it as `drawing`, and it was on no page. Now is the default
 # home for anything the two named lists do not claim, and this is the line that says so.
-assert "const homeless = PAI.sections.map(s => s.id).filter(id => !placed.has(id))" in _js, \
+# Since 2 October 2026 a section can also arrive as data, declared in a pack.yaml and served in /issues; it is placed
+# on no view either, so the same line homes both.
+assert "const homeless = PAI.sections.concat(PAI.declared(ctx)).map(s => s.id).filter(id => !placed.has(id))" in _js, \
     ("a registered section that no view names is filtered out of every view again, so a pack can "
      "register a section and have it drawn nowhere — which is the contract this page publishes")
 assert "want([...NOW, ...homeless])" in _js, \
@@ -582,8 +584,7 @@ if shutil.which("node"):
              + "    : { getItem: k => (k === MODE_KEY && mine !== null ? mine : null) };\n"
              + "  try { out[name] = mode(); } catch (e) { out[name] = 'THREW: ' + e.message; }\n"
              + "}\nconsole.log(JSON.stringify(out))")
-    _m = json.loads(subprocess.run(["node", "-e", _prog], capture_output=True, text=True,
-                                   check=True).stdout)
+    _m = _node(_prog)                   # on stdin: the settings blob outgrew Linux's 128 KiB argv cap at v0.80
 
     assert _m["node_simple"] == "simple", \
         f"UI_MODE must reach the page through describe()'s runtime rows, not a flat map: {_m}"
@@ -600,8 +601,7 @@ if shutil.which("node"):
               + "globalThis.localStorage = { getItem: k => (k === MODE_KEY ? 'simple' : null) };\n"
               + "const out = {}; for (const v of ['now','historical','network','setup','arrange','wall',undefined])\n"
               + "  out[String(v)] = mode(v);\nconsole.log(JSON.stringify(out))")
-    _v = json.loads(subprocess.run(["node", "-e", _vprog], capture_output=True, text=True,
-                                   check=True).stdout)
+    _v = _node(_vprog)
     for _view in ("now", "historical", "network"):
         assert _v[_view] == "simple", \
             f"{_view} reports something, so it must honour a reader's Simple: {_v}"
@@ -695,6 +695,143 @@ if shutil.which("node"):
         f"pill('stale') must print the word with no sign, since signs.svg has none: {_pill['stale']}"
     assert "sign-prov-live" in _pill["live"], f"pill('live') lost its sign: {_pill['live']}"
 
+    # THE EVENT CARD (SPEC_dashboard_events §4.2). The helpers are lifted whole; S, ISS and LOC are the
+    # kit's own `let` bindings, so the program declares them the way initKit() would.
+    _ev = "\n".join((
+        re.search(r"const esc = s => .*?\);\n", _js_raw, re.S).group(0),
+        re.search(r"const fmt = .*?\n", _js_raw).group(0),
+        re.search(r"const sign = \(id, cls = ''\) =>\n.*?;\n", _js_raw).group(0),
+        re.search(r"const TOKEN_FINE = .*?</p>`;", _js_raw, re.S).group(0),
+        re.search(r"function evState\(\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"const evOpen = .*?\n", _js_raw).group(0),
+        re.search(r"function evClock\(iso\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evButtons\(e\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evWord\(stage\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evAnswered\(e\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"const age = m => .*?days ago`;", _js_raw, re.S).group(0),
+        re.search(r"function evLive\(e\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evCard\(e, tail = ''\) \{.*?\n\}", _js_raw, re.S).group(0),
+    ))
+    _evr = _node(_ev + r"""
+let LOC = 'en';
+let HID = [], DAY_UNMET = true;
+const window = { PAI: { sections: [], has: p => p !== 'H3.missing', isHidden: id => HID.includes(id) } };
+const secs = (...ids) => { window.PAI.sections = ids.map(id => ({ id, needs: id === 'day' && DAY_UNMET ? ['H3.missing'] : [] })); };
+const ISS = { heat: { name: { en: 'Heat' }, unit: '°C', dp: 1, metric: 'temp', hero: { sign: 'sign-heat' } } };
+const BTN = { done: 'Done', not_now: 'Not now', doesnt_fit: 'Doesn’t fit' };
+const ev0 = { id: 7, issue: 'heat', kind: 'sustained', level: 'warn', opened_at: '2026-10-05T09:30:00Z',
+  peak: 36.2, line: 35, rooms: ['loft'], context: { usual: 33.4, outside: 29.1, outside_metric: 'temp',
+  outside_from: 'outside' }, action: { id: 'a', text: 'Close the shutters <now>' },
+  message: { text: 'It is hot <b>', ts: '2026-10-05T09:31:00Z', sent: true }, alerts: [1, 2], answer: null };
+const run = (events, over) => { S = { issues: { events }, health: { tz: 'UTC' } }; return evCard({ ...ev0, ...over }); };
+let S;
+const E = (engine, extra) => ({ engine, buttons: BTN, open: [], ...extra });
+const n = (s, re) => (s.match(re) || []).length;
+const out = {
+  old: (S = { issues: {} }, evState()), nul: (S = { issues: { events: null } }, evState()),
+  err: (S = { issues: { events: { error: 'x' } } }, evState()), shadow: (S = { issues: { events: E('shadow') } }, evState()),
+  rules: (S = { issues: { events: E('rules') } }, evState()), evs: (S = { issues: { events: E('events') } }, evState()),
+  open: (S = { issues: { events: E('events', { open: [1] }) } }, evOpen()), none: (S = { issues: {} }, evOpen()),
+  clock: (S = { issues: {}, health: { tz: 'Asia/Makassar' } }, evClock('2026-10-05T09:30:00Z')),
+  utc: (S = { issues: {} }, evClock('2026-10-05T09:30:00Z')), bad: (S = { issues: {} }, evClock('nope')),
+  open_card: run(E('events'), {}), shadow_card: run(E('shadow'), {}),
+  held_msg: run(E('events'), { message: { text: 'x', ts: '2026-10-05T09:31:00Z', sent: false } }),
+  acted: run(E('events'), { answer: { stage: 'acted', actor: 'tomas', ts: '2026-10-05T10:00:00Z' } }),
+  held: run(E('events'), { answer: { stage: 'acknowledged', actor: 'tomas', ts: '2026-10-05T10:00:00Z',
+    held_until: '2026-10-05T12:00:00Z' } }),
+  noted: run(E('events'), { answer: { stage: 'dismissed', actor: 'tomas', ts: '2026-10-05T10:00:00Z',
+    note: 'I opened the window <b>' } }),
+  under: run(E('events'), { peak: 34 }),
+  live: run(E('events'), { last_seen_at: new Date(Date.now() - 3 * 6e4).toISOString() }),
+  noact: run(E('events'), { action: null, context: {}, line: null }),
+  l_all: (secs('matrix', 'sensors'), run(E('events'), {})),
+  l_unmet: (secs('matrix', 'day', 'sensors'), run(E('events'), {})),
+  l_none: (secs(), run(E('events'), { alerts: [] })),
+  l_hidden: (DAY_UNMET = false, secs('matrix', 'day', 'sensors'), HID = ['day'], run(E('events'), {})),
+  l_shown: (HID = [], run(E('events'), {})),
+  tail: (S = { issues: { events: E('events') } }, evCard(ev0, '<details id="evrows-7">T</details>')),
+};
+console.log(JSON.stringify(out));""")
+    assert [_evr[k] for k in ("old", "nul", "err", "shadow", "rules", "evs")] == \
+        ["old", "old", "error", "shadow", "rules", "events"], f"evState: {_evr}"
+    assert _evr["open"] == [1] and _evr["none"] == [], "evOpen reads S.issues.events.open, or []"
+    assert _evr["clock"] == "17:30" and _evr["utc"].endswith("UTC") and _evr["bad"] == "", \
+        f"evClock: {_evr['clock']!r} {_evr['utc']!r} {_evr['bad']!r}"
+    _c = _evr["open_card"]
+    assert 'data-num="ev.7.peak"' in _c, "the peak numeral is a data-num, so the number gate reads it"
+    # The card is a readout (spec §4.2), and it points at Decide's band: a num-<issue> id exists only for the
+    # lead's issue, so an event about any other issue pointed at nothing.
+    _head = _c[:_c.index(">")]
+    assert 'data-kind="readout"' in _head and 'data-ref="decide"' in _head and "num-" not in _head, _head
+    _cmp = re.search(r'data-cmp="([^"]*)"', _c).group(1)
+    assert "usual at this hour 33.4" in _cmp and "outside 29.1" in _cmp and "from outside" in _cmp \
+        and "the line 35.0" in _cmp, f"data-cmp must name usual, outside and the line: {_cmp}"
+    assert "Close the shutters &lt;now&gt;" in _c and "<now>" not in _c, "the action text is the node's, escaped"
+    assert "It is hot &lt;b&gt;" in _c and "<b>It" not in _c, "the message is escaped"
+    assert len(re.findall(r'<button type="button" class="evb', _c)) == 3, "three buttons"
+    for _t in ("Done", "Not now", "Doesn’t fit"):
+        assert f">{_t}</button>" in _c, f"button {_t!r} missing"
+    assert "sent 09:31" in _c and "would have sent" not in _c, "an events node says sent"
+    assert "would have sent 09:31" in _evr["shadow_card"], "a shadow node says would have sent"
+    assert "held 09:31" in _evr["held_msg"], "an unsent message says held"
+    assert 'class="evnum worse"' in _c and 'class="evnum"' in _evr["under"], "worse only when peak > line"
+    # The live stamp (docs/decisions/2026-10-10): an open event says the engine is still watching, from the
+    # wire's last_seen_at — and says nothing when the wire carries none.
+    assert "watching — last seen" in _evr["live"] and "min ago" in _evr["live"], \
+        f"an open event carries its live stamp: {_evr['live'][:200]}"
+    assert "watching" not in _c, "no last_seen_at, no stamp — the card never invents one"
+    assert 'class="evb' not in _evr["acted"] and "evdone" in _evr["acted"] and "tomas" in _evr["acted"], \
+        "an acted event has no buttons and says who"
+    assert "evheld" in _evr["held"] and "held until 12:00" in _evr["held"] and 'class="evb' in _evr["held"], \
+        "a held event keeps its buttons and says until when"
+    assert '“I opened the window &lt;b&gt;”' in _evr["noted"] and "<b>" not in _evr["noted"].split("evnote")[1], \
+        "a Doesn't fit with a note carries the household's own words, escaped"
+    assert "evnote" not in _evr["acted"], "an answer without a note invents none"
+    assert "A name first, so the record says who." in _js_raw, \
+        "the card's form refuses an anonymous answer — the five nameless rows of 10 Oct are the why"
+    # An evidence link goes only to a section the page is drawing: `sensors` is the air-quality pack's (absent in l_all), and
+    # `day` here is registered but its needs are not met. A link to neither would point at nothing.
+    assert 'href="#matrix"' in _evr["l_all"] and 'href="#sensors"' in _evr["l_all"] \
+        and 'href="#day"' not in _evr["l_all"] and 'href="#evrows-7"' in _evr["l_all"], \
+        f"links: matrix and sensors drawn, day absent: {_evr['l_all']}"
+    assert 'href="#sensors"' in _evr["l_unmet"] and 'href="#day"' not in _evr["l_unmet"]
+    assert 'href="#matrix"' not in _evr["noact"] and 'href="#sensors"' not in _evr["noact"], \
+        "no section registered, no link to one"
+    assert 'href="#day"' not in _evr["l_hidden"] and 'href="#matrix"' in _evr["l_hidden"], \
+        f"a section hidden in Arrange gets no link: {_evr['l_hidden']}"
+    assert 'href="#day"' in _evr["l_shown"], "the same section, not hidden and with its needs met, is linked"
+    assert _evr["tail"].endswith('<details id="evrows-7">T</details></section>') and "<details" not in _c, \
+        "evCard's second argument is drawn inside the card, last"
+    assert "evlinks" not in _evr["l_none"], "no link at all draws no evidence line"
+    assert "chose no action" in _evr["noact"] and "no usual for this hour yet" in _evr["noact"] \
+        and "no outside reading" in _evr["noact"] and "no line" in _evr["noact"], "absence is said four ways"
+
+    # DECIDE DRAWS EVENTS (SPEC_dashboard_events §4.2, §5). These are source checks; the booted run further down
+    # renders the section itself. Its render calls evCard and reads uncovered_asks. "Decide about this" is drawn
+    # only by card(), which render reaches in the rules/old/error branch AND, on events and shadow nodes, for each
+    # issue whose open alerts no event covers.
+    _dec = _js_raw[_js_raw.index("id: 'decide', pack"):]
+    _dec = _dec[:_dec.index("notes() {")]
+    _card = _js_raw[_js_raw.index("function card(ctx, key, d, a, did)"):_js_raw.index("window.PAI.register({\n  id: 'decide'")]
+    assert "evCard(e, rowsOf(ctx, e))" in _dec and "uncovered_asks" in _dec, \
+        "Decide's render must draw evCard and the alerts no event covers"
+    assert "card(" in _dec.split("if (st === 'events' || st === 'shadow') {")[1].split("\n    }\n")[0], \
+        "the alerts no event covers are drawn with card()"
+    assert _dec.count("Decide about this") == 0 and "Decide about this" in _card, \
+        "'Decide about this' belongs to card(), the fallback, and not to the event branch"
+    assert 'id="decide-none"' in _dec and 'id="decide-engine"' in _dec and "data-ref=\"stage-decide\"" in _dec
+    assert "window.K.didButton(a.id)" in _card, "an alert answered on Decide has the I did this button"
+    # The click handler matches `.ask .go` and `.ask form.did .cancel`, finds the form as the button's sibling, and
+    # the styles are scoped under `.ask`; so the button must sit in an element with class ask, beside its form.
+    assert "closest('.ask .go')" in _js_raw and "closest('.ask form.did .cancel')" in _js_raw \
+        and "go.parentElement.querySelector('form.did')" in _js_raw, "the I did this handlers moved: update this check"
+    assert re.search(r'<div class="ask">\$\{window\.K\.didButton\(a\.id\)\}</div>', _card), \
+        "card() must wrap didButton in an element with class ask, or the button opens nothing and is unstyled"
+    assert re.search(r'const didButton = id =>\s*`<button type="button" class="go" .*?<form class="did"', _js_raw, re.S), \
+        "didButton is a .go button with a form.did, the pair the handler reads"
+    assert 'id="evrows-' in _js_raw and "older than the 200 alerts this page reads" in _js_raw, \
+        "evCard links to #evrows-<id>, so rowsOf must draw it"
+
     # "I did this" and "Record the decision" print what the node said when it refused, word for
     # word. It printed "The node refused it (409)" over a node that had written, in full, what to
     # do first (DECISION_REQUIRED) — the one sentence the person at the screen needed.
@@ -734,6 +871,50 @@ const form = { querySelector: () => ({ disabled: false }), getAttribute: () => '
     assert _t["403"][0].startswith("this node is not sharing"), f"the middleware's 403 is `error`: {_t['403']}"
     assert _t["500"] == ["The node refused it (500).", True], f"no body, no invented sentence: {_t['500']}"
     assert _t["422"][0] == "field required (422)", f"a schema refusal's messages, joined: {_t['422']}"
+
+    # Pressing Done, Not now or Doesn't fit on an alert event posts the EVENT id (a number), the stage,
+    # the name and the note; a post the node takes stores the name, and a refusal prints the node's own
+    # sentence. The click and submit handlers are browser-only; Task 11's live proof presses them.
+    _ans_m = re.search(r"async function answerEvent\(id, stage, actor, note\) \{.*?\n\}", _js_raw, re.S)
+    assert _ans_m, "the page no longer defines answerEvent(id, stage, actor, note) at column 0"
+    _ans = "\n".join((re.search(r"async function nodeSaid\(r\) \{.*?\n\}", _js_raw, re.S).group(0), _ans_m.group(0)))
+    _ans_cases = {
+        "200": [200, None], "404": [404, {"detail": "no such event"}],
+        "401": [401, {"detail": "closing a loop from off this machine needs Authorization: Bearer <ACT_TOKEN>"}],
+        "400": [400, {"detail": "stage must be acknowledged, acted or dismissed"}],
+    }
+    _a = _node(_ans + "\nconst C = " + json.dumps(_ans_cases) + r""";
+const auth_ = () => ({}); let said = null, refreshed = 0, stored = null, posted = null;
+const say = (m, bad) => { said = [m, !!bad]; };
+const refresh = async () => { refreshed++; };
+const localStorage = { getItem: () => null, setItem: (k, v) => { stored = [k, v]; } };
+(async () => {
+  const out = {};
+  for (const [k, [status, body]] of Object.entries(C)) {
+    globalThis.fetch = async (url, opts) => { posted = [url, JSON.parse(opts.body)];
+      return { status, ok: status < 300, json: async () => { if (body === null) throw new Error('no body'); return body; } }; };
+    said = null; stored = null; refreshed = 0;
+    const ok = await answerEvent('7', 'acknowledged', 'ana', undefined);
+    out[k] = { ok, said, stored, refreshed, posted };
+  }
+  for (const [stage, key] of [['acted', 'acted'], ['dismissed', 'dismissed']]) {
+    globalThis.fetch = async () => ({ status: 200, ok: true, json: async () => ({}) });
+    said = null; await answerEvent(7, stage, 'ana', 'did it by hand'); out[key] = said;
+  }
+  console.log(JSON.stringify(out));
+})();""")
+    assert _a["200"]["posted"] == ["/actions", {"event_id": 7, "stage": "acknowledged", "actor": "ana", "note": ""}], \
+        f"the body is the event id as a number, not a string: {_a['200']['posted']}"
+    assert _a["200"]["ok"] is True and _a["200"]["stored"] == ["planetai_actor", "ana"] \
+        and _a["200"]["refreshed"] == 1, f"a 200 stores the name and refreshes: {_a['200']}"
+    assert _a["200"]["said"] == ["Not now. The node holds this for three hours, unless it reaches danger.", False]
+    assert _a["acted"] == ["Recorded.", False] and _a["dismissed"] == ["Noted: it doesn’t fit.", False]
+    assert _a["404"]["said"] == ["This node has no such event any more. Reload and look again.", True] \
+        and _a["404"]["stored"] is None and _a["404"]["ok"] is False, f"a 404: {_a['404']}"
+    assert _a["401"]["said"][0].startswith("closing a loop from off this machine") \
+        and "planetai ui" in _a["401"]["said"][0] and _a["401"]["refreshed"] == 0, f"a 401: {_a['401']}"
+    assert _a["400"]["said"] == ["stage must be acknowledged, acted or dismissed", True] \
+        and _a["400"]["stored"] is None, f"a 400 prints the node's sentence: {_a['400']}"
 
 # Set up writes only what somebody changed, and never over a key that moved while it was open.
 #
@@ -884,6 +1065,424 @@ if shutil.which("node"):
 assert "cellCount: new Set(cells.map(c => c.cell)).size" in _js, "facts() no longer counts distinct cells"
 assert "interp(w.cellsN, { n: d.cellCount })" in _js and "{ n: d.cells.length }" not in _js, \
     "Network's N of 20 is counting /cells rows again"
+
+# ACT IS THE RECORD OF WHAT WAS ASKED AND ANSWERED (SPEC_dashboard_events §4.3). The sections are closures, so the
+# wiring is a source check and the pure helpers are lifted.
+_asks = _js_raw[_js_raw.index("id: 'asks', pack"):]
+_asks_render = _asks[:_asks.index("  wall(ctx) {")]
+_asks_render = _asks_render[_asks_render.index("render(ctx) {"):]
+assert re.search(r"[^\w.]ask\(", _asks_render) is None, "Act's render still draws the kit's alert strip"
+assert "title: 'What was asked, and what was answered'" in _asks, "Act's title is the spec's, and its id stays `asks`"
+assert "'This node sends alerts, not events.'" in _asks_render and "st === 'error' ? esc(E.error)" in _asks_render, \
+    "a rules node keeps its per-rule rows under one line saying it sends alerts, not events; an error node says the node's own words"
+_evrow = _asks_render[_asks_render.index("id: `ask-ev-${key}`"):_asks_render.index("}).join('');\n    };")]
+assert "asks.ev${key}.action" not in _evrow and _evrow.count("num:") == 1 and "evAnswerText(e)" in _evrow, \
+    "an event row's qty holds only the answer: qty does not wrap, and the action is a sentence"
+assert "e.action.text" in _evrow.split("qty:")[0], "the action rides the row's wrapping `line`"
+assert "whereToGo()" in _asks_render and "capacity()" in _asks_render, "whereToGo and capacity stay in Act"
+assert "function ask(key, d, ref)" in _js_raw, "the kit's ask() stays: it is exported"
+assert "api('/actions?events=1')" in _js_raw and "api('/actions')" not in _js_raw, \
+    "boot() must read /actions?events=1, so the event answers' notes arrive"
+assert "`ev${x.event_id}:${x.stage}`" in _js_raw, "ACT_NOTES gains a key for an event's answer"
+_led = _js_raw[_js_raw.index("id: 'ledger', pack"):]
+_led = _led[:_led.index("  notes() {")]
+assert "evAnswers(" in _led, "the ledger lists the answers to events"
+assert "events || {}).buttons" in _js_raw[_js_raw.index("function evWord"):][:300], \
+    "the ledger's button words are the node's, from events.buttons"
+if shutil.which("node"):
+    _act = _node("\n".join((
+        "const S = { issues: { events: { buttons: { done: 'Done', not_now: 'Not now', doesnt_fit: 'Doesn’t fit' } } } };",
+        re.search(r"function evWord\(stage\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evLog\(E\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evAnswerText\(e\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evAnswers\(E\) \{.*?\n\}", _js_raw, re.S).group(0),
+        r"""
+const A = (stage, actor, ts) => ({ stage, actor, ts, held_until: null });
+const e1 = { id: 1, opened_at: '2026-10-03T10:00:00Z', answer: A('acted', 'tomas', '2026-10-03T11:00:00Z'), cleared_after_min: 40.4 };
+const e2 = { id: 2, opened_at: '2026-10-04T10:00:00Z', answer: A('acknowledged', 'ana', '2026-10-04T10:30:00Z') };
+const e3 = { id: 3, opened_at: '2026-10-05T10:00:00Z', answer: null };
+const e4 = { id: 4, opened_at: '2026-10-01T10:00:00Z', answer: A('dismissed', '', '2026-10-01T12:00:00Z') };
+const E = { open: [e3, e2], recent: [e2, e1, e4] };
+console.log(JSON.stringify({
+  log: evLog(E).map(e => e.id),
+  text: [e1, e2, e3, e4, { ...e1, cleared_after_min: undefined }].map(evAnswerText),
+  answers: evAnswers(E).map(x => x.event.id),
+  none: [evLog({}), evAnswers({})],
+}));""")))
+    assert _act["log"] == [3, 2, 1, 4], f"evLog: newest opened first, an id in both lists once: {_act['log']}"
+    assert _act["text"] == ["Done · tomas · cleared 40 min after", "Not now", "no answer",
+                            "Doesn’t fit", "Done · tomas"], \
+        f"evAnswerText: the button's word; 'cleared N min after' only on a Done the node followed with a clear: {_act['text']}"
+    assert _act["answers"] == [2, 1, 4], f"evAnswers: answered events only, newest answer first: {_act['answers']}"
+    assert _act["none"] == [[], []], "no events block is an empty record, not a throw"
+
+# SIMPLE MODE'S OPEN ROW (SPEC_dashboard_events §4.4). lead() is a closure, so the markup is a source check; the
+# pick is lifted and run. The row's data-ref must be the id monument() draws for the lead's issue.
+_lead = _js_raw[_js_raw.index("  function lead() {"):]
+_lead = _lead[:_lead.index("\n  }\n")]
+assert "evButtons(" in _lead and 'evrow' in _lead and "evPick(evs, hk)" in _lead, \
+    "lead() must draw the open event's row with its buttons"
+assert "asEv ? evRow(" in _lead and "askRow(askAt" in _lead, "rules/old/error and nothing-open keep askRow"
+assert 'id="num-${esc(key)}"' in _js_raw[_js_raw.index("function monument("):_js_raw.index("function heroPix(")], \
+    "evrow's data-ref=num-<hk> must exist: monument() ids the numeral num-<key>"
+if shutil.which("node"):
+    _an = _node("\n".join((
+        "const esc = s => String(s), sign = (id, l) => `<svg class=\"sg\"/>`;",
+        "let S = { issues: {}, health: { tz: 'Asia/Makassar' } };",
+        re.search(r"function evClock\(iso\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evWord\(stage\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"function evAnswered\(e\) \{.*?\n\}", _js_raw, re.S).group(0),
+        """const A = (stage, extra) => ({ answer: { stage, actor: 'tomas', ts: '2026-10-05T10:00:00Z', ...extra } });
+const own = () => { S.issues = { events: { buttons: { done: 'Fet', not_now: 'Ara no', doesnt_fit: 'No encaixa' } } };
+  return [A('acted'), A('acknowledged'), A('dismissed')].map(evAnswered); };
+console.log(JSON.stringify({ none: evAnswered({ answer: null }), acted: evAnswered(A('acted')),
+  held: evAnswered(A('acknowledged', { held_until: '2026-10-05T12:00:00Z' })), no: evAnswered(A('dismissed')),
+  own: own() }));""")))
+    assert _an["none"] == "" and "evdone" in _an["acted"] and "Done · tomas" in _an["acted"], _an
+    assert "evheld" in _an["held"] and "Not now · tomas" in _an["held"] and "held until 20:00" in _an["held"], _an
+    assert "Doesn’t fit · tomas" in _an["no"], _an
+    # An answer reads as the button that wrote it, in the node's own words (events.buttons), as the buttons do.
+    assert ["Fet · tomas" in _an["own"][0], "Ara no · tomas" in _an["own"][1], "No encaixa · tomas" in _an["own"][2]] \
+        == [True] * 3, f"evAnswered must print the node's button labels: {_an['own']}"
+assert "evAnswered(e) + (e.answer && e.answer.stage === 'acted' ? '' : evButtons(e))" in _lead, \
+    "an acted event's row has no buttons; a held one keeps them beside its answer"
+assert "shadow \\u2014 nothing was sent" in _lead, "a shadow node's row says so"
+if shutil.which("node"):
+    _pk = _node("\n".join((
+        re.search(r"const evPick = .*?;\n", _js_raw).group(0),
+        """const a = { id: 1, issue: 'air' }, b = { id: 2, issue: 'heat' };
+console.log(JSON.stringify({ own: evPick([a, b], 'heat').id, first: evPick([a, b], 'noise').id,
+  none: evPick([], 'air') === undefined }));""")))
+    assert _pk == {"own": 2, "first": 1, "none": True}, f"evPick: the shown issue's event, else the first: {_pk}"
+
+# THE PAGE LOADS. On 5 Oct the shell set `window.PAI.isHidden` at its top level, which runs before any PAI_LOAD
+# function has made window.PAI, so every load threw and the page sat on "Asking the node…" for good. Every check
+# above lifts pieces and passed. This loads the whole file the way a browser does (one script, a bare DOM), so a
+# top-level statement that throws fails here whatever it is. The handlers it registers are then driven, and the
+# Decide closure rendered, against that same load.
+if shutil.which("node"):
+    # The program is one function: node runs STDIN as a global script, where a `const` of its own would collide
+    # with the kit's top-level `let`s the moment dashboard.js declares them.
+    _boot = _node(r"""(() => {
+const fs = require('fs'), vm = require('vm');
+const L = {}, store = {}, posted = [];
+globalThis.window = globalThis;
+globalThis.localStorage = globalThis.sessionStorage = { getItem: k => (k in store ? store[k] : null),
+  setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+globalThis.location = { search: '', hash: '', pathname: '/', href: 'http://node/' };
+globalThis.document = { addEventListener: (t, f) => (L[t] = L[t] || []).push(f),
+  getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] };
+globalThis.addEventListener = () => {};
+/* POSTs are recorded and never answered, so nothing after the post runs. */
+globalThis.fetch = (u, o) => { if (o && o.body) posted.push(JSON.parse(o.body)); return new Promise(() => {}); };
+const out = { boot: 'loaded' };
+try { vm.runInThisContext(fs.readFileSync('app/static/dashboard.js', 'utf8'), { filename: 'dashboard.js' }); }
+catch (e) { out.boot = String((e && e.message) || e); console.log(JSON.stringify(out)); process.exit(0); }
+
+/* An event card's three buttons and its form, as the page draws them. */
+const el = (props = {}) => ({ value: '', focused: false, focus() { focusedOn = this.name; }, ...props });
+let focusedOn = null;
+const f = { stage: el({ name: 'stage' }), actor: el({ name: 'actor' }), note: el({ name: 'note' }) };
+const inst = { hidden: true };
+const form = { hidden: true, elements: f, dataset: { ev: '11' }, classList: { contains: c => c === 'evform' },
+  querySelector: q => (q === '.instead' ? inst : null) };
+const card = { querySelector: q => (q === 'form.evform' ? form : null) };
+const btn = stage => ({ id: '', getAttribute: a => (a === 'data-stage' ? stage : a === 'data-ev' ? '11' : null),
+  closest: q => (q === '.evb' ? btn(stage) : q === '.ev, .evrow' ? card : null) });
+const fire = (type, target) => { for (const h of L[type] || []) { try { h({ target, preventDefault() {} }); } catch {} } };
+const press = stage => { const b = btn(stage); b.closest = q => (q === '.evb' ? b : q === '.ev, .evrow' ? card : null); fire('click', b); };
+const submit = () => fire('submit', { closest: q => (q.includes('form.evform') ? form : null) });
+
+press('dismissed');                         /* Doesn't fit, no name kept: the form opens on the name */
+out.dismissFocus = focusedOn; out.dismissInst = inst.hidden;
+f.actor.value = 'tomas'; f.note.value = 'opened the door';
+form.hidden = true;                         /* Cancel */
+press('acted');                             /* then Done */
+out.doneFocus = focusedOn; out.doneInst = inst.hidden; out.doneNote = f.note.value;
+f.note.value = 'left over'; submit();       /* a stale note in the field must not be sent with Done */
+f.stage.value = 'dismissed'; f.note.value = 'opened the door'; submit();
+out.posted = posted;
+
+/* Decide, rendered. One card per issue for the alerts no event covers, and none for a covered one. */
+vm.runInThisContext("LOC = 'en';");
+window.KH = { H: {} };
+const reg = [];
+window.PAI = { register: s => reg.push(s), sections: [], has: () => true };
+/* Some PAI_LOAD closures push others when they run (Act's holds Decide's), so this runs whichever holds Decide's
+   registration until it has registered: the list grows as it is walked, the way init() walks it. */
+const LOAD = vm.runInThisContext('PAI_LOAD');
+for (let i = 0; i < LOAD.length && !reg.some(s => s.id === 'decide'); i++)
+  if (LOAD[i].toString().includes("register({\n  id: 'decide', pack")) LOAD[i]();
+const decide = reg.find(s => s.id === 'decide');
+const ask = (id, text) => ({ id, text, says: { en: text }, age_minutes: 5, current: true });
+const ISS = { heat: { name: { en: 'Heat' }, open_asks: [ask(361, 'hot'), ask(356, 'hotter')] },
+  air: { name: { en: 'Air' }, open_asks: [ask(400, 'dusty')] } };
+const render = events => { vm.runInThisContext(`S = ${JSON.stringify({ issues: { events }, health: {} })};`);
+  return decide.render({ ISS, ORDER: ['heat', 'air'], S: { issues: { events }, health: {} }, LOC: 'en' }); };
+out.unc = render({ engine: 'events', open: [], uncovered_asks: [361, 356] });
+out.none = render({ engine: 'events', open: [], uncovered_asks: [] });
+console.log(JSON.stringify(out));
+process.exit(0);
+})();""")
+    assert _boot["boot"] == "loaded", f"dashboard.js throws while it loads, so the page never boots: {_boot['boot']}"
+    assert _boot["dismissFocus"] == "actor" and _boot["dismissInst"] is False, _boot
+    assert _boot["doneFocus"] == "actor" and _boot["doneInst"] is True and _boot["doneNote"] == "", \
+        f"Done opens the form on the name, with Doesn't fit's note hidden and emptied: {_boot}"
+    assert [(p["stage"], p["note"]) for p in _boot["posted"]] == [("acted", ""), ("dismissed", "opened the door")], \
+        f"only Doesn't fit sends a note: {_boot['posted']}"
+    assert _boot["unc"].count('id="decide-heat"') == 1 and 'id="decide-air"' not in _boot["unc"], \
+        f"one Decide card per issue with an uncovered alert, none for a covered one: {_boot['unc']}"
+    assert 'id="decide-none"' in _boot["none"] and "decide-heat" not in _boot["none"], _boot["none"]
+
+# THE LEAD AND DECIDE AGREE. On events or shadow the lead counts and picks only the alerts no event covers, which
+# is what Decide draws: counting all of open_asks said "2 alerts open · in Decide" over a Decide reading
+# "Nothing open". lead() is a closure, so its lines are lifted and run.
+if shutil.which("node"):
+    _ld = _js_raw[_js_raw.index("  function lead() {"):]
+    _lc = _ld[_ld.index("    const st = evState(), evs = evOpen()"):]
+    _lc = _lc[:_lc.index("e0 = evs[0] || {};") + len("e0 = evs[0] || {};")]
+    _la = re.search(r"    const askAt = .*?;\n", _ld).group(0)
+    _lr = _node("\n".join((
+        re.search(r"function evState\(\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"const evOpen = .*?\n", _js_raw).group(0),
+        "let S; const ORDER = ['heat', 'air'];",
+        "const ISS = { heat: { open_asks: [{ id: 361 }] }, air: { open_asks: [{ id: 356 }, { id: 357 }] } };",
+        "function lead(events, hk) { S = { issues: { events } }; const d = ISS[hk];",
+        _lc, _la,
+        "return { nAsk, asEv, askAt: askAt || null, picks: askAt ? asksOf(askAt)[0].id : null }; }",
+        """console.log(JSON.stringify({
+  covered: lead({ engine: 'events', open: [], uncovered_asks: [] }, 'heat'),
+  oneLeft: lead({ engine: 'shadow', open: [], uncovered_asks: [357] }, 'heat'),
+  rules: lead({ engine: 'rules' }, 'heat'),
+  old: lead(undefined, 'heat'),
+}));""")))
+    assert _lr["covered"] == {"nAsk": 0, "asEv": False, "askAt": None, "picks": None}, \
+        f"every alert covered and no event open: the lead says nothing open, as Decide does: {_lr['covered']}"
+    assert _lr["oneLeft"] == {"nAsk": 1, "asEv": False, "askAt": "air", "picks": 357}, \
+        f"the lead counts and picks only the uncovered alert: {_lr['oneLeft']}"
+    assert _lr["rules"]["nAsk"] == 3 and _lr["rules"]["askAt"] == "heat" and _lr["old"]["nAsk"] == 3, \
+        f"a rules or older node counts every open alert: {_lr}"
+
+# THE FIGURES KIT (docs/SPEC_dashboard_figures.md §4). The drawing needs Plot and a DOM; the arithmetic of where a
+# drawing starts, which hour a bucket is, and which hour a pointer is nearest does not, so it is run here.
+if shutil.which("node"):
+    _kit = [re.search(p, _js, re.S) for p in (
+        r"const boxOf = \(vals, line, pad = 0\.12\) => \{.*?\n\};",
+        r"const offsetOf = iso => \{.*?\n\};",
+        r"const localOf = \(iso, ms = Date\.parse\(iso\)\) => \{.*?\n\};",
+        r"function nearestIndex\(ts, t\) \{.*?\n\}")]
+    assert all(_kit), "dashboard.js lost a figures-kit helper: " + str([bool(k) for k in _kit])
+    _k = _node("\n".join(k.group(0) for k in _kit) + r"""
+const t = Date.parse('2026-10-06T07:00:00+08:00');
+console.log(JSON.stringify({
+  air: boxOf([4, 5, 193, null, 6], 15), heat: boxOf([28.4, 35.6, null], 35), cold: boxOf([-2, 3], null),
+  flat: boxOf([5, 5, 5], null), none: boxOf([null], null),
+  off8: offsetOf('2026-10-06T07:00:00+08:00'), offZ: offsetOf('2026-10-06T07:00:00Z'), offN: offsetOf('2026-10-06T07:00:00-05:30'),
+  hhmm: localOf('2026-10-06T07:00:00+08:00').hhmm, hour: localOf('2026-10-06T07:00:00+08:00').hour,
+  day: localOf('2026-10-05T23:00:00+08:00').day, dayUtc: localOf('2026-10-05T23:00:00+08:00', t - 8 * 3600e3 + 3600e3).day,
+  frac: localOf('2026-10-06T07:05:00.203633+08:00').hhmm, utc: localOf('2026-10-05T23:00:00+00:00').hhmm,
+  bad: [localOf(null), localOf('not a time'), localOf(undefined)],
+  near: nearestIndex([0, 10, 20, 30], 14), last: nearestIndex([0, 10, 20, 30], 99) }));""")
+    assert _k["air"]["lo"] == 0 and _k["air"]["hi"] > 193, f"a concentration never draws a floor below zero: {_k['air']}"
+    assert 27 < _k["heat"]["lo"] < 28.4 and _k["heat"]["hi"] > 35.6, f"heat keeps its own floor, not zero: {_k['heat']}"
+    assert _k["cold"]["lo"] < -2, f"a quantity that goes negative may: {_k['cold']}"
+    assert _k["flat"]["hi"] > _k["flat"]["lo"], f"a flat day still has a box: {_k['flat']}"
+    assert _k["none"] is None
+    assert (_k["off8"], _k["offZ"], _k["offN"]) == (480, 0, -330), _k
+    assert (_k["hhmm"], _k["hour"]) == ("07:00", 7), "the node's hour, never the reader's"
+    assert (_k["day"], _k["dayUtc"]) == ("2026-10-05", "2026-10-06"), _k
+    assert (_k["frac"], _k["utc"]) == ("07:05", "23:00"), f"a time is read in its own offset, microseconds and all: {_k}"
+    assert all(b == {"day": "—", "hour": None, "hhmm": "—"} for b in _k["bad"]), \
+        f"a time that does not parse is a dash, never a throw: {_k['bad']}"
+    assert (_k["near"], _k["last"]) == (1, 3), _k
+
+# THE DAY FIGURE AND THE STRIPS, as cards (docs/SPEC_dashboard_figures.md §4.2, §4.3). Built for node #1's 6 October
+# capture, with /issues/days computed by the engine from the same capture, in the page loaded the way the browser
+# loads it. The draw functions need Plot and a DOM and are not run; everything a reader can read without them is.
+if shutil.which("node"):
+    import datetime as _dt
+    from issues import engine as _engine, load as _load
+
+    class _Set:
+        def get(self, k, d=""):
+            return d
+
+        def num(self, k, d):
+            return d
+
+    class _Cur:
+        def __init__(self, snap):
+            self.snap, self.rows = snap, []
+
+        def execute(self, sql, args=()):
+            if "current_setting('TimeZone')" in sql:
+                self.rows = [{"tz": "Asia/Makassar"}]
+            elif "FROM readings_1h" in sql:
+                self.rows = [dict(r, bucket=_dt.datetime.fromisoformat(r["bucket"])) for r in self.snap["readings_1h"]
+                             if _dt.datetime.fromisoformat(r["bucket"]) >= args[0]]
+            elif "FROM alert_events" in sql:
+                self.rows = []
+            else:
+                raise LookupError(sql[:60])
+
+        def fetchall(self):
+            return self.rows
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else None
+
+    _snap = json.loads((ROOT / "app/issues/fixtures/node1-2026-10-06-events.json").read_text())
+    _rep = _engine.replay(json.loads(json.dumps(_snap)), _Set(), _load())
+    _days = _engine.days(_Cur(_snap), _Set(), _load(), 1, now=_dt.datetime.fromisoformat(_snap["as_of"]))
+    _days3 = _engine.days(_Cur(_snap), _Set(), _load(), 3, now=_dt.datetime.fromisoformat(_snap["as_of"]))
+    _over = sum(p["over"] for p in _days["issues"]["air"]["per_day"])
+    _cards = _node(r"""(() => {
+const fs = require('fs'), vm = require('vm');
+globalThis.window = globalThis;
+globalThis.localStorage = globalThis.sessionStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+globalThis.location = { search: '', hash: '', pathname: '/', href: 'http://node/' };
+globalThis.document = { addEventListener: () => {}, getElementById: () => null, querySelector: () => null,
+  querySelectorAll: () => [] };
+globalThis.addEventListener = () => {};
+globalThis.fetch = () => new Promise(() => {});
+vm.runInThisContext(fs.readFileSync('app/static/dashboard.js', 'utf8'), { filename: 'dashboard.js' });
+const I = """ + json.dumps(_rep, default=str) + r""", D = """ + json.dumps(_days, default=str) + r""", D3 = """ + json.dumps(_days3, default=str) + r""";
+globalThis.__I = I;
+vm.runInThisContext("S = { issues: __I }; ISS = S.issues.issues; DIST = S.issues.distances; LAB = S.issues.labels.en; LOC = 'en';");
+const K = window.K;
+const air = K.dayFigure('air', I.issues.air), heat = K.dayFigure('heat', I.issues.heat);
+const st = K.strips('air', D), st3 = K.strips('air', D3), none = K.strips('air', null), coast = K.strips('coast', D);
+console.log(JSON.stringify({
+  airFloor: /floor 0<\/span>/.test(air), airNeg: /floor -/.test(air), heatNotZero: /, not zero<\/span>/.test(heat),
+  airDay: air.includes('data-num="air.day"'), events: (air.match(/(One event|\d+ events) in these hours/) || [''])[0],
+  region: air.includes('region — no model'), usual: (air.match(/no usual band — [^<]*/) || [''])[0],
+  keys: air.includes('tabindex="0"'), over: (st.match(/>(\d+) hours over the line</) || [])[1],
+  stripsNum: st.includes('data-num="air.days.over"'), none, coast,
+  trimHead: (st3.match(/<p class="f-head"><span>([^<]*)<\/span>/) || [])[1] }));
+})()""")
+    assert _cards["airFloor"] and not _cards["airNeg"], "air draws from 0 and never below"
+    assert _cards["heatNotZero"], "heat says its floor is not zero"
+    assert _cards["airDay"] and _cards["keys"], "the day figure keeps air.day's comparison and can be read by keyboard"
+    assert _cards["events"] == "2 events in these hours", _cards["events"]
+    assert _cards["region"], "a distance with no source is named with its reason"
+    assert _cards["usual"] == "no usual band — the usual could not be read", _cards["usual"]
+    assert _cards["stripsNum"] and int(_cards["over"]) == _over, (_cards["over"], _over)
+    assert "does not send its days yet" in _cards["none"], _cards["none"]
+    assert "No hourly record of" in _cards["coast"], _cards["coast"]
+    assert _cards["trimHead"] == "Air · house · 2 days, from Mon, 05 Oct, the first this node recorded", _cards["trimHead"]
+
+# THE FOLD OF STOPPED STATIONS survives a row it cannot date. toISOString() throws a RangeError on an invalid date;
+# one station with no last_heard took down the whole stations section. localOf now answers '—' for it, and the fold
+# prints last_heard in its own offset, not the first issue's last bucket's (final review I1, M9).
+if shutil.which("node"):
+    _sf = _node("\n".join((
+        re.search(r"const esc = s => .*?\[c\]\)\);", _js, re.S).group(0),
+        re.search(r"const offsetOf = iso => \{.*?\n\};", _js, re.S).group(0),
+        re.search(r"const localOf = \(iso, ms = Date\.parse\(iso\)\) => \{.*?\n\};", _js, re.S).group(0),
+        re.search(r"function silentFold\(ctx\) \{.*?\n\}", _js, re.S).group(0),
+        """const row = (id, lh) => ({ sensor_id: id, name: 'Station ' + id, km: 3.2, indoor: false, source: 'src', last_heard: lh });
+const ctx = { S: { issues: { stations_silent: { read: true, within_days: 30 } } },
+  H: { silent: [row('a', '2026-10-01T07:30:00+08:00'), row('b', null)] },
+  ISS: { air: { buckets: ['2026-10-06T07:00:00+01:00'] } }, ORDER: ['air'] };
+let html = '', err = null;
+try { html = silentFold(ctx); } catch (e) { err = String(e); }
+console.log(JSON.stringify({ html, err }));""")))
+    assert _sf["err"] is None, f"silentFold threw on a row with no last_heard: {_sf['err']}"
+    assert "not known" in _sf["html"] and "last heard 2026-10-01 07:30" in _sf["html"], _sf["html"]
+
+# A NODE THAT CHANGES CLOCK (final review I1, docs/SPEC_dashboard_figures.md §3.4, §4.2). /issues/days steps its
+# buckets in UTC and gives each one its own offset, and a label says the bucket's own hour. Europe/Madrid falls back
+# at 03:00+02:00 on 25 October 2026; a page that read every bucket in the last one's +01:00 drew 00:00+02:00 as 23:00
+# the day before, and 02:00+02:00 as 01:00. Plot is stubbed so the draw functions run: the cells they hand Plot and
+# the readout they write are what is checked. The same page also holds Measure's count of hours over the line to its
+# dashes, and a nulled hour of the day figure to "nothing recorded" (final review M1, M2, M6, M10).
+if shutil.which("node"):
+    _madrid = ["2026-10-24T23:00:00+02:00", "2026-10-25T00:00:00+02:00", "2026-10-25T01:00:00+02:00",
+               "2026-10-25T02:00:00+02:00", "2026-10-25T02:00:00+01:00", "2026-10-25T03:00:00+01:00"]
+    _over_src = re.search(r"function overRows\(ctx\) \{.*?\n\}", _js_raw, re.S).group(0)
+    _dst = _node(r"""(() => {
+const fs = require('fs'), vm = require('vm');
+globalThis.window = globalThis;
+globalThis.localStorage = globalThis.sessionStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+globalThis.location = { search: '', hash: '', pathname: '/', href: 'http://node/' };
+const reads = {}, stub = () => ({ append() {}, style: {}, hidden: false });
+globalThis.document = { addEventListener: () => {}, getElementById: id => (id.endsWith('-read') ? (reads[id] = reads[id] || { innerHTML: '' }) : null),
+  querySelector: () => null, querySelectorAll: () => [], createElement: stub, documentElement: {} };
+globalThis.getComputedStyle = () => ({ getPropertyValue: () => '#000' });
+globalThis.addEventListener = () => {};
+globalThis.fetch = () => new Promise(() => {});
+/* Plot, as far as the draw functions reach into it: every mark keeps its data, the drawing keeps its listeners. */
+let svg;
+globalThis.Plot = new Proxy({}, { get: (_, k) => (k === 'plot'
+  ? o => (svg = { o, on: {}, value: null, addEventListener(t, f) { this.on[t] = f; },
+    scale: () => ({ apply: () => 0, invert: () => 0 }), getBoundingClientRect: () => ({ left: 0, width: 1 }) })
+  : (data, opts) => ({ mark: k, data, opts })) });
+vm.runInThisContext(fs.readFileSync('app/static/dashboard.js', 'utf8'), { filename: 'dashboard.js' });
+vm.runInThisContext(`S = { issues: { as_of: '2026-10-25T03:30:00+01:00', events: {} } };
+ISS = { air: { name: { en: 'Air' }, dp: 0, unit: 'µg/m³' } }; DIST = ['room', 'yard', 'ring', 'region'];
+LAB = { room: 'house', yard: 'street', ring: 'neighbours', region: 'region' }; LOC = 'en';`);
+const K = window.K, FIGS = vm.runInThisContext('FIGS'), B = """ + json.dumps(_madrid) + r""";
+const out = {};
+
+/* The strips: each bucket in its own day and hour. */
+const air = (line, perDay) => ({ days: 2, buckets: B, events: [], issues: { air: { distance: 'room', line,
+  series: { room: [5, 6, 20, 7, 8, 9] }, per_day: perDay } } });
+const D = air({ value: 15 }, [{ date: '2026-10-24', over: 0, read: 0, of: 1 }, { date: '2026-10-25', over: 1, read: 5, of: 5 }]);
+out.card = K.strips('air', D);
+FIGS.get('strips-air')(stub(), 720);
+const marks = svg.o.marks, cells = marks.filter(m => m.mark === 'cell').at(-1).data;
+const at = iso => { const c = cells.find(x => x.t === Date.parse(iso)); return c ? [c.day, c.hour] : null; };
+out.c0 = at('2026-10-25T00:00:00+02:00'); out.c2 = at('2026-10-25T02:00:00+02:00'); out.c2b = at('2026-10-25T02:00:00+01:00');
+out.c23 = at('2026-10-24T23:00:00+02:00');
+svg.value = cells.find(x => x.t === Date.parse('2026-10-25T00:00:00+02:00')); svg.on.input();
+out.read = reads['strips-air-read'].innerHTML;
+const col = marks.find(m => m.mark === 'text' && m.opts && m.opts.dx >= 22 && m.opts.dx <= 30).opts;
+out.col = ['2026-10-24', '2026-10-25'].map(col.text);
+out.noLine = K.strips('air', air(null, [{ date: '2026-10-25', over: null, read: 5, of: 5 }]));
+
+/* The day figure: the hour a key lands on, in its own offset, and a nulled hour said as nothing recorded. */
+const day = { name: { en: 'Air' }, unit: 'µg/m³', dp: 0, headline: 'room', line: { value: 15, source: 'WHO' },
+  buckets: B, series: { room: [5, 6, null, 7, 8, 9] }, usual: null, usual_absent: 'unread' };
+K.dayFigure('air', day);
+const el = stub(); FIGS.get('day-fig-air')(el, 720);
+const key = k => el.onkeydown({ key: k, preventDefault() {} });
+key('ArrowLeft'); key('ArrowLeft'); key('ArrowLeft'); key('ArrowLeft');
+out.dayGap = reads['day-fig-air-read'].innerHTML;
+key('ArrowLeft');
+out.dayMidnight = reads['day-fig-air-read'].innerHTML;
+
+/* Measure's hours over the line: a dash for a day nothing was read, and for a "today" that is not the node's today. */
+window.overRows = vm.runInThisContext('(' + """ + json.dumps(_over_src) + r""" + ')');
+const ctx = asOf => ({ ORDER: ['air'], ISS, LAB: { room: 'house' }, S: { issues: { as_of: asOf } } });
+const days = (line, last) => ({ days: 2, buckets: B, issues: { air: { distance: 'room', line,
+  per_day: [{ date: '2026-10-24', over: 0, read: 1, of: 1 }, last] } } });
+window.DAYS = days({ value: 15 }, { date: '2026-10-25', over: 0, read: 0, of: 5 });
+out.read0 = overRows(ctx('2026-10-25T03:30:00+01:00'));
+window.DAYS = days({ value: 15 }, { date: '2026-10-25', over: 1, read: 5, of: 5 });
+out.today = overRows(ctx('2026-10-25T03:30:00+01:00'));
+out.stale = overRows(ctx('2026-10-25T23:30:00+00:00'));
+window.DAYS = days(null, { date: '2026-10-25', over: null, read: 5, of: 5 });
+out.noneLine = overRows(ctx('2026-10-25T03:30:00+01:00'));
+console.log(JSON.stringify(out));
+})()""")
+    assert _dst["c0"] == ["2026-10-25", 0], f"00:00+02:00 is midnight on the 25th, not 23:00 the day before: {_dst['c0']}"
+    assert _dst["c2"] == ["2026-10-25", 2] and _dst["c2b"] == ["2026-10-25", 2], \
+        f"both 02:00s are 02:00, in their own offsets: {_dst['c2']} {_dst['c2b']}"
+    assert _dst["c23"] == ["2026-10-24", 23], _dst["c23"]
+    assert "<b>Sun, 25 Oct 00:00</b>" in _dst["read"], f"the strips' readout names the bucket's own hour: {_dst['read']}"
+    assert _dst["col"] == ["—", "1 h over"], f"a day nothing was read is a dash, never a clean dot: {_dst['col']}"
+    assert 'data-num="air.days.over"' in _dst["card"]
+    assert 'data-num="air.days.over"' not in _dst["noLine"] and "over the line" not in _dst["noLine"] \
+        and "5 hours read" in _dst["noLine"], f"an issue with no line counts no hours over it: {_dst['noLine']}"
+    assert "<b>00:00</b>" in _dst["dayMidnight"], f"the day figure's hour is the bucket's own: {_dst['dayMidnight']}"
+    assert "<b>01:00</b>" in _dst["dayGap"] and "house nothing recorded" in _dst["dayGap"] \
+        and 'class="f-d f-room f-gone"' in _dst["dayGap"], f"a nulled hour is nothing recorded: {_dst['dayGap']}"
+    assert 'data-num="air.over.today"' not in _dst["read0"] and _dst["read0"].count('<span class="none">—</span>') == 1, \
+        f"a day nothing was read prints a dash, not 0 h: {_dst['read0']}"
+    assert 'data-num="air.over.today"' in _dst["today"] and ">1 h<" in _dst["today"], _dst["today"]
+    assert 'data-num="air.over.today"' not in _dst["stale"] and 'data-num="air.over.days"' in _dst["stale"], \
+        f"after the node's midnight, the last counted day is not today: {_dst['stale']}"
+    assert "No issue here has a line" in _dst["noneLine"], _dst["noneLine"]
 
 print("test_dashboard: the engine's fence holds at three stations, the page has none of its own, "
       "a hole in a series is a hole in the line, the page is three files carrying one contract and "

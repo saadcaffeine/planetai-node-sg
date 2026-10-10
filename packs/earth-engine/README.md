@@ -36,6 +36,15 @@ Each frame is the annual median of clear pixels: what you see is the year. Lands
 2010 with one instrument family; Sentinel-2 for 2016 onward at 10 m. If a year has no clear imagery (Landsat 5 over
 Indonesia is thin), the nearest year within three is used and said so. PNGs and a side-by-side page land in `out/`.
 
+## The node's own satellite map
+
+`planetai run earth-engine basemap` builds the median of every clear Sentinel-2 pass over the last twelve months
+(`--months`) in this node's own Earth Engine project, and keeps it as map tiles at zoom 8-15 in
+`out/ground/imagery.mbtiles`: `GROUND_SAT_WIDE_KM` round the node for context, `GROUND_RADIUS_KM` for detail. The
+node serves it at `/ground/imagery`, so the dashboard's map draws a satellite base without asking a tile server.
+It is 10 m, Sentinel-2's own grain; only a drone mosaic is sharper (`planetai run place basemap --only drone`).
+Copernicus data is free, full and open, so keeping it is allowed; Earth Engine learns the two squares, once.
+
 ## Node #1, 2025
 
 91% built, 9% trees, no crops, NDVI 0.51, night lights 14.5. Land-change score 0.037, before it moved to `earth`: little changed, because on the

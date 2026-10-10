@@ -1,4 +1,5 @@
 # ρ: the loop closed
+<!-- checked: v0.80.10 -->
 
 ρ (rho) is the share of the node's act-level alerts that a person answered within 24 hours. It is the one
 number on the page that comes from a person, the Fab City Index's `Governance` cell at the node's scale, and
@@ -57,7 +58,7 @@ alerts answered · median {n} min".
 
 ## Stages
 
-`actions.stage` is one of five:
+`actions.stage` is one of six:
 
 | stage | meaning | written by | in ρ |
 |---|---|---|---|
@@ -66,6 +67,13 @@ alerts answered · median {n} min".
 | `acted` | somebody did the thing | the dashboard's *I did this*, `planetai act`, `/act` on Telegram, `act <id>` over LXMF, the MCP `act` tool, `POST /actions` | yes |
 | `measured` | the condition stopped | never posted; derived in the funnel (below). A posted row would count, and `POST /actions` refuses one | no |
 | `settings` | a setting was changed; an audit row with no alert | the node, on `PUT /settings` | no |
+| `dismissed` | *Doesn't fit*, said of an alert event's advice; an event's row has an `event_id` and no `alert_id` | `POST /actions` with an `event_id` | no |
+
+An event's three answers (`acted`, `acknowledged`, `dismissed`) are written with an `event_id` and no `alert_id`, and
+ρ, the funnel and `GET /effect` all join `actions` to `alerts` on `alert_id`, so no event's answer is in any of them
+in this release. Under `ALERT_ENGINE=events` the old heat and air rules still record their act-level alerts, which
+ρ still counts, though the engine and not those rules is what messages the household about them. How events count
+is not decided yet (v0.80.7). See [Alerts](alerts.md#the-event-engine).
 
 For ρ, `acknowledged` and `acted` both count as a response. For the dashboard's alerts, only `acted` and `measured`
 close one: "`acknowledged` means somebody saw it. Only these two mean somebody did something." There is no cap of

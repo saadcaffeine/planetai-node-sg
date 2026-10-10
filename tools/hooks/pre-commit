@@ -2,6 +2,13 @@
 # Installed by `cp tools/hooks/pre-commit .git/hooks/`. Blocks the three things that have actually gone wrong on this project.
 # Every check must FAIL LOUDLY if it cannot run — a security check that errors silently is worse than none.
 set -euo pipefail
+# Hooks fired from a GUI (GitHub Desktop, an IDE, a Cowork session) inherit no shell profile; without brew's
+# prefix the tools `make lint`/`make test` reach for are simply not on PATH. Found as working-tree drift in
+# the Oct 10 audit and adopted deliberately — the drift's other half (commenting out the make test gate) was
+# refused: a hook that skips the suite teaches people to reach for --no-verify. APPENDED, not prepended:
+# prepending shadowed an activated venv's python with homebrew's (no sqlglot, no psycopg) and make test
+# failed inside the hook while passing in the shell (v0.80.7's docs commit, 10 Oct).
+export PATH="$PATH:/opt/homebrew/bin"
 fail(){ printf '\033[1;31mpre-commit: %s\033[0m\n' "$*" >&2; exit 1; }
 
 staged="$(git diff --cached --name-only --diff-filter=ACM || true)"

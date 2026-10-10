@@ -1,4 +1,5 @@
 # Coverage: the node against the Fab City Index
+<!-- checked: v0.80.10 -->
 
 The Index is twenty cells: four pillars (Environmental, Economic, Social, Governance) by five scales (Community, City,
 Region, Bioregion, Planet). A node fills cells at any scale; the kind of source changes, not the code.
@@ -25,7 +26,7 @@ Re-read from `/cells` on 21 September 2026, node #1 at v0.69 with `LOCAL_RADIUS_
 |---|---|---|
 | Environmental \| Community | your sensors, PM2.5 24h mean; the share of days over the WHO line | live; partial |
 | Environmental \| City | nearest public sensors; land change (the `earth` pack) | partial |
-| Environmental \| Bioregion | sea temperature; days over the Posidonia line; tree cover (Earth Engine) | partial |
+| Environmental \| Bioregion | sea temperature; days over the Posidonia line (when wild `posidonia` is added); tree cover (Earth Engine) | partial |
 | Economic \| Community | mapped businesses per km² (OpenStreetMap, the `place` pack) | partial |
 | Social \| Community | heat-exposure hours from indoor temp and humidity | live |
 | Governance \| Community | ρ, alerts that led to action | partial → live at five actions |
@@ -46,7 +47,7 @@ are one setting away: `Governance|City` from the `open-data-health` pack once `C
 | Economic \| Region, Bioregion | procurement feeds (TED, ChileCompra, LKPP); material-flow accounts | an institution |
 
 `planetai sources --all --cell 'Social|City'` lists what the registry files for a cell, and ends with its three
-counts. At the `1010aa0` pin every row above counts capable 0, except Economic|Community, whose one is the
+counts. At the `851b8db` pin every row above counts capable 0, except Economic|Community, whose one is the
 OpenStreetMap proxy the `place` pack reads.
 
 The Social column has the fewest sources of any in the registry. Heat-exposure hours is the first number in it.

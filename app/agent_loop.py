@@ -30,6 +30,7 @@ import os
 import time
 
 import httpx
+import re
 from contextlib import asynccontextmanager
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
@@ -40,6 +41,13 @@ for noisy in ("httpx", "mcp"):
     logging.getLogger(noisy).setLevel(logging.WARNING)
 
 MCP_URL = os.getenv("MCP_URL", "http://app:8080/mcp")
+
+
+def node_url(path: str) -> str:
+    """A plain HTTP endpoint on the app, derived from the MCP endpoint. The Cowork audit (10 Oct) flagged the
+    old `MCP_URL.replace("/mcp", path)`: it munges a URL that merely contains those letters and breaks
+    silently on one that lacks them. Strip the suffix only if it is a suffix, then add the path."""
+    return MCP_URL.removesuffix("/mcp").rstrip("/") + path
 TOKEN = os.getenv("ADMIN_TOKEN", "")
 NAME = os.getenv("AGENT_NAME", "local-model")
 NODE = os.getenv("NODE_NAME", "node")
@@ -122,7 +130,7 @@ async def refresh_ladder(hc: httpx.AsyncClient) -> None:
     global RUNGS
     while True:
         try:
-            r = await hc.get(MCP_URL.replace("/mcp", "/settings/raw"))
+            r = await hc.get(node_url("/settings/raw"))
             cfg = r.json() if r.status_code == 200 else {}
             if r.status_code != 200:
                 log.warning("settings/raw -> %s (is ADMIN_TOKEN the same as the app's?)", r.status_code)
@@ -145,6 +153,8 @@ or work here, on Telegram.
 - Answer in {LANG_NAME}. Explain, do not just report: say what is happening, what it means for them, and what to do.
 - Start with an emoji that fits (🏠 inside, 🌳 outside, 🛰️ satellites, 🌊 sea, 🥵 heat, 📡 a sensor, ✅ fine, ⚠️ watch, 🚨 act). Use a few more where they help the eye. Short paragraphs, not lists.
 - Avoid statistics. No means, peaks, correlations, percentages or counts unless the person asks for numbers. One number is fine when it drives the advice (a PM2.5 level, a temperature).
+- Speak in layers: what is happening, in words, first; the one number when it drives the advice; what a term means only when the person asks.
+- No lecture voice: no "it is important to", no signposting, no reassurance kickers, no rhetorical questions. Advice is physical, specific, and keeps its reason.
 - When a person says they did something about an alert, record it with `act` as their note, and thank them. It is their note on what happened, not the node's measurement: the node measures that itself, from the sensors.
 - Never reveal tokens or values that look like secrets.
 - Tasks that need the node's shell (update, backup, restart): give the exact command from `maintenance` and say it runs on the node.
@@ -382,10 +392,22 @@ only when the question needs more.
 - Call act only when the person says they did something about an alert, and only with the alert's id. The
   person writes what they did on the card, in their own words; never write it for them.
 - Never guess a number. Say what you know and what you do not.
-- Answer in {lang}. Plain sentences, no Markdown, under 90 words unless asked for more.
+- Answer in {lang}. Plain sentences, no Markdown, under 90 words unless asked for more. One number
+  only when it drives the advice.
+- Speak in layers: what is happening, in words, first; the one number when it helps; what a term
+  means only when the person asks. The page context carries the node's own sentences for this.
+- No lecture voice: no "it is important to", no signposting, no reassurance kickers, no rhetorical
+  questions. Advice is physical, specific, and keeps its reason.
 
 The page's context:
 {context}"""
+
+
+# WALL_SYSTEM: the node's "thinking aloud" voice for the wall screen (docs/SPEC_language.md §The prompts).
+# Verbatim from app/static/doors-wall.js:73, with NARR_ANGLES rotation handled node-side.
+WALL_ANGLES = ['what is happening right now', 'what has changed over the last few hours', 'how warm it feels inside the home',
+  'how inside the home compares with the street and the neighbourhood', 'how today compares with the last few days']
+WALL_SYSTEM = """You are the voice of this home's sensor node, speaking on a screen in the living room to people who know nothing about air science, units or maps. Like a calm neighbour telling a short story, say what is happening around their home: the air, and the heat if your context has it. Plain everyday words only. Never write units or symbols such as µg/m³, °C, PM2.5, AQI, ppm, percent or km. Say 'inside your home', 'your street', 'the neighbourhood', 'the wider area' instead of room, yard, ring or region. Instead of numbers, compare: 'clean', 'a little hazy', 'well under the safe limit', 'warmer than usual for this hour'. At most two numbers. Go in this order: what is happening inside the home; how that compares with the street and the neighbourhood; what it suggests for an ordinary day, such as windows, cooking, sleep or children outside, never telling people that anything is safe, fine or without risk, only what the readings show; and last, what the next few hours may bring, from the forecast or the usual pattern for this hour if your context has it, or that the node will keep watching if it does not. Use only the figures in your context. Six to eight sentences, one paragraph, no lists, no greeting, no questions."""
 
 
 def pane_tools(listed) -> list[dict]:
@@ -565,6 +587,104 @@ async def telegram(method: str, **params):
         return r.json()
 
 
+# ----------------------------------------------------------- event buttons (SPEC_alerts §7)
+NOTE_WINDOW = 600          # seconds to answer "what did you do instead?" after Doesn't fit
+
+
+def parse_callback(data) -> tuple[int, str] | None:
+    """ev:<event_id>:<stage> — the contract main.py's _event_keyboard writes under every event message."""
+    m = re.fullmatch(r"ev:(\d+):(acted|acknowledged|dismissed)", str(data or ""))
+    return (int(m.group(1)), m.group(2)) if m else None
+
+
+def note_pending(pending: dict, chat: str, text: str, now: float) -> int | None:
+    """The Doesn't-fit follow-up. The dismissal was already recorded at the press; a free-text line within
+    NOTE_WINDOW becomes its note — a second actions row, which is allowed on purpose ("two people who both acted
+    are both recording something true"), and the wire keeps the latest answer, which is the one carrying the note.
+    A command is never a note and leaves the ask open; a stale ask is forgotten. Returns the event id to
+    annotate, or None."""
+    p = pending.get(chat)
+    if not p:
+        return None
+    if now - p[1] > NOTE_WINDOW:
+        pending.pop(chat, None)
+        return None
+    if text.startswith("/"):
+        return None
+    pending.pop(chat, None)
+    return p[0]
+
+
+def _name_of(user: dict) -> str:
+    return ((user.get("first_name") or "") or (user.get("username") or "") or "someone").strip()[:80] or "someone"
+
+
+async def _post_answer(hc, event_id: int, stage: str, actor: str, note: str = "") -> None:
+    r = await hc.post(node_url("/actions"), timeout=15,
+                      json={"event_id": event_id, "stage": stage, "actor": actor, "note": note})
+    r.raise_for_status()
+
+
+async def handle_callback(hc, cq: dict, pending: dict) -> None:
+    """One button press on an event message: record the answer on the node (the same POST /actions the dashboard
+    makes — page and phone write the same row), lift the keyboard, and say in chat who pressed, so the chat
+    itself carries the record. Doesn't fit asks the one optional question and keeps the reply as the note."""
+    qid = cq.get("id")
+    msg = cq.get("message") or {}
+    chat = str((msg.get("chat") or {}).get("id", ""))
+    actor = _name_of(cq.get("from") or {})
+    parsed = parse_callback(cq.get("data"))
+    if chat not in CHATS():
+        log.info("callback from chat %s ignored: not in TELEGRAM_CHAT_IDS", chat)
+        if qid:
+            await telegram("answerCallbackQuery", callback_query_id=qid)
+        return
+    if not parsed:
+        if qid:
+            await telegram("answerCallbackQuery", callback_query_id=qid,
+                           text=T("This button is from another time; the event it belonged to is no longer mine.",
+                                  es="Este botón es de otro momento; el evento al que pertenecía ya no es mío."))
+        return
+    eid, stage = parsed
+    try:
+        await _post_answer(hc, eid, stage, actor)
+    except Exception as e:  # noqa: BLE001
+        log.warning("answer on event #%s failed: %s: %s", eid, type(e).__name__, str(e)[:200])
+        if qid:
+            await telegram("answerCallbackQuery", callback_query_id=qid,
+                           text=T("⚠️ I could not record that on the node. Nothing was written; press again in a moment.",
+                                  es="⚠️ No pude anotarlo en el nodo. No se escribió nada; pulsa de nuevo en un momento."))
+        return
+    if qid:
+        await telegram("answerCallbackQuery", callback_query_id=qid)
+    word = {"acted": T("Done", es="Hecho"), "acknowledged": T("Not now", es="Ahora no"),
+            "dismissed": T("Doesn't fit", es="No encaja")}[stage]
+    try:
+        await telegram("editMessageReplyMarkup", chat_id=chat, message_id=msg.get("message_id"),
+                       reply_markup={"inline_keyboard": []})
+        await telegram("sendMessage", chat_id=chat, text=f"{word} · {actor}")
+    except Exception as e:  # noqa: BLE001
+        log.warning("callback follow-up failed: %s", type(e).__name__)
+    if stage == "dismissed":
+        pending[chat] = (eid, time.monotonic())
+        await telegram("sendMessage", chat_id=chat,
+                       text=T("What did you do instead? One line, or ignore me.",
+                              es="¿Qué hiciste en su lugar? Una línea, o ignórame."))
+
+
+async def announce_buttons(hc) -> None:
+    """The bot's signature on the node: TELEGRAM_BUTTONS=1 tells the app its event messages may carry the three
+    buttons. A node without the agent container never gets the setting and sends the same message bare
+    (SPEC_alerts §7). Best-effort: a failure here costs the buttons, never the messages."""
+    try:
+        async with node_session(hc) as (session, _t):
+            await session.call_tool("settings_set", {"changes": {"TELEGRAM_BUTTONS": "1"}, "agent": f"{NAME}/telegram"})
+        log.info("event buttons on (TELEGRAM_BUTTONS=1)")
+    except Exception as e:  # noqa: BLE001
+        log.warning("could not turn the event buttons on (%s: %s): messages go without buttons",
+                    type(e).__name__, str(e)[:120])
+
+
 def ladder_text(pins: dict, chat: str) -> str:
     now = time.time()
     lines = [f"{'→' if pins.get(chat) == r.name else ' '} {r.name:7} {r.model} @ {r.url.replace('http://','').replace('https://','')[:40]}" + ("  (skipped, retry soon)" if r.skip_until > now else "") for r in RUNGS]
@@ -585,7 +705,7 @@ async def main():
     hc = httpx.AsyncClient(headers={"Authorization": f"Bearer {TOKEN}", "X-Agent": NAME}, timeout=120)
     for i in range(30):                    # the app may still be starting; its settings are the source of truth, not .env
         try:
-            if (await hc.get(MCP_URL.replace("/mcp", "/health"), timeout=5)).status_code == 200:
+            if (await hc.get(node_url("/health"), timeout=5)).status_code == 200:
                 break
         except Exception:  # noqa: BLE001
             pass
@@ -601,12 +721,14 @@ async def main():
     except Exception as e:  # noqa: BLE001
         log.warning("could not reach the node's tools at startup (%s: %s); each question opens its own session anyway",
                     type(e).__name__, str(e)[:120])
-    offset, history, pins = 0, {}, {}
+    if TG_TOKEN() and CHATS():
+        await announce_buttons(hc)
+    offset, history, pins, pending = 0, {}, {}, {}
     while True:
         if not TG_TOKEN():
             await asyncio.sleep(30); continue
         try:
-            upd = await telegram("getUpdates", offset=offset, timeout=25, allowed_updates=["message"])
+            upd = await telegram("getUpdates", offset=offset, timeout=25, allowed_updates=["message", "callback_query"])
         except TelegramError as e:
             msg = e.args[0] if e.args else "error"      # TelegramError carries a status code and advice, never the URL
             log.warning("telegram: %s", msg); await asyncio.sleep(30 if msg[:3] in ("401", "409") else 10); continue
@@ -614,12 +736,31 @@ async def main():
             log.warning("telegram: %s", type(e).__name__); await asyncio.sleep(10); continue
         for u in upd.get("result", []):
             offset = u["update_id"] + 1
+            cq = u.get("callback_query")
+            if cq:
+                try:
+                    await handle_callback(hc, cq, pending)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("callback failed: %s: %s", type(e).__name__, str(e)[:200])
+                continue
             m = u.get("message") or {}
             chat = str((m.get("chat") or {}).get("id", "")); text = (m.get("text") or "").strip()
             if not text:
                 continue
             if chat not in CHATS():
                 log.info("message from chat %s ignored: not in TELEGRAM_CHAT_IDS %s", chat, sorted(CHATS()))
+                continue
+            note_eid = note_pending(pending, chat, text, time.monotonic())
+            if note_eid is not None:
+                try:
+                    await _post_answer(hc, note_eid, "dismissed", _name_of(m.get("from") or {}), note=text)
+                    said = T(f"Kept as the note for event #{note_eid}.",
+                             es=f"Anotado como la nota del evento #{note_eid}.")
+                except Exception as e:  # noqa: BLE001
+                    log.warning("note on event #%s failed: %s: %s", note_eid, type(e).__name__, str(e)[:200])
+                    said = T("⚠️ I could not keep that note on the node. The Doesn't fit stands; the note is lost.",
+                             es="⚠️ No pude guardar esa nota en el nodo. El No encaja queda; la nota se pierde.")
+                await telegram("sendMessage", chat_id=chat, text=said)
                 continue
             if text.startswith("/act"):
                 parts = text.split(maxsplit=2)

@@ -61,10 +61,10 @@ cell your node knows, with the one it is standing on lit. Under it, the issue wi
 sentence. With no sensor yet that sentence says so in as many words: **"No air sensor here yet, and
 no model for this point"**, or the model's own figure where there is one — CAMS, an 11 km square.
 
-Below that the page runs through the four stages the node works in, numbered: **1 Observe** (every
-issue at every distance, and for each empty cell the reason it is empty), **2 Decide** (how coarse
-the answer is and what may leave the machine), **3 Act** (what has been asked of whom), **4
-Measure** (whether it worked). The node polls every 5 minutes and the line under the lead says when
+Below that the page runs through the four stages the node works in, Decide first: **Decide** (what to do
+about it: one card for each open alert event, with the action your node chose and three buttons),
+**Observe** (every issue at every distance, and for each empty cell the reason it is empty), **Act** (what
+has been asked of whom, and what was answered) and **Measure** (whether it worked). The node polls every 5 minutes and the line under the lead says when
 it last heard anything.
 
 Within the first hour the node fetches 92 days of modelled air history and the climate normals for your coordinates,
@@ -99,8 +99,8 @@ planetai act 3 "read it"
 ```
 
 The terminal answers with ρ ("rho"): the share of alerts that led to someone doing something. This one number is what
-the node exists to measure. On the dashboard the same button sits beside the alert itself, in **3 Act** — the third of the four
-stages the page is read in.
+the node exists to measure. On the dashboard the same button, **I did this**, is on the alert's card in Decide, the first of the stages
+under the lead.
 
 Replying `/act 3` in Telegram only works if the node's bot is running (`planetai agent local`, which installs a small
 local model; optional, and heavy on an 8 GB machine).

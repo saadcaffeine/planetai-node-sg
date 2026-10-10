@@ -18,6 +18,7 @@ zone is node #1's. A suite replaying somewhere else passes its own.
 from __future__ import annotations
 
 import datetime as dt
+import math
 import os
 import re
 
@@ -60,6 +61,15 @@ def _stats_sql() -> str:
             .replace("JOIN sensors s USING (sensor_id)", "JOIN sensors s ON s.sensor_id = r.sensor_id"))
 
 
+def _measures_sql() -> tuple[str, str]:
+    """recent_15m and usual_by_hour verbatim from init.sql, for DuckDB. The materialized view becomes a table built
+    at the replayed instant (DuckDB has no materialized views), and `WITH NO DATA` goes with it."""
+    sql = _schema()
+    recent = re.search(r"CREATE VIEW recent_15m AS.*?;", sql, re.S).group(0)
+    usual = re.search(r"CREATE MATERIALIZED VIEW usual_by_hour AS(.*?)WITH NO DATA;", sql, re.S).group(1)
+    return recent, "CREATE OR REPLACE TABLE usual_by_hour AS" + usual
+
+
 def rules(pack: str = "trust") -> dict:
     """The pack's rules as shipped, by id."""
     with open(os.path.join(ROOT, "packs", pack, "rules.yml")) as f:
@@ -67,30 +77,57 @@ def rules(pack: str = "trust") -> dict:
 
 
 def readings(sensor: str | None = None, metric: str | None = None) -> list[tuple]:
-    rows = []
-    with open(os.path.join(ROOT, "tests/data/node1-readings.tsv")) as f:
-        for line in f:
-            ts, sid, met, val = line.rstrip("\n").split("\t")
-            if (sensor and sid != sensor) or (metric and met != metric):
-                continue
-            rows.append((dt.datetime.fromisoformat(ts), sid, met, float(val)))
-    return rows
+    return [r for r in readings_from(os.path.join(ROOT, "tests/data/node1-readings.tsv"))
+            if (not sensor or r[1] == sensor) and (not metric or r[2] == metric)]
 
 
 def sensors() -> list[tuple]:
     """The five kits as node #1 held them. `local` is TRUE for all five: the live node had Ungasan Kit and BAYU NEW
-    ENCLOSURE local when it named them at 21:17, though the 21:43 dump has them FALSE — docs/HANDOFF_trust.md (c)."""
+    ENCLOSURE local when it named them at 21:17, though the 21:43 dump has them FALSE — docs/archive/handoffs/HANDOFF_trust.md (c)."""
+    return sensors_from(os.path.join(ROOT, "tests/data/node1-sensors.tsv"))
+
+
+def readings_from(path) -> list[tuple]:
+    """readings() from any TSV of the same shape (tools/replay_alerts.py reads a node's dump with it)."""
     rows = []
-    with open(os.path.join(ROOT, "tests/data/node1-sensors.tsv")) as f:
+    with open(path) as f:
+        for line in f:
+            ts, sid, met, val = line.rstrip("\n").split("\t")
+            rows.append((dt.datetime.fromisoformat(ts), sid, met, float(val)))
+    return rows
+
+
+def sensors_from(path) -> list[tuple]:
+    """sensors() from any TSV of the same eight columns; an empty lat or lon reads as 0."""
+    rows = []
+    with open(path) as f:
         for line in f:
             sid, source, name, lat, lon, indoor, local, kind = line.rstrip("\n").split("\t")
-            rows.append((sid, source, name, float(lat), float(lon), indoor == "t", local == "t", kind))
+            rows.append((sid, source, name, float(lat or 0), float(lon or 0), indoor == "t", local == "t", kind))
     return rows
 
 
 def day(rows: list[tuple], end: dt.datetime = FIXTURE_NOW) -> list[tuple]:
     """The last real 24 hours of a series."""
     return [r for r in rows if r[0] > end - dt.timedelta(hours=24)]
+
+
+def heat_days(sensors: list[str], at: dt.datetime, days: int = 15, every_min: int = 5) -> list[tuple]:
+    """Synthetic indoor temp + humidity, shaped to node #1's measured daily curve as published in docs/SPEC_alerts.md §1
+    (apparent ~33 °C at 04:00 local rising to ~36 °C at 17:00; indoor air never above 32 °C). Not readings: the fixture
+    holds none for temp or humidity, and a real day would add household data to a public repository.
+
+    Local time is WITA (+08, no DST): temp = 29.4 + 1.7 cos(2π(h-16)/24), humidity = 66 - 4 cos(2π(h-16)/24).
+    Deterministic. Rows are (ts_utc, sensor_id, metric, value), one per sensor per metric every `every_min` minutes."""
+    wita = dt.timezone(dt.timedelta(hours=8))
+    rows = []
+    for m in range(0, days * 1440, every_min):
+        ts = at - dt.timedelta(minutes=m)
+        l = ts.astimezone(wita)
+        c = math.cos(2 * math.pi * (l.hour + l.minute / 60 - 16) / 24)
+        for sid in sensors:
+            rows += [(ts, sid, "temp", 29.4 + 1.7 * c), (ts, sid, "humidity", 66 - 4 * c)]
+    return rows
 
 
 def week(rows: list[tuple], at: dt.datetime, days: int = 8) -> list[tuple]:
@@ -122,19 +159,36 @@ class Node:
             "INSERT INTO sensors (sensor_id, source, name, lat, lon, indoor, local, kind) VALUES (?,?,?,?,?,?,?,?)",
             who if who is not None else sensors())
         seen = set()
-        self.con.executemany("INSERT INTO readings (ts, sensor_id, metric, value) VALUES (?,?,?,?)",
-                             [r for r in rows if not (r[:3] in seen or seen.add(r[:3]))])
+        rows = [r for r in rows if not (r[:3] in seen or seen.add(r[:3]))]
+        if rows:                                       # a replay starts empty (duckdb refuses an empty executemany)
+            self.con.executemany("INSERT INTO readings (ts, sensor_id, metric, value) VALUES (?,?,?,?)", rows)
         with open(os.path.join(ROOT, "config/channels.yml")) as f:
             for c in yaml.safe_load(f):
                 self.con.execute(
                     "INSERT INTO channel_roles (source, metric, role, comparable, declared_by) VALUES (?,?,?,?,'core')",
                     (c["source"], c["metric"], c["role"], bool(c.get("comparable", False))))
 
+    def refresh_usual(self, at: dt.datetime) -> None:
+        """Rebuild usual_by_hour as it would read at `at` (the app refreshes it hourly)."""
+        self.con.execute(_measures_sql()[1].replace("now()", f"TIMESTAMPTZ '{at.isoformat()}'"))
+
+    def recent(self, at: dt.datetime) -> list[tuple]:
+        """recent_15m as it would read at `at`."""
+        self._recent_at(at)
+        # by epoch: handing a TIMESTAMPTZ to Python makes duckdb import pytz, which CI does not install
+        return [(dt.datetime.fromtimestamp(e, UTC), s, m, v) for e, s, m, v in self.con.execute(
+            "SELECT epoch(bucket), sensor_id, metric, mean FROM recent_15m").fetchall()]
+
+    def _recent_at(self, at: dt.datetime) -> None:
+        self.con.execute("DROP VIEW IF EXISTS recent_15m")
+        self.con.execute(_measures_sql()[0].replace("now()", f"TIMESTAMPTZ '{at.isoformat()}'"))
+
     def run(self, rule: dict, at: dt.datetime, lat: float | None = None, lon: float | None = None) -> list[dict]:
         stamp = f"TIMESTAMPTZ '{at.isoformat()}'"
         # `stats` is a 24-hour rolling view over now(), so it has to be rebuilt at the instant being replayed.
         self.con.execute("DROP VIEW IF EXISTS stats")
         self.con.execute(_stats_sql().replace("now()", stamp).replace("CREATE VIEW", "CREATE VIEW"))
+        self._recent_at(at)
         sql = rule["sql"].replace("now()", stamp)
         if lat is not None:
             # the node's coordinates reach a rule through Postgres session settings; DuckDB has none.

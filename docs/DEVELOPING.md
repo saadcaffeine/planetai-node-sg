@@ -10,7 +10,7 @@ Bali; its Python is Apple's 3.9 with no third-party libraries, and that is the P
 ```bash
 make lint      # shell syntax, SQL idempotency, compose mounts, CLI snippets as Python 3.9 with stdlib only,
                # rules and cells against init.sql, docs against the code, the GUI, pyflakes, the app imports
-make test      # the 47 offline suites in tests/all, one line each and a count at the end
+make test      # the 56 offline suites in tests/all, one line each and a count at the end
 ```
 
 The pre-commit hook runs lint and refuses `.env`, credentials, `.DS_Store`, and anything under `.git`. Install it once:
@@ -85,7 +85,7 @@ as constrained JSON because a 4B model narrates its reasoning as prose otherwise
 app/          main.py (api, loops, notify) · sources.py (adapters) · index.py (cells, ρ) · packs.py · settings.py ·
               bootstrap.py · ask.py (the ask pane) · static/ (the dashboard)
 bin/planetai  the operator CLI
-packs/        eighteen packs; see PACKS.md
+packs/        seventeen packs; see PACKS.md
 config/       rules.yml (two domain-blind rules), mosquitto, reticulum
 tools/        gates, hooks, bundle, release, mesh-provision.sh, nas/ (the NAS puller)
 tests/        offline suites

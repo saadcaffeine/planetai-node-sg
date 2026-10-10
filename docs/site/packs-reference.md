@@ -1,10 +1,12 @@
 # Packs that ship
+<!-- checked: v0.80.10 -->
 
-Eighteen folders under `packs/` in v0.75.3: ten data packs and eight code packs. Between them they hold
+Seventeen core packs ship in `packs/` in v0.80: ten data packs and seven code packs. Wild packs, written for one
+place and kept by their authors, are listed at [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) and added with `planetai packs add`. Between them they hold
 everything the node knows about a place. No rule in `app/` says what PM2.5 means for a household, what a hot night is, where
 the sea starts or where the nearest fab lab is; the air, the heat, the coast, the land, the repair commons and
-the nearest workshop are all in here, as SQL and YAML, and in eight cases as an adapter too. How a pack is
-built, loaded and linted is on [Packs](packs.md); this page is what each shipped pack does in v0.75.3.
+the nearest workshop are all in here, as SQL and YAML, and in seven cases as an adapter too. How a pack is
+built, loaded and linted is on [Packs](packs.md); this page is what each shipped pack does in v0.80.
 
 A pack is `data` if its folder has no `adapter.py`, and `code` if it has one. The `kind:` line in `pack.yaml`
 is documentation; the presence of the file is what the loader reads. Code packs load only with
@@ -12,32 +14,30 @@ is documentation; the presence of the file is what the loader reads. Code packs 
 
 | pack | kind | domain | rules | report | cells | scripts | settings |
 |---|---|---|---|---|---|---|---|
-| `air-quality` | data | air | 4 act, 2 warn | — | 3 | — | — |
-| `xiaomi-air` | code | air | 1 warn | — | — | — | `XIAOMI_PURIFIERS` |
-| `heat` | data | heat | 2 act, 1 info | — | 1 | — | — |
+| `air-quality` | data | air | 4 act, 2 warn; and the event engine's 3 act, 1 warn | — | 3 | — | — |
+| `heat` | data | heat | 2 act, 1 info; and the event engine's 3 act | — | 1 | — | — |
 | `nearby` | data | air | 1 act, 1 info | `alone` | — | `stations` `status` `verify` `backfill` | `BAD_*` |
 | `season` | data | air | 1 info | `record` | — | `window` | — |
 | `insight` | data | cross-domain | 2 info | `digest` | — | — | — |
 | `trust` | data | cross-domain | 3 info | — | — | — | — |
 | `cold-start` | data | cross-domain | 3 info | — | — | — | — |
-| `forecast` | code | weather | none | `ahead` | — | `fetch` `status` `verify` | `FORECAST_*` |
+| `forecast` | code | weather | none | `ahead` | — | `fetch` `status` `verify` `windfield` | `FORECAST_*` |
 | `coast` | code | coast | 2 info | — | 1 | — | `COAST_MAX_KM` |
-| `posidonia` | data | coast | 2 info | — | 1 | — | — |
 | `earth` | code | land | none | — | 1 | `fetch` `change` `frames` `status` `verify` `similar` | `EARTH_*` |
-| `earth-engine` | code | land | none | — | 1 | `timelapse` `verify` | `EE_*` |
-| `place` | code | place | 1 info | — | 1 | `refresh` `gaps` `verify` | `PLACE_*` |
+| `earth-engine` | code | land | none | — | 1 | `timelapse` `verify` `basemap` | `EE_*`, `GROUND_SAT_WIDE_KM` |
+| `place` | code | place | 1 info | — | 1 | `refresh` `gaps` `verify` `basemap` | `PLACE_*`, `GROUND_*` |
 | `make` | code | make | none | the nearest-lab line | — | — | `MAKE_*` |
 | `open-data-health` | data | governance | 1 warn | — | 2 | — | `CKAN_PORTALS` (core adapter) |
 | `thingdata` | code | repair | 1 warn | — | 2 | — | `THINGDATA_*` |
 | `example-cooking-hours` | data | (none) | 1 info | — | — | — | — |
 
-That is 29 rules with a message, 4 report contributors and 13 cells. Every rule with a message carries `en`,
+That is 33 rules with a message (26, and the 7 the event engine reads), 4 report contributors and 12 cells. Every rule with a message carries `en`,
 `id` and `es`, and so do the two core rules in `config/rules.yml`; Spanish reached every alert template in
 v0.63. The node picks `message[ALERT_LOCALE]` and falls back to `en`. Cooldowns below are in minutes, per
 `(rule, sensor_id)`.
 
-> **Note.** `posidonia` is Menorca's, `example-cooking-hours` is the worked example, and `season`,
-> `xiaomi-air`, `thingdata` and `make` arrived in v0.61 and v0.65.
+> **Note.** `example-cooking-hours` is the worked example, and `season`, `thingdata` and `make` arrived in
+> v0.61 and v0.65. `xiaomi-air` and `posidonia` are wild packs, listed at [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs).
 
 ## air-quality
 
@@ -78,6 +78,19 @@ Two rules declare `watch:`: `indoor_pm25_high` watches `pm25` over 35.5 and `out
 line. The other four carry none: the two comparison rules fire on a relation between inside and outside, and
 the two spike rules on a ratio to the sensor's own day.
 
+The pack also carries four rules with a `kind:`, which only the event engine reads ([Alerts](alerts.md#the-event-engine)).
+Under `ALERT_ENGINE=rules` they are skipped. Under `shadow` and `events` they write no `alerts` row; each returns
+`value`, `line`, `over` and `where` (`inside` or `outside`), and the engine folds them into one `air` event. Their
+messages are the one line the engine tells the story with. Cooldown 60 for each; the numbers are starting values
+from the replay of node #1's month.
+
+| rule | kind | level | `over` when |
+|---|---|---|---|
+| `air_spike` | spike | warn | a local sensor's latest 15-minute mean is at least 12 above the mean of the preceding hour and at least 10 above this room's 90th percentile for the local hour (a row from a rise of 7 keeps an open event open) |
+| `air_unusual` | unusual | act | every 15-minute mean of the last hour is at least 15 above this room's usual 90th percentile for the hour (a row from an hourly mean 10 above keeps an open event open) |
+| `air_sustained` | sustained | act | the 15-minute means over the last hour are all at least 35 µg/m³ (rows from a mean of 30 keep it open) |
+| `air_extreme` | danger | act | the latest 15-minute mean is at least 125.5 µg/m³ (rows from 115 keep it open) |
+
 ### Cells
 
 | cell | unit | state | min_buckets | what the SQL counts |
@@ -98,58 +111,8 @@ None of its own. The SQL reads the `planetai.lat` and `planetai.lon` GUCs and wh
 
 The README says "Fork it": the numbers that matter in Kerobokan are not the numbers that matter in Poblenou, and the
 sentence that gets someone to close a window is different in every language and every building. Copy the folder,
-change the thresholds and the wording, publish it as `planetai-pack-air-<yourplace>`.
-
-## xiaomi-air
-
-Xiaomi / Mi Home air purifiers read directly on the LAN over the miio/MIoT protocol: PM2.5, temperature,
-humidity and filter life, indoors. Written for a household in Kuta Selatan with two units, a living-room and a
-bedroom purifier. After setup nothing talks to the Xiaomi cloud: the only cloud step is extracting each unit's
-token, once. In v0.75.3 this is the only indoor PM reader on the LAN that the node polls; the
-AirGradient and PurpleAir adapters exist in `app/sources.py` and are not called (see [Sensors](sensors.md)).
-
-| | |
-|---|---|
-| Kind | code |
-| Domain | `air` |
-| Requires node | `>=0.50.0` |
-| Metrics | `pm25`, `temp`, `humidity`, `filter_life` (`pm10` where the model reports it) |
-| Scales | community |
-| Needs | `PACKS_ALLOW_CODE=1`; `planetai packs install` for `python-miio`, pinned to a commit tarball; each purifier's 32-hex device token, extracted once with `xiaomi-cloud-tokens-extractor` (one Mi Home login); a fixed IP or DHCP reservation per unit; units on 2.4 GHz WiFi the node can reach |
-| Cells | none |
-| Scripts | none |
-
-The adapter polls every purifier in `XIAOMI_PURIFIERS` once per node cycle over UDP port 54321, MIoT first and
-legacy miio after. Each unit becomes one sensor, `xm-<last six hex of its MAC>` (its IP when the MAC cannot be read), with `source='xiaomi-air'`,
-`local` and `indoor` true, and no coordinates. Because the units are local and indoor, the `air-quality`
-indoor rules and the `trust` checks read them like any other kit, and they stay out of outdoor averages.
-`channels.yml` declares `pm25`, `temp` and `humidity` as `ambient` and comparable, and `filter_life` as
-`device_health`: the instrument talking about its own consumable, never a measurement.
-
-### Rules
-
-| rule | level | cooldown | fires when | languages |
-|---|---|---|---|---|
-| `purifier_filter_low` | warn | 10080 | a local indoor sensor's 15-minute mean of `filter_life` is under 10 (%) | en, es, id |
-
-The rules file gives the reason for 10%: Xiaomi's own app warns at about 5%, which is late when a replacement
-filter takes a week to arrive.
-
-### Settings
-
-| setting | default | meaning |
-|---|---|---|
-| `XIAOMI_PURIFIERS` | empty | comma-separated units, each `name@ip=token`; the name and `name@` are optional. Blank, the pack logs once and reads nothing |
-
-After `planetai packs install` and the first poll, `planetai sensors --json` lists each unit as `xm-<mac6>`.
-
-### Know this
-
-No humidity correction is applied. The node's EPA 2021 correction was derived for Plantower lasers, and
-Xiaomi's optical sensor is not one, so `pm25` here is the raw density and the sensor's `meta` says so. The
-vendor "AQI" property on these models is the PM2.5 density itself, so nothing extra is stored. Fan speed, mode
-and motor RPM are not emitted. The pack reads and never controls a purifier. Dehumidifiers, humidifiers and
-fans speak the same protocol family with different properties and are not covered.
+change the thresholds and the wording, publish it as `planetai-pack-air-<yourplace>`, and list it at
+[fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) so other nodes can add it.
 
 ## heat
 
@@ -184,6 +147,19 @@ at 32 °C, which in Kuta Selatan is the year-round baseline. Against node #1's t
 2026, a line at 32 fired 20 times in 48 hours, ten of them at night; 35 °C is the hot room's p90 and fired eight
 times in five days, never at night. The README records why the fix was the threshold and not a longer cooldown, a
 duration gate or a trend.
+
+The pack also carries three rules with a `kind:`, read only by the event engine ([Alerts](alerts.md#the-event-engine)):
+skipped under `ALERT_ENGINE=rules`, and under `shadow` and `events` they write no `alerts` row and fold into one
+`heat` event. They read `recent_15m`'s `apparent` and `usual_by_hour`, indoor sensors only, and leave out a sensor
+whose `temp` channel is declared as something other than ambient (a Meshtastic radio's own box). Cooldown 60 each.
+
+| rule | kind | level | `over` when |
+|---|---|---|---|
+| `heat_unusual` | unusual | act | every 15-minute mean apparent temperature of the last hour is at least 2 °C above this room's usual 90th percentile for the hour (a row from an hourly mean 1 °C above keeps an open event open) |
+| `heat_sustained` | sustained | act | the room has been at 35 °C or more for at least 3 hours, and for more than its usual number of such hours (a row from a latest mean of 34 keeps an open event open) |
+| `heat_extreme` | danger | act | the latest 15-minute mean is at least 40 °C (rows from 39 keep it open) |
+
+This is how the engine says "dangerously hot" only at 40 °C and not at an ordinary 35 °C afternoon.
 
 ### Cells
 
@@ -497,6 +473,7 @@ No cells. A forecast is not measured here and is nobody's Index cell.
 - `planetai run forecast verify`: the `adm4` code resolves to somewhere near the node (province, regency, district, village and distance printed; past 10 km the card says so), units are as documented, BMKG's `analysis_date` is under 18 hours old. Exit 1 on failure.
 - `planetai run forecast fetch`: fetch now instead of waiting for the poll; writes to `sensors` and `readings`.
 - `planetai run forecast status`: the next day: wind, rain, temperature, and when it was issued.
+- `planetai run forecast windfield`: refresh the wind field now (below). Refuses unless `FORECAST_OPENMETEO=1`.
 
 ### Settings
 
@@ -506,6 +483,8 @@ No cells. A forecast is not measured here and is nobody's Index cell.
 | `FORECAST_BMKG_ADM4` | empty | the Permendagri village code for this point. Node #1 is `51.03.05.2002`, Kuta Selatan / Ungasan, 194 m from the node. Without a code the pack logs one line and idles |
 | `FORECAST_OPENMETEO` | `0` | poll Open-Meteo, hourly, anywhere. Off because its free tier is non-commercial only; that is the operator's decision |
 | `FORECAST_POLL_HOURS` | `6` | BMKG allows 60 requests a minute per IP and enforces it; it publishes twice a day, so anything faster asks a cache the same question |
+| `FORECAST_WIND_N` | `8` | points a side of the wind field: 8 × 8 |
+| `FORECAST_WIND_KM` | `30` | half-width of the wind field's square, in km |
 
 Also reads `NODE_LAT` and `NODE_LON`.
 
@@ -515,7 +494,11 @@ Every channel in `channels.yml` is `role: derived`, `comparable: false`, for sou
 and `forecast-gap`. A forecast must never pool with a sensor's ambient reading; the `fc_` prefix is the second
 guard. Every value is stored at its valid time with `fc_lead_hours` beside it. Open-Meteo publishes no model run
 time, so the node records when it fetched and labels it `fetched`, not `issued`. When both sources are on, a third
-derived channel records how far apart they are on temperature and wind for the same hour. Attribution: BMKG must
+derived channel records how far apart they are on temperature and wind for the same hour. With Open-Meteo on, each
+poll also keeps its hourly 10 m wind for the next day over the node's square, and the node's own point, in one
+request, as `out/ground/wind.json`, served at `GET /ground/wind` for the map to draw. It asks with
+`cell_selection=nearest`, because the default moves a sea point to the nearest land cell, up to 12 km off. It is a
+model's field, not a reading: it reaches no cell, no alert and no report. Attribution: BMKG must
 be named inside the application and is, on the card and in the export; Open-Meteo is CC BY 4.0.
 
 ## coast
@@ -561,54 +544,22 @@ weather of a sea it cannot see.
 
 ### Know this
 
-The `posidonia` pack reads this pack's `sea_surface_temp`; without `coast` enabled it has nothing to read.
+The wild `posidonia` pack reads this pack's `sea_surface_temp`; without `coast` enabled it has nothing to read.
 Attribution: Open-Meteo Marine API (CC BY 4.0), carrying Copernicus Marine / MeteoFrance MFWAM model data.
 
-## posidonia
+## posidonia (wild)
 
-Thermal stress on *Posidonia oceanica*, the seagrass the Balearic coast is built on, read from the sea-surface
+Now a wild pack, listed at [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) (`planetai packs add posidonia`). Thermal stress on *Posidonia oceanica*, the seagrass the Balearic coast is built on, read from the sea-surface
 temperature the `coast` pack already fetches. No new source, no key, no metric of its own. Written for Menorca,
-Illes Balears, by Lucas Marangoni (Fab City Foundation).
+Illes Balears, by Lucas Marangoni (Fab City Foundation). Add with:
 
-| | |
-|---|---|
-| Kind | data |
-| Domain | `coast` |
-| Requires node | `>=0.10.0` |
-| Metrics | `sea_surface_temp` |
-| Scales | bioregion |
-| Needs | the `coast` pack enabled, so `marine-point` / `sea_surface_temp` exists |
-| Scripts | none |
-| Settings | none |
+```bash
+planetai packs add posidonia
+```
 
 28.4 °C is Marbà & Duarte (2010), *Global Change Biology* 16:2366–2375: six years of seawater temperature and shoot
 demography at Cabrera Archipelago National Park, about 90 km from Menorca, above which the meadow loses more
-shoots than it recruits. 27 °C is the watch level from the thermal-tolerance literature. The README notes that,
-unusually for this repository, the mortality line was measured in the same water as the node that reads it.
-
-### Rules
-
-| rule | level | cooldown | fires when | languages |
-|---|---|---|---|---|
-| `thermal_stress` | info | 1440 | over 72 hours of `readings_1h` on `marine-point` / `sea_surface_temp`, with at least 24 buckets, the mean is 28.4 or more | en, es, id |
-| `warm_watch` | info | 10080 | over 7 days with at least 48 buckets, the mean is at least 27.0 and under 28.4 | en, es, id |
-
-Every first line names the plant, the reading and the threshold in one sentence, because the node's alert log
-shows only the first line of a message and "the sea has held 27.5 °C for a week" is a temperature with no subject.
-
-### Cells
-
-| cell | unit | state | min_buckets | what the SQL counts |
-|---|---|---|---|---|
-| `Environmental\|Bioregion` | days in the last 90 with mean sea temperature at or above 28.4 °C (Posidonia thermal-stress threshold) | partial | — | days with at least 12 hourly buckets whose mean is 28.4 or more |
-
-### Know this
-
-Messages are in `en`, `id` and `es`. The README says the Spanish strings are assistant-written and have not
-been read by a native speaker, and there is no Catalan, Menorca's own language. The pack does not know where the meadow is (it does not fetch the Govern de les Illes Balears
-protected-zone geometry), that the temperature is modelled and at the surface rather than at the rhizome, or
-anything else that kills seagrass. The cell is `partial` for the second of those reasons and must stay so. A node
-outside the western Mediterranean must not keep these numbers: the plant is endemic to this sea.
+shoots than it recruits. 27 °C is the watch level from the thermal-tolerance literature.
 
 ## earth
 
@@ -717,6 +668,7 @@ v0.33.1 (see below).
 
 - `planetai run earth-engine verify`: library, settings, key file, credentials, a real query, the datasets. Names the step that failed.
 - `planetai run earth-engine timelapse [--years a,b,c | --n 4 --gap 5] [--km 2] [--px 1024] [--source landsat|sentinel] [--lat --lon] [--dry-run]`: annual-median frames of clear pixels; Landsat by default (the only archive reaching 2010 with one instrument family), Sentinel-2 for 2016 onward at 10 m. PNGs and a side-by-side page land in `out/`.
+- `planetai run earth-engine basemap [--months 12] [--dry-run]`: the median of every clear Sentinel-2 pass over the last twelve months, built in the node's own Earth Engine project and kept as tiles at zoom 8–15 in `out/ground/imagery.mbtiles`, served at `GET /ground/imagery`. Earth Engine learns the two squares, once, and the script says so before it runs.
 
 ### Settings
 
@@ -725,6 +677,7 @@ v0.33.1 (see below).
 | `EE_PROJECT` | empty | the project id, e.g. `planetai-node-472103`, not the service account's 21-digit number; Earth Engine reports that mistake as "project not found". Blank reads it from the key file |
 | `EE_SERVICE_ACCOUNT` | empty | blank is fine; the key file names it |
 | `EE_KEY_FILE` | `/app/config/ee-key.json` | the JSON key, copied to `config/ee-key.json` on the node. `config/` is mounted read-only |
+| `GROUND_SAT_WIDE_KM` | `60` | `basemap`: half-width of the wide context square, in km. The close square is `place`'s `GROUND_RADIUS_KM` |
 
 ### Know this
 
@@ -781,6 +734,7 @@ says `partial`.
 - `planetai run place refresh`: force a fetch from Overpass. Edits to the map reach the node within minutes this way.
 - `planetai run place gaps`: the mapping briefing: untyped buildings, empty categories, named places without hours, unnamed streets, written to `out/place-gaps.md` for a mapping afternoon at the lab.
 - `planetai run place verify`: PostGIS, OpenStreetMap, Earth Engine, Open Buildings, each step named; names the mismatch while a moved node lasts.
+- `planetai run place basemap [--only vector|drone] [--dry-run]`: keeps a map of the place on the node's disk, in `out/ground/`, served at `GET /ground/*`: OpenStreetMap vector tiles cut out of Protomaps' daily build, in three rings to zoom 15, with the label fonts; and any OpenAerialMap drone mosaic (CC BY 4.0) that crosses the drone ring. Protomaps and OpenAerialMap learn the square, once, and the script says so before it runs.
 
 `planetai run place satellite` also appears in the script list, because `satellite.py` is a non-adapter `.py` in
 the folder. It is a module the adapter imports, not a command.
@@ -791,6 +745,9 @@ the folder. It is a module the adapter imports, not a command.
 |---|---|---|
 | `PLACE_RADIUS_M` | `1000` | radius around the node to describe, in metres |
 | `PLACE_REFRESH_DAYS` | `30` | how often to re-fetch from OpenStreetMap |
+| `GROUND_RADIUS_KM` | `12` | `basemap`: half-width of the street-level square, in km |
+| `GROUND_DRONE_RADIUS_KM` | `4` | `basemap`: the ring a drone mosaic must cross, in km |
+| `GROUND_DRONE_MAXZ` | `18` | `basemap`: the finest zoom kept for a drone mosaic |
 
 Also reads `OVERPASS_URL` (default `https://overpass-api.de/api/interpreter`) and, for Open Buildings,
 `EE_KEY_FILE`, `EE_PROJECT` and `EE_SERVICE_ACCOUNT`.
@@ -808,7 +765,7 @@ After a move it takes `planetai restart`, `planetai run place refresh` and a das
 
 Where somebody can go to make or fix something: the active fab labs nearest this node, from the Fab Lab
 Network directory, with what each one can do. This pack is the first thread from a reading to a place that can
-make or fix something. In v0.75.3 it names the place and stops there: no node has handed a job to a workshop,
+make or fix something. In v0.80 it names the place and stops there: no node has handed a job to a workshop,
 and nothing in the code sends one.
 
 | | |
@@ -848,7 +805,7 @@ Nearest place to make or fix something: <lab>, <km> km (<up to three capabilitie
 
 in Indonesian and Spanish too, capability names included (`laser cutting`, `pemotongan laser`, `corte láser`). A
 lab under 0.05 km away prints as `<0.1 km`. The same sentence travels in `GET /issues` as `asks.where`, and the
-dashboard draws it under the alert it answers. With the pack off, the dashboard shows the help text the node
+dashboard draws it in Act, under the record of what was asked and answered. With the pack off, the dashboard shows the help text the node
 publishes for `MAKE_ENABLED` instead.
 
 ### Settings

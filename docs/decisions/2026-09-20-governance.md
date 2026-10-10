@@ -63,7 +63,7 @@ Each of these is a thing no file in the repository can do.
    which `index.fab.city`, `planetai.fab.city` and the release mirror all sit.
 4. **Move `make ship`'s credentials to a second machine**, so that a release is possible from more than
    one laptop. `tools/ship.sh` needs the site repo and the signing key; neither is on a second machine.
-5. **Store the release signing key where two people can reach it.** `docs/HANDOFF_signing.md` already
+5. **Store the release signing key where two people can reach it.** `docs/SIGNING.md` already
    says the Foundation's password manager plus one copy on the ship machine. As of today the key exists
    in one place, and a node refusing an unsigned update — which is it doing its job — becomes a node
    nobody can update if that place is lost.

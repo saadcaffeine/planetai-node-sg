@@ -82,21 +82,24 @@ OUT = run(earth=EARTH)
 
 # --- what the sentences add beyond the number ---------------------------------------------------
 # Land's history. The latest pair is the number; the longest span is the direction, and a household
-# deciding whether the trees behind them are going needs both.
-_land_en = OUT["issues"]["land"]["sentence"]["en"]
+# deciding whether the trees behind them are going needs both. The figures live in `plain` now
+# (docs/SPEC_language.md); the sentence above them stays words only.
+_land_en = OUT["issues"]["land"]["hero"]["plain"]["en"]
 check("between 2024 and 2025" in _land_en, f"land must say which two years it compared: {_land_en}")
 check("8.5 % since 2017" in _land_en, f"land must say how far back the change goes: {_land_en}")
-_no_span = run(earth={**EARTH, "changes": [EARTH["changes"][-1]]})["issues"]["land"]["sentence"]["en"]
+_no_span = run(earth={**EARTH, "changes": [EARTH["changes"][-1]]})["issues"]["land"]["hero"]["plain"]["en"]
 check("since" not in _no_span and "  " not in _no_span,
-      f"with no long span the sentence closes cleanly rather than leaving a gap: {_no_span}")
+      f"with no long span the plain closes cleanly rather than leaving a gap: {_no_span}")
 for loc in I.LOCALES:
-    check(OUT["issues"]["land"]["sentence"][loc].count("2017") == 1, f"land.{loc} names the span year once")
+    check(OUT["issues"]["land"]["hero"]["plain"][loc].count("2017") == 1, f"land.{loc} names the span year once")
+    check(not re.search(r"\d", OUT["issues"]["land"]["sentence"][loc]),
+          f"land.{loc} headline stays words only: {OUT['issues']['land']['sentence'][loc]}")
 
 # Heat has a direction now, the way air has. Whichever verb the trend picks, the numeral must survive.
 _heat_verbs = DECL["heat"]["sentences"]["en"]["verbs"]
 check(set(_heat_verbs) == {"rising", "steady", "falling"}, "heat declares all three directions")
-check(any(OUT["issues"]["heat"]["sentence"]["en"].startswith(v) for v in _heat_verbs.values()),
-      f"heat's sentence opens with one of its verbs: {OUT['issues']['heat']['sentence']['en']}")
+check(any(v in OUT["issues"]["heat"]["sentence"]["en"] for v in _heat_verbs.values()),
+      f"heat's sentence carries one of its verbs: {OUT['issues']['heat']['sentence']['en']}")
 
 # The day's high. A quiet issue used to say "nothing to say"; with 24 hours in hand it says the one
 # thing there is to say. The reason carries the value WITH its unit and the hour it landed in.
@@ -365,11 +368,15 @@ for key, d in DECL.items():
                                   d["compare"], cls)
             check(st and "{" not in st, f"{key}.{cls}.{loc} did not render: {st!r}")
 
-# the numeral is the one the stack carries, formatted to the issue's own dp
-check("5 µg/m³" in OUT["issues"]["air"]["sentence"]["en"],
-      f"air's numeral is not in its sentence: {OUT['issues']['air']['sentence']['en']}")
-check("30.8 °C" in OUT["issues"]["heat"]["sentence"]["en"],
-      f"heat's numeral is not in its sentence: {OUT['issues']['heat']['sentence']['en']}")
+# the numeral lives in `plain`, formatted to the issue's own dp; the headline stays words only
+_air_s = OUT["issues"]["air"]["sentence"]["en"]
+check("In the house it is 5" in OUT["issues"]["air"]["hero"]["plain"]["en"],
+      f"air's numeral is not in its plain: {OUT['issues']['air']['hero']['plain']['en']}")
+check(not re.search(r"\d", _air_s), f"air's headline carries a number: {_air_s}")
+_heat_s = OUT["issues"]["heat"]["sentence"]["en"]
+check("In the house it is 30.8" in OUT["issues"]["heat"]["hero"]["plain"]["en"],
+      f"heat's numeral is not in its plain: {OUT['issues']['heat']['hero']['plain']['en']}")
+check(not re.search(r"\d", _heat_s), f"heat's headline carries a number: {_heat_s}")
 
 # --- attribution ---------------------------------------------------------------------------------
 check(OUT["issues"]["air"]["attribution"] == "clear",
@@ -434,10 +441,10 @@ class Counting(engine.Replay):
 
 c = Counting(FIX)
 engine.compute(c, Settings(NODE_ISSUES="air,heat,land,coast"), DECL, earth=EARTH, now=NOW)
-check(c.n == 5, f"the engine ran {c.n} queries for four issues; it must read each table once")
+check(c.n == 7, f"the engine ran {c.n} queries for four issues; it must read each table once, and the usual and the silent once")
 c = Counting(FIX)
 engine.compute(c, Settings(NODE_ISSUES="air"), DECL, earth=EARTH, now=NOW)
-check(c.n == 5, f"the engine ran {c.n} queries for one issue; the reads are not per-issue")
+check(c.n == 7, f"the engine ran {c.n} queries for one issue; the reads are not per-issue")
 
 # --- the keys the modular dashboard reads ---------------------------------------------------------
 body = engine.replay(FIX, Settings(), DECL)
@@ -559,23 +566,65 @@ check(OUT["lead"] == {"issue": OUT["headline"], "by": OUT["lead"]["by"]}
 # year on, because the pack's cadence is P1Y.
 _F21 = json.loads((ROOT / "app/issues/fixtures/node1-2026-09-21d.json").read_text())
 _L21 = engine.replay(_F21, Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["issues"]["land"]["hero"]
-# The plain line, as approved on 25 Sep against this same capture: air has the street and the ring
-# over the line, heat has nothing over it, and the context issues say where their number comes from.
+# The plain line: the reading layer carries the figures now (docs/SPEC_language.md). The numeral
+# distance speaks first, the line keeps its value bare, and the context issues' figures are the
+# strings that were their whole sentences before the split, with where the number comes from after.
 _O21 = engine.replay(_F21, Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["issues"]
 for _k, _want in (
-        ("air", "On the street it is 18, and in the ring around it 19. The line is 15, and the street "
-                "and the ring are over it."),
-        ("heat", "On the street it is 30.7, and in the ring around it 32.7. The line is 35.0, and "
-                 "nothing here is over it."),
-        ("coast", "The node reads this from a model, not from anything here, and it never asks you to "
-                  "do anything about it."),
-        ("land", "The satellite looks once a year, and the node never asks you to do anything about it.")):
+        ("air", "In the house it is 12, and on the street 18, and in the ring around it 19. The "
+                "line is 15, and the street and the ring are over it."),
+        ("heat", "In the house it is 33.9, and on the street 30.7, and in the ring around it 32.7. "
+                 "The line is 35, and nothing here is over it."),
+        ("coast", "2.0 m off this coast. Swell 1.9 m, period 12 s, sea 28.1 °C. The node "
+                  "reads this from a model, not from anything here, and it never asks you to do "
+                  "anything about it."),
+        ("land", "1.3 % of the square this node watches changed between 2024 and 2025. 8.5 % since "
+                 "2017. Built 91 %, trees 9 %. The satellite looks once a year, and the node never "
+                 "asks you to do anything about it.")):
     check(_O21[_k]["hero"]["plain"]["en"] == _want, f"plain: {_k} reads {_O21[_k]['hero']['plain']['en']!r}")
     for _loc in I.LOCALES:
         _p = _O21[_k]["hero"]["plain"][_loc]
         check(_p and "{" not in _p and "\u2014" not in _p, f"plain: {_k}.{_loc} is {_p!r}")
 check(_L21["value"] == 91 and _L21["stamp"]["en"] == "looked at in July 2025 \u00b7 next look July 2026",
       f"hero: land on 21 Sep reads {_L21['value']} · {_L21['stamp']['en']!r}")
+# --- Release C: the headline clauses ---------------------------------------------------------
+# The {line} clause is computed from the value, so the sentence can never contradict the line:
+# air at 12 against a line of 15 is under it; heat at 33.9 against 35 is near it.
+_S21 = {k: _O21[k]["sentence"]["en"] for k in ("air", "heat", "coast", "land")}
+check("under the WHO line" in _S21["air"] and "past the WHO line" not in _S21["air"],
+      f"line clause: air reads {_S21['air']!r}")
+check("near this house's own line" in _S21["heat"] and "under the WHO line" not in _S21["heat"],
+      f"line clause: heat reads {_S21['heat']!r}")
+# The {event} clause: heat's ask opened today and the room is back under the line, so the sentence
+# names the crossing — the act band and the calm words agree. Air's stale ask could be from any
+# day, so it gets no such clause.
+check("It crossed the line earlier today." in _S21["heat"],
+      f"event clause: heat reads {_S21['heat']!r}")
+check("earlier today" not in _S21["air"], f"event clause: air reads {_S21['air']!r}")
+# The comparison speaks each issue's own words, not one skeleton for all.
+check("cleaner than" in _S21["air"], f"cmp voice: air reads {_S21['air']!r}")
+check("otter than" in _S21["heat"] or "hot as" in _S21["heat"],
+      f"cmp voice: heat reads {_S21['heat']!r}")
+# Context issues carry no jargon in the headline layer.
+check("cell" not in _S21["coast"].lower(), f"coast headline reads {_S21['coast']!r}")
+check("square" not in _S21["land"].lower(), f"land headline reads {_S21['land']!r}")
+# Unit-level: over the line renders the over clause and silences the event clause; back under with
+# an alert today renders the under clause and names the crossing.
+_air = DECL["air"]
+_cmp_mode = _air.get("compare") or {"mode": "ratio", "margin": 1.5}
+_su = engine._sentence(_air, {"room": {"value": 42}}, "notable", "room", "steady", "en",
+                       _cmp_mode, "inside", _air["line"], {"code": "alert_today"})
+check("past the WHO line" in _su and "earlier today" not in _su,
+      f"line/event over: {_su!r}")
+_sb = engine._sentence(_air, {"room": {"value": 4}}, "notable", "room", "steady", "en",
+                       _cmp_mode, "clear", _air["line"], {"code": "alert_today"})
+check("under the WHO line" in _sb and "earlier today" in _sb,
+      f"line/event back under: {_sb!r}")
+# Every locale renders the new clauses with no brace left over.
+for _loc in I.LOCALES:
+    for _k in ("air", "heat"):
+        _s = _O21[_k]["sentence"][_loc]
+        check(_s and "{" not in _s, f"sentence: {_k}.{_loc} is {_s!r}")
 
 
 # ---------------------------------------------------------------- simple mode's paragraph

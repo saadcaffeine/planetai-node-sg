@@ -18,5 +18,9 @@ env:
   - "# place: radius around the node to describe, in metres, and how often to re-fetch from OpenStreetMap"
   - "PLACE_RADIUS_M=1000"
   - "PLACE_REFRESH_DAYS=30"
+  - "# place basemap (planetai run place basemap): half-width in km of the street-level square kept on disk, and the drone ring and its finest zoom"
+  - "GROUND_RADIUS_KM=12"
+  - "GROUND_DRONE_RADIUS_KM=4"
+  - "GROUND_DRONE_MAXZ=18"
 pip: [earthengine-api]
 attribution: "© OpenStreetMap contributors, ODbL, via Overpass; Google Open Buildings V3 and Temporal v1 (CC BY 4.0) via Earth Engine"

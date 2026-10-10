@@ -29,8 +29,12 @@
 <!-- ASKING THE NODE. The loading state, over the page rather than instead of it: the renderer writes
      #page underneath while this is up, so when it leaves there is a drawn page behind it and not a
      second flash of blank paper. It plays on first paint, on "ask the node again" and on reconnect
-     after the pill has dropped live — never on a poll. The canvas is sized to its own box. -->
-<div class="asking" id="asking" aria-hidden="true">
+     after the pill has dropped live — never on a poll. The canvas is sized to its own box.
+     It ships already on: the first paint is this face (brand, frame and the blink are CSS and move
+     before any script arrives) and dashboard.js's open() wires the canvas over it — its `on` is a
+     JS flag, so the pre-shown face does not stop it. A browser with scripting off gets the shell
+     instead (@media (scripting: none) in dashboard.css) rather than a spinner that would lie. -->
+<div class="asking on" id="asking" aria-hidden="false">
   <p class="brand"><b>PLANETAI</b> loading</p>
   <div class="frame"><canvas id="askcv"></canvas></div>
   <div class="aside">
@@ -42,6 +46,8 @@
     <p class="rule" id="ask-rule"></p>
   </div>
 </div>
+<script src="static/d3.min.js"></script>
+<script src="static/plot.umd.min.js"></script>
 <script src="static/dashboard.js"></script>
 </body>
 </html>

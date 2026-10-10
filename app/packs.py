@@ -1,4 +1,5 @@
-"""Packs — the community extension point.
+"""Packs — the extension point. Core packs ship in packs/ with the release; wild packs are added by whoever runs
+the node (`planetai packs add`, docs/decisions/2026-10-01-packs.md).
 
 A pack is a folder in packs/ with a pack.yaml and any of:
     rules.yml    extra alert rules (SQL + message)      DATA — no code, safe to merge from anyone
@@ -30,17 +31,36 @@ def _allow_code() -> bool:
     return settings.get("PACKS_ALLOW_CODE", "0") == "1"
 
 
+# Packs this node will not load because their `requires:` rules it out, and why: what `planetai packs` reads back.
+REFUSED: dict[str, str] = {}
+
+
 def _enabled() -> list[Path]:
     if not PACKS_DIR.is_dir():
         return []
+    import requires
     import settings
     only = {p for p in settings.get("PACKS_ENABLED", "").replace(" ", "").split(",") if p}
+    here = os.getenv("NODE_VERSION", "")
     out = []
     for d in sorted(PACKS_DIR.iterdir()):
         if not (d / "pack.yaml").is_file():
             continue
         if only and d.name not in only:
             continue
+        # A pack written for a newer node may read a column, a route or a setting this one does not have. It is
+        # refused whole, rules and adapter alike, with one line in the log, and not half-loaded.
+        try:
+            spec = ((yaml.safe_load((d / "pack.yaml").read_text()) or {}).get("requires") or {}).get("node")
+        except Exception:  # noqa: BLE001 — a pack.yaml that does not parse is reported where it is read
+            spec = None
+        why = requires.check(spec, here)
+        if why:
+            if REFUSED.get(d.name) != why:
+                log.warning("pack %s not loaded: %s", d.name, why)
+            REFUSED[d.name] = why
+            continue
+        REFUSED.pop(d.name, None)
         out.append(d)
     return out
 
@@ -181,6 +201,30 @@ def channels() -> list[dict]:
 _loaded: dict = {}   # pack name -> (adapter.py mtime, module). Adapters keep pacing state (what is next due, tokens) in
                      # module globals; executing the file afresh on every poll threw that away, so the NEA pack asked for
                      # its first four feeds every time and never reached wind or rain.
+
+
+def agent_scripts() -> list[str]:
+    """`<pack>/<script>` for every pack script an agent may run through `run_pack_script`. A core pack's scripts are
+    all reachable, as they always were. A wild pack's are reachable only when its pack.yaml names them under
+    `agent_scripts:`, because a wild script can print what its pack keeps off the readings (a camera pack's motion
+    log, a photo of the home) and the node's own terminal is the only place that should see it. `planetai run`
+    still runs every script."""
+    out = []
+    for f in sorted(PACKS_DIR.glob("*/*.py")):
+        d, name = f.parent, f.stem
+        if name == "adapter" or not (d / "pack.yaml").is_file():
+            continue
+        # ponytail: wild means `.wild` beside pack.yaml, written by `planetai packs add`; a pack copied in by hand
+        # counts as core. A list of core ids shipped with the release would close that, if hand-copied packs spread.
+        if (d / ".wild").is_file():
+            try:
+                listed = (yaml.safe_load((d / "pack.yaml").read_text()) or {}).get("agent_scripts")
+            except Exception:  # noqa: BLE001 — a pack.yaml that does not parse lists nothing
+                listed = None
+            if not (isinstance(listed, list) and name in listed):
+                continue
+        out.append(f"{d.name}/{name}")
+    return out
 
 
 def adapters(hc):

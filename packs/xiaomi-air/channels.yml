@@ -1,8 +1,0 @@
-# What each metric IS for this source. See docs/PACKS.md.
-# A purifier's PM/temp/humidity is room air at the place — ambient, comparable between indoor sensors.
-# filter_life is the instrument talking about its own consumable — device_health, never a measurement.
-
-- { source: xiaomi-air, metric: pm25,        role: ambient,       comparable: true,  unit: "µg/m³" }
-- { source: xiaomi-air, metric: temp,        role: ambient,       comparable: true,  unit: "°C" }
-- { source: xiaomi-air, metric: humidity,    role: ambient,       comparable: true,  unit: "%" }
-- { source: xiaomi-air, metric: filter_life, role: device_health, comparable: false, unit: "%" }

@@ -1,4 +1,5 @@
 # Developing and contributing
+<!-- checked: v0.80.10 -->
 
 This page is for the person who changes the node itself: a new adapter, a rule, a pack, a fix. A change
 here reaches every household the next time it runs `planetai update`, and, in the repo's words, "a
@@ -26,9 +27,11 @@ docker compose logs app | tail -50`. Never `.env`.
 [the contract](sensors.md). Test it against a saved payload from the real device before opening a PR. Set
 `local` and `indoor` to what is true; every rule depends on them.
 
-**Write a rule, a cell, a pack.** [Packs](packs.md). There are 18 in `packs/`. Copy `packs/heat`; say in
-the README where the thresholds came from and which place you wrote for. A rule should end in something a
-person does.
+**Write a rule, a cell, a pack.** [Packs](packs.md). For one place it is a wild pack in its own repository, listed at
+[fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs), not a pull request here; the 17 in
+`packs/` are core, and a pack joins them by promotion. (v0.76 shipped 18: `xiaomi-air` left core in v0.77 and is now a
+wild pack.) Copy `packs/heat`; say in the README where the thresholds came from and which
+place you wrote for. A rule should end in something a person does.
 
 ## What will not be merged
 
@@ -68,7 +71,7 @@ git commit -s
 The hook refuses a commit that stages `.env`, anything under `.git/`, `backups/` or a `*.before-update`
 file; a diff that carries a Telegram bot URL, a `…TOKEN=` or `…API_KEY=` value, or a database password
 other than the placeholder; and `.DS_Store`, `__pycache__` or `.pyc` files. Then it runs `make lint` and
-`make test`, both. ([CONTRIBUTING.md](../../CONTRIBUTING.md) says it runs lint; it runs both.)
+`make test`, both.
 
 `-s` adds the `Signed-off-by:` line of the Developer Certificate of Origin: a person saying they wrote the
 change or have the right to contribute it. Most changes need one maintainer. `init.sql`, the contracts in
@@ -87,12 +90,13 @@ household runs without reading. `GOVERNANCE.md` says who merges what.
 | `check_cli_python.py` | f-strings that crashed on Python 3.9; PyYAML the node does not have; a `for` after a semicolon |
 | `check_docs.py` | "two containers, five rules" when there were nine adapters and eight packs; links to files that had moved. It reads the root pages, `docs/*.md`, `docs/site/*.md`, pack READMEs and skills. `docs/site/` joined the list after v0.72.1: until then the site could describe v0.57 while the node was at v0.72 and every gate stayed green |
 | `check_registry.py` | a pack naming `environmental/city/alphaearth` after the registry filed it as `alphaearth-satellite-embedding`, and a `social/community/openstreetmap` twin that was never filed. Also a hand-edited `data/sources/index.json`, and a pin that stopped half-way through a sync |
-| `check_ui.py` | an element id the script referenced that was not in the markup; a network `url()` in a stylesheet; Fab Blue in the dark register |
+| `check_ui.py` | an element id the script referenced that was not in the markup; a network `url()` in a stylesheet; Fab Blue in the dark register; a page that imports h3-js or calls an H3 function, computing a cell the node did not send |
 | `build_docs.py --check` | the same fifteen releases, seen as a site: a NAV entry whose source is gone, a page in `docs/site/` that NAV never lists, a link to no page, an `#anchor` to a heading the page does not have. Renders every page and writes nothing. Needs `markdown`; without it the gate says it skipped, and CI installs it so it never skips there |
 | `check_site.py` | the programme page eight releases behind the node while every gate in both repos was green. Holds its release, pack and page counts, languages and ρ to this repository, holds the purpose and the lead sentence to `introduction.md`, and fails on a retired word in `docs/site/`. Skipped with a warning where the site repo is not checked out |
 | `build_learn.py --check` | a docs edit that moved one of the spans the dashboard's learn mode quotes, so `app/static/learn.json` would quote prose that is gone |
-| `check_wire.py` | a top-level key added to or dropped from one of the five wire documents in a commit about something else. The key lists are frozen in `tests/data/wire/` |
+| `check_wire.py` | a top-level key added to or dropped from one of the six wire documents in a commit about something else. The key lists are frozen in `tests/data/wire/` |
 | `check_theme.py` | the copy of the design repo's theme drifting on this side, where nothing would say what moved. Holds the three frozen files to the sha256s in `data/frozen_layer.txt`, including in CI, where `planetai-design` is not checked out |
+| `shasum -a 256 -c data/vendor.sha256` | a vendored drawing library (`app/static/plot.umd.min.js`, `app/static/d3.min.js`) replaced without anybody deciding to; replacing one means rewriting its line |
 | `check_requirements.sh` | `uvicorn` pinned against `mcp`; the image failed to build on the node |
 | `check_rules.py` (needs sqlglot) | a 69-day cooldown that made `test-alert` report a dead node; message placeholders the SQL never returned; a cell without a `value` |
 | `py_compile`, pyflakes, the import check | `PARENT.startswith()` on a function, at import, so uvicorn never listened |
@@ -102,7 +106,7 @@ household runs without reading. `GOVERNANCE.md` says who merges what.
 `tools/sweep.py` is not a lint gate. It runs once a day in CI and files what it finds into one pinned
 issue: six releases tagged with no CHANGELOG heading, the site at v0.59 while main was at v0.60.
 
-`make test` runs `tests/all`: 47 offline suites, one line each with a count at the end, and a non-zero exit
+`make test` runs `tests/all`: 67 offline suites, one line each with a count at the end, and a non-zero exit
 when a suite fails, when a check skipped that nobody declared, or when the list and the count disagree.
 Adapters against saved payloads, Meshtastic parsing, cell provenance and custody, code packs, settings,
 the issues engine and its geometry, the report templates and schedule, the packs, the registry, the wire
@@ -115,7 +119,7 @@ that has never failed has not been tested.
 
 ## Looking at the page
 
-`python3 tools/shots.py` renders every fixture in Now and on the wall at four widths into
+`python3 tools/shots.py` renders every fixture in Now, on the wall and in Network at four widths into
 `docs/design/shots/`, with every request fulfilled from disk, and fails on a page error, a component that
 drew its guard box, a page that scrolls sideways or a request the fixture path should not have made. It
 needs Chromium from the sibling `planetai-design` checkout (`PLANETAI_DESIGN_REPO`) and is not a gate. The
@@ -123,7 +127,9 @@ dashboard's frozen visual language and the checks against it are in `docs/design
 
 ## What goes in one release
 
-[docs/NEXT_RELEASE.md](../../docs/NEXT_RELEASE.md) collects what is owed and holds four rules for the
+How a change gets into a release (a CHANGELOG line, the release milestone, a test on a node that tracks `main`) is
+[docs/WORKFLOW.md](../../docs/WORKFLOW.md); CI fails a pull request that changes what a node runs without a line under
+`## Unreleased`. [docs/NEXT_RELEASE.md](../../docs/NEXT_RELEASE.md) collects what is owed and holds four rules for the
 queue:
 
 1. Only one branch at a time may change the suite count in `tests/all`. Git merges two bumps of that
@@ -134,8 +140,8 @@ queue:
    hop cannot be bisected by the person who has to report it.
 4. Sync the registry, then tag, in that order, every release.
 
-The registry is `data/sources/`, a pinned snapshot of `awesome-fabcity-data`. At v0.75.3 it is `1010aa0`,
-238 entries, synced 2026-09-22 (`data/sources/REGISTRY_VERSION`). The script takes a commit sha and
+The registry is `data/sources/`, a pinned snapshot of `awesome-fabcity-data`. At v0.80 it is `851b8db`,
+269 entries, synced 2026-10-06 (`data/sources/REGISTRY_VERSION`). The script takes a commit sha and
 refuses a branch or a tag:
 
 ```bash
@@ -156,7 +162,9 @@ a node inside the tarball, and the tarball changes only when somebody builds, si
 1. **Write the CHANGELOG section, commit, push, and wait for CI.** `release.sh` refuses a dirty tree, a
    `CHANGELOG.md` with no `## v<version>` section, and a tag that already exists. Push `main` and let the
    `lint` and `install-smoke` workflows finish green before the next step; the Careful note below says
-   why.
+   why. Renaming `## Unreleased` to `## v<version>` makes `make lint` fail on every docs page until each
+   has been read again against the code and its `<!-- checked: v<version> -->` stamp moved:
+   `skills/release-docs/SKILL.md` is the procedure, and the pages go in the same pull request.
 
 2. **Run the release with the signing key.**
 
@@ -169,7 +177,8 @@ a node inside the tarball, and the tarball changes only when somebody builds, si
    present, and it matches tools/allowed_signers` when it is right. Then `tools/ship.sh --check-docs`,
    which refuses a machine where no `python3` has the `markdown` package (`the docs site can be built
    here` when one does). It refuses a site repo (`PLANETAI_SITE_REPO`, default `../planetai`) with
-   uncommitted work outside `node0/get` and `docs/`. Then it runs
+   uncommitted work outside `node0/get` and `docs/`, and refuses to tag while the programme page in it describes another
+   release. Then it runs
    `make lint` and `make test`, tags `v0.72.2`, and pushes `main --tags`.
 
 3. **Watch `ship.sh` publish it.** `release.sh` calls `tools/ship.sh` itself. It refuses a commit CI has
@@ -198,7 +207,7 @@ a node inside the tarball, and the tarball changes only when somebody builds, si
 > pushed and green before step 2, the script stops with the tag public and nothing published. Wait for
 > CI, then run `make ship`: it builds from the tag and publishes it.
 
-The key is the Foundation's and lives outside the repository; [docs/HANDOFF_signing.md](../../docs/HANDOFF_signing.md)
+The key is the Foundation's and lives outside the repository; [docs/SIGNING.md](../../docs/SIGNING.md)
 has where, the command that made it, and the rotation. A passphrase-protected key goes into the agent
 first with `ssh-add`. `PLANETAI_UNSIGNED=1` builds a tarball nobody signed, which a node installs only when it is given
 `PLANETAI_UNSIGNED=1` too; it is for a throwaway build. `make ship` on its own publishes whatever `main`
@@ -238,22 +247,29 @@ the same change; `make learn` rewrites the file on its own.
 `docs/site/STYLE.md` is how the pages are written: plain words, say what to do, only what the code says,
 and the conventions the renderer understands. The version and commit in every page's footer are read from
 git at build time, which says when the page was built and not what it was read against. What `make
-lint` checks is mechanical: the commands, settings, paths and endpoints a page names exist
-(`check_docs.py`), every link and anchor lands (`build_docs.py --check`), and the learn spans are still
-spans. Whether a sentence is still true is not mechanical. So a page says which version it was read
-against, and a change that alters what a page describes changes the page in the same commit.
+lint` checks is mechanical, in both directions: the commands, settings, paths and endpoints a page names
+exist, and every command, MCP tool, route, setting and `pack.yaml` field the code has is on its page
+(`check_docs.py`); every link and anchor lands (`build_docs.py --check`); and the learn spans are still spans.
+Whether a sentence is still true is not mechanical. So every page carries `<!-- checked: vX -->`, the
+release it was last read against, and lint holds that to the newest release in `CHANGELOG.md`: a release
+cannot pass lint until every page has been read for it. A change that alters what a page describes changes
+the page in the same commit.
 
 ## Layout of the repository
 
 ```
 app/          main.py (api, loops, notify) · sources.py (adapters) · index.py (cells, ρ) · packs.py · settings.py
               registry.py (the source registry) · report.py · agent.py (MCP) · tool_classes.py · agent_loop.py (the bot)
+              events.py · events_pg.py · events_wire.py · actions.py (the alert-event engine, its store, its /issues block and
+              the action it chooses)
+              requires.py (which node a pack needs)
               ask.py (the dashboard's ask pane) · bootstrap.py · ground.py · reticulum_bridge.py · issues/ · static/ (the dashboard)
 bin/planetai  the operator CLI
-packs/        eighteen packs; see Packs
+packs/        seventeen core packs; see Packs
 config/       rules.yml (two domain-blind rules) · channels.yml · mosquitto · reticulum
 data/         sources/ (the pinned registry) · strings/ · env_defaults.yml · frozen_layer.txt · platform_floors.yml · mac_ceilings.yml
-skills/       setup-node · troubleshoot-node · connect-agent · publish-to-index · preflight · land
+skills/       setup-node · troubleshoot-node · connect-agent · publish-to-index · preflight · land · write-a-pack
+              · release-docs
 tools/        the gates, hooks, bundle, ship and release scripts, session.sh, sweep.py, sync_registry.sh, build_docs.py
 tests/        offline suites
 docs/         the pages; docs/site/ the ones written for this site; design/ the visual language and its reviews

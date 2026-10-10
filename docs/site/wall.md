@@ -1,4 +1,5 @@
 # Wall mode
+<!-- checked: v0.80.10 -->
 
 A screen on a wall that nobody is standing at. With the wall, the node is read by people walking past: a
 household sees one number, one sentence and whether the loop closed, and a lab sees which cells around it
@@ -40,7 +41,7 @@ It is laid out to fill one viewport (`min-height: 100vh`), so nothing a passer-b
 
 The bar answers the questions asked before any reading is read. From the left: a **back** button, drawn first
 so it is first in keyboard order; up to four variable chips; the node's name, its city, `#wall`, a share
-level (always `off` in v0.75.3, because `/health` carries no share level) and how often the ladder moves
+level (always `off` in v0.80, because `/health` carries no share level) and how often the ladder moves
 ("the ladder moves every 8 s", or "the ladder stands still" under reduced motion); and at the right what the numbers are: the variable, its unit, and `15-min means`.
 
 The chips offer only metrics at least one station on this node carries. The one being shown is always first,
@@ -66,8 +67,9 @@ clock bar. Under `prefers-reduced-motion: reduce` nothing moves.
 
 ## The right column
 
-The headline issue: kicker, sentence, why and the alert. Under the alert, "Answer on Telegram, not here." The
-wall shows an alert and never the button that answers it. Then the ladder, with its key under it
+The headline issue: kicker, title, tagline, why and the alert. The title is the sentence's qualitative head — what is happening, in the household's words, with no number and no indicator in it ("The air is getting worse in the house") — and the tagline is the explanation set smaller and muted beneath it ("Under the WHO line. Level with the street, the ring and the region."): the readings arrive a beat later. The full sentence stays for prose. Under the alert, "Answer on Telegram, not here." The
+wall shows an alert and never the button that answers it. It draws no alert event either: on a node whose alert engine is `shadow` or `events` the old heat and air alerts are not
+open asks, so under the headline the strip can read "Nothing has been asked." while Decide has an event open. Then the ladder, with its key under it
 ("the ladder · current rung filled ink · may-leave rungs filled `--cells` at .16 · finer than published,
 dashed"), the counts ("Cells with a station" of 19 drawn; "In this node's cell" of n stations; "Of them,
 its own") and the ρ row. Under the field, the fragments each section contributes through its `wall()`, in
@@ -81,7 +83,7 @@ the exact counts.
 ## The foot
 
 The as-of time, the version stamp, the word `stale` in bold ink, and the motion caption. The bold word is a
-fixed label in v0.75.3. The as-of time beside it does judge: when the page's last poll got no answer it reads
+fixed label in v0.80. The as-of time beside it does judge: when the page's last poll got no answer it reads
 "Read at … · the node has not answered for N min".
 
 If the wall throws while it draws, the screen says "The wall did not render:" and the reason, rather than
@@ -91,4 +93,5 @@ going black.
 
 The wall only shows the alert. The answer is given on Telegram, over the radio or on the dashboard, and all of
 them write the same row in `actions`: see [Channels](channels.md) and [the dashboard](dashboard.md). What the
-ρ row counts is [ρ](rho.md).
+ρ row counts is [ρ](rho.md). The Wall of the five doors, at `/#wall`, is another screen: a living map
+and the node thinking aloud, on [the dashboard](dashboard.md#the-five-doors).

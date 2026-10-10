@@ -1,13 +1,16 @@
 # Where the data lives
+<!-- checked: v0.80.10 -->
 
-`planetai storage` shows all of this on one screen.
+`planetai storage` shows all of this on one screen. `GET /storage`, for a token or this machine at every
+`SHARE_LEVEL`, gives the sizes as numbers: the database, `out/`, the backups (and what `BACKUP_KEEP` days of dumps
+will take), the exports, the free space on the disk `out/` is on, and `days_left`, how long that lasts at the last seven days' rate of readings.
 
 | what | where | NAS? | who else gets it |
 |---|---|---|---|
 | live database | a local disk on the node | no | nobody |
 | backups | `BACKUP_DIR`, or pulled by a NAS | yes | an rclone remote |
 | daily exports (open data) | `exports/<node>/` | yes | IPFS, a parent node, the Index, anyone |
-| artifacts (images, briefs) | `out/` | yes | whoever you send them to |
+| artifacts (images, briefs, the kept map in `out/ground/`) | `out/` | yes | whoever you send them to |
 
 ## The database stays on a local disk
 
@@ -64,7 +67,7 @@ planetai storage set remote r2:planetai/bayu-ungasan
 ```
 
 B2 or R2 cost cents a month for a node's lifetime of dumps. Drive works but is a person's account, not infrastructure.
-Dumps hold readings, sensors, alerts and actions. They do not hold the rows of the `settings` table (the dashboard's
+Dumps hold readings, sensors, alerts, alert events and actions. They do not hold the rows of the `settings` table (the dashboard's
 values, a Telegram token saved from Set up): `backup.sh` excludes them so no token travels to a NAS or a remote. After
 a restore the node runs on `.env`; `planetai telegram` reconnects the bot if it was set from the dashboard. Alert texts
 name places and numbers, so treat every dump and every remote as private anyway. rclone's `crypt` backend encrypts if

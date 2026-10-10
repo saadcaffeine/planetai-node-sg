@@ -1,4 +1,5 @@
 # Ask the node
+<!-- checked: v0.80.10 -->
 
 The dashboard can be asked about what it shows. A pane opens beside the page and talks to the model Set up names
 for this node, the same one the Telegram bot uses, asked through the same tools. It reads the page and
@@ -25,7 +26,8 @@ An answer arrives word by word. Under it a ledger line says which model answered
 and the ledger says so.
 
 `UI_ASK` under Set up turns the pane off for everybody: no toggle, no pane. It is `on` by default. The wall never
-shows it.
+shows it. The five doors read it too: with `UI_ASK` off their ask box is gone and the Wall's
+narration, which otherwise asks the same model every ten minutes, says asking is off and sends nothing.
 
 ## What it may do
 
@@ -56,7 +58,9 @@ their own words, because ρ is built out of those sentences.
 
 The node builds the model's context itself, from the `/issues` bundle the page already has: the lead and its
 sentence, the digest, every watched issue's state and values, the open alerts, and the documentation for the part
-in focus. The browser sends only the end of the thread: the question and the three exchanges before it.
+in focus. On a node whose alert engine is `shadow` or `events`, the open alerts leave out those of the
+heat and air packs the events replaced, which nobody can answer there; the pane's first question about the oldest open
+alert is then about one of the others, or asks whether anything needs attention. The browser sends only the end of the thread: the question and the three exchanges before it.
 
 That context, and every tool result the model reads, has no coordinate, no sensor or station name, no sensor id
 and no `meta`. They are removed or replaced before the model sees them; `tests/test_ask.py` checks the context
@@ -69,7 +73,8 @@ no database row and no log line with a word in it: the log says which tool ran a
 
 ## Which model answers
 
-Set up → Model decides, for the pane and the Telegram bot alike, and so does `planetai config`:
+Set up → Model decides, with the online key under Keys, for the pane and the Telegram bot alike, and so does
+`planetai config`:
 
 | setting | what it does |
 |---|---|

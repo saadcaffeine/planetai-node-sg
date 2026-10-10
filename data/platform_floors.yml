@@ -269,4 +269,4 @@ node:
     the runtime's, not the node's. Every one of those numbers was taken on amd64. arm64 became a
     supported architecture in v0.63 and nothing has been measured on it: a Pi 5 has a slower disk
     and a quarter of the cores, so the memory figures should carry and the timings should not.
-    docs/HANDOFF_arm64.md is the plan that would replace this paragraph with arm64 numbers.
+    docs/ARM64.md is the plan that would replace this paragraph with arm64 numbers.

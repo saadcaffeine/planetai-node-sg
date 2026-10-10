@@ -67,6 +67,7 @@ RUNTIME = {
     "CKAN_PORTALS":       ("sources", "Open-data portals", False, False, "slug=url pairs, comma-separated. Feeds Governance|City."),
     # alerts — alerts and reports: when the node speaks, what interrupts, and how a loop is closed.
     "TELEGRAM_CHAT_IDS":  ("alerts", "Telegram chat ids", False, False, "Comma-separated. planetai telegram finds yours."),
+    "TELEGRAM_BUTTONS":   ("alerts", "Event buttons in Telegram", False, False, "1 = event messages carry Done / Not now / Doesn't fit. The bot sets this on startup so the buttons ride only while somebody answers them; leave it alone."),
     "REPORT_EVERY":       ("alerts", "Report every", False, False, "Hours between reports: 3, 4, 6, 8, 12 or 24. Default 6, which is four a day."),
     "REPORT_ANCHOR":      ("alerts", "First report of the day", False, False, "The local hour the rhythm starts from, 0-23. Default 6: with a 6-hour interval that is 06, 12, 18 and 00."),
     "REPORT_DEPTH":       ("alerts", "How much the report says", False, False, "auto, brief, standard or deep. auto lets the strongest model the node can reach decide. Until a model is in the path every report is the node's own, and this changes nothing."),
@@ -74,6 +75,18 @@ RUNTIME = {
     "QUIET_HOURS":        ("alerts", "Quiet hours", False, False, "1 = between the hours below, only act-level alerts are sent; the rest wait for the morning report."),
     "QUIET_FROM":         ("alerts", "Quiet from", False, False, "Local hour, default 22."),
     "QUIET_TO":           ("alerts", "Quiet until", False, False, "Local hour, default 6."),
+    "ALERT_ENGINE":       ("alerts", "Alert engine", False, False,
+                           "rules = every rule sends on its own, as before (default). shadow = the event engine "
+                           "(docs/SPEC_alerts.md) decides what it would send and records it, and sends nothing; "
+                           "the rules keep sending. events = the event engine sends the heat and air messages, one "
+                           "per event (no buttons yet), and the old heat and air rules are recorded but not sent; "
+                           "every other alert and the reports are unchanged."),
+    "ALERT_MAX_PER_DAY":  ("alerts", "Most messages a day", False, False,
+                           "With the event engine: pushes a day outside danger, default 4. Beyond it an event "
+                           "is still recorded and waits for the next report. Danger is never held."),
+    "HOME_HAS":           ("alerts", "What this home has", False, False,
+                           "Comma-separated: purifier, ac, fan, windows (windows that open). The event engine "
+                           "only suggests what is here to use."),
     "MESH_ALERTS":        ("alerts", "Alerts over the LoRa mesh", False, False, "1 to send act-level alerts through the gateway radio."),
     "MESH_GATEWAY_NODE_NUM": ("alerts", "Gateway node number", False, False, "Decimal, for mesh downlink."),
     # Off by default, and a community's switch rather than the software's. A node in a house records
@@ -147,6 +160,11 @@ RUNTIME = {
                                "not a thing to do by typing a number."),
     "RETICULUM_ALERT_DESTINATIONS": ("sharing", "Reticulum alert addresses", False, False, "LXMF hashes, comma-separated."),
     "HA_DISCOVERY":       ("sharing", "Home Assistant", False, False, "1 publishes sensors and alerts as HA entities over MQTT (needs the broker)."),
+    "SC_FORWARD":         ("sharing", "Forward to Smart Citizen", True, False,
+                           "Device tokens, comma-separated, of the kits and DIY nodes that publish to this node's broker "
+                           "(`planetai broker`) and whose messages this node passes on to smartcitizen.me unchanged, so the "
+                           "device keeps its page there and the campaign dashboards keep reading it. Blank = nothing is "
+                           "forwarded. A token is a credential: it is masked here and never appears in a sensor id."),
     "PARENT_API_URL":     ("sharing", "Parent node", False, False, "http://<district>:8080 — hourly means go here. Empty = none."),
     # system — tuning numbers, and the layout Arrange mode writes. Not "advanced": that is a page mode, and the header has its switch.
     "LOCAL_RADIUS_M":     ("system", "Local radius, m", False, False, "how far from the node a sensor can be and still count as this node's own, in metres"),
@@ -158,6 +176,10 @@ RUNTIME = {
                            "a house hiding its own sensors behind a press would be absurd. Nothing is discarded or "
                            "stopped: the page says how many it is not listing and one press lists them all. To collect "
                            "fewer stations in the first place, turn the Bali Air Dispatch radius down instead."),
+    "UI_GROUND":          ("system", "How the ground is drawn", False, False,
+                           "svg (default) = the drawing this page has always made. map = MapLibre and deck.gl draw it "
+                           "in this browser, so it pans and zooms; it needs WebGL2 and falls back to svg, saying why, "
+                           "without it. Neither one changes what leaves the house: MAP_TILES still decides that."),
     "UI_LAYOUT":          ("system", "Dashboard layout", False, False, "Order and visibility of the dashboard's cards, as JSON. Managed by the dashboard's Arrange mode; blank restores the default."),
 }
 # What an anonymous reader on the LAN may see the value of. Everything else shows as "•••• set" until the admin token is
@@ -166,7 +188,7 @@ RUNTIME = {
 PUBLIC = {"REPORT_EVERY", "REPORT_ANCHOR", "REPORT_DEPTH", "ALERT_LEVEL", "QUIET_HOURS", "QUIET_FROM", "QUIET_TO", "ALERT_LOCALE",
           "MESH_ALERTS", "HA_DISCOVERY", "PACKS_ENABLED", "PACKS_ALLOW_CODE", "OPENMETEO_ENABLED", "BAD_ENABLED", "BAD_RADIUS_KM",
           "BAD_MIN_SEPARATION_M", "BAD_EXCLUDE", "BAD_INCLUDE_INDOOR",
-          "LOCAL_RADIUS_M", "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "MAP_TILES", "UPDATE_CHECK", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
+          "LOCAL_RADIUS_M", "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "UI_GROUND", "MAP_TILES", "UPDATE_CHECK", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
           "RETICULUM_PRESENCE", "RETICULUM_PRESENCE_RES"}
 # Which Set up tab shows each bootstrap key, read-only. The place itself is Basics; the machinery is System.
 BOOTSTRAP_GROUP = {k: "basics" for k in ("NODE_NAME", "NODE_CITY", "NODE_LAT", "NODE_LON", "NODE_TZ", "NODE_SCALE")}
@@ -184,12 +206,14 @@ CHOICES = {
     "REPORT_EVERY":  ("3", "4", "6", "8", "12", "24"),      # each divides 24, so the rhythm does not walk round the clock
     "REPORT_ANCHOR": tuple(str(h) for h in range(24)),
     "REPORT_DEPTH":  ("auto", "brief", "standard", "deep"),
+    "ALERT_ENGINE":  ("rules", "shadow", "events"),
     "UI_MODE":       ("simple", "advanced", "learn"),
     # private first because it is the default and because the order is what every surface offers: `describe()`
     # publishes this tuple and the dashboard's select and `planetai config` both walk it as given.
     "AGENT_PREFER":  ("private", "fallback", "strongest"),   # a typo here would fail open: not-"private" sends household data off the network
     "SHARE_LEVEL":   ("off", "open"),                        # cell and means are named in the help and refused here, so a node cannot sit at a level that does nothing
     "UI_ASK":        ("on", "off"),
+    "UI_GROUND":     ("svg", "map"),
     "MAP_TILES":     ("off", "on"),                          # live tiles leave the house; off by default, a keeper turns them on in Set up
     "UPDATE_CHECK":  ("on", "off"),                          # a daily request to planetai.fab.city; on by default (Tomas, 30 Sep 2026)
 }
@@ -210,6 +234,7 @@ OUTWARD = {
     "RETICULUM_ALERT_DESTINATIONS",  # where act-level alerts are sent
     "MESH_ALERTS",          # alerts over the LoRa mesh, which is not this household's network
     "HA_DISCOVERY",         # sensors and alerts published to the MQTT broker
+    "SC_FORWARD",           # a device's own readings passed on to smartcitizen.me
     "AGENT_ONLINE_URL", "AGENT_ONLINE_MODEL", "AGENT_ONLINE_KEY",  # the one path off the network
     "AGENT_PREFER",         # which decides whether the online path is used at all
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_IDS",  # where the node speaks
@@ -411,8 +436,17 @@ def pack_settings() -> list[dict]:
             log.warning("settings: %s has a pack.yaml that will not parse (%s), so none of its "
                         "keys reach Set up", name, e)
             continue
+        # A pack names the keys that are secrets (`secrets: [CAMERA_WYZE_BRIDGE_TOKEN]`), and they are treated like the
+        # node's own tokens: masked once saved, even to the admin token and the agent's settings tool. Every pack key
+        # used to be published as plain text to anyone holding the admin token, a FIRMS key or a bridge token included.
+        # frozenset and a list, not set(): this module defines its own set(key, value), which shadows the builtin.
+        secrets = frozenset(k for k in m.get("secrets") if isinstance(k, str)) if isinstance(m.get("secrets"), list) else frozenset()
+        declared = []
         for key, default, help_ in _env_lines(m.get("env") or []):
-            rows.append({"key": key, "pack": name, "default": default, "help": help_})
+            declared.append(key)
+            rows.append({"key": key, "pack": name, "default": default, "help": help_, "secret": key in secrets})
+        for key in sorted(k for k in secrets if k not in declared):
+            log.warning("settings: %s lists %s under secrets: but declares no such key under env:", name, key)
     return rows
 
 
@@ -452,13 +486,16 @@ def describe(unlocked: bool = False, public: frozenset | set = PUBLIC) -> dict:
             # words where the node has none.
             by_key[k].update(pack=r["pack"], help=by_key[k]["help"] or r["help"],
                              default=by_key[k]["default"] if by_key[k]["default"] is not None else r["default"])
+            if r.get("secret") and not by_key[k]["secret"]:
+                by_key[k].update(secret=True, value=_mask(get(k, "")))
             continue
         v = get(k, "")
-        hide = not unlocked and k not in public
+        secret = bool(r.get("secret"))
+        hide = secret or (not unlocked and k not in public)
         out["runtime"].append({
             # restart False: _overlay_packs puts a GUI value into the environment the pack reads, so it is in
             # force at the pack's next run, within 20 s, like any RUNTIME key.
-            "key": k, "group": "packs", "label": k, "secret": False, "restart": False,
+            "key": k, "group": "packs", "label": k, "secret": secret, "restart": False,
             "help": r["help"], "value": _mask(v) if hide else v, "set": bool(v),
             "source": "gui" if k in db else ("env" if os.getenv(k) else "default"),
             "choices": None, "outward": k in OUTWARD,

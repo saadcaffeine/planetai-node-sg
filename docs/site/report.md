@@ -1,4 +1,5 @@
 # The report
+<!-- checked: v0.80.10 -->
 
 The report is the node telling the household what the ground is doing, in their language, on a schedule. The
 repo's own sentence for a node ends there: "It tells the people there in plain sentences, on Telegram, and passes
@@ -40,7 +41,9 @@ sixty-eight.
 Deterministic, plain text, in `ALERT_LOCALE` (English, Bahasa Indonesia or Spanish), each part a sentence or
 two, an empty part left out:
 
-1. **Where the place stands.** Heat first if an open act-level alert comes from the `heat` pack; else the worst
+1. **Where the place stands.** Heat first if an open act-level alert comes from the `heat` pack: "dangerously hot"
+   only when it is `heat_danger` (feels like 40 °C or more), otherwise "It is hot inside: it feels like 35 °C or more." (35 °C is an
+   ordinary afternoon in Kuta Selatan, not a danger); else the worst
    indoor PM2.5 against 35 (unhealthy) and 15 (the clean line); or that there is no sensor inside yet, so what
    follows is the district and not the rooms.
 2. **What changed.** Up to two of the node's own sensors whose window was unusual: "{place}: the air ran
@@ -136,7 +139,8 @@ A second summary lives in `GET /issues`, not in the report: `digest`, four sente
 decide, act, measure), in English, Bahasa Indonesia and Spanish. Since v0.74 it also carries `simple`, the
 paragraph simple mode draws on Now (the house's own stations and the nearest others, the oldest open alert,
 how the last 30 days of asking went), and `prompts`, the ask pane's questions, the first three of which it opens with. Every figure in the four is one the page already draws further down, and the node writes them, not
-the browser. The measure sentence has the form "Of the {acts} alerts here that asked for something, {answered}
+the browser. The open alerts they count are the issues' open asks, so on a node whose alert engine is `shadow` or `events` they leave out the heat and air alerts, which an
+event stands for. The measure sentence has the form "Of the {acts} alerts here that asked for something, {answered}
 have been answered, and the usual wait was {median} minutes."
 
 That sentence does not say ρ. ρ has its own window and its own query in `app/index.py`, which the

@@ -1,4 +1,5 @@
 # The source registry
+<!-- checked: v0.80.10 -->
 
 A node measures what its adapters read. The registry is the network's shared list of what could be measured
 at each pillar and scale, and of the places a person could go to act on it, carried inside every node as a
@@ -18,8 +19,8 @@ Each node carries a copy at `data/sources/`, mounted read-only into the app cont
 
 | path | what it is |
 |---|---|
-| `data/sources/REGISTRY_VERSION` | the pin: `sha=1010aa0cb568445764342f4a28bae532eec5da10`, `short=1010aa0`, `synced=2026-09-22`, `entries=238`, and the upstream URL |
-| `data/sources/data/<pillar>/<scale>/<slug>.yaml` | the 238 entries as filed |
+| `data/sources/REGISTRY_VERSION` | the pin: `sha=851b8db91c046c13c1e232f6e8e61f7a4911270f`, `short=851b8db`, `synced=2026-10-09`, `entries=269`, and the upstream URL |
+| `data/sources/data/<pillar>/<scale>/<slug>.yaml` | the 269 entries as filed |
 | `data/sources/schema/dataset.schema.json` | the schema they are validated against |
 | `data/sources/index.json` | the YAML folded into one JSON list, with `slug` and `cell` derived from each file's path |
 
@@ -32,16 +33,16 @@ Since v0.73 `tools/sync_registry.sh` also copies the
 registry's `reviews/` and `cells/` trees, with their schemas, when the pin has them, and `index.json` gives
 every entry a `reviews` list: the reviews filed for it, oldest first, `[]` when there are none.
 `tools/check_registry.py` then fails when a review names an entry the pin does not carry, or when a
-`cells/` file is not named for its own `cell`. The `1010aa0` pin has neither tree, so every `reviews` list
-is empty.
+`cells/` file is not named for its own `cell`. The `851b8db` pin has both: four reviews, so four entries carry a
+`reviews` list that is not empty, and one `cells/` file for each of the twenty cells.
 
 It is pinned rather than fetched, and [`docs/SOURCES.md`](../SOURCES.md) gives three reasons: a node with no
 uplink answers the same question as one in Barcelona, every node in a release answers it the same way, and a
 change to what a node believes about the network is a diff somebody reviewed. `tools/sync_registry.sh`
 refuses a branch or a tag for the same reason: only a commit is a pin.
 
-At `1010aa0` the 238 entries are 97 economic, 68 governance, 48 environmental and 25 social. By status, 209 are
-`live`, 13 `candidate`, 8 `deprecated`, 4 `stale`, 3 `planned` and 1 `paywalled`. Sixteen carry an `adapter`.
+At `851b8db` the 269 entries are 119 economic, 68 governance, 56 environmental and 26 social. By status, 212 are
+`live`, 41 `candidate`, 8 `deprecated`, 4 `stale`, 3 `planned` and 1 `paywalled`. Sixteen carry an `adapter`.
 Sixteen are act sources.
 
 ## One entry
@@ -83,28 +84,29 @@ An entry counts against every cell in its `feeds_cells`, and against its own `ce
 `feeds_cells` key. An entry with `feeds_cells: []` counts in no cell. No `deprecated`, `stale`, `paywalled`
 or `planned` entry counts anywhere. `capable` is always part of `reviewed`.
 
-At `1010aa0` that is 12 capable, 12 reviewed and 20 candidate across 19 cells, from 238 entries. Sixteen
+At `851b8db` that is 12 capable, 17 reviewed and 51 candidate across 19 cells, from 269 entries. Sixteen
 entries count nowhere: 8 `deprecated`, 4 `stale`, 3 `planned`, 1 `paywalled`. Of the sixteen entries with an
 `adapter`, six say `feeds_cells: []` (`fablabs-io`, for one), and two (`airgradient`, `smart-citizen`) feed
-two cells each, so 12. The 13 `candidate` entries make 20 for the same reason. `Governance|City` has 32
-entries filed under it and counts capable 4, reviewed 4, candidate 0: the four CKAN portals read by
-`core:ckan`.
+two cells each, so 12. Reviews add five to `reviewed`: of the four reviewed entries three are `live`, and two of
+those feed two cells each. The 41 `candidate` entries make 51 for the same reason: ten of them feed two cells
+each. `Governance|City` has 32 entries filed under it and counts capable 4, reviewed 4, candidate 0: the four
+CKAN portals read by `core:ckan`.
 
 ## Reading it, step by step
 
 **1. List it.** Run `planetai sources`. It prints `registered in awesome-fabcity-data, read from the node:`,
 then one line per entry: the slug, the status, the first 40 characters of the licence, the pilots, and the
 code that reads it. By default it shows this node's pilot (`NODE_CITY`) plus the `global` rows; on a
-`bali` node that is 97 entries. `--all` shows every entry. It ends:
+`bali` node that is 102 entries. `--all` shows every entry. It ends:
 
 ```
-  97 of 238 entries. The last column is the code that reads it. A cell with sources and a blank column is one nobody has written an adapter for yet.
+  102 of 269 entries. The last column is the code that reads it. A cell with sources and a blank column is one nobody has written an adapter for yet.
 ```
 
 Since v0.73 two lines follow it, the three counts summed over every cell and what they mean:
 
 ```
-  across 19 cells: capable 12 / reviewed 12 / candidate 20
+  across 19 cells: capable 12 / reviewed 17 / candidate 51
   capable = live with an adapter. reviewed = live, backed by an adapter or a usable review. candidate = verified, unread.
 ```
 
@@ -118,10 +120,11 @@ With the containers down it reads `data/sources/index.json` off the disk and say
 (the node is not answering)`. The answer is the same either way, because the registry is a file in the
 release, not something the node works out.
 
-**2. Filter it to one cell.** `planetai sources --all --cell 'Social|City'` lists the 11 entries filed for that
+**2. Filter it to one cell.** `planetai sources --all --cell 'Social|City'` lists the 12 entries filed for that
 cell, from the Barcelona electoral sections to the US Census ACS, and the last column is blank on every
 one. That is the part of the Index no node fills yet, with the sources that could fill it named. Since v0.73
-the footer then says `Social|City: capable 0 / reviewed 0 / candidate 7`. The counts are the registry's
+the footer then says `Social|City: capable 0 / reviewed 1 / candidate 7`, the one reviewed entry being
+`social/city/ine-spain`, whose review found it usable. The counts are the registry's
 whole count for that cell, whatever the other filters, and come from `feeds_cells`, so they include
 `social/region/worldpop`, which is filed under `Social|Region`. The `counted nowhere` line counts the whole
 registry too. The other filters are `--pillar`, `--scale` and `--json`. Over HTTP the same filters are query
@@ -143,19 +146,19 @@ in the pin answers 404 and names the pin.
 
 **4. See it on the Network view.** Open the dashboard's Network view. The section headed **What this place
 could read, and where it could go** has three rows, with `GET /sources` beside its title. *Registered, and
-read* shows `pin 1010aa0 · synced 2026-09-22`, and the pin is a link to the registry on GitHub at that
-commit. It says "238 sources registered; 16 have code on this node that reads them", naming the twelve
+*Registered, and read* shows `pin 851b8db · synced 2026-10-09`, and the pin is a link to the registry on GitHub at that
+commit. It says "269 sources registered; 16 have code on this node that reads them", naming the twelve
 adapter strings (`core:airgradient` to `pack:place`), then "The rest have no adapter yet, which is a thing
-nobody has written rather than a thing this node refuses." Its figure is `16/238`. *What a cell could use*
+nobody has written rather than a thing this node refuses." Its figure is `16/269`. *What a cell could use*
 reads `across 19 cells` and shows the three counts the node computes, added up: `12 capable`,
-`12 reviewed`, `20 candidate`. *Places to act* counts the 16 act sources by kind: `6 directories of fab labs
+`17 reviewed`, `51 candidate`. *Places to act* counts the 16 act sources by kind: `6 directories of fab labs
 · 1 directory of repair cafés · 7 libraries of open designs · 1 matcher of designs to workshops · 1 list of
 places that pledged`, and says how many state in the registry's own words that no licence is published (4).
 A line under the rows links to `GET /sources?status=live`, `GET /sources?status=candidate`, `GET /cells` and
 [Adding a source](#adding-a-source). The fold under it lists all sixteen with each licence as the registry
 wrote it. The page fetches `/sources` the first time somebody opens Network, and never before.
 
-> **Gap in v0.75.3.** The registry counts `core:airgradient` among the sources that are read, and the
+> **Gap in v0.80.10.** The registry counts `core:airgradient` among the sources that are read, and the
 > AirGradient function exists in `app/sources.py`, but the poll loop never calls it. The registry records
 > that the code exists, not that a node runs it.
 
@@ -196,10 +199,10 @@ neither does this page: that is a judgement about somebody else's terms.
   entry filed there, so `Governance|City` went from 32 to 4. A cell
   with registered sources and no adapter has no `/cells` row at all, because a node only emits rows it can
   compute; that half of the question is `planetai sources --cell`.
-- **`planetai doctor`.** One row: `source registry: 238 entries · awesome-fabcity-data @ 1010aa0 · synced
-  2026-09-22`. It goes amber when the pin is over 180 days old and red when `data/sources/` is missing.
+- **`planetai doctor`.** One row: `source registry: 269 entries · awesome-fabcity-data @ 851b8db · synced
+  2026-10-09`. It goes amber when the pin is over 180 days old and red when `data/sources/` is missing.
 - **Packs.** Every id in a pack's `sources:` must resolve to an entry at the pin, or `make lint` fails and
-  names the id. At v0.75.3, 13 pack source ids resolve.
+  names the id. At v0.80, 13 pack source ids resolve.
 
 ## The endpoints
 
@@ -248,9 +251,9 @@ repository.
 > **Note.** "Registry" names two things in this repository. This page is the source registry, `data/sources/`.
 > `registry.json` at the repository root is the node directory, described on [Federation](federation.md).
 
-> **Gap in v0.75.3.** Comments in `app/registry.py`, `app/main.py` and `bin/planetai` still say the registry
+> **Gap in v0.80.10.** Comments in `app/registry.py`, `app/main.py` and `bin/planetai` still say the registry
 > holds 209 entries, and a docstring in `app/registry.py` says sixteen of 225 entries count nowhere. The pin
-> carries 238, and sixteen is right.
+> carries 269, and sixteen is right.
 
 ## Where this leads
 

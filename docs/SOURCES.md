@@ -29,7 +29,7 @@ Nothing in this repository edits a source entry. `make lint` fails if anything d
 ## Reading it
 
     planetai sources                      # this node's pilot, plus the global rows
-    planetai sources --all                # all 238 at the 1010aa0 pin
+    planetai sources --all                # all 268 at the 88f5c73 pin
     planetai sources --cell 'Social|City' # what is filed for one Index cell
     planetai sources --pillar economic --scale community
     planetai sources --json
@@ -61,8 +61,8 @@ absent — so nothing disappears merely because nobody backfilled it. An entry t
 this and no Index cell comes out of it*, which is true of a model point sample and of a directory of
 fab labs.
 
-**`deprecated`, `stale`, `paywalled` and `planned` count nowhere at all.** Sixteen of the 238
-vendored entries at the 1010aa0 pin are in that group, and a number that includes a source no node can call is exactly the
+**`deprecated`, `stale`, `paywalled` and `planned` count nowhere at all.** Sixteen of the 268
+vendored entries at the 88f5c73 pin are in that group, and a number that includes a source no node can call is exactly the
 number the Index was criticised for. `planetai sources --all` names them and says so.
 
 `registered` on a `/cells` row keeps its name and now carries the `reviewed` count. It used to be

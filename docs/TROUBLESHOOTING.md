@@ -1,4 +1,5 @@
 # When it goes wrong
+<!-- checked: v0.80.10 -->
 
 Every entry here is something that happened to a real tester, not something we imagined. They are
 ordered by **what is on your screen**, because that is what you have.
@@ -122,9 +123,11 @@ piped, which is the only way a broken node can reach it.
 
 Same name, old readings, same place. This is the one that cost the most time.
 
-The Docker volume outlives the folder. Every node lives in `~/planetai`, so the compose project is
-always `planetai`, so a fresh install in the same folder **re-attaches the old database**. It is not bad
-luck; it is the default.
+The Docker volume outlives the folder. The compose project is pinned to `planetai` in docker-compose.yml
+whatever the folder is called, so a fresh install — in the same folder or a new one — **re-attaches the
+old database**. It is not bad luck; it is the default. Since v0.80.2 the installer refuses at that point
+and names the two ways out; before it, the new install generated a password the old volume did not know
+and the app was locked out while every check said the database was fine.
 
 The current remover deletes volumes by name and then checks. If you are cleaning up after an old one:
 

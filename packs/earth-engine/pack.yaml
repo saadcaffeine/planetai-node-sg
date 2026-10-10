@@ -20,6 +20,8 @@ env:
   - "EE_SERVICE_ACCOUNT="
   - "# earth-engine: copy the JSON key to config/ee-key.json on the node"
   - "EE_KEY_FILE=/app/config/ee-key.json"
+  - "# earth-engine basemap (planetai run earth-engine basemap): half-width in km of the wide context square; the close one is GROUND_RADIUS_KM"
+  - "GROUND_SAT_WIDE_KM=60"
 needs: >-
   A Google Earth Engine project (free for research and non-commercial use) and a service-account key:
   EE_PROJECT, EE_SERVICE_ACCOUNT, EE_KEY_FILE in .env, with the key mounted read-only into the app container.

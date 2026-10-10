@@ -1,4 +1,5 @@
 # Domains
+<!-- checked: v0.80.10 -->
 
 The core measures nothing in particular. It polls sources, stores readings, runs rules, fills Index cells. Which
 readings, which rules, which cells: that is a pack. `grep pm25 app/packs.py`, the loader, returns nothing.
@@ -18,10 +19,10 @@ line on the report and on an ask, never a number.
 
 | issue | packs | kind | the line, and where it comes from |
 |---|---|---|---|
-| **air** | `air-quality`, `nearby`, `season`, `xiaomi-air` | sensed | 15 µg/m³ — WHO 2021, 24-hour mean |
+| **air** | `air-quality`, `nearby`, `season` | sensed | 15 µg/m³ — WHO 2021, 24-hour mean |
 | **heat** | `heat` | sensed | 35 °C apparent — measured at node #1, this place's line and not a global one |
 | **land** | `earth` (the change), `earth-engine` (built, trees) | context | none. A year-over-year change is not a threshold |
-| **coast** | `coast`, `posidonia` | context | none |
+| **coast** | `coast` (and wild `posidonia`) | context | none |
 | — | `forecast` (weather) | | feeds air and heat |
 | — | `place` | | the ground, its own band on the dashboard |
 | — | `open-data-health` (governance) | | the loop and the Index |
@@ -73,8 +74,8 @@ missing hours or disagreeing with a neighbour.
 
 **Water**: turbidity, TDS, tank level from a DIY probe over MQTT; is the well safe, will the tank last to the rain.
 **Energy**: grid up/down from a smart plug; outage hours as an Economic cell. **Noise**: Smart Citizen emits it already;
-school-hours rules. **Classroom CO₂**: AirGradient emits it, once the core polls AirGradient; open the windows above
-1,200 ppm. **Fire smoke**: NASA FIRMS detections crossed with wind direction. Details and effort in `PACK_IDEAS.md`.
+school-hours rules. **Classroom CO₂**: the core's AirGradient adapter stores its `co2`, but the node does not register that adapter for polling
+yet (see the gap in `sensors.md`), and no pack reads it. Open the windows above 1,200 ppm. **Fire smoke**: NASA FIRMS detections crossed with wind direction. Details and effort in `PACK_IDEAS.md`.
 
 ## Writing one
 

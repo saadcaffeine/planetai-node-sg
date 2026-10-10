@@ -83,6 +83,10 @@ PROPOSED = {
     # same gate that fired for the licence record fires for this one. What replaces it is the promise
     # the spec itself makes: tests/test_rho.py lands with Phase 2's code and deletes this line.
     "docs/SPEC_rho.md": {"tests/test_rho.py"},
+    # docs/SPEC_dashboard_figures.md (v0.78) names what its three pull requests add: the wire PR adds the test file,
+    # the page PR the two vendored files and their hash list, the Grafana PR its folder and its command. Each PR
+    # deletes the names it makes exist; the assertion below fails a PR that forgets.
+    "docs/SPEC_dashboard_figures.md": {"config/grafana/", "grafana"},
 }
 # Names a page uses on purpose that are not the tree's: a page saying a command does NOT exist, the
 # reticulum bridge's own routes, the worked example a reader builds. Same shape as PROPOSED, and the
@@ -93,7 +97,9 @@ ALLOWED = {
 }
 # names used as examples of packs someone might write, not packs that ship
 EXAMPLE_PACKS = {"_test", "my-pack", "monsoon", "monsoon-bali", "air-", "water", "example",
-                 "acme-sensor", "air", "yourplace", "district", "id", "my-room"}
+                 "acme-sensor", "air", "yourplace", "district", "id", "my-room",
+                 # core packs that became wild (fabcity/planetai-wild-packs): docs still say how to add them
+                 "xiaomi-air", "posidonia"}
 for _doc, _names in PROPOSED.items():
     if not os.path.exists(_doc):
         errs.append(f"check_docs.py: PROPOSED names {_doc}, which is gone — delete the entry")
@@ -138,7 +144,7 @@ for doc in DOCS:
             errs.append(f"{doc}: names `{path}`, which does not exist")
 
     for var in set(re.findall(r"`([A-Z][A-Z0-9_]{3,})`", text)):
-        if var in ENV_OK or not re.search(rf"\b{var}\b\s*[=(]|set `?{var}", text):
+        if var in ENV_OK or var in proposed or not re.search(rf"\b{var}\b\s*[=(]|set `?{var}", text):
             continue
         if var.isupper() and "_" in var and var not in ENV_OK:
             errs.append(f"{doc}: names `{var}`, which is in neither .env.example nor the code")
@@ -269,6 +275,69 @@ if os.path.exists("llms.txt"):
         if f"skills/{name}/SKILL.md" not in llms:
             errs.append(f"llms.txt: does not index skills/{name}/SKILL.md")
 
+
+
+# ---- the documentation site is complete, and current ----------------------------------------------
+# v0.76 shipped with docs/site/packs.md describing v0.75.3: four pack.yaml fields, the wild tier and `requires`
+# enforcement were in docs/PACKS.md and in the code, and the page a contributor reads had none of them. Every gate
+# above checks that what a page names exists; nothing checked that what exists is on a page. These do.
+
+# a) What exists is documented, each on the page a reader would look for it.
+def _page(p):
+    return open(f"docs/site/{p}").read()
+_cli, _mcp, _api, _conf, _packs_page = _page("cli.md"), _page("mcp.md"), _page("api.md"), _page("configuration.md"), _page("packs.md")
+# `dev` is not a command: it is the `echo dev)` fallback inside two arms of the case block, which the CMDS scan reads.
+for c in sorted(CMDS - {"dev", "help"}):
+    if not re.search(rf"planetai {re.escape(c)}\b|`{re.escape(c)}`", _cli):
+        errs.append(f"docs/site/cli.md: does not document `planetai {c}`, which the CLI dispatches")
+for t in re.findall(r"^@mcp\.tool\(\)\s*\n(?:async )?def (\w+)", open("app/agent.py").read(), re.M):
+    if f"`{t}`" not in _mcp:
+        errs.append(f"docs/site/mcp.md: does not document the `{t}` tool, which app/agent.py defines")
+for r in sorted(set(re.findall(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"', MAIN))):
+    if r not in _api:
+        errs.append(f"docs/site/api.md: does not document `{r}`, which app/main.py serves")
+_settings = open("app/settings.py").read()
+_keys = set()
+for _a, _b in (("RUNTIME = {", "PUBLIC = {"), ("BOOTSTRAP = {", "CHOICES = {")):
+    _keys |= set(re.findall(r'^\s+"([A-Z][A-Z0-9_]+)":', _settings[_settings.index(_a):_settings.index(_b)], re.M))
+for k in sorted(_keys):
+    if f"`{k}`" not in _conf:
+        errs.append(f"docs/site/configuration.md: does not document `{k}`, which app/settings.py declares")
+# pack.yaml: the contract is the tree at the top of docs/PACKS.md. Every key a core pack uses is in it, and every
+# key in it is in the fields table of the page contributors read.
+_pm = open("docs/PACKS.md").read()
+_tree = _pm[_pm.index("pack.yaml     "):_pm.index("rules.yml")]
+_fields = set(re.findall(r"\b([a-z_]+)(?=:|,|\s*\()", _tree.replace("pack.yaml", "")))
+_used = {}
+for f in sorted(glob.glob("packs/*/pack.yaml")):
+    for k in (yaml.safe_load(open(f)) or {}).keys():
+        _used.setdefault(k, f)
+for k in sorted(set(_used) - _fields):
+    errs.append(f"docs/PACKS.md: the pack.yaml line does not list `{k}:`, which {_used[k]} uses")
+_rows = "\n".join(l for l in _packs_page.splitlines() if l.startswith("| "))
+for k in sorted(_fields):
+    if f"`{k}`" not in _rows and f"`{k}:" not in _rows:
+        errs.append(f"docs/site/packs.md: the pack.yaml fields table has no row for `{k}`, which docs/PACKS.md lists")
+
+# b) Every page of the site was read against the newest release. Each carries `<!-- checked: vX -->` on its own
+# line, and every "Gap in vX" note names the same release. The newest release is the first `## vX` heading in
+# CHANGELOG.md, so the release pull request that turns "Unreleased" into a version fails here until each page has
+# been read again against the code and its stamp moved: skills/release-docs/SKILL.md is how. Moving a stamp without
+# reading the page is the one way to make this gate lie; the stamp says somebody checked.
+_release = re.search(r"^## (v[0-9][0-9.]*)\b", open("CHANGELOG.md").read(), re.M).group(1)
+_bd = open("tools/build_docs.py").read()
+_site_pages = sorted(set(glob.glob("docs/site/*.md")) - {"docs/site/STYLE.md"}
+                     | {p for p in re.findall(r'\(\s*"[a-z-]+",\s*"([^"]+\.md)"', _bd) if p != "CHANGELOG.md"})
+for p in _site_pages:
+    t = open(p).read()
+    stamps = re.findall(r"^<!-- checked: (v[0-9][0-9.]*) -->$", t, re.M)
+    if len(stamps) != 1:
+        errs.append(f"{p}: needs exactly one `<!-- checked: {_release} -->` line, has {len(stamps)}")
+    elif stamps[0] != _release:
+        errs.append(f"{p}: checked against {stamps[0]}, but the newest release is {_release}. Read it against the code "
+                    f"(skills/release-docs/SKILL.md), fix what changed, then move the stamp")
+    for g in sorted(set(re.findall(r"\*\*Gap in (v[0-9][0-9.]*?)\.\*\*", t)) - {_release}):
+        errs.append(f"{p}: a 'Gap in {g}' note; check whether {_release} still has it, then fix or relabel it")
 
 print("\n".join(f"  x {e}" for e in errs) or f"  {len(DOCS)} documents check out")
 sys.exit(1 if errs else 0)

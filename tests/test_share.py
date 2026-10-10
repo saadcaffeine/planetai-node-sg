@@ -334,4 +334,105 @@ assert not _slow, ("act-level rules slower than index.MEASURED_WINDOW_MIN="
                    "call their alerts measured while they are still waiting to fire again.")
 print(f"measured window {_index.MEASURED_WINDOW_MIN}m outlasts every act-level cooldown")
 
+# The map ground's three vendored files and the doors' world coast are served by name, and nothing else under vendor/
+# is: the allowlist is the whole of what /static answers, and a directory of libraries must not become one the LAN walks.
+_vendor = {"maplibre-gl.js", "maplibre-gl.css", "deck.gl.min.js", "world-land-110m.json"}
+for _n in sorted(_vendor):
+    _r = lan.get(f"/static/{_n}")
+    assert _r.status_code == 200 and len(_r.content) > 10000, f"/static/{_n} does not serve the vendored file"
+_served = {k for k, (p, _t) in main.COMPANIONS.items() if p.parent.name == "vendor"}
+assert _served == _vendor, f"/static serves vendored files nobody listed here: {sorted(_served - _vendor)}"
+for _n in ("vendor/maplibre-gl.js", "maplibre-gl.LICENSE.txt", "deck.gl.LICENSE", "..%2Fmain.py"):
+    assert lan.get(f"/static/{_n}").status_code == 404, f"/static/{_n} answered: the route takes a name, not a path"
+print("static: the four vendored files are served, and nothing else under vendor/")
+
+# The map workbench (GET /geo/*): the node computes every ring and distance the Place door draws, and none of it is
+# on an allowlist, because the node's cell at a fine resolution and "metres from the node" give away its point.
+for _lv in ("off", "open"):
+    level(_lv)
+    for _u in ("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8", "/geo/cell?lat=-8.65&lon=115.14&res=9",
+               "/geo/measure?path=115.14,-8.65&from_node=true", "/geo/rings"):
+        assert lan.get(_u).status_code == 403, f"{_u} answered a stranger at SHARE_LEVEL={_lv}: it locates the node"
+level("off")
+_g = local.get("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8").json()
+_own = _g["node"][0]
+assert _g["res"] == 8 and _g["may_leave"] is False and any(r[0] == _own for r in _g["cells_ll"]), _g
+assert len(_g["cells_ll"][0]) == 1 + 12, "a cells_ll row is the id then six lat,lng pairs, as plates() publishes"
+assert lan.get("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8", headers=ADMIN).status_code == 200, "a token reads it"
+assert local.get("/geo/grid?bbox=100,-20,130,0&res=10").status_code == 422, "a covering past the cap is refused, not cut"
+assert local.get("/geo/grid?bbox=115.15,-8.66,115.13,-8.64&res=8").status_code == 422, "west must be west of east"
+_c = local.get(f"/geo/cell?id={_own}").json()
+assert _c["is_node"] and _c["cells_from_node"] == 0 and _c["res"] == 8 and 600000 < _c["area_m2"] < 800000, _c
+assert local.get("/geo/cell?id=not-a-cell").status_code == 422
+_m = local.get("/geo/measure?path=115.14,-8.65;115.15,-8.65").json()
+assert 1095 < _m["total_m"] < 1105 and _m["legs_m"] == [_m["total_m"]], _m      # 0.01 deg of longitude at 8.65 S
+assert local.get("/geo/measure?path=115.1385412,-8.6478291&from_node=true").json()["total_m"] == 0
+assert local.get("/geo/measure?path=115.14,-8.65").status_code == 422, "one point is not a path"
+_r = local.get("/geo/rings?km=2,5").json()["rings"]
+assert [x["km"] for x in _r] == [2, 5] and _r[0]["ring"][0] == _r[0]["ring"][-1], "rings come back closed"
+assert local.get("/geo/rings?km=0").status_code == 422 and local.get("/geo/rings?km=1,2,3,4,5,6,7,8,9").status_code == 422
+# The flow and the Node door: a cell's children, rings as distance and bearing, many distances in one answer, the planet.
+_p6 = local.get("/geo/cell?lat=-8.6478291&lon=115.1385412&res=6&children=8&polar=true").json()
+assert _p6["children_n"] == 49 and len(_p6["children_ll"]) == 49 and len(_p6["children_polar"]) == 49, _p6.keys()
+assert len(_p6["ring_polar"]) == 1 + 12 and all(0 <= b < 360 for b in _p6["ring_polar"][2::2]), "polar rows are id then metres, bearing"
+_r3 = local.get("/geo/cell?lat=-8.65&lon=115.14&res=3&children=8").json()
+assert _r3["children_n"] == 7 ** 5 and "children_ll" not in _r3, "past 400 the count is given and the rings are not"
+assert local.get("/geo/cell?lat=-8.65&lon=115.14&res=8&children=6").status_code == 422, "children are finer, not coarser"
+_e = local.get("/geo/measure?from_node=true&each=true&path=115.1385412,-8.6378291;115.1485412,-8.6478291").json()["each"]
+assert 1100 < _e[0]["m"] < 1120 and _e[0]["deg"] < 1, f"due north first: {_e[0]}"
+assert 1090 < _e[1]["m"] < 1110 and abs(_e[1]["deg"] - 90) < 1, f"due east second: {_e[1]}"
+assert len(local.get("/geo/planet?res=2").json()["cells_ll"]) == 5882 and local.get("/geo/planet?res=3").status_code == 422
+assert lan.get("/geo/planet").status_code == 403
+print("geo: grid, cell, measure and rings answer this machine and a token, refuse the LAN, and refuse bad boxes; children, polar, each and the planet too")
+
+# The ground kept on disk (GET /ground/*): served from out/ground/ by name, private like /place/geojson.
+import gzip as _gz, importlib.util as _iu, json as _json, sqlite3 as _sq, tempfile as _tf
+from pathlib import Path as _P
+_out = _P(_tf.mkdtemp()); main.OUT = _out; (_out / "ground" / "glyphs" / "Noto Sans Regular").mkdir(parents=True)
+_db = _sq.connect(_out / "ground" / "vector.mbtiles")
+_db.executescript("CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB);")
+_db.execute("INSERT INTO tiles VALUES (15, 26866, ?, ?)", ((1 << 15) - 1 - 17189, _gz.compress(b"mvt")))
+_db.commit(); _db.close()
+(_out / "ground" / "glyphs" / "Noto Sans Regular" / "0-255.pbf").write_bytes(b"glyphs")
+(_out / "ground" / "meta.json").write_text(_json.dumps({"vector": {"tiles": 1}}))
+for _lv in ("off", "open"):
+    level(_lv)
+    for _u in ("/ground/meta", "/ground/vector/15/26866/17189.pbf", "/ground/glyphs/Noto Sans Regular/0-255.pbf"):
+        assert lan.get(_u).status_code == 403, f"{_u} answered a stranger at SHARE_LEVEL={_lv}: a tile pyramid locates the node"
+level("off")
+_t = local.get("/ground/vector/15/26866/17189.pbf")
+assert _t.status_code == 200 and _t.content == b"mvt" and _t.headers["content-type"] == "application/x-protobuf", (_t.status_code, _t.headers)
+assert local.get("/ground/vector/15/26866/17190.pbf").status_code == 204, "a tile the node does not hold is empty ground, not an error"
+assert local.get("/ground/imagery/12/1/1.png").status_code == 204, "a layer never fetched is empty ground too"
+assert local.get("/ground/elsewhere/1/1/1").status_code == 404 and local.get("/ground/vector/2/9/1.pbf").status_code == 204
+assert local.get("/ground/glyphs/Noto Sans Regular/0-255.pbf").content == b"glyphs"
+assert local.get("/ground/glyphs/..%2F..%2Fmeta/0-255.pbf").status_code == 404, "a font name is a name, not a path"
+assert local.get("/ground/wind").status_code == 204, "no field until the forecast pack has written one"
+(_out / "ground" / "wind.json").write_text(_json.dumps({"n": 8, "times": ["2026-10-07T06:00Z"]}))
+assert local.get("/ground/wind").json()["n"] == 8 and lan.get("/ground/wind").status_code == 403
+_m = local.get("/ground/meta").json()
+assert _m["on_disk"]["wind"] and _m["fetch"]["wind"] == "planetai run forecast windfield"
+assert _m["on_disk"]["vector"] and not _m["on_disk"]["imagery"] and _m["layers"]["vector"]["tiles"] == 1, _m
+# The place pack reads Protomaps' archive by tile id: pmtiles' Hilbert order, and its directory encoding.
+_s = _iu.spec_from_file_location("basemap", "packs/place/basemap.py"); _b = _iu.module_from_spec(_s); _s.loader.exec_module(_b)
+assert [_b.zxy_to_id(1, *xy) for xy in [(0, 0), (0, 1), (1, 1), (1, 0)]] == [1, 2, 3, 4], "zoom 1 walks the Hilbert curve"
+assert [_b.zxy_to_id(2, x, y) for x, y in [(0, 0), (1, 0), (1, 1), (0, 1), (0, 2)]] == [5, 6, 7, 8, 9]
+def _v(n):
+    out = b""
+    while True:
+        out += bytes([(n & 0x7F) | (0x80 if n > 0x7F else 0)]); n >>= 7
+        if not n:
+            return out
+# two entries: tile 5 run 1 at offset 0 length 10; tile 6 run 2, offset 0 meaning "right after the previous"
+assert _b.parse_dir(_v(2) + _v(5) + _v(1) + _v(1) + _v(2) + _v(10) + _v(20) + _v(1) + _v(0)) == [(5, 0, 10, 1), (6, 10, 20, 2)]
+print("ground: tiles, fonts and meta answer this machine, refuse the LAN, read the archive by Hilbert id")
+
+# GET /storage (the Set up page's Storage): what the machine holds is the keeper's, at every level.
+for _lv in ("off", "open"):
+    level(_lv)
+    assert lan.get("/storage").status_code == 403, f"/storage answered a stranger at SHARE_LEVEL={_lv}"
+    assert lan.get("/machine").status_code == 403, f"/machine answered a stranger at SHARE_LEVEL={_lv}"
+level("off")
+print("storage and machine: the keeper's, refused to the LAN at every level")
+
 print("all share-level checks passed")

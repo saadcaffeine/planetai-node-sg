@@ -1,4 +1,5 @@
 # Platforms
+<!-- checked: v0.80.10 -->
 
 **Linux first, macOS second, Windows third.** Not a preference — a consequence. A node's home is a box
 that stays on, and a laptop under macOS is designed to go to sleep. More to the point: on macOS the floor
@@ -143,7 +144,7 @@ start, and that day carries a reindex.
 installer end to end on `ubuntu-24.04-arm` against a Debian 13 arm64 userland, which proves the images
 resolve and the database comes up — and proves nothing about an SD card, a 4 GB ceiling or a warm cupboard.
 The table below keeps the list of arm64 machines that have carried one — it is empty — and
-`docs/HANDOFF_arm64.md` is the test plan that would put the first name on it.
+`docs/ARM64.md` is the test plan that would put the first name on it.
 
 | arm64 machine | has run a node | for how long | reported |
 |---|---|---|---|

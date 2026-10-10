@@ -427,9 +427,9 @@ are its assertions.
 
 `AGENTS.md` · `packs/nearby/` in full · `app/sources.py::openmeteo` and `::_adapters` · `app/report.py::sheet` ·
 `app/settings.py` · `app/ground.py` · `app/packs.py` · `tools/check_rules.py` · `tools/check_ui.py` ·
-`docs/PACKS.md` · `docs/reviews/CODE_REVIEW_2026-09.md` §F13 · `docs/reviews/CODE_REVIEW_2026-09-10_second_pass.md`
+`docs/PACKS.md` · `docs/archive/reviews/CODE_REVIEW_2026-09.md` §F13 · `docs/archive/reviews/CODE_REVIEW_2026-09-10_second_pass.md`
 §A12 · `skills/publish-to-index/SKILL.md` (the tier contract) · `PRODUCT.md` (the tier table) ·
-`docs/reviews/AGENT_READY_2026-09.md` (the TTW query skill) · `ttw-redesign/OHM_API_Integration_Eval.md`.
+`docs/archive/reviews/AGENT_READY_2026-09.md` (the TTW query skill) · `ttw-redesign/OHM_API_Integration_Eval.md`.
 
 OHM, read live on 12 September 2026: `README.md`, `CONTEXT.md`, `docs-site/docs/guides/run-your-own-node.md`,
 `/v1/openapi.json` and `/v1/docs` on the hosted instance (version 0.12.2), `GET /v1/api/okh`,

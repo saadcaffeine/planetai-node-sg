@@ -138,8 +138,12 @@ CREATE TABLE IF NOT EXISTS settings (
 -- stage in the funnel. It is a record that somebody looked at an observation and said what they
 -- would do, which today leaves exactly the same trace as never having looked: none. See
 -- docs/SPEC_decide.md section 6.
+-- `dismissed` is the sixth: "Doesn't fit" (docs/SPEC_alerts.md §7). Like `decided`, it moves nothing in rho's
+-- alert-level funnel. It is widened HERE, in the one drop-and-add, and not by a second pair further down: this pair
+-- runs on every apply, so a later pair would have it re-add the five-stage check over rows that already say
+-- `dismissed`, and under ON_ERROR_STOP update.sh would stop with the constraint dropped.
 ALTER TABLE actions DROP CONSTRAINT IF EXISTS actions_stage_check;
-ALTER TABLE actions ADD CONSTRAINT actions_stage_check CHECK (stage IN ('acknowledged','acted','measured','settings','decided'));
+ALTER TABLE actions ADD CONSTRAINT actions_stage_check CHECK (stage IN ('acknowledged','acted','measured','settings','decided','dismissed'));
 INSERT INTO schema_version (version) VALUES ('0.20') ON CONFLICT DO NOTHING;
 
 -- Pack SQL (rules.yml, cells.yml) runs as planetai_ro: SELECT on every table except settings, no writes. A "data pack,
@@ -228,3 +232,99 @@ CREATE TABLE IF NOT EXISTS release_notices (
   told_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 INSERT INTO schema_version (version) VALUES ('0.52') ON CONFLICT DO NOTHING;
+
+-- The measures a kinded rule reads (docs/SPEC_alerts.md §3). A rule asks "for how long" and "against what usual"
+-- here instead of rebuilding either from raw readings every minute.
+--
+-- recent_15m: quarter-hour means over the last 24 h, sensors only, with `apparent` (Steadman's no-wind indoor
+-- form, the same arithmetic as packs/heat/rules.yml) derived wherever temp and humidity share a bucket.
+DROP VIEW IF EXISTS recent_15m CASCADE;
+CREATE VIEW recent_15m AS
+WITH b AS (
+  SELECT date_trunc('hour', r.ts) + CAST(floor(extract(minute FROM r.ts) / 15) AS INTEGER) * INTERVAL '15 minutes' AS bucket,
+         r.sensor_id, r.metric, avg(r.value) AS mean
+  FROM readings r JOIN sensors s ON s.sensor_id = r.sensor_id
+  WHERE r.ts > now() - INTERVAL '24 hours' AND r.ts <= now() AND s.kind = 'sensor'
+  GROUP BY 1, 2, 3)
+SELECT bucket, sensor_id, metric, mean FROM b
+UNION ALL
+SELECT t.bucket, t.sensor_id, 'apparent',
+       t.mean + 0.33 * (h.mean / 100.0 * 6.105 * exp(17.27 * t.mean / (237.7 + t.mean))) - 4.0
+FROM b t JOIN b h ON h.sensor_id = t.sensor_id AND h.bucket = t.bucket AND h.metric = 'humidity'
+WHERE t.metric = 'temp';
+
+-- usual_by_hour: this room's own normal for each local hour, from the fourteen complete local days before today
+-- (date_trunc in the session's NODE_TZ). Today is left out on purpose: a long hot run must not raise the bar it is
+-- measured against. Materialized,
+-- because a percentile over two weeks is too much to recompute every minute; the app refreshes it hourly and at
+-- start (app/main.py refresh_usual). Created empty: init.sql runs under psql in UTC, and a refresh from the app runs
+-- in NODE_TZ, so only the app's refresh buckets hours the way the household lives them. A rule that reads it
+-- before the first refresh fails and is logged, and runs again a minute later.
+DROP MATERIALIZED VIEW IF EXISTS usual_by_hour;
+CREATE MATERIALIZED VIEW usual_by_hour AS
+WITH h AS (
+  SELECT date_trunc('hour', r.ts) AS bucket, r.sensor_id, r.metric, avg(r.value) AS mean
+  FROM readings r JOIN sensors s ON s.sensor_id = r.sensor_id
+  WHERE r.ts >= date_trunc('day', now()) - INTERVAL '14 days' AND r.ts < date_trunc('day', now())
+    AND s.kind = 'sensor' AND r.metric IN ('temp', 'humidity', 'pm25')
+  GROUP BY 1, 2, 3),
+a AS (
+  SELECT bucket, sensor_id, metric, mean FROM h
+  UNION ALL
+  SELECT t.bucket, t.sensor_id, 'apparent',
+         t.mean + 0.33 * (u.mean / 100.0 * 6.105 * exp(17.27 * t.mean / (237.7 + t.mean))) - 4.0
+  FROM h t JOIN h u ON u.sensor_id = t.sensor_id AND u.bucket = t.bucket AND u.metric = 'humidity'
+  WHERE t.metric = 'temp')
+SELECT sensor_id, metric, CAST(extract(hour FROM bucket) AS INTEGER) AS hour,
+       percentile_cont(0.5)  WITHIN GROUP (ORDER BY mean) AS median,
+       percentile_cont(0.75) WITHIN GROUP (ORDER BY mean) AS p75,
+       percentile_cont(0.9)  WITHIN GROUP (ORDER BY mean) AS p90,
+       count(*) AS n
+FROM a GROUP BY 1, 2, 3
+WITH NO DATA;
+GRANT SELECT ON recent_15m, usual_by_hour TO planetai_ro;
+
+-- Alert events (docs/SPEC_alerts.md §4): one row per story, one issue at one house, from open to clear. Every alert
+-- row still exists; the ones that fed an event point at it. event_messages is every message the engine decided,
+-- sent or held, with the reason: in ALERT_ENGINE=shadow nothing is sent and this table is the comparison.
+-- Named alert_events, not events: `events` is already the parent's ledger of what its children pushed (v0.50), and
+-- CREATE TABLE IF NOT EXISTS would have skipped this one silently. The told_* columns and last_emitted_at are the
+-- engine's escalation bookkeeping (what the last message said, sent or held); without them a restart forgets it.
+CREATE TABLE IF NOT EXISTS alert_events (
+  id              BIGSERIAL PRIMARY KEY,
+  issue           TEXT NOT NULL,
+  kind            TEXT NOT NULL,
+  level           TEXT NOT NULL,
+  opened_at       TIMESTAMPTZ NOT NULL,
+  last_seen_at    TIMESTAMPTZ NOT NULL,
+  last_sent_at    TIMESTAMPTZ,
+  cleared_at      TIMESTAMPTZ,
+  peak            DOUBLE PRECISION,
+  rooms           TEXT[] NOT NULL DEFAULT '{}',
+  places          TEXT[] NOT NULL DEFAULT '{}',
+  ever_sent       BOOLEAN NOT NULL DEFAULT FALSE,
+  action_id       TEXT,
+  told_kind       TEXT,
+  told_peak       DOUBLE PRECISION,
+  told_level      TEXT,
+  told_held       TEXT,
+  last_emitted_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS alert_events_open ON alert_events (issue) WHERE cleared_at IS NULL;
+CREATE TABLE IF NOT EXISTS event_messages (
+  id        BIGSERIAL PRIMARY KEY,
+  ts        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  event_id  BIGINT NOT NULL REFERENCES alert_events(id),
+  reason    TEXT NOT NULL CHECK (reason IN ('open','escalate','clear')),
+  kind      TEXT,           -- the event's kind when this was decided: danger is never counted against the daily ceiling
+  sent      BOOLEAN NOT NULL,
+  held      TEXT,
+  mode      TEXT NOT NULL,
+  text      TEXT,
+  action_id TEXT            -- the action this message carried (SPEC_alerts §5), NULL for an all-clear or none chosen
+);
+ALTER TABLE event_messages ADD COLUMN IF NOT EXISTS action_id TEXT;
+ALTER TABLE alerts  ADD COLUMN IF NOT EXISTS event_id BIGINT REFERENCES alert_events(id);
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS event_id BIGINT REFERENCES alert_events(id);
+GRANT SELECT ON alert_events, event_messages TO planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.53') ON CONFLICT DO NOTHING;

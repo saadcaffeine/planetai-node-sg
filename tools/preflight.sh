@@ -248,7 +248,7 @@ fi
 case "$ARCH" in
   x86_64) row arch "x86_64" 1;;
   arm64)  if [[ "$PLATFORM" == macos ]]; then row arch "arm64 (native database image since v0.63)" 1
-          else row arch "arm64 (untested on hardware — docs/HANDOFF_arm64.md)" 1; fi;;
+          else row arch "arm64 (untested on hardware — docs/ARM64.md)" 1; fi;;
   *)      row arch "$ARCH" 0 "unsupported architecture; the node needs 64-bit x86 or arm64";;
 esac
 

@@ -191,6 +191,23 @@ check(len(SCRIPT) > 1 and "sensor" in SCRIPT[1]["seen"] and not leaks(SCRIPT[1][
       f"the sensors result reached the model carrying {leaks(SCRIPT[-1]['seen'])}")
 print("  proposal: MAP_TILES on is a card with its current value, what leaves and the way back; nothing changed")
 
+# ---------------------------------------------------------------- the wall asks for its prompt by name
+# WALL_SYSTEM lives on the node (docs/SPEC_language.md §The prompts): the page sends prompt:'wall' and the
+# node composes the voice, the rotating angle, and — the part a missing line once cost — the figures.
+before = len(SCRIPT)
+r = local.post("/ask", json={"messages": [{"role": "user", "content": "speak"}], "view": "wall",
+                             "mode": "advanced", "prompt": "wall"})
+check(r.status_code == 200, f"/ask wall answered {r.status_code}")
+wall = SCRIPT[before]["system"]
+check("voice of this home's sensor node" in wall and "This time, start from" in wall,
+      "the wall did not get WALL_SYSTEM with its rotating angle")
+check("The page's context:" in wall and not leaks(wall),
+      f"the wall's system prompt lost the scrubbed context, or carries {leaks(wall)}")
+r = local.post("/ask", json={"messages": [{"role": "user", "content": "speak"}], "view": "wall",
+                             "mode": "advanced", "prompt": "wall"})
+check(r.status_code == 200 and SCRIPT[-1]["system"] != wall, "the wall's angle did not rotate between narrations")
+print("  wall: the page asks by name; the voice, the figures and a fresh angle ride in the system prompt")
+
 # ---------------------------------------------------------------- the shape a live node hands it
 # A capture's timestamps are strings; the live engine's are datetimes straight from Postgres. v0.75 was
 # tested on captures only and answered every question on node #1 with a 500 (datetime is not JSON

@@ -115,6 +115,61 @@ def openmeteo(hc, lat: float, lon: float):
     return sensors, readings
 
 
+WIND_N = int(os.getenv("FORECAST_WIND_N", "8"))            # points a side: 64, as Bali Air Dispatch draws its field
+WIND_KM = float(os.getenv("FORECAST_WIND_KM", "30"))       # half-width of the square, km
+
+
+def wind_grid(lat: float, lon: float, km: float = WIND_KM, n: int = WIND_N):
+    """The n×n points of a square of half-width `km` round (lat, lon): latitudes south to north, longitudes west to
+    east, so the page can draw the field without working out where a point is."""
+    import math
+    dlat, dlon = km / 110.574, km / (111.320 * math.cos(math.radians(lat)))
+    step = lambda lo, hi, i: round(lo + (hi - lo) * i / (n - 1), 5)  # noqa: E731
+    return [step(lat - dlat, lat + dlat, i) for i in range(n)], [step(lon - dlon, lon + dlon, i) for i in range(n)]
+
+
+def wind_field(hc, lat: float, lon: float, km: float = WIND_KM, n: int = WIND_N) -> dict:
+    """The wind over the node's square, for a map that draws it moving: Open-Meteo's hourly 10 m wind at n×n points,
+    the next day, in one request. Speeds km/h, directions the way the wind comes FROM, as the point forecast stores
+    them. Not readings: a model's field, kept as a file (out/ground/wind.json) for the map and nothing else."""
+    lats, lons = wind_grid(lat, lon, km, n)
+    pts = [(la, lo) for la in lats for lo in lons] + [(round(lat, 5), round(lon, 5))]   # the node's own point last
+    r = hc.get(OPEN_METEO, params={"latitude": ",".join(str(p[0]) for p in pts), "longitude": ",".join(str(p[1]) for p in pts),
+                                   "hourly": "wind_speed_10m,wind_direction_10m", "forecast_days": 2, "timezone": "UTC",
+                                   "cell_selection": "nearest"})   # the default, "land", moves a sea point to the nearest land cell, 12 km off
+    r.raise_for_status()
+    d = r.json()
+    d = d if isinstance(d, list) else [d]
+    if len(d) != len(pts):
+        raise ValueError(f"Open-Meteo answered {len(d)} points for {len(pts)} asked")
+    fetched = datetime.now(timezone.utc)
+    times = [f"{t}Z" for t in (d[0].get("hourly") or {}).get("time", [])]
+    keep = [i for i, t in enumerate(times) if fetched - timedelta(hours=1) <= _utc(t) <= fetched + timedelta(hours=HOURS)]
+    grid = lambda key: [[[(p.get("hourly") or {}).get(key, [None] * len(times))[i] for p in d[j * n:(j + 1) * n]]  # noqa: E731
+                         for j in range(n)] for i in keep]
+    me = (d[-1].get("hourly") or {})
+    return {"source": "Open-Meteo, 10 m wind", "licence": "CC-BY 4.0, free tier non-commercial only",
+            "attribution": "Open-Meteo, open-meteo.com", "fetched": fetched.isoformat(), "n": n, "km": km,
+            "lats": lats, "lons": lons, "times": [times[i] for i in keep],
+            "speed_kmh": grid("wind_speed_10m"), "from_deg": grid("wind_direction_10m"),
+            # the readout's one number is the node's own point, asked as such, not a value the page picks off the grid
+            "at_node": {"speed_kmh": [me.get("wind_speed_10m", [None] * len(times))[i] for i in keep],
+                        "from_deg": [me.get("wind_direction_10m", [None] * len(times))[i] for i in keep]}}
+
+
+def write_wind_field(hc, lat: float, lon: float):
+    """Fetch the field and replace out/ground/wind.json whole, or leave the last one standing."""
+    import json
+    from pathlib import Path
+    out = Path(os.getenv("PACK_OUT", "/app/out")) / "ground"
+    f = wind_field(hc, lat, lon)
+    out.mkdir(parents=True, exist_ok=True)
+    tmp = out / "wind.json.part"
+    tmp.write_text(json.dumps(f))
+    tmp.replace(out / "wind.json")
+    return f
+
+
 def gap(a: list, b: list):
     """Where the two sources disagree, on the variables they both give. One derived channel, not a judgement:
     neither source is the truth, and a wide gap is the node saying so out loud."""
@@ -157,6 +212,10 @@ def fetch(hc):
             s, om = openmeteo(hc, lat, lon); sensors += s; readings += om
         except Exception as e:  # noqa: BLE001
             log.warning("forecast: Open-Meteo unreachable (%s)", e)
+        try:                     # the field the map draws moving; same source, same switch, same cadence
+            write_wind_field(hc, lat, lon)
+        except Exception as e:  # noqa: BLE001
+            log.warning("forecast: wind field not refreshed (%s); the last one stays", e)
     if bm and om:
         s, g = gap(bm, om); sensors += s; readings += g
     return sensors, readings

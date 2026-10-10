@@ -44,7 +44,7 @@ clean hours. Pearson r between PM2.5 and noise across 169 hourly buckets is nega
 The 06:00-07:00 peak is consistent with the 9 am burn peak `docs/sensors.md` already documents for Bali — the
 timing lines up, though that document is about the UTC/local day boundary, not about this node. The 18:00 peak is
 not covered by `docs/sensors.md` at all: it is this node's own finding, supported by its own noise and light
-channels. See `docs/reviews/INSIGHTS_DESIGN_2026-09.md` for the readings behind it. An evening pollution peak
+channels. See `docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md` for the readings behind it. An evening pollution peak
 arriving as the street quiets down and the light goes is not what traffic looks like. `rhythm` now says that and
 stops naming a cause its own data argued against.
 

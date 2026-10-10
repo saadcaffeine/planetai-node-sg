@@ -22,6 +22,7 @@ import argparse
 import datetime as dt
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -43,11 +44,25 @@ def flat(s):
     return " ".join(s.split())
 
 
-def node_facts():
+def pack_kinds(ref=None):
+    """kind: per pack.yaml, in the working tree, or at a git ref (the release the page describes)."""
+    if ref is None:
+        texts = [p.read_text(encoding="utf-8") for p in sorted((ROOT / "packs").glob("*/pack.yaml"))]
+    else:
+        git = lambda *a: subprocess.run(["git", "-C", str(ROOT), *a], capture_output=True, text=True)
+        names = git("ls-tree", "--name-only", ref, "packs/")
+        if names.returncode:
+            return None
+        texts = [t.stdout for t in (git("show", f"{ref}:{d}/pack.yaml") for d in names.stdout.split()) if t.returncode == 0]
     kinds = {}
-    for p in sorted((ROOT / "packs").glob("*/pack.yaml")):
-        m = re.search(r"^kind:\s*(\w+)", p.read_text(encoding="utf-8"), re.M)
+    for t in texts:
+        m = re.search(r"^kind:\s*(\w+)", t, re.M)
         kinds[m.group(1) if m else "?"] = kinds.get(m.group(1) if m else "?", 0) + 1
+    return kinds
+
+
+def node_facts():
+    kinds = pack_kinds()
     loc = re.search(r"^LOCALES\s*=\s*\(([^)]*)\)", (ROOT / "app/issues/__init__.py").read_text(), re.M)
     locales = re.findall(r'"(\w+)"', loc.group(1)) if loc else []
     sys.path.insert(0, str(ROOT / "tools"))
@@ -107,10 +122,19 @@ def main():
     m = grab(r"export const RELEASE = \{.*?tag:\s*'([^']+)'", "RELEASE.tag")
     if m and want and m.group(1) != want:
         errs.append(f"the programme page says {m.group(1)}; this release is {want}")
+    # The page counts the packs of the release it names. Between releases main may add or move a pack (#173 moved
+    # xiaomi-air out after v0.76), and comparing the page to main then failed every commit on a page that was
+    # right. So: at release time against the tree being tagged, between releases against the tag the page names.
+    page_tag = (re.search(r"export const RELEASE = \{.*?tag:\s*'([^']+)'", js, re.S) or [None, None])[1]
+    at = None if want else page_tag
+    kinds = pack_kinds(at) if at else pack_kinds()
+    if kinds is None:
+        kinds, at = pack_kinds(), None   # the tag is not in this clone: fall back to the tree, and say so below
+    have = (sum(kinds.values()), kinds.get("data", 0), kinds.get("code", 0))
     m = grab(r"packs:\s*\{\s*total:\s*(\d+),\s*data:\s*(\d+),\s*code:\s*(\d+)", "RELEASE.packs")
-    if m and (int(m.group(1)), int(m.group(2)), int(m.group(3))) != (facts["packs"], facts["data"], facts["code"]):
+    if m and (int(m.group(1)), int(m.group(2)), int(m.group(3))) != have:
         errs.append(f"the page counts {m.group(1)} packs ({m.group(2)} data, {m.group(3)} code); "
-                    f"packs/*/pack.yaml has {facts['packs']} ({facts['data']} data, {facts['code']} code)")
+                    f"packs/*/pack.yaml {'at ' + at if at else 'in this tree'} has {have[0]} ({have[1]} data, {have[2]} code)")
     m = grab(r"languages:\s*\[([^\]]*)\]", "RELEASE.languages")
     if m and len(re.findall(r"'[^']+'", m.group(1))) != facts["languages"]:
         errs.append(f"the page names {len(re.findall(chr(39) + '[^' + chr(39) + ']+' + chr(39), m.group(1)))} "
@@ -130,6 +154,15 @@ def main():
         if age > RHO_MAX_AGE_DAYS:
             errs.append(f"node #1's ρ on the page was read {age} days ago ({m.group(1)}); read /rho again "
                         f"and update RHO, or the page publishes a stale headline")
+    # And what is deployed: the page is a Vite bundle built from data.js (`make root`, `make staging` in the site
+    # repo), and release.sh deploys whatever is built. v0.77 and v0.78 updated data.js, passed above, and went
+    # live saying v0.76 (6 Oct 2026). At release time, read the release out of each built bundle too.
+    if want:
+        for where, d in (("the landing", site / "assets/p"), ("/staging/", site / "staging/assets")):
+            tags = {t for f in sorted(d.glob("*.js")) for t in re.findall(r'\{tag:"(v[^"]+)",asOf:"', f.read_text(encoding="utf-8"))}
+            if tags != {want}:
+                errs.append(f"{where}'s built bundle ({d.relative_to(site)}) says {', '.join(sorted(tags)) or 'no release'}; "
+                            f"this release is {want}. Run `make root` and `make staging` in the site repo and commit")
     m = grab(r"export const RHO = \{.*?label:\s*'([^']+)'", "RHO.label")
     if m and "answered" not in m.group(1):
         errs.append(f"the page labels ρ '{m.group(1)}'; ρ is the share of act-level alerts answered (app/index.py)")

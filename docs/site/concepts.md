@@ -1,6 +1,7 @@
 # Concepts
+<!-- checked: v0.80.10 -->
 
-The words the rest of these pages use, each with what it means in the code at v0.75.3. When two of them
+The words the rest of these pages use, each with what it means in the code at v0.80. When two of them
 sound alike (`local` and `custody`, domain and issue, `kind` and `scale`, decided and acted) the difference
 is the point. Most of them are about one question: which numbers belong to this place, and may be counted
 for it.
@@ -82,7 +83,7 @@ prints them as house · street · ring · region; in Bahasa, rumah · jalan · s
 they are casa · calle · alrededores · región. The keys stay as they are on the wire. A child node is a fifth
 place that is not a column. A distance is custody, not scale: nothing maps a distance to an H3 resolution.
 
-**Registry.** A pinned snapshot of `awesome-fabcity-data`, 238 entries at `1010aa0`, served at `/sources` and
+**Registry.** A pinned snapshot of `awesome-fabcity-data`, 269 entries at `851b8db`, served at `/sources` and
 listed by `planetai sources`. Most entries are things this place could measure; some are places to go and
 designs to build. See the [CLI](cli.md).
 
@@ -92,7 +93,7 @@ designs to build. See the [CLI](cli.md).
 `level` and a `cooldown_minutes`. No rules engine, no expression language: if Postgres cannot express the
 condition, the condition is wrong. Core rules live in `config/rules.yml` and know no metric; a pack's
 rules live in `packs/<id>/rules.yml`, namespaced `<pack>/<id>`. A rule's message ends with a line beginning
-👉, its recommendation, and the dashboard's Decide card shows that line as "what this node suggests".
+👉, its recommendation, and the dashboard's alert card in Decide shows that line as "what this node suggests".
 
 **Level.** `act`: something needs doing. `warn`: something changed. `info`: everything else.
 `ALERT_LEVEL` is the floor for interrupting a person; below it an alert is still recorded, still on the
@@ -105,14 +106,24 @@ is an *open alert*.
 **Cooldown.** Per rule and sensor, enforced in SQL against `alerts`: a rule does not fire again for the same
 sensor until its cooldown has passed.
 
-**Action.** A row in `actions`: `alert_id`, `stage`, `actor`, `note`. Five stages. `acknowledged`: someone
+**Action.** A row in `actions`: `alert_id`, `stage`, `actor`, `note`. Six stages. `acknowledged`: someone
 saw it. `acted`: someone did the thing. `decided`: someone said what will be done, which moves nothing.
 `measured`: the outcome was checked; the schema allows it and nothing writes it, and the funnel derives it
-instead. `settings`: an audit row for a setting change, with no alert. `POST /actions` takes the first three.
+instead. `settings`: an audit row for a setting change, with no alert.
+`dismissed`: an alert event's advice did not fit the house. `POST /actions` takes the first three for an
+alert, and for an alert event `acknowledged`, `acted` or `dismissed` (see Alert event).
 `SPEC.md` calls this table "the Index's instrument, not an app feature": ρ is computed from it and nowhere
 else.
 
-**Decision.** A `decided` row, recorded from the dashboard's "What to do about it" card. It closes no alert, is
+**Alert event.** One story per issue per house, folded from the rows of rules that declare a `kind`: it opens,
+escalates and clears, and has at most one action chosen from what is inside, outside and in the home. It is a row
+in `alert_events`, its messages are in `event_messages`, and `GET /issues` carries it under `events`. It runs with
+`ALERT_ENGINE=shadow` (records what it would send, sends nothing) or `events` (sends); the default, `rules`, runs
+no engine. Its answers are Done (`acted`), Not now (`acknowledged`) and Doesn't fit (`dismissed`), posted with an
+`event_id`; they are not in ρ. On `shadow` and `events` the event stands for the alerts of the heat and air rules
+it replaced: those are no longer open alerts, and an issue's state follows its event. See [Alerts](alerts.md).
+
+**Decision.** A `decided` row, recorded from an alert's card in Decide. It closes no alert, is
 not in ρ and is not a stage in the funnel. With `DECISION_REQUIRED=1` (off by default) an `acted` with no
 `decided` row before it is refused with HTTP 409.
 
@@ -132,8 +143,8 @@ six parts, under a hundred words, written by the node itself from SQL. See [The 
 
 ## The page and its stages
 
-**Stages.** The dashboard is read in the order the loop runs: observe, decide, act, measure. Every section
-the page draws is registered under one of them.
+**Stages.** The loop runs observe, decide, act, measure, and the dashboard has a stage for each; Now draws
+Decide first. Every section the page draws is registered under one of them.
 
 **Digest.** Four sentences, one per stage, written by the node in English, Bahasa Indonesia and Spanish from
 figures already in `GET /issues`. Beside them, `digest.simple` is the paragraph simple mode draws, and
@@ -141,14 +152,17 @@ figures already in `GET /issues`. Beside them, `digest.simple` is the paragraph 
 
 **Headline.** The issue the lead is about. The highest state wins; where two issues are in the same state,
 the one that moved most in the last three hours; an exact tie goes to the order in `NODE_ISSUES`. Only an issue that declares a `hero`,
-how it is drawn when it leads, can lead. The page prints that rule under the lead, and `lead: {issue, by}`
-says which of the three steps picked it.
+how it is drawn when it leads, can lead. An open alert event leads before any of that: the issue of the most serious
+open event. The page prints that rule under the lead, and `lead: {issue, by}` says which of the four steps picked it:
+`event`, `state`, `moved` or `order`.
 
 ## Packs and cells
 
-**Pack.** A folder in `packs/` with a `pack.yaml`. A *data pack* is YAML only: rules, cells, channel roles. A
-*code pack* also carries an `adapter.py` and runs only when `PACKS_ALLOW_CODE=1`. The `make` pack, which names
-the nearest fab lab, needs `MAKE_ENABLED=1` as well, because the directory it reads is not openly licensed.
+**Pack.** A folder in `packs/` with a `pack.yaml`. A *core* pack ships in this repository; every other pack is
+*wild*, added with `planetai packs add` and pinned to a commit, and marked by a `.wild` file. A *data pack* is
+YAML only: rules, cells, channel roles. A *code pack* also carries an `adapter.py` and runs only when
+`PACKS_ALLOW_CODE=1`. The `make` pack, which names the nearest fab lab, needs `MAKE_ENABLED=1` as well, because
+the directory it reads is not openly licensed.
 See [Packs](packs.md).
 
 **Cell.** One of the twenty cells of the Fab City Index, four pillars (Environmental, Economic, Social,
@@ -165,7 +179,7 @@ report bundle under the rule's id.
 
 ## Reaching the node
 
-**`SHARE_LEVEL`.** What a request with no token may read: `off` (the dashboard shell, `/health`, `/presence`,
+**`SHARE_LEVEL`.** What a request with no token may read: `off` (the dashboard shell, `/health`, `/presence`, `/llms.txt`,
 the daily export, and `/settings` reduced to the layout and the sharing level, nothing else) or `open` (the
 whole read API, which is what a wall screen without a token needs). Two more rungs, `cell` and `means`, are
 named and refused. See [Sharing](sharing.md).

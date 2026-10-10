@@ -1,6 +1,6 @@
 # Start here: what the person in front of you is asking for
 
-Six situations bring somebody to this repository with an agent. Find theirs in the first column, read
+Eight situations bring somebody to this repository with an agent. Find theirs in the first column, read
 that skill, then do the third column. If none of them fits, read the rest of this file — it is written
 for an agent already inside a running node.
 
@@ -10,7 +10,9 @@ for an agent already inside a running node.
 | "it stopped working", "no alerts since Tuesday", here is a log | `skills/troubleshoot-node/SKILL.md` | Ask for `planetai doctor --json`, `status --json` and twenty lines of logs. Never `.env`. |
 | "connect this to Claude / Codex / my agent", "how do I reach it from outside?" | `skills/connect-agent/SKILL.md` | Get the URL and token from `planetai agent`. Tailscale, never a port forward. |
 | "put our city on the Fab City Index", "how do we publish cells?" | `skills/publish-to-index/SKILL.md` | Establish the tier first. One node per pilot writes; a home node never does. |
+| "I want a pack for my city", "add this sensor / source / threshold", "share our pack" | `skills/write-a-pack/SKILL.md` | A pack for one place is wild: its own repository, listed at fabcity/planetai-wild-packs. Never a fork of this repository, never a folder in `packs/` here. |
 | you are about to change this repository — any task, any size | `skills/preflight/SKILL.md` | `tools/session.sh preflight` first. Your own worktree, your own branch; never the one holding `main`. |
+| you are cutting a release, or `make lint` says a docs page was "checked against" an older release | `skills/release-docs/SKILL.md` | Re-read every page of the docs site against the code, fix it, then move its `<!-- checked: vX -->` stamp. Never move a stamp on a page you did not read. |
 | you are about to end a session that changed this repository | `skills/land/SKILL.md` | `tools/session.sh land`. Nothing exists only on this machine, and the gates ran, not were assumed. |
 
 The skills order the documents; they do not replace them. Everything below is what an agent operating a
@@ -67,6 +69,7 @@ who acted (`act` writes it as the action's `actor`, `settings_set` forwards it t
 planetai status --json      planetai doctor --json      planetai sensors --json      planetai cells --json
 planetai report             planetai report last        planetai report every <h>   planetai report at <h>
 planetai update             planetai backup             planetai restart             planetai logs
+planetai packs              planetai packs add <owner>/<repo>[/<folder>][@<ref>]       planetai packs install
 planetai setup --answers node.json      # install without a terminal; see the JSON shape in bin/planetai
 ```
 
@@ -120,8 +123,10 @@ SQL idempotency, compose mounts, CLI snippets as Python 3.9, rules and cells aga
 the dashboard's ids, pyflakes, the app import. If you add a gate, break something on purpose first and watch it fail.
 Test the file itself, not a copy typed into the test.
 
-Adding a source, a rule or a cell is a pack: `docs/PACKS.md`. Copy `packs/heat`. Say in the README where the thresholds
-came from and which place they were written for.
+Adding a source, a rule or a cell is a pack: `docs/PACKS.md`, in the order `skills/write-a-pack/SKILL.md` gives.
+For one place it is a wild pack in its own repository, not a pull request here; `planetai packs add` installs it on a
+node and `planetai packs` lists core and wild apart, with any pack it refused under "not loaded". Say in the README
+where the thresholds came from and which place they were written for.
 
 ## Reading the node
 

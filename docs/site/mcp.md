@@ -1,4 +1,5 @@
 # MCP server and tools
+<!-- checked: v0.80.10 -->
 
 This is the surface an agent holds. With it, any client that speaks MCP can read what the node read, ask it
 how the place is doing in the household's own words, and record, in a person's own words, that somebody
@@ -75,24 +76,24 @@ Start with `health_check`, then `status`.
 |---|---|---|
 | `status` | none | node, version, schema, uptime, last poll, readings ingested, polls, per-loop errors, mesh, ρ (the `/rho` body), whether the last backup succeeded |
 | `health_check` | none | `{ok, checks: [{check, ok, fix}]}`: polled in the last 15 minutes; no source errors; a backup in the last two days; no local sensor's ambient channel frozen; with a broker, LoRa radios heard in the last hour. Every failing check names its fix |
-| `issues` | `issue?` | the whole `/issues` object (the issues, `headline` and `headline_rule`, `labels`, `stations`, `metrics`, the `asks` ledger, `lead`, the `digest` with its four sentences, `simple` and `prompts`, `geometry`), or one issue with `as_of` and `labels`: state, the four distances with provenance, the sentence, the open asks |
+| `issues` | `issue?` | the whole `/issues` object (the issues, `headline` and `headline_rule`, `labels`, `stations` and `stations_silent`, `metrics`, the `asks` ledger, `lead`, the `digest` with its four sentences, `simple` and `prompts`, `geometry`, the packs' `sections`, the alert `events`), or one issue with `as_of` and `labels`: state, the four distances with provenance, the sentence, the open asks |
 | `sensors` | none | one row per sensor from `/stats`: local, indoor, kind, the 15-minute mean per metric, minutes silent; local first |
 | `context` | none | sea, weather, satellite air, place and land from `/observations`, labelled; or a note that the first poll fills this |
-| `readings` | `sensor_id`, `metric`, `hours=24` (≤168) | meant to return hourly means oldest first. In v0.75.3 it returns its error for every sensor, because it looks the sensor up at the top level of `/sparks`, whose means sit under `series` |
+| `readings` | `sensor_id`, `metric`, `hours=24` (≤168) | meant to return hourly means oldest first. In v0.80 it returns its error for every sensor, because it looks the sensor up at the top level of `/sparks`, whose means sit under `series` |
 | `history` | `sensor_id`, `metric` | every `{ts, value}` oldest first, for slow series such as `place-point / sat_buildings_yearly` |
 | `series` | `metric="pm25"`, `hours=24` (≤168) | aligned hourly arrays: indoor, outdoor, model |
-| `alerts` | `limit=10` (≤100) | the most recent alerts: `id`, `ts`, `rule_id`, `sensor_id`, `level`, `text` and `acted_at` |
+| `alerts` | `limit=10` (≤100), `since_hours=0` | the most recent alerts: `id`, `ts`, `rule_id`, `sensor_id`, `level`, `text` and `acted_at`. With `since_hours`, `{since_hours, count, alerts}`: `count` is every alert in the window, `alerts` the newest `limit` with their text cut to 160 characters |
 | `report_latest` | none | the last report row |
 | `report_bundle` | `hours=6` (1 to 168) | every number the report was written from |
 | `cells` | none | the Fab City Index cells with value, unit and state |
 | `packs` | none | the loaded packs: id, kind, description |
 | `export_day` | `day?` (default yesterday) | the open-data export for that day |
-| `settings_get` | none | every runtime setting with its group, help and value, secrets masked; bootstrap keys read-only |
+| `settings_get` | none | every runtime setting with its group, help and value, the node's secrets and the keys a pack lists under `secrets:` masked; bootstrap keys read-only |
 | `maintenance` | `task`: update, backup, restore, restart, logs, doctor, storage, ui, telegram | the `planetai` command to run on the node, what it does and where. It runs nothing |
 | **`act`** | `alert_id`, `note` (required), `agent="agent"` | records `stage: acted` for that alert with the agent as actor, and returns `{recorded, alert_id, by}`. **Writes** |
 | **`report_now`** | `agent="agent"` | writes and sends a report now. **Writes** |
 | **`settings_set`** | `changes: {KEY: value}`, `agent="agent"` | changes runtime settings; live within 20 seconds; a blank returns the key to `.env`. **Writes** |
-| **`run_pack_script`** | `pack`, `script`, `args?`, `agent="agent"` | runs `packs/<pack>/<script>.py` inside the container (15-minute limit) and returns exit code, stdout, stderr and `by`. **Runs code** |
+| **`run_pack_script`** | `pack`, `script`, `args?`, `agent="agent"` | runs `packs/<pack>/<script>.py` inside the container (15-minute limit) and returns exit code, stdout, stderr and `by`. Every script of a core pack runs; a wild pack's runs only if its pack.yaml lists it under `agent_scripts:`, and otherwise the answer is an `error` that points to `planetai run <pack> <script>` on the node's terminal. A pack's `adapter.py` is never a script here. **Runs code** |
 
 `act` refuses a blank note and any of the placeholders the repository once used in place of a person's words
 (`acted`, `acknowledged`, `done`, `ok`, `n/a`, `-`, `acted (via reticulum)`), and tells the agent to ask what
@@ -102,9 +103,9 @@ recorded on the dashboard against the same alert; no tool records a decision, an
 
 The read routes `GET /shape`, `GET /effect` and `GET /reach` have no tool of their own.
 
-> **Gap in v0.75.3.** The `issues` tool's own description still says ties for `headline` go to the keeper's
-> order. The node breaks a tie within a state by which issue moved most in the last three hours, then by
-> the declared order, and `headline_rule` in the tool's answer says so.
+> **Gap fixed in v0.80.7.** The `issues` tool's description now matches the code: an open alert event leads first,
+> then the highest state, ties broken by which issue moved most in the last three hours, then declared order.
+> `headline_rule` and `lead.by` in the answer say which.
 
 ## The audit trail
 
@@ -120,7 +121,9 @@ agents on one node read each other's rows before acting.
 
 ## What the tools will not do
 
-No tool prints `.env` or a token; `settings_get` masks every secret as `•••• set`. The container has neither
+No tool prints `.env` or a token; `settings_get` masks the node's own secrets as `•••• set`. A pack's key is masked
+only when that pack lists it under `secrets:` in its `pack.yaml`; a key a pack does not list there is shown in
+full, so a wild pack that holds a token should list it. The container has neither
 Docker nor git, so `maintenance` hands the command back instead of running it. `act` records what a person
 said they did and invents no action. Nor do the tools expose the node: the server's own instructions to a
 model say to prefer one clear sentence to a list and never to reveal a token.

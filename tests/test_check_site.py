@@ -29,10 +29,14 @@ f = check_site.node_facts()
 today = dt.date.today().isoformat()
 
 
-def run(js, *extra):
+def run(js, *extra, built=("v0.73", "v0.73")):
     d = Path(tempfile.mkdtemp())
     (d / "web/src").mkdir(parents=True)
     (d / "web/src/data.js").write_text(js)
+    for sub, tag in zip(("assets/p", "staging/assets"), built):
+        (d / sub).mkdir(parents=True)
+        if tag:
+            (d / sub / "hooks-x.js").write_text(f'Ed={{tag:"{tag}",asOf:"{today}",count:87}}')
     r = subprocess.run(TOOL + ["--site", str(d), *extra], capture_output=True, text=True, cwd=ROOT)
     shutil.rmtree(d)
     return r.returncode, r.stdout + r.stderr
@@ -56,6 +60,15 @@ for what, js, extra, needle in [
     rc, out = run(js, *extra)
     assert rc != 0 and needle in out, f"{what}: expected a failure naming '{needle}', got rc={rc}\n{out}"
     print(f"fails on {what}")
+for what, built, needle in [("a landing built before data.js changed", ("v0.72", "v0.73"), "the landing's built bundle"),
+                            ("a staging copy built before it", ("v0.73", "v0.72"), "/staging/'s built bundle"),
+                            ("no built bundle", (None, "v0.73"), "says no release")]:
+    rc, out = run(good, "--version", "v0.73", built=built)
+    assert rc != 0 and needle in out and "make root" in out, f"{what}: expected '{needle}', got rc={rc}\n{out}"
+    print(f"fails at release on {what}")
+rc, out = run(good, built=("v0.72", "v0.72"))
+assert "built bundle" not in out, f"between releases a stale build is not lint's business\n{out}"
+print("between releases the build is not compared")
 rc, out = run("export const X = 1;")
 assert rc != 0 and "could not find" in out, out
 print("a page whose shape changed is reported, not guessed")

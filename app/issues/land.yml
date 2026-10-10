@@ -71,22 +71,30 @@ where:
   es: { region: del cuadrado que vigila este nodo }
 
 sentences:
-  # {span} is the latest comparison's two years and {since} the longest one the pack computed, with
-  # its figure: "1.3 % of the square this node watches changed between 2024 and 2025. 8.5 % since
-  # 2017." One year is a number; eight years is a direction, and a household deciding whether the
-  # trees behind them are going needs the direction.
+  # A word headline (docs/SPEC_language.md). {span} and {since} moved to context_plain, which the
+  # engine renders as `plain`: "1.3 % of the square this node watches changed between 2024 and
+  # 2025. 8.5 % since 2017." One year is a number; eight years is a direction.
   en:
     state:
-      context: "{n} {unit} {where} changed {span}. {since} {cmp}"
+      context: "The ground this node watches keeps changing, year on year."
+      context_plain: "{n} {unit} {where} changed {span}. {since} {cmp}"
       none: "No satellite record yet for this square."
   id:
     state:
-      context: "{n} {unit} {where} berubah {span}. {since} {cmp}"
+      context: "Tanah yang dipantau node ini terus berubah, tahun demi tahun."
+      context_plain: "{n} {unit} {where} berubah {span}. {since} {cmp}"
       none: "Belum ada rekaman satelit untuk kotak ini."
   es:
     state:
-      context: "{n} {unit} {where} cambió {span}. {since} {cmp}"
+      context: "La tierra que este nodo vigila sigue cambiando, año tras año."
+      context_plain: "{n} {unit} {where} cambió {span}. {since} {cmp}"
       none: "Aún no hay registro satelital para este cuadrado."
+
+# The supporting layer: where the number comes from, and that the node never asks anything.
+about:
+  en: "The number is the share of the square that changed between two satellite years, from this node's own copy of the embeddings. The satellite looks once a year, and the node never asks you to do anything about it."
+  id: "Angka tersebut adalah bagian dari kotak yang berubah antara dua tahun satelit, dari salinan embeddings milik node ini. Satelit melihat setahun sekali, dan node tidak pernah meminta Anda melakukan apa pun."
+  es: "El número es la parte del cuadrado que cambió entre dos años de satélite, desde la copia propia de este nodo. El satélite mira una vez al año, y el nodo nunca te pide que hagas nada al respecto."
 
 # No rule and a date: the satellite looks once a year, so the stamp says when it looked and when it
 # looks next. The numeral is the built share, the number a household recognises about its ground;

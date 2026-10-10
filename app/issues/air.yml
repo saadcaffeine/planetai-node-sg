@@ -42,7 +42,7 @@ packs:
     - insight/agreement
     - insight/rhythm
     - example-cooking-hours/post_cooking_summary
-    - singapore-nea/wind_southeast_rising   # south-east wind, settled and rising: the pattern this place watches for
+    - singapore-nea/wind_southeast_rising   # south-east wind, settled and rising: the pattern this place watches for
     - singapore-nea/wind_pm25_correlated    # PM2.5 rising with the wind in the south-east, tested on this node's own kit
 
 # The four distances, which are the columns of every issue. Each says where its number comes from,
@@ -83,46 +83,84 @@ distances:
 sentences:
   en:
     verbs:
-      rising:  "Climbing to"
-      steady:  "Holding at"
-      falling: "Falling to"
+      rising:  "getting worse"
+      steady:  "holding"
+      falling: "clearing"
+    # {line} is filled by the engine from the live value against the line — never asserted here.
+    line:
+      over:  "past the WHO line"
+      near:  "near the WHO line"
+      under: "under the WHO line"
+    # {event} names the day it crossed and came back, so the state band and the sentence agree.
+    event:
+      earlier: "It crossed the line earlier today."
+    cmp_words:
+      over:  "worse than {noun}"
+      under: "cleaner than {noun}"
+      level: "level with {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, under the line. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, and the source is indoors with you. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, and the whole area reads the same. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}. The house is keeping the street out. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "The air is {verb} {where}, {line}. {cmp} {event}"
+      inside:        "The air is {verb} {where}, {line} — and the source is inside the house. {cmp} {event}"
+      everywhere:    "The air is {verb} {where}, {line}, and the whole area reads the same. {cmp} {event}"
+      outside_worse: "The air is {verb} {where}, {line}. The house is keeping the street out. {cmp} {event}"
+      mixed:         "The air is {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "The air is {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "No air sensor here yet, and no model for this point."
   id:
     verbs:
-      rising:  "Naik ke"
-      steady:  "Bertahan di"
-      falling: "Turun ke"
+      rising:  "memburuk"
+      steady:  "bertahan"
+      falling: "membaik"
+    line:
+      over:  "di atas batas WHO"
+      near:  "mendekati batas WHO"
+      under: "di bawah batas WHO"
+    event:
+      earlier: "Tadi sempat melewati batas."
+    cmp_words:
+      over:  "lebih buruk daripada {noun}"
+      under: "lebih bersih daripada {noun}"
+      level: "setara dengan {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, di bawah batas. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, dan sumbernya ada di dalam rumah bersama Anda. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, dan seluruh daerah ini sama. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}. Rumah menahan udara jalan di luar. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "Udara {verb} {where}, {line}. {cmp} {event}"
+      inside:        "Udara {verb} {where}, {line} — dan sumbernya di dalam rumah. {cmp} {event}"
+      everywhere:    "Udara {verb} {where}, {line}, dan seluruh daerah ini sama. {cmp} {event}"
+      outside_worse: "Udara {verb} {where}, {line}. Rumah menahan udara jalan di luar. {cmp} {event}"
+      mixed:         "Udara {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "Udara {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "Belum ada sensor udara di sini, dan tidak ada model untuk titik ini."
   es:
     verbs:
-      rising:  "Subiendo a"
-      steady:  "Estable en"
-      falling: "Bajando a"
+      rising:  "está empeorando"
+      steady:  "se mantiene"
+      falling: "está despejando"
+    line:
+      over:  "por encima del límite de la OMS"
+      near:  "cerca del límite de la OMS"
+      under: "por debajo del límite de la OMS"
+    event:
+      earlier: "Hoy cruzó el límite."
+    cmp_words:
+      over:  "peor que {noun}"
+      under: "más limpio que {noun}"
+      level: "igual que {noun}"
     attribution:
-      clear:         "{verb} {n} {unit} {where}, por debajo del límite. {cmp}"
-      inside:        "{verb} {n} {unit} {where}, y la fuente está dentro, contigo. {cmp}"
-      everywhere:    "{verb} {n} {unit} {where}, y toda la zona marca lo mismo. {cmp}"
-      outside_worse: "{verb} {n} {unit} {where}. La casa está dejando la calle fuera. {cmp}"
-      mixed:         "{verb} {n} {unit} {where}. {cmp}"
-      unknown:       "{verb} {n} {unit} {where}. {cmp}"
+      clear:         "El aire {verb} {where}, {line}. {cmp} {event}"
+      inside:        "El aire {verb} {where}, {line}, y el foco está dentro de la casa. {cmp} {event}"
+      everywhere:    "El aire {verb} {where}, {line}, y toda la zona marca lo mismo. {cmp} {event}"
+      outside_worse: "El aire {verb} {where}, {line}. La casa mantiene la calle afuera. {cmp} {event}"
+      mixed:         "El aire {verb} {where}, {line}. {cmp} {event}"
+      unknown:       "El aire {verb} {where}, {line}. {cmp} {event}"
     state:
       none: "Aún no hay sensor de aire aquí, ni modelo para este punto."
+
+# The supporting layer (docs/SPEC_language.md): what PM2.5 is and whose line this is, taught once.
+about:
+  en: "PM2.5 are particles fine enough to reach deep into the lungs. The line — 15 µg/m³ over a day — is the WHO's."
+  id: "PM2.5 adalah partikel yang cukup halus untuk mencapai jauh ke dalam paru-paru. Batasnya — 15 µg/m³ dalam sehari — adalah milik WHO."
+  es: "PM2.5 son partículas tan finas que llegan al fondo de los pulmones. El límite — 15 µg/m³ en un día — es el de la OMS."
 
 # The hero: what this issue draws when it leads the page. The page draws it blind, so everything it
 # needs to know about air is here: the sign and the hero-size pictogram (ids in signs.svg), which
@@ -184,3 +222,58 @@ readouts:
     unit: kn
     dp: 0
     label: { en: wind speed, id: kecepatan angin, es: velocidad del viento }
+
+# Events (docs/SPEC_alerts.md §4–§5). The id and es strings are ASSISTANT-WRITTEN. The second
+# clause names whose line it is (AGENTS.md): air's line is the WHO's. {line} renders its value.
+events:
+  spike:
+    en: "📈 The air jumped in {rooms}: {peak} µg/m³ PM2.5 — the WHO line is {line}. Outside reads {outside_pm25}."
+    id: "📈 Udara melonjak di {rooms}: PM2.5 {peak} µg/m³ — batas WHO {line}. Di luar {outside_pm25}."
+    es: "📈 El aire empeoró de golpe en {rooms}: {peak} µg/m³ de PM2.5 — el límite de la OMS es {line}. Afuera marca {outside_pm25}."
+  unusual:
+    en: "😷 The air in {rooms} is worse than usual for this hour: {peak} µg/m³ PM2.5."
+    id: "😷 Udara di {rooms} lebih buruk dari biasanya untuk jam ini: PM2.5 {peak} µg/m³."
+    es: "😷 El aire en {rooms} está peor de lo habitual a esta hora: {peak} µg/m³ de PM2.5."
+  sustained:
+    en: "😷 The air in {rooms} has been unhealthy for an hour: {peak} µg/m³ PM2.5 — the WHO line is {line}."
+    id: "😷 Udara di {rooms} sudah tidak sehat selama satu jam: PM2.5 {peak} µg/m³ — batas WHO {line}."
+    es: "😷 El aire en {rooms} lleva una hora siendo insalubre: {peak} µg/m³ de PM2.5 — el límite de la OMS es {line}."
+  danger:
+    en: "🚨😷 DANGER: the air in {rooms} is very unhealthy: {peak} µg/m³ PM2.5 — the WHO line is {line}."
+    id: "🚨😷 BAHAYA: udara di {rooms} sangat tidak sehat: PM2.5 {peak} µg/m³ — batas WHO {line}."
+    es: "🚨😷 PELIGRO: el aire en {rooms} es muy insalubre: {peak} µg/m³ de PM2.5 — el límite de la OMS es {line}."
+  clear:
+    en: "✅ The air in {rooms} is back under the line."
+    id: "✅ Udara di {rooms} sudah kembali di bawah batas."
+    es: "✅ El aire en {rooms} ha vuelto a bajar del límite."
+actions:
+  - id: air/ventilate_and_purify
+    when: {where: inside, outside_worse: false, outside_pm25_below: 35, home_has: purifier}
+    say:
+      en: "Open the side where it started and run the purifier for 30 min: outside is cleaner ({outside_pm25})."
+      id: "Buka sisi asal asapnya dan nyalakan pemurni udara 30 menit: di luar lebih bersih ({outside_pm25})."
+      es: "Abre el lado donde empezó y enciende el purificador 30 min: fuera está más limpio ({outside_pm25})."
+  - id: air/ventilate
+    when: {where: inside, outside_worse: false, outside_pm25_below: 35}
+    say:
+      en: "Open the side where it started and let it through: outside is cleaner ({outside_pm25})."
+      id: "Buka sisi asal asapnya dan biarkan mengalir: di luar lebih bersih ({outside_pm25})."
+      es: "Abre el lado donde empezó y deja que corra: fuera está más limpio ({outside_pm25})."
+  - id: air/keep_shut_purify
+    when: {outside_worse: true, home_has: purifier}
+    say:
+      en: "Keep windows and doors shut and run the purifier: outside is worse ({outside_pm25})."
+      id: "Tutup jendela dan pintu dan nyalakan pemurni udara: di luar lebih buruk ({outside_pm25})."
+      es: "Mantén ventanas y puertas cerradas y enciende el purificador: afuera está peor ({outside_pm25})."
+  - id: air/keep_shut
+    when: {outside_worse: true}
+    say:
+      en: "Keep windows and doors shut: outside is worse ({outside_pm25})."
+      id: "Tutup jendela dan pintu: di luar lebih buruk ({outside_pm25})."
+      es: "Mantén ventanas y puertas cerradas: afuera está peor ({outside_pm25})."
+  - id: air/find_source
+    when: {}
+    say:
+      en: "Look for what started it, cooking, burning or dust, and keep people away from it."
+      id: "Cari sumbernya, masak, pembakaran atau debu, dan jauhkan orang darinya."
+      es: "Busca qué lo provocó, cocina, quema o polvo, y mantén a la gente lejos."

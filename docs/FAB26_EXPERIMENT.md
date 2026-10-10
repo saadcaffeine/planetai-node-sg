@@ -70,8 +70,10 @@ note from the street — send it any time and it reaches the team, filed under y
 Two doors in:
 
 - **Write a pack.** A pack is a folder: a small adapter that reads a thing, channels that name what it measures,
-  rules that say when to speak. Start from [PACKS.md](PACKS.md); copy `packs/heat`. The Xiaomi air purifier pack
-  (`packs/xiaomi-air`) is a recent example written for two real living rooms.
+  rules that say when to speak. Start from [PACKS.md](PACKS.md); copy `packs/heat`. Keep it in a repository of your
+  own, install it on any node with `planetai packs add <you>/<repo>`, and list it at
+  [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) so other nodes can find it. The Xiaomi air purifier pack,
+  `xiaomi-air`, written for two real living rooms, is listed there.
 - **Use the API.** The node exposes readings, alerts and reports over MCP and plain HTTP on your network;
   `planetai agent` shows the URL and token. Feed your own dashboard, your Home Assistant, your spreadsheet habit.
 

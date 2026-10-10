@@ -1,4 +1,5 @@
 # Channels
+<!-- checked: v0.80.10 -->
 
 A channel is how an alert leaves the node and reaches the people it is for. The repo's own description of a node
 ends with it: it "sends the people at that address one plain message when something should change". This page
@@ -17,6 +18,13 @@ Reticulum by a post to the bridge container). Home Assistant is a separate call,
 `notify()` and also for the alerts `notify()` does not send. A separate notifier service is a retired piece in
 [`SPEC.md`](spec.md) §6; its trigger is a second channel with its own auth lifecycle (WhatsApp Business), not a
 count of channels.
+
+With `ALERT_ENGINE=events` (v0.77; the default, `rules`, is unchanged) the heat and air-quality rules still record their
+alerts, and Home Assistant still gets them, but they are not sent. The event engine sends one message per event
+through the same `notify()`, so an `act` event reaches the mesh and Reticulum as well as Telegram. In quiet hours it
+sends only danger, and outside danger at most `ALERT_MAX_PER_DAY` pushes a day (default 4). On Telegram, event messages
+carry three buttons (Done / Not now / Doesn't fit) when the bot has announced itself (`TELEGRAM_BUTTONS=1`); the button
+press posts `POST /actions` with `event_id`, `stage`, `actor`, `note`. `/act` still answers alerts, not events.
 
 ## Telegram
 

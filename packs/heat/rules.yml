@@ -6,6 +6,9 @@
 - id: heat_stress_now
   level: act
   cooldown_minutes: 240
+  # The metric is computed inline from temp and humidity, so the SQL never says its name; the watch
+  # comment below is where `check_rules` finds it. The line — 35 — is this place's own (see below).
+  watch: {metric: apparent, over: 35}
   sql: |
     WITH x AS (
       SELECT t.sensor_id, t.name, t.mean_15m AS t, h.mean_15m AS rh
@@ -13,6 +16,7 @@
       -- indoor only: the no-wind Steadman form is the indoor form, and the 32 °C line was measured on two indoor
       -- kits. Outdoors, with wind unaccounted for, the same arithmetic overstates the load.
       -- A room the owner marked `secondary` (an empty sun-baked workshop) is not one anybody is in: no page.
+      -- metric: 'apparent' (computed inline from temp and humidity, so the name never appears as a column)
       WHERE t.local AND t.indoor AND t.metric = 'temp' AND t.mean_15m IS NOT NULL AND h.mean_15m IS NOT NULL
         AND t.sensor_id NOT IN (SELECT sensor_id FROM sensors WHERE meta->>'role' = 'secondary'))
     SELECT sensor_id, name, round(t::numeric, 1) AS t, round(rh::numeric) AS rh,
@@ -22,19 +26,21 @@
     -- Node #1, 2-7 Sep 2026: AT was over 32 for 86% of all readings and never once fell below 28.7. See the README.
     WHERE (t + 0.33 * (rh/100.0 * 6.105 * exp(17.27*t/(237.7+t))) - 4.0) >= 35
   message:
-    en: "🥵 It is dangerously hot at {name}: it feels like {at} °C.\n\nHumidity is stopping sweat from cooling the body, so the air feels hotter than the thermometer says and the strain builds quietly.\n\n👉 Drink water, move air, stop hard work, and check on anyone old, young or unwell."
-    id: "🥵 Panas berbahaya di {name}: terasa seperti {at} °C.\n\nKelembapan menghambat keringat mendinginkan tubuh, jadi udara terasa lebih panas dari angka termometer dan beban menumpuk diam-diam.\n\n👉 Minum air, gerakkan udara, hentikan kerja berat, dan cek orang tua, anak kecil, atau yang sakit."
-    es: "🥵 Hace un calor peligroso en {name}: la sensación es de {at} °C.\n\nLa humedad impide que el sudor enfríe el cuerpo, así que el aire se siente más caliente de lo que marca el termómetro y el desgaste se acumula sin que se note.\n\n👉 Bebe agua, mueve el aire, para el trabajo duro y pregunta cómo están los mayores, los niños y quien esté enfermo."
+    en: "🥵 It is too hot at {name}: it feels like {at} °C — this house's own line is {line} °C, measured here.\n\nHumidity is stopping sweat from cooling the body, so the air feels hotter than the thermometer says and the strain builds quietly.\n\n👉 Drink water, move air, stop hard work, and check on anyone old, young or unwell."
+    id: "🥵 Panas berlebih di {name}: terasa seperti {at} °C — batas rumah ini sendiri {line} °C, diukur di sini.\n\nKelembapan menghambat keringat mendinginkan tubuh, jadi udara terasa lebih panas dari angka termometer dan beban menumpuk diam-diam.\n\n👉 Minum air, gerakkan udara, hentikan kerja berat, dan cek orang tua, anak kecil, atau yang sakit."
+    es: "🥵 Hace demasiado calor en {name}: la sensación es de {at} °C — el límite propio de esta casa es {line} °C, medido aquí.\n\nLa humedad impide que el sudor enfríe el cuerpo, así que el aire se siente más caliente de lo que marca el termómetro y el desgaste se acumula sin que se note.\n\n👉 Bebe agua, mueve el aire, para el trabajo duro y pregunta cómo están los mayores, los niños y quien esté enfermo."
 
 - id: heat_danger
   level: act
   cooldown_minutes: 120
+  watch: {metric: apparent, over: 40}
   sql: |
     WITH x AS (
       SELECT t.sensor_id, t.name, t.mean_15m AS t, h.mean_15m AS rh
       FROM stats t JOIN stats h ON h.sensor_id = t.sensor_id AND h.metric = 'humidity'
       -- indoor only: the no-wind Steadman form is the indoor form. Outdoors, with wind unaccounted for, the same
       -- arithmetic overstates the load. A room marked `secondary` is not one anybody is in: no page.
+      -- metric: 'apparent' (computed inline from temp and humidity, so the name never appears as a column)
       WHERE t.local AND t.indoor AND t.metric = 'temp' AND t.mean_15m IS NOT NULL AND h.mean_15m IS NOT NULL
         AND t.sensor_id NOT IN (SELECT sensor_id FROM sensors WHERE meta->>'role' = 'secondary'))
     SELECT sensor_id, name,
@@ -42,9 +48,9 @@
     FROM x
     WHERE (t + 0.33 * (rh/100.0 * 6.105 * exp(17.27*t/(237.7+t))) - 4.0) >= 40
   message:
-    en: "🚨🥵 DANGER at {name}: it feels like {at} °C.\n\nThis is heatstroke territory. The body cannot shed heat at this level, and it goes wrong fast.\n\n👉 Cool the room or leave it. Wet skin, a fan, shade, water. Do not leave anyone alone in it."
-    id: "🚨🥵 BAHAYA di {name}: terasa seperti {at} °C.\n\nIni wilayah heatstroke. Tubuh tidak bisa membuang panas di tingkat ini, dan cepat memburuk.\n\n👉 Dinginkan ruangan atau keluar. Basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian di dalamnya."
-    es: "🚨🥵 PELIGRO en {name}: la sensación es de {at} °C.\n\nEsto es terreno de golpe de calor. A este nivel el cuerpo no consigue soltar calor, y se descompone rápido.\n\n👉 Enfría la habitación o sal de ella. Piel mojada, un ventilador, sombra, agua. No dejes a nadie solo ahí."
+    en: "🚨🥵 DANGER at {name}: it feels like {at} °C — the danger line here is {line} °C.\n\nThis is heatstroke territory. The body cannot shed heat at this level, and it goes wrong fast.\n\n👉 Cool the room or leave it. Wet skin, a fan, shade, water. Do not leave anyone alone in it."
+    id: "🚨🥵 BAHAYA di {name}: terasa seperti {at} °C — garis bahaya di sini {line} °C.\n\nIni wilayah heatstroke. Tubuh tidak bisa membuang panas di tingkat ini, dan cepat memburuk.\n\n👉 Dinginkan ruangan atau keluar. Basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian di dalamnya."
+    es: "🚨🥵 PELIGRO en {name}: la sensación es de {at} °C — la línea de peligro aquí es {line} °C.\n\nEsto es terreno de golpe de calor. A este nivel el cuerpo no consigue soltar calor, y se descompone rápido.\n\n👉 Enfría la habitación o sal de ella. Piel mojada, un ventilador, sombra, agua. No dejes a nadie solo ahí."
 
 - id: night_no_relief
   level: info
@@ -62,3 +68,75 @@
     en: "🌙🥵 Last night never cooled down at {name}.\n\nWhen a room stays this warm all night, the body does not recover in sleep; people wake tired and the heat wears them down day by day.\n\n👉 Open up at the coolest hour, just before dawn. If this is every night, the room needs shade or airflow, not a bigger fan."
     id: "🌙🥵 Semalam tidak sempat dingin di {name}.\n\nKalau ruangan sehangat ini semalaman, tubuh tidak pulih saat tidur; orang bangun lelah dan panas menggerus hari demi hari.\n\n👉 Buka di jam terdingin, sebelum subuh. Kalau tiap malam begini, ruangan perlu peneduh atau aliran udara, bukan kipas lebih besar."
     es: "🌙🥵 Anoche nunca refrescó en {name}.\n\nCuando una habitación sigue así de caliente toda la noche, el cuerpo no se recupera durmiendo; la gente se levanta cansada y el calor la va desgastando día a día.\n\n👉 Abre a la hora más fresca, justo antes del amanecer. Si pasa todas las noches, la habitación necesita sombra o corriente de aire, no un ventilador más grande."
+
+# ---- kinded rules: the event engine's (docs/SPEC_alerts.md §3). The old engine skips any rule with `kind:`. ----
+# The id and es strings below are ASSISTANT-WRITTEN.
+# Every row carries value, line and over. A row with over=false is inside the margin: it keeps an open event open
+# and never opens one. Thresholds are starting values for the replay of node #1's month.
+# Room air only: a sensor whose `temp` channel is declared something other than ambient (a Meshtastic radio reports its
+# own box, config/channels.yml) is never read as a room. A source with no declared role is kept.
+
+- id: heat_unusual
+  kind: unusual
+  issue: heat
+  level: act
+  cooldown_minutes: 60
+  sql: |
+    WITH a AS (SELECT r.sensor_id, s.name, r.bucket, r.mean FROM recent_15m r JOIN sensors s ON s.sensor_id = r.sensor_id
+               LEFT JOIN channel_roles cr ON cr.source = s.source AND cr.metric = 'temp'
+               WHERE r.metric = 'apparent' AND s.local AND s.indoor AND r.bucket > now() - INTERVAL '1 hour'
+                 AND (cr.role IS NULL OR cr.role = 'ambient')),
+         u AS (SELECT sensor_id, p90 FROM usual_by_hour
+               WHERE metric = 'apparent' AND hour = CAST(extract(hour FROM now()) AS INTEGER))
+    SELECT a.sensor_id, a.name, round(CAST(avg(a.mean) AS NUMERIC), 1) AS value,
+           round(CAST(min(u.p90) + 2 AS NUMERIC), 1) AS line,
+           min(a.mean) >= min(u.p90) + 2 AS over
+    FROM a JOIN u ON u.sensor_id = a.sensor_id
+    GROUP BY a.sensor_id, a.name
+    HAVING count(*) >= 3 AND avg(a.mean) >= min(u.p90) + 1
+  message:
+    en: "Heat in {name}: it feels like {value} °C, above this room's usual of the hour ({line})."
+    id: "Panas di {name}: terasa seperti {value} °C, di atas biasanya untuk jam ini ({line})."
+    es: "Calor en {name}: la sensación es de {value} °C, por encima de lo habitual a esta hora ({line})."
+
+- id: heat_sustained
+  kind: sustained
+  issue: heat
+  level: act
+  cooldown_minutes: 60
+  sql: |
+    WITH a AS (SELECT r.sensor_id, s.name, r.bucket, r.mean FROM recent_15m r JOIN sensors s ON s.sensor_id = r.sensor_id
+               LEFT JOIN channel_roles cr ON cr.source = s.source AND cr.metric = 'temp'
+               WHERE r.metric = 'apparent' AND s.local AND s.indoor AND (cr.role IS NULL OR cr.role = 'ambient')),
+         l AS (SELECT sensor_id, name, max(bucket) AS b FROM a GROUP BY 1, 2),
+         v AS (SELECT a.sensor_id, a.mean FROM a JOIN l ON l.sensor_id = a.sensor_id AND a.bucket = l.b),
+         k AS (SELECT sensor_id, max(bucket) AS b FROM a WHERE mean < 35 GROUP BY 1),
+         u AS (SELECT sensor_id, count(*) AS hours FROM usual_by_hour WHERE metric = 'apparent' AND p75 >= 35 GROUP BY 1)
+    SELECT l.sensor_id, l.name, round(CAST(v.mean AS NUMERIC), 1) AS value, 35 AS line,
+           round(CAST(extract(epoch FROM l.b - coalesce(k.b, l.b - INTERVAL '24 hours')) / 3600.0 AS NUMERIC), 1) AS hours,
+           coalesce(u.hours, 0) AS usual_hours,
+           extract(epoch FROM l.b - coalesce(k.b, l.b - INTERVAL '24 hours')) / 3600.0 >= greatest(3, coalesce(u.hours, 0) + 1) AS over
+    FROM l JOIN v ON v.sensor_id = l.sensor_id
+    LEFT JOIN k ON k.sensor_id = l.sensor_id LEFT JOIN u ON u.sensor_id = l.sensor_id
+    WHERE v.mean >= 34
+  message:
+    en: "Heat in {name}: {hours} h at a feels-like of 35 °C or more (usually {usual_hours} h); now {value} °C."
+    id: "Panas di {name}: {hours} jam terasa 35 °C atau lebih (biasanya {usual_hours} jam); sekarang {value} °C."
+    es: "Calor en {name}: {hours} h con sensación de 35 °C o más (lo habitual, {usual_hours} h); ahora {value} °C."
+
+- id: heat_extreme
+  kind: danger
+  issue: heat
+  level: act
+  cooldown_minutes: 60
+  sql: |
+    SELECT r.sensor_id, s.name, round(CAST(r.mean AS NUMERIC), 1) AS value, 40 AS line, r.mean >= 40 AS over
+    FROM recent_15m r JOIN sensors s ON s.sensor_id = r.sensor_id
+    LEFT JOIN channel_roles cr ON cr.source = s.source AND cr.metric = 'temp'
+    WHERE r.metric = 'apparent' AND s.local AND s.indoor AND (cr.role IS NULL OR cr.role = 'ambient')
+      AND r.bucket = (SELECT max(bucket) FROM recent_15m WHERE sensor_id = r.sensor_id AND metric = 'apparent')
+      AND r.mean >= 39
+  message:
+    en: "Danger in {name}: it feels like {value} °C."
+    id: "Bahaya di {name}: terasa seperti {value} °C."
+    es: "Peligro en {name}: la sensación es de {value} °C."

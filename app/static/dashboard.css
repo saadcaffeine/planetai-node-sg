@@ -77,8 +77,6 @@ svg.sg { width: 1em; height: 1em; flex: none; vertical-align: -.12em }
 [data-kind="readout"] .cmp.none { color: var(--mute) }
 [data-kind="readout"] .src { font-size: 12px; color: var(--mute); line-height: 1.4;
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
-[data-kind="readout"].unplaced { border: 1px dashed var(--hair); padding: 10px 12px }
-[data-kind="readout"].unplaced .lab::after { content: " · unplaced"; color: var(--signal-worse) }
 
 /* ---------------------------------------------------------------- 2 · stack
  * The same quantity at four distances, on one scale. The columns are the distances in order and an
@@ -123,30 +121,9 @@ svg.sg { width: 1em; height: 1em; flex: none; vertical-align: -.12em }
 }
 
 /* ---------------------------------------------------------------- 3 · series
- * A trace with an axis, a time origin, the line, and a text alternative. The text alternative is
- * not a fallback: it is beside the drawing at every width, because the drawing stretches and its
- * own labels do not survive a phone. */
-[data-kind="series"] .ax { display: flex; justify-content: space-between; gap: 12px;
-  font: 500 11px var(--mono); letter-spacing: .06em; color: var(--mute) }
-[data-kind="series"] .ax.top { margin-bottom: 2px }
-[data-kind="series"] .ax.bot { margin-top: 2px }
+ * The figures (.f-*, further down) are this kind. What they share is that a drawing
+ * fills its card. The old trace's axis, alternative and legend rules went with the trace. */
 [data-kind="series"] svg { width: 100%; height: auto; display: block }
-[data-kind="series"] .alt { font-size: 12.5px; color: var(--mute); margin-top: 6px; line-height: 1.45 }
-[data-kind="series"] .legend { display: flex; gap: 16px; flex-wrap: wrap; font: 500 11px var(--mono);
-  letter-spacing: .04em; color: var(--mute); margin-top: 8px }
-[data-kind="series"] .legend i { display: inline-block; width: 18px; border-top: 1.5px solid var(--ink);
-  vertical-align: middle; margin-right: 6px }
-[data-kind="series"] .legend i.dash { border-top-style: dashed }
-[data-kind="series"] .legend i.dot { border-top-style: dotted }
-/* A distance that is NOT drawn, named in the same legend as the ones that are. Its rule is a gap,
-   not a line, so the legend itself says which of the four have a trace and which do not — and it
-   is the muted weight, never a colour, because absence is not a warning. */
-[data-kind="series"] .legend .gone { color: var(--mute) }
-[data-kind="series"] .legend .gone i { border-top: 1.5px dotted var(--dim); opacity: .55 }
-/* The hours-over key. The marks under the axis are the one red thing in the drawing after the
-   line itself, so the legend entry carries the same red and the count beside it. */
-[data-kind="series"] .legend .over i { border-top: 0; width: 2px; height: 11px;
-  background: var(--signal-worse); vertical-align: -2px }
 
 /* ---------------------------------------------------------------- 4 · row
  * A ledger, an index, a unit row or a sensor row. One grammar: a left rail that is scannable, a
@@ -207,14 +184,6 @@ svg.sg { width: 1em; height: 1em; flex: none; vertical-align: -.12em }
 .ask form.did button[disabled] { opacity: .5 }
 .ask form.did .fine { grid-column: 1 / -1; font-size: 12.5px; color: var(--mute); max-width: 68ch; margin: 0 }
 /* ==== h/mods/shape.js — the day this place usually has ==== */
-/* Two lines told apart by dash and weight, never hue, like every other pair on this page. */
-.shapeplot { display: block; width: 100%; height: auto; max-height: 190px; margin: 10px 0 4px;
-  border: 1px solid var(--hair); background: var(--ground) }
-.shapeplot .grid line { stroke: var(--hair); stroke-width: 1 }
-.shapeplot text { font: 500 9px var(--mono); fill: var(--mute) }
-.shapeplot path { fill: none; vector-effect: non-scaling-stroke }
-.shapeplot path.in { stroke: var(--ink); stroke-width: 2.2 }
-.shapeplot path.out { stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: .75 }
 
 /* ==== h/mods/decide.js — an observation, what the node suggests, and a box ==== */
 /* Three bands down one card: what was seen, what the node suggests, and the decision. The suggestion
@@ -251,6 +220,54 @@ svg.sg { width: 1em; height: 1em; flex: none; vertical-align: -.12em }
   border-radius: 0; border: 1px solid var(--ink); background: var(--ground); color: var(--ink) }
 .decide form.decided button.pri { background: var(--ink); color: var(--ground) }
 .decide form.decided .fine { font-size: 12.5px; color: var(--mute); max-width: 68ch }
+
+/* ==== the event card (SPEC_dashboard_events §4.2) — the decide card's box, the readout's numeral, the ask's
+   button. One per issue per house; answered, it goes quiet rather than disappearing. */
+.ev { border: 1px solid var(--ink); padding: clamp(13px, 1.4vw, 18px); display: grid; gap: 10px;
+  background: var(--ground); margin-bottom: clamp(12px, 1.4vw, 20px) }
+.ev.held { color: var(--mute); border-color: var(--hair) }
+.ev .evhead { font: 600 14.5px/1.4 var(--fc-font-body); display: flex; flex-wrap: wrap; gap: 4px 6px;
+  align-items: center }
+.ev .evhead .sgn { width: 20px; height: 20px; color: var(--ink) }
+.ev .m, .evrow .m { font: 500 11.5px var(--mono); color: var(--mute) }
+.ev .evhead .m { margin-left: 8px }
+.ev .evcmp { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px }
+.evnum { font: 700 clamp(1.3rem, 1.9vw, 1.7rem)/1 var(--mono); letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums }
+.evnum.worse { color: var(--signal-worse) }
+.ev .evcmp small { font: 500 11px var(--mono); color: var(--mute); flex-basis: 100% }
+.ev .evact { font: 600 14.5px/1.4 var(--fc-font-body); max-width: 56ch }
+.ev .evact.none { font-weight: 400; color: var(--mute) }
+.ev .evdone, .ev .evheld, .evrow .evdone, .evrow .evheld { font: 500 12.5px var(--mono); color: var(--mute) }
+.ev .evnote, .evrow .evnote { font-style: italic }
+.ev .evdone svg.sg, .evrow .evdone svg.sg { color: var(--loop-closed) }
+.ev .evbtns, .evrow .evbtns { display: flex; gap: 8px; flex-wrap: wrap }
+.ev .evb, .evrow .evb { font: 600 14px var(--fc-font-body); padding: 10px 16px; border-radius: 0;
+  border: 1px solid var(--ink); background: var(--ground); color: var(--ink) }
+.ev .evb.pri, .evrow .evb.pri { background: var(--ink); color: var(--ground) }
+.ev .evmsg { display: grid; gap: 2px; border-left: 3px solid var(--cells); padding-left: 12px }
+.ev .evmsg .said { font-size: 12.5px; line-height: 1.45; white-space: pre-line; max-width: 56ch }
+.ev .evlinks { font: 500 11.5px var(--mono); color: var(--mute) }
+.ev .evlinks a { color: var(--ink) }
+.ev details.evrows { font: 500 11.5px var(--mono); color: var(--mute) }
+.ev details.evrows summary { cursor: pointer; color: var(--ink) }
+.ev details.evrows p { margin: 4px 0 0 }
+/* The I did this button on a Decide alert card sits in the card's own box, not in a second one. */
+.decide > .ask { border: 0; padding: 0 }
+.decide > .ask .go { justify-self: start }
+.ev .evform, .evrow .evform { display: grid; gap: 10px 16px; border-top: 1px solid var(--hair); padding-top: 12px }
+.ev .evform[hidden], .evrow .evform[hidden] { display: none }
+.ev .evform label, .evrow .evform label { display: grid; gap: 3px; min-width: 0 }
+.ev .evform label[hidden], .evrow .evform label[hidden] { display: none }
+.ev .evform label span, .evrow .evform label span { font: 500 10.5px var(--mono); letter-spacing: .1em; color: var(--mute) }
+.ev .evform input:not([type="hidden"]), .evrow .evform input:not([type="hidden"]) { font: 400 14px var(--fc-font-body); padding: 9px 10px;
+  border: 1px solid var(--hair); background: var(--ground); color: var(--ink); min-width: 0 }
+.ev .evform input:focus-visible, .evrow .evform input:focus-visible { outline: 2px solid var(--ink); outline-offset: -1px }
+.ev .evform .btns, .evrow .evform .btns { display: flex; gap: 8px; flex-wrap: wrap }
+.ev .evform button, .evrow .evform button { font: 600 14px var(--fc-font-body); padding: 9px 14px; border-radius: 0;
+  border: 1px solid var(--ink); background: var(--ground); color: var(--ink) }
+.ev .evform button.pri, .evrow .evform button.pri { background: var(--ink); color: var(--ground) }
+.ev .evform .fine, .evrow .evform .fine { font-size: 12.5px; color: var(--mute); max-width: 68ch }
 
 .ask.none { border-style: dashed; border-color: var(--hair) }
 .ask.none .what { font-weight: 400; color: var(--mute) }
@@ -298,25 +315,6 @@ svg.sg { width: 1em; height: 1em; flex: none; vertical-align: -.12em }
 .units .row .signs svg.sg.faint { opacity: .45 }
 .units .row .signs svg.sg.off { opacity: .22 }
 
-/* The barcode: one row an issue, one bar an hour. The strip stretches and the bars with it, which
-   is right — an hour is an hour whatever the screen is — and the label and the count hold their
-   own width so four rows line up down the page. */
-.barcode { display: grid; gap: 6px; margin: 0 0 16px }
-.barcode .bc { display: grid; grid-template-columns: minmax(0, 12ch) minmax(0, 1fr) auto;
-  gap: 12px; align-items: end; border-top: 1px solid var(--hair); padding-top: 6px }
-.barcode .bc .k { font: 500 11px var(--mono); color: var(--mute); align-self: center }
-.barcode .bc svg { width: 100%; height: 34px; display: block; fill: var(--ink) }
-/* Over that issue's own line: the same red the hours-over marks under a trace use, for the same
-   fact, so a reader who has learnt one has learnt both. */
-.barcode .bc svg rect.over { fill: var(--signal-worse) }
-/* An hour with no reading is a hairline on the floor, not a gap in the row: a missing hour and an
-   hour that read zero are different, and a blank would draw them the same. */
-.barcode .bc svg rect.gap { fill: var(--dim) }
-.barcode .bc .m { font: 700 12px var(--mono); color: var(--ink); align-self: center }
-.barcode .bc .empty { font-size: 12.5px; color: var(--mute); align-self: center;
-  grid-column: 2 / -1 }
-.barcode .cap { font-size: 12px; color: var(--mute); margin: 4px 0 0; line-height: 1.45 }
-
 /* The worked instance under the sentence template: the node's own sentence, and under it the parts
    named. Indented from the row above so it reads as that row's example and not as a fourth row. */
 .tmplex { display: grid; gap: 4px; margin: 0; padding: 10px 0 12px 12px;
@@ -340,11 +338,6 @@ table.figs td.mono { font-family: var(--mono); font-variant-numeric: tabular-num
 table.figs td.num { font-weight: 700; white-space: nowrap }
 table.figs td small { font-weight: 500; color: var(--mute) }
 .figwrap .cap { font-size: 12px; color: var(--mute); margin: 8px 0 0 }
-@media (max-width: 560px) {
-  /* The label goes above at phone width: twelve characters and 24 bars cannot share 390 px. */
-  .barcode .bc { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px }
-  .barcode .bc .k { grid-column: 1 / -1; align-self: start }
-}
 
 .peer { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 12px 0;
   border-top: 1px solid var(--hair); align-items: start }
@@ -626,6 +619,12 @@ nav span.on, nav button.on { background: var(--ink); color: var(--ground); font-
    the number, at sentence size — the monument above is the reading. */
 .lead .big { font: 400 clamp(16px, 1.5vw, 21px)/1.3 var(--fc-font-body); letter-spacing: 0;
   max-width: 30ch }
+/* The tagline is the title's explanation — the line, the comparison, the day's event — set smaller
+   and muted, so the title says what is happening and the readings arrive a beat later. */
+.lead .big .tag { display: block; font-size: clamp(13px, 1.15vw, 16px); line-height: 1.35;
+  color: var(--mute); margin-top: .3em; max-width: 38ch }
+.band .big .tag { display: block; font-size: .82em; line-height: 1.3; color: var(--mute);
+  margin-top: .25em }
 .lead .big b { font-family: var(--mono); font-weight: 700 }
 /* What the red tick on every meter means, said once. */
 .legend { font: 500 10.5px var(--mono); letter-spacing: .04em; color: var(--mute); margin: 0 }
@@ -755,8 +754,6 @@ nav span.on, nav button.on { background: var(--ink); color: var(--ground); font-
 .stage { padding-top: clamp(26px, 3.4vw, 44px) }
 .stagehead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
   border-bottom: 2px solid var(--ink); padding-bottom: 8px }
-.stagehead .n { font: 700 12px var(--mono); border: 1px solid var(--ink); width: 22px; height: 22px;
-  display: inline-grid; place-items: center; align-self: center }
 .stagehead h2 { font: 800 clamp(1.15rem, 1.8vw, 1.5rem) var(--fc-font-display); letter-spacing: -.02em }
 .stagehead .what { font-size: 13px; color: var(--mute) }
 .stagehead .loop { margin-left: auto; display: inline-flex; gap: 4px; align-self: center }
@@ -1050,8 +1047,12 @@ svg.net .halo { transform-origin: 675px 180px; animation: nethalo var(--motion-r
 .row.station .silent { font: 700 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink) }
 .row.station .pic { min-width: 0 }
-.row.station .pic svg.spark { display: block; width: 240px; max-width: 100%; height: auto }
-.row.station .pic svg.spark text { font: 500 8px var(--mono); fill: var(--mute); letter-spacing: .04em }
+.row.station .pic .f-fig { width: 100%; max-width: 240px }
+.silentfold { margin: 10px 0 0; border-top: 1px solid var(--hair); padding-top: 8px }
+.silentfold summary { cursor: pointer; font: 500 12px var(--mono); color: var(--mute) }
+.silentfold .row.silent { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 6px 0;
+  border-bottom: 1px solid var(--hair); color: var(--mute) }
+.silentfold .said { font: 500 12px var(--mono) }
 .row.station .qty { justify-self: end; align-items: baseline }
 .row.station .qty .num { font-size: 20px }
 .row.station .qty small { font: 500 11px var(--mono); color: var(--mute); margin-left: 4px }
@@ -1294,6 +1295,9 @@ h1.brand { font: inherit }
  * still frame under reduced motion — and the numeral and the meters use the layer's own tokens. The
  * one thing that is CSS is the blink beside the heading, and it goes to zero in the block below. */
 .asking { display: none }
+/* ships already on (index.html: the boot screen is the loading screen); a browser with scripting
+   off gets the shell instead of a spinner that would lie */
+@media (scripting: none) { .asking { display: none !important } }
 .asking.on { display: grid; position: fixed; inset: 0; z-index: 8; background: var(--ground);
   grid-template-columns: minmax(0, 1fr) min(380px, 40vw); gap: clamp(16px, 3vw, 32px);
   align-content: start; padding: clamp(16px, 3vw, 28px) clamp(16px, 4vw, 32px); overflow: auto }
@@ -1401,6 +1405,11 @@ body[data-lv="simple"] .lead .big { font-size: clamp(18px, 1.8vw, 24px); max-wid
 .askrow .what { font: 600 15px/1.35 var(--fc-font-body); min-width: 0; overflow-wrap: anywhere }
 .askrow .what small { display: block; font: 400 11px var(--mono); color: var(--mute); margin-top: 3px }
 .askrow form.did { grid-column: 1 / -1 }
+/* The event row: its buttons and form take the row's width, under the sign and the action; "and N more" closes it. */
+.evrow .evbtns, .evrow .evform, .evrow .evmore, .evrow .evdone, .evrow .evheld { grid-column: 1 / -1 }
+.evrow .evdone, .evrow .evheld { margin: 0 }
+.evrow .what .m { display: block; margin-top: 3px }
+.evrow .evmore { margin: 0; font: 500 11px var(--mono); color: var(--mute) }
 @media (max-width: 520px) { .askrow { grid-template-columns: 26px minmax(0, 1fr) } .askrow .go { grid-column: 1 / -1 } }
 .plainkey { font: 400 14px/1.4 var(--fc-font-body); display: block }
 .plainkey .d { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle;
@@ -1533,6 +1542,48 @@ body.askopen #askpane { display: grid; grid-template-rows: auto minmax(0, 1fr) a
 #askpane .ledger .out { color: var(--ink); font-weight: 700 }
 #askpane .ledger .out i { background: none; border: 1.5px solid var(--ink) }
 
+/* ================================================================= figures (kit 6 · docs/SPEC_dashboard_figures.md §4)
+ * Every class here starts with f-: .ev, .band, .line, .read, .legend, .over and .gone already mean something on
+ * this page. Ink for readings, red for the line and the hours over it, green only for an answer that closed a loop,
+ * blue only for focus and the pointed cell. */
+.f-day, .f-strips { margin: 12px 0 20px }
+.f-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 2px;
+  font: 500 12px var(--mono); color: var(--mute) }
+.f-head .f-line { color: var(--signal-worse) }
+.f-fig { position: relative; outline: none }
+.f-fig:focus-visible { outline: 2px solid var(--cells); outline-offset: 2px }
+.f-fig svg { display: block; max-width: 100%; height: auto }
+.f-in { position: relative }
+.f-hair { position: absolute; top: 0; bottom: 26px; width: 0; border-left: 1px solid var(--ink); opacity: .6;
+  pointer-events: none }
+.f-read { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; min-height: 20px; margin: 4px 0;
+  font: 500 12.5px var(--mono); font-variant-numeric: tabular-nums }
+.f-read .f-over { color: var(--signal-worse) }
+.f-read .f-gone, .f-legend .f-gone { color: var(--dim) }
+.f-read .f-usual { color: var(--mute) }
+.f-read .f-done { color: var(--rings) }
+.f-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 2px 0 0; font: 500 10.5px var(--mono);
+  letter-spacing: .04em; color: var(--mute) }
+.f-legend i, .f-read i { display: inline-block; width: 12px; height: 0; border-top: 2px solid var(--ink);
+  vertical-align: middle; margin-right: 5px }
+.f-yard i { border-top-style: dashed }
+.f-ring i { border-top-style: dotted }
+.f-region i { border-top-style: dashed; opacity: .55 }
+.f-rooms i { border-top-width: 3px }
+.f-gone i { border-top-color: var(--dim) }
+.f-band i { height: 8px; border: 0; background: var(--ink); opacity: .12 }
+.f-over i { border-top-color: var(--signal-worse) }
+.f-evl i { border-top-width: 5px; opacity: .25 }
+.f-done i { width: 9px; height: 9px; border: 2px solid var(--rings); border-radius: 50% }
+.f-lo i, .f-hi i, .f-red i, .f-gap i, .f-evc i { width: 9px; height: 9px; border: 0 }
+.f-lo i { background: var(--ink); opacity: .15 }
+.f-hi i { background: var(--ink) }
+.f-red i { background: var(--signal-worse) }
+.f-gap i { border: 1px solid var(--hair) }
+.f-evc i { border: 1.5px solid var(--ink) }
+.f-alt { font-size: 13px; color: var(--mute); line-height: 1.5; margin: 6px 0 0 }
+@media (max-width: 600px) { .f-read { font-size: 11.5px; gap: 2px 12px } }
+
 /* ==== singapore-wall (this node's own): air against NEA, wind, rain — a row on Now; on the wall the columns
    ride the wall's own .wmore grid and need nothing here ==== */
 .sgwall { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px 20px }
@@ -1575,13 +1626,6 @@ body.askopen #askpane { display: grid; grid-template-rows: auto minmax(0, 1fr) a
   font: 500 9.5px var(--mono); letter-spacing: .06em; color: var(--mute) }
 .scales .sc.on { border-top-color: var(--ink); color: var(--ink); font-weight: 700 }
 @media (max-width: 600px) { .rail + .scales .sc { font-size: 8px; letter-spacing: 0 } }
-/* Series markers: 24 h ago, highest, the line. */
-[data-kind="series"] .marks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px;
-  font: 500 11px var(--mono); color: var(--ink) }
-[data-kind="series"] .marks .mk i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px;
-  vertical-align: -1px; border: 1.6px solid var(--ink); background: var(--ground) }
-[data-kind="series"] .marks .mk.peak i { background: var(--signal-worse); border-color: var(--signal-worse) }
-[data-kind="series"] .marks .mk.ln i { border: 0; border-radius: 0; height: 0; width: 14px; border-top: 2px dashed var(--signal-worse) }
 
 .modehint { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   border: 1px dashed var(--ink); padding: 10px 14px; margin: 16px 0 }

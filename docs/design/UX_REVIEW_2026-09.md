@@ -235,7 +235,7 @@ the cell caption, **and the word `stale`**.
 | L7 | P2 | Medium | §1 `heading-hierarchy` | screen reader | axe `page-has-heading-one` on the wall too. | axe | see H2 | no | **fixed** `47beab1` + `3a2237f` |
 
 **The `?only=` bug is fixed.** `?only=nonesuch` renders the whole page (9 bands, 5,819 characters of
-text), and `?only=place` renders one band. `docs/HANDOFF_dashboard_violations.md` finding 3 and the
+text), and `?only=place` renders one band. `docs/archive/handoffs/HANDOFF_dashboard_violations.md` finding 3 and the
 review's §1 finding 7 can both be closed.
 
 **`?kiosk=1` and the Wall view are the same view**, correctly: `KIOSK` only adds `body.kiosk` and

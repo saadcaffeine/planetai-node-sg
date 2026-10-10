@@ -39,6 +39,28 @@ os.environ.setdefault("SOURCES_DIR", str(ROOT / "data" / "sources"))
 # node — which is the whole thing this file's docstring says it must not be.
 os.environ.setdefault("DATABASE_URL", "postgresql://preview@127.0.0.1:1/preview")
 
+# Extra library search paths on developer macOS machines (e.g. h3)
+for extra in ("/opt/homebrew/Caskroom/miniconda/base/lib/python3.14/site-packages",):
+    if Path(extra).is_dir() and extra not in sys.path:
+        sys.path.append(extra)
+
+# Stub psycopg if the native libpq is absent: preview.py never queries the database
+if "psycopg" not in sys.modules:
+    try:
+        import psycopg  # noqa: F401
+    except Exception:
+        import types
+        stub_pg = types.ModuleType("psycopg")
+        stub_pg.connect = lambda *a, **kw: None
+        stub_pg_rows = types.ModuleType("psycopg.rows")
+        stub_pg_rows.dict_row = None
+        stub_pg_types = types.ModuleType("psycopg.types.json")
+        stub_pg_types.Jsonb = lambda x: x
+        sys.modules["psycopg"] = stub_pg
+        sys.modules["psycopg.rows"] = stub_pg_rows
+        sys.modules["psycopg.types"] = types.ModuleType("psycopg.types")
+        sys.modules["psycopg.types.json"] = stub_pg_types
+
 import settings                                   # noqa: E402
 from issues import engine, load                   # noqa: E402
 
@@ -127,7 +149,8 @@ class H(BaseHTTPRequestHandler):
                 self.send_header("Location", f"{p}?fixture={DEFAULT}")
                 self.end_headers()
                 return None
-            return self.send(200, (ROOT / "app" / "static" / "index.html").read_bytes(), "text/html")
+            page = "index.html" if (q.get("layout") or [""])[0] == "classic" else "doors.html"   # app/main.py::ui
+            return self.send(200, (ROOT / "app" / "static" / page).read_bytes(), "text/html")
 
         if p.startswith("/static/"):
             name = p[len("/static/"):]

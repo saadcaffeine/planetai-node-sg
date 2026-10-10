@@ -433,6 +433,16 @@ jobs:
           [ -n "$tag" ] && echo "newest signed release: $tag" \
             || echo "no signed release published yet — the step below starts running at the first one"
 
+      - name: start clean — an earlier leg's volume trips the reinstall guard now
+        run: |
+          # Since v0.80.2 the installer refuses a fresh .env over an existing planetai_db, and the flat
+          # leg above leaves exactly that behind. The last signed release's tarball used to slip past the
+          # basename-derived guard, so this leg never met the refusal until the guard learned the pinned
+          # volume name. A tester on a used machine is meant to see the refusal and its two ways out;
+          # this leg tests the install itself, so it starts clean, the way the fail leg already does.
+          docker rm -f $(docker ps -aq --filter "name=planetai-") 2>/dev/null || true
+          docker volume rm -f planetai_db >/dev/null 2>&1 || true
+
       - name: install from the release URL, with the stub exactly as committed
         if: steps.rel.outputs.tag != ''
         env:

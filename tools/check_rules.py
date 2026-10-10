@@ -32,7 +32,10 @@ def schema() -> dict[str, set[str]]:
     A genuinely malformed CREATE TABLE still fails loudly: the table drops out of the schema and every rule
     that names it is reported."""
     out: dict[str, set[str]] = {}
-    for st in sqlglot.parse(SQL, read="postgres", error_level=ErrorLevel.IGNORE):
+    # sqlglot reads CREATE MATERIALIZED VIEW ... WITH NO DATA as an opaque Command, which left usual_by_hour out of
+    # the schema; as a plain view it is the same select list.
+    sql = SQL.replace("CREATE MATERIALIZED VIEW", "CREATE VIEW").replace("WITH NO DATA", "")
+    for st in sqlglot.parse(sql, read="postgres", error_level=ErrorLevel.IGNORE):
         if not isinstance(st, exp.Create):
             continue
         name = getattr(getattr(st.this, "this", None), "name", None)
@@ -41,7 +44,11 @@ def schema() -> dict[str, set[str]]:
         if st.kind == "TABLE":
             out[name] = {c.name for c in st.find_all(exp.ColumnDef)}
         elif st.kind == "VIEW":
-            out[name] = {e.alias_or_name for e in getattr(st.expression, "expressions", [])}
+            # a view ending in UNION ALL (recent_15m) names its columns by its first SELECT
+            body = st.expression
+            while isinstance(body, exp.Union):
+                body = body.this
+            out[name] = {e.alias_or_name for e in getattr(body, "expressions", [])}
     for m in re.finditer(r"ALTER TABLE (\w+) ADD COLUMN IF NOT EXISTS (\w+)", SQL):
         out.setdefault(m.group(1), set()).add(m.group(2))
     return out
@@ -125,9 +132,25 @@ for f in sorted(glob.glob("config/rules.yml") + glob.glob("packs/*/rules.yml")):
                 if over not in sql_txt and over.rstrip("0").rstrip(".") not in sql_txt:
                     errs.append(f"{where}: watch.over is {over} and the SQL does not use that number — "
                                 "one of the two has moved, and the effect measurement would be against the wrong line")
+        # Whose line (docs/SPEC_language.md rule 10): an act or warn alert with a static threshold
+        # names whose line it is, through the {line} clause — main.py fills {line} from watch.over.
+        # A {line} with no watch to fill it would render braces to somebody's phone, so both
+        # directions fail here. Kinded rules are the event engine's: their SQL returns `line` as a
+        # column (checked by the placeholder loop below) and their issue's events: templates speak.
+        msg_en = str(msg.get("en", "")) if isinstance(msg, dict) else str(msg or "")
+        over_v = w.get("over") if isinstance(w, dict) else None
+        has_watch = over_v is not None
+        if not r.get("kind") and r.get("level") in ("act", "warn"):
+            if has_watch and "{line}" not in msg_en:
+                errs.append(f"{where}: {r.get('level')} rule has a line (watch.over is {over_v}) but the message never "
+                            "names whose line it is — add the {line} clause (docs/SPEC_language.md rule 10)")
+            if not has_watch and "{line}" in msg_en:
+                errs.append(f"{where}: message uses {{line}} but the rule has no watch.over to fill it from")
         for lang, tmpl in (msg.items() if isinstance(msg, dict) else [("", msg)]):
             for ph in re.findall(r"\{(\w+)", str(tmpl)):
                 if ph not in outs:
+                    if ph == "line" and not r.get("kind") and has_watch:
+                        continue          # engine-filled from watch.over in main.py, not a SQL column
                     errs.append(f"{where} [{lang}]: message wants {{{ph}}} but the SQL returns {sorted(outs)}")
 
 for f in sorted(glob.glob("packs/*/cells.yml")):

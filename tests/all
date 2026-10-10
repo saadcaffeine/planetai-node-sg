@@ -20,16 +20,19 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 mkdir -p /tmp/stub && printf 'class Client: pass\n' > /tmp/stub/httpx.py
 
 # Suites allowed to print "skipped" and still count as green, and why. A skip from anything else fails the
-# run. These three skip a part of themselves when a dependency is absent; the rest of each still runs.
+# run. These skip a part of themselves (or, where noted, the whole suite) when a dependency is absent.
 #   test_ground           needs app/requirements.txt installed (h3 and friends)
 #   test_nearby           the ring rule replay needs duckdb
 #   test_season           the whole suite is a rule replay, and needs duckdb
+#   test_measures         the whole suite is a view replay, and needs duckdb
 #   test_shipped          the trust rule replay needs duckdb
 #   test_custody          the peer replay needs duckdb
 #   test_issues_geometry  needs app/requirements.txt installed (h3 and friends)
+#   test_kinded_rules     the kinded rules replayed over node #1's readings, needs duckdb
+#   test_replay           the whole suite is a replay of both alert engines, and needs duckdb
 # test_earth deliberately fails rather than skips when numpy is missing (see its own header): a pack that
 # ships because a suite printed "skipped" is the failure it is guarding against. Do not add it here.
-EXPECTED_SKIPS=" test_ground test_nearby test_season test_shipped test_custody test_issues_geometry "
+EXPECTED_SKIPS=" test_ground test_nearby test_season test_measures test_shipped test_custody test_issues_geometry test_kinded_rules test_replay "
 
 pass=0; fail=0; skips=0; undeclared=0
 failed_names=""; skip_lines=""
@@ -88,19 +91,25 @@ test_running_state|bash tests/test_running_state.sh
 test_preflight|bash tests/test_preflight.sh
 test_geocode|bash tests/test_geocode.sh
 test_lan_ip|bash tests/test_lan_ip.sh
+test_test_alert|bash tests/test_test_alert.sh
+test_packs_add|bash tests/test_packs_add.sh
+test_update_guard|bash tests/test_update_guard.sh
 test_peers_persist|python3 tests/test_peers_persist.py
 test_sweep|python3 tests/test_sweep.py
 test_sources|PYTHONPATH=/tmp/stub:app python3 tests/test_sources.py
 test_nearby|PYTHONPATH=/tmp/stub:app python3 tests/test_nearby.py
 test_season|PYTHONPATH=/tmp/stub:app python3 tests/test_season.py
+test_measures|PYTHONPATH=tests python3 tests/test_measures.py
 test_forecast|PYTHONPATH=/tmp/stub:app python3 tests/test_forecast.py
-test_xiaomi_air|PYTHONPATH=/tmp/stub:app python3 tests/test_xiaomi_air.py
 test_meshtastic|PYTHONPATH=/tmp/stub:app python3 tests/test_meshtastic.py
+test_sc_direct|PYTHONPATH=/tmp/stub:app python3 tests/test_sc_direct.py
 test_logic|PYTHONPATH=/tmp/stub:app python3 tests/test_logic.py
 test_packs|PYTHONPATH=/tmp/stub:app python3 tests/test_packs.py
 test_thingdata|PYTHONPATH=/tmp/stub:app python3 tests/test_thingdata.py
 test_settings|PYTHONPATH=/tmp/stub:app python3 tests/test_settings.py
 test_pack_settings|PYTHONPATH=app python3 tests/test_pack_settings.py
+test_pack_secrets|PYTHONPATH=app python3 tests/test_pack_secrets.py
+test_pack_agent_scripts|PYTHONPATH=app python3 tests/test_pack_agent_scripts.py
 test_ladder|PYTHONPATH=app python3 tests/test_ladder.py
 test_report_schedule|PYTHONPATH=/tmp/stub:app python3 tests/test_report_schedule.py
 test_report_templates|PYTHONPATH=/tmp/stub:app python3 tests/test_report_templates.py
@@ -112,6 +121,9 @@ test_config|python3 tests/test_config.py
 test_issues_schema|python3 tests/test_issues_schema.py
 test_issues|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues.py
 test_issues_engine|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues_engine.py
+test_pack_readouts|PYTHONPATH=app python3 tests/test_pack_readouts.py
+test_pack_sections|PYTHONPATH=app python3 tests/test_pack_sections.py
+test_requires|PYTHONPATH=app python3 tests/test_requires.py
 test_issues_geometry|PYTHONPATH=app python3 tests/test_issues_geometry.py
 test_earth_frames|PYTHONPATH=app python3 tests/test_earth_frames.py
 test_check_ui|python3 tests/test_check_ui.py
@@ -126,6 +138,16 @@ test_registry|python3 tests/test_registry.py
 test_make|PYTHONPATH=app python3 tests/test_make.py
 test_check_theme|python3 tests/test_check_theme.py
 test_wire|PYTHONPATH=app python3 tests/test_wire.py
+test_events|PYTHONPATH=app python3 tests/test_events.py
+test_events_pg|PYTHONPATH=app python3 tests/test_events_pg.py
+test_actions|PYTHONPATH=app python3 tests/test_actions.py
+test_agent_buttons|PYTHONPATH=app python3 tests/test_agent_buttons.py
+test_events_wire|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_events_wire.py
+test_figures_wire|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_figures_wire.py
+test_run_rules_modes|python3 tests/test_run_rules_modes.py
+test_kinded_rules|PYTHONPATH=tests:app python3 tests/test_kinded_rules.py
+test_replay|PYTHONPATH=tests:app:tools python3 tests/test_replay.py
+test_doors|PYTHONPATH=app python3 tests/test_doors.py
 SUITES
 
 total=$((pass + fail))
@@ -134,11 +156,11 @@ printf '  %d suites: %d passed, %d failed, %d check(s) skipped\n' "$total" "$pas
 [ -n "$skip_lines" ] && printf '%s' "$skip_lines"
 [ -n "$failed_names" ] && printf '  failed:%s\n' "$failed_names"
 
-# Forty-six is the number of suites in the list above (test_check_site made it forty-six, R25). If the list and this number disagree, one of them
+# Sixty-eight is the number of suites in the list above (test_agent_buttons joined test_doors and test_sc_direct, 10 Oct 2026). If the list and this number disagree, one of them
 # is a typo, and a runner that quietly runs twenty-five of twenty-six is the bug it was written to end.
 # (The word and the number had drifted apart by two bumps when packs/make added the forty-fourth.)
-if [ "$total" -ne 49 ]; then
-  printf '  \033[31mx\033[0m ran %d suites, expected 49 — the list in this file lost or gained a line\n' "$total"
+if [ "$total" -ne 68 ]; then
+  printf '  \033[31mx\033[0m ran %d suites, expected 68 — the list in this file lost or gained a line\n' "$total"
   exit 1
 fi
 [ "$fail" -gt 0 ] && exit 1

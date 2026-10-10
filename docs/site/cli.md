@@ -1,4 +1,5 @@
 # Command line
+<!-- checked: v0.80.10 -->
 
 The command line is how the person who keeps a node looks after it: install it, ask whether it is alive,
 record what somebody did about an alert, move its data somewhere safe. The repo names that person as the
@@ -13,8 +14,7 @@ and talks to the node over its own [API](api.md) on `localhost:$APP_PORT` with t
 predates the word says "there is no `planetai <word>` in this node", names the node's version and
 suggests `planetai update`. Commands arrive in releases.
 
-> **Gap in v0.75.3.** The list `planetai` prints leaves out four commands that exist: `preflight`,
-> `sources`, `config unset` and `agent local pull`. The tables below are complete.
+> **Gap in v0.80.10.** The list `planetai` prints leaves out four commands that exist: `preflight`, `sources`, `config unset` and `agent local pull`. The tables below are complete.
 
 Nothing here needs `sudo` except `mesh` (installing and joining Tailscale), `agent local` on a machine with
 `systemctl` where Ollama is not already answering, and, through the installer, `setup` when Docker has to
@@ -28,7 +28,7 @@ be installed or started. The installer says what each `sudo` is for on the line 
 | `planetai setup` | The four questions, then the installer. On an existing node offers update · reconfigure · nothing · remove. Detects a version gap against the published `VERSION` and an unfinished install. |
 | `planetai setup --answers file.json` | Headless install from a JSON file; see [Install](install.md). |
 | `planetai status [--json]` | `/health`, sensors, recent alerts and ρ on one screen. |
-| `planetai doctor [quiet\|--json]` | Every check with its fix. Docker running, the containers up, the database answering, the node answering on its port, the app logged in to the database, coordinates set, no stray spaces in `.env`, the backup destination mounted, a backup in the last two days, the release signature verified on the last update (tarball nodes only), the source registry, the `make` pack when it is installed and `PACKS_ALLOW_CODE=1`, Telegram connected, a backup exists, a nightly backup scheduled, more than 1 GB free; with profiles, the broker, mesh packets and the Reticulum bridge. |
+| `planetai doctor [quiet\|--json]` | Every check with its fix. Docker running, the containers up, the database answering, the node answering on its port, the app logged in to the database, coordinates set, no stray spaces in `.env`, the backup destination mounted, a backup in the last two days, the release signature verified on the last update (tarball nodes only), the source registry, whether a newer release is out (amber, never red; silent when `UPDATE_CHECK` is off), the `make` pack when it is installed and `PACKS_ALLOW_CODE=1`, Telegram connected, a backup exists, a nightly backup scheduled, more than 1 GB free; with profiles, the broker, mesh packets and the Reticulum bridge. |
 | `planetai update` | Backup, fetch, check the checksum and the release signature, migrate, rebuild, verify; see [Updating](updating.md). Refuses at once when no container runtime is running. |
 | `planetai start` · `stop` · `restart` | `docker compose up -d` · `down` (data kept) · recreate the app container, which is how `.env` changes take effect. |
 | `planetai logs [service]` | Follow the container's log; `app` by default, `agent`, `db`, `reticulum` by name. |
@@ -54,11 +54,11 @@ Three of the doctor's rows say more than pass or fail. The last two are facts, a
 | `planetai config --section G` | Straight into one group. |
 | `planetai config list [--section G]` | Every setting, the value in force and where it came from; red when `.env` and the running value disagree. |
 | `planetai config get KEY` | One setting and its source. |
-| `planetai config set KEY VALUE` | A runtime key goes to the database and is live within 20 seconds; a bootstrap key goes to `.env` and the command offers the restart. A pack's key is listed but refused: see [Configuration](configuration.md). |
+| `planetai config set KEY VALUE` | A runtime key goes to the database and is live within 20 seconds; a bootstrap key goes to `.env` and the command offers the restart. A pack's key goes to the database too, and the pack has it at its next run: see [Configuration](configuration.md). |
 | `planetai config unset KEY` | Back to `.env`, or to the built-in default. |
 | `planetai config edit` | `$EDITOR` on `.env`, then the offer to restart. |
 | `planetai ui` (`dashboard`) | The dashboard's addresses, including the `#wall` one; creates `ADMIN_TOKEN` and `ACT_TOKEN` if missing; prints the three tokens and the sharing level. |
-| `planetai test-alert` | Fires one act-level alert through every channel and waits up to 90 seconds for it. |
+| `planetai test-alert` | Fires one act-level alert through every channel and waits up to 90 seconds for it. It adds a temporary rule that fires within a minute, looks for that rule's own alert, and removes the rule the moment it sees it, so one message arrives, on a node with any number of alerts. |
 
 The settings themselves are on [Configuration](configuration.md).
 
@@ -69,6 +69,7 @@ The settings themselves are on [Configuration](configuration.md).
 | `planetai telegram` | Validates the bot token, waits up to two minutes for your first message to learn the chat id, writes both to `.env` and to the running node's settings, sends a hello (in Spanish when `ALERT_LOCALE=es`), recreates the app. | no |
 | `planetai mesh [up\|status\|down]` | Installs Tailscale and joins the tailnet under the node's name (`TS_AUTHKEY` optional); records `MESH_NAME`. | yes |
 | `planetai meshtastic` | Starts the MQTT broker (compose profile `mqtt`), writes its password, prints the gateway radio's settings for your region, waits up to three minutes for the first packet. | no |
+| `planetai broker` | Starts the MQTT broker if it is not running (compose profile `mqtt`, same user and password as `planetai meshtastic`) and prints what to type into a Smart Citizen Kit's shell or a DIY node's setup portal so it publishes here; waits up to three minutes for the first message. | no |
 | `planetai reticulum` | Starts the LXMF bridge (profile `reticulum`), prints the node's address and the Sideband instructions. | no |
 | `planetai homeassistant` (`ha`) | Ensures the broker, sets `HA_DISCOVERY=1`, prints the integration details. | no |
 
@@ -99,9 +100,9 @@ planetai act 42 "closed the kitchen window and ran the purifier"
 > recorded first is refused with 409, and the command prints only that the node did not record it and
 > asks whether the alert id is real.
 
-`planetai snapshot` asks eighteen routes: `/health`, `/issues`, `/stats`, `/alerts?limit=200`, `/rho`,
+`planetai snapshot` asks nineteen routes: `/health`, `/issues`, `/stats`, `/alerts?limit=200`, `/rho`,
 `/cells`, `/observations`, `/sensors`, `/trust`, `/report/latest`, `/nearby`, `/forecast`,
-`/actions?limit=2000`, `/aggregates?hours=24`, `/reach`, `/earth`, `/shape` and `/effect`. The hourly means
+`/actions?limit=2000`, `/aggregates?hours=24`, `/reach`, `/earth`, `/shape`, `/effect` and `/issues/days?days=7`. The hourly means
 land under `readings_1h`, joined with each sensor's `indoor`, `local` and `kind`. Every `note` in the
 actions is set to null before the file is written, and `provenance` says how many were removed: the file is
 made to be sent to a design round or a bug report, and a note is the household's own words about its own
@@ -125,15 +126,13 @@ The model is a separate download on purpose: a node runs without one, and the we
 gigabytes on the machine a household may have revived for this. [docs/MODELS.md](../../docs/MODELS.md) lists the
 tags.
 
-> **Gap in v0.75.3.** The `act` line that `planetai agent` prints has a quoting fault, so it reads
-> "records that a PERSON acted, in their own words.  is required." with a hole where `note` belongs, and the
-> shell adds `note: command not found`. The tool it describes requires a `note`.
-
 ## Packs and the source registry
 
 | command | what it does |
 |---|---|
-| `planetai packs` | What is loaded (from the node) or on disk (when it is down), and whether `packs install` has anything to do. |
+| `planetai packs` | What is loaded (from the node) or on disk (when it is down), core and wild apart, where each wild pack came from, which of a wild pack's scripts an agent may run (its `agent_scripts:`) or that it runs none, and whether `packs install` has anything to do. |
+| `planetai packs add <id>` | Fetches a wild pack from the list at fabcity/planetai-wild-packs, at the commit it was listed at, into `packs/<id>`, then runs `packs install`. |
+| `planetai packs add <owner>/<repo>[/<folder>][@<ref>]` | The same for any pack on GitHub. A branch or tag is pinned to the commit it names. Refuses an id a core pack already has. |
 | `planetai packs install` | Adds every pack's missing `env:` keys to `.env` under a dated marker, writes the union of their `pip:` lists, rebuilds the image once. |
 | `planetai run` | Lists every pack script with its first line. |
 | `planetai run <pack> <script> [args]` | Runs it inside the app container with `PACK_OUT=/app/out`, and with the pack keys saved from Set up in its environment. |
@@ -146,18 +145,18 @@ relevant to, and the adapter string that reads it: `core:ckan` for an adapter in
 this node reads yet. The footer says so in the node's words:
 
 ```
-  N of 238 entries. The last column is the code that reads it. A cell with sources and a blank column is one nobody has written an adapter for yet.
+  N of 269 entries. The last column is the code that reads it. A cell with sources and a blank column is one nobody has written an adapter for yet.
 ```
 
-The snapshot at v0.75.3 is `awesome-fabcity-data` at `1010aa0`, 238 entries, synced 2026-09-22. `N` is how many
+The snapshot at v0.80 is `awesome-fabcity-data` at `851b8db`, 269 entries, synced 2026-10-06. `N` is how many
 of them are filed for your city or for everywhere. The same list is `GET /sources` on [the API](api.md).
 
 Since v0.73 two more lines follow the footer: the three
 counts, summed over every cell or, with `--cell`, for that one cell, and what they mean. The counts are for
-the whole registry whatever the other filters, and are grouped by each entry's `feeds_cells`. At `1010aa0`:
+the whole registry whatever the other filters, and are grouped by each entry's `feeds_cells`. At `851b8db`:
 
 ```
-  across 19 cells: capable 12 / reviewed 12 / candidate 20
+  across 19 cells: capable 12 / reviewed 17 / candidate 51
   capable = live with an adapter. reviewed = live, backed by an adapter or a usable review. candidate = verified, unread.
 ```
 

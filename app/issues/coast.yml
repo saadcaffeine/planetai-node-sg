@@ -65,23 +65,34 @@ readouts:
 
 # A wave is not over a square of the map.
 where:
-  en: { region: at the nearest ocean cell }
-  id: { region: di sel laut terdekat }
-  es: { region: en la celda de océano más cercana }
+  en: { region: off this coast }
+  id: { region: di lepas pantai ini }
+  es: { region: frente a esta costa }
 
 sentences:
+  # A word headline (docs/SPEC_language.md): the figures live in context_plain, which the engine
+  # renders as the issue's `plain`, and in the hero numeral.
   en:
     state:
-      context: "{n} {unit} {where}. {cmp}"
+      context: "The sea {where}, as the model reads it."
+      context_plain: "{n} {unit} {where}. {cmp}"
       none: "No marine model for this point: the nearest ocean cell is further out than the pack will report."
   id:
     state:
-      context: "{n} {unit} {where}. {cmp}"
+      context: "Laut {where}, seperti yang dibaca model."
+      context_plain: "{n} {unit} {where}. {cmp}"
       none: "Tidak ada model laut untuk titik ini: sel laut terdekat lebih jauh daripada batas pack."
   es:
     state:
-      context: "{n} {unit} {where}. {cmp}"
+      context: "El mar {where}, según lo lee el modelo."
+      context_plain: "{n} {unit} {where}. {cmp}"
       none: "No hay modelo marino para este punto: la celda de océano más cercana está más lejos de lo que el pack informa."
+
+# The supporting layer: where the number comes from, and that the node never asks anything.
+about:
+  en: "The wave height comes from a marine model at the nearest ocean cell; nothing in the house measures the sea. The node never asks you to do anything about the coast."
+  id: "Tinggi gelombang berasal dari model laut di sel laut terdekat; tidak ada di rumah yang mengukur laut. Node tidak pernah meminta Anda melakukan apa pun tentang pantai."
+  es: "La altura de ola viene de un modelo marino en la celda de océano más cercana; nada en la casa mide el mar. El nodo nunca te pide que hagas nada con la costa."
 
 
 # A rule and no line: the sea has a scale a fisher reads, and nothing on it for a household to cross.

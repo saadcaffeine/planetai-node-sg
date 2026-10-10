@@ -257,7 +257,7 @@ for (const f of LIVE ? [] : readdirSync(BUNDLES).filter(n => n.endsWith('.json')
       mkdirSync(OUT, { recursive: true });
       await page.screenshot({ path: `${OUT}/${name}`, fullPage: true, type: 'jpeg', quality: 72 });
 
-      // The mono is expected to 404 at its nested path, by decision (docs/HANDOFF_issues.md §2).
+      // The mono is expected to 404 at its nested path, by decision (docs/archive/handoffs/HANDOFF_issues.md §2).
       const unexpected = missed.filter(p => p !== '/static/fonts/jetbrains-mono-latin.woff2');
       const ok = !errors.length && !seen.broken.length && !seen.sideways && !unexpected.length
         && !seen.mounts.length && seen.notes <= 1 && !seen.emptyView.length;

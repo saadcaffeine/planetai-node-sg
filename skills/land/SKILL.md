@@ -36,6 +36,8 @@ A red `x` is not a suggestion. Fix it and run it again.
 3. **The CHANGELOG line is for the tester, not for you.** A dated bullet at the top for unreleased
    work; a `## vX.Y — date — title` section when it becomes a release. Six releases went out in
    September without one. `tools/sweep.py` now names them daily.
+   Put the PR in the upcoming release's milestone (`gh pr edit <n> --milestone v0.77`), and label it `needs
+   testing` if it changes what a node does; `docs/WORKFLOW.md` says what happens after the merge.
 4. **If you moved the suite count, say so in the PR**, and say which other PRs must not merge in the
    same hour. Git merges two bumps of that number without a conflict and keeps one.
 5. **Write down what you did not finish.** In `docs/NEXT_RELEASE.md` if it is owed, in the PR body

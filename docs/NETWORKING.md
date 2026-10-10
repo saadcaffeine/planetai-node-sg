@@ -1,4 +1,5 @@
 # Networking
+<!-- checked: v0.80.10 -->
 
 Three layers, each doing one thing.
 
@@ -45,4 +46,5 @@ sensors (WiFi)  ──HTTP──▶ node ◀──MQTT── gateway radio ◀�
                           └──Tailscale──▶ you, other nodes, a district
 ```
 
-Raw readings never leave the node on any of these. Hourly means go up to a parent; alerts go out; that is all.
+Raw readings never leave the house on any of these. Home Assistant, on your own network, gets each sensor's latest
+value; hourly means go up to a parent; alerts go out; that is all.

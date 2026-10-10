@@ -33,7 +33,7 @@ signing_key() {
   [[ -n "$key" ]] || die "PLANETAI_SIGNING_KEY is not set, so this build could not be signed and every node
    would refuse it. Point it at the release key:
      PLANETAI_SIGNING_KEY=~/.planetai/release_key make ship
-   docs/HANDOFF_signing.md says where that key lives and the one command that makes one.
+   docs/SIGNING.md says where that key lives and the one command that makes one.
    A dev tarball nobody will install:  PLANETAI_UNSIGNED=1 make ship"
   key="${key/#\~/$HOME}"
   [[ -f "$key" ]] || die "PLANETAI_SIGNING_KEY points at $key, which is not a file."
@@ -43,7 +43,7 @@ signing_key() {
    ~/.planetai/release_key is the place. A key here is one commit from being published.";; esac
   command -v ssh-keygen >/dev/null || die "no ssh-keygen on this machine, so nothing can be signed."
   grep -q PLACEHOLDER tools/allowed_signers && die "tools/allowed_signers still carries the placeholder, so no
-   release key has been issued yet. docs/HANDOFF_signing.md has the command that makes it and the four
+   release key has been issued yet. docs/SIGNING.md has the command that makes it and the four
    places the public line is pasted."
   # The key that signs must be the key the committed line publishes, or nodes verify against a stranger.
   #

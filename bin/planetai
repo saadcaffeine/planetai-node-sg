@@ -21,9 +21,11 @@
 #   planetai act <id>       your note on what you did about alert <id>
 #   planetai mesh           join the tailnet: reach this node from anywhere, no open ports
 #   planetai meshtastic     LoRa sensors and alerts via a gateway radio (sets up the broker, prints gateway settings)
+#   planetai broker         a DIY node publishing straight to this node (sets up the broker, prints the portal values)
 #   planetai reticulum      give the node an LXMF address: encrypted messaging over TCP or LoRa (RNode)
 #   planetai homeassistant  publish sensors and alerts as Home Assistant entities (MQTT discovery)
 #   planetai packs          what is loaded; `packs install` adds code-pack settings to .env and their libraries to the image
+#   planetai packs add <id>  a wild pack from fabcity/planetai-wild-packs; or <owner>/<repo>[/<folder>][@<ref>] from GitHub
 #   planetai ui             the dashboard: where it is, and the token that unlocks its settings pages
 #   planetai storage        where the data lives, where backups and copies go, exports, IPFS; `set` to change
 #   planetai backup         dump + export + copy now, instead of waiting for 03:17
@@ -574,9 +576,10 @@ cmd_doctor() {
   chk "containers are up"        "[ \$(docker compose ps -q | wc -l) -ge 2 ]"           "planetai start"
   chk "database answers"         "docker compose exec -T db pg_isready -U planetai"     "planetai logs db"
   chk "node answers on :$p"      "curl -sf localhost:$p/health"                         "planetai logs   (if the port is taken: set APP_PORT in .env, then planetai restart)"
-  # /health answers even when every database call fails; the schema field then carries the pre-0.4 text. Seen after a
-  # reinstall over a leftover volume: pg_isready happy, the app locked out, the install's doctor all green.
-  chk "app logs in to the database" "h=\"\$(curl -sf localhost:$p/health)\"; [[ -n \"\$h\" ]] && ! grep -q '\"schema\": *\"pre-0.4' <<< \"\$h\""   "the app cannot use the database (planetai logs shows 'password authentication failed'): the POSTGRES_PASSWORD in .env does not match the database volume, usually after a reinstall over an earlier node's volume. Keep the data: restore the earlier .env. Start clean: planetai stop && docker volume rm planetai_db && planetai start"
+  # /health answers even when every database call fails; the schema field then carries the "unreachable" text
+  # (a login failure: wrong password, db down) or the pre-0.4 text (a schema that predates schema_version).
+  # Seen after a reinstall over a leftover volume: pg_isready happy, the app locked out, the install's doctor all green.
+  chk "app logs in to the database" "h=\"\$(curl -sf localhost:$p/health)\"; [[ -n \"\$h\" ]] && ! grep -qE '\"schema\": *\"(unreachable|pre-0.4)' <<< \"\$h\""   "the app cannot use the database. planetai logs says which: 'password authentication failed' means the POSTGRES_PASSWORD in .env does not match the database volume, usually after a reinstall over an earlier node's volume — keep the data: restore the earlier .env; start clean: planetai stop && docker volume rm planetai_db && planetai start. No auth error and a schema reading pre-0.4 means the node predates schema_version: ./update.sh applies it"
   chk "coordinates set"          "grep -qE '^NODE_LAT=-?[0-9]' .env"                    "planetai setup"
   chk ".env has no stray spaces" "! grep -qE '^[A-Z_]+=[[:space:]]+[^[:space:]]' .env"   "a space after = makes the shell run the value, and a \`#\` after it hands the container the comment: grep -nE '^[A-Z_]+= +' .env"
   chk "backup destination mounted" "mounted \"\$(envget BACKUP_DIR || echo ./backups)\""   "the NAS or drive in BACKUP_DIR is not mounted; tonight's backup will refuse. Mount it, or: planetai storage set backups <dir>"
@@ -718,13 +721,18 @@ Y
 Y
   echo "  A rule that always fires has been added. The node checks rules every minute."
   printf '  Waiting'
-  local before after id=""; before="$(api /alerts | json 'print(len(d))')"
+  # Look for THIS run's alert by its own rule id. Counting the rows /alerts returns told nothing on a node with 50 or
+  # more alerts (that is its default page), so node #1 reported "no alert fired" while the rule fired twice.
+  local id=""
   for i in $(seq 1 45); do
-    after="$(api /alerts | json 'print(len(d))' 2>/dev/null || echo "$before")"
-    if [[ "$after" -gt "$before" ]]; then id="$(api /alerts | json 'print(d[0].get("id","?"))' 2>/dev/null || echo "?")"; break; fi
+    id="$(api '/alerts?since_hours=1&limit=200' | json "
+for a in d:
+    if str(a.get('rule_id', '')).endswith('/${rid}'):
+        print(a.get('id', '?')); break" 2>/dev/null)"
+    [[ -n "$id" ]] && break
     printf '.'; sleep 2
   done; echo
-  rm -rf packs/_test
+  rm -rf packs/_test      # at once: the rule fires every minute, and the household should get one test, not two
   [[ -n "$id" ]] || fail "no alert fired in 90 seconds. Is the node up? planetai doctor"
   say "it fired. Alert #$id is in the log$( grep -qE '^TELEGRAM_BOT_TOKEN=.+' .env && echo ' and on your phone')."
   echo
@@ -856,12 +864,9 @@ lan_ip() {
   esac
 }
 profiles_add() { local cur; cur="$(envget COMPOSE_PROFILES)"; case ",$cur," in *",$1,"*) ;; *) envset COMPOSE_PROFILES "${cur:+$cur,}$1";; esac; }
-cmd_meshtastic() {
-  step "Meshtastic"
-  echo "  A LoRa mesh reaches sensors and phones where there is no WiFi. One radio with WiFi is the gateway: it"
-  echo "  uplinks the mesh to a broker on this node, and can send alerts back out. This sets the node side up and"
-  echo "  tells you exactly what to type into the gateway."
-  echo
+# The broker and its one user, created once and shared by everything that publishes to this node: the Meshtastic
+# gateway, Home Assistant, a DIY node. Idempotent: a second call keeps the password and only makes sure it runs.
+broker_ensure() {
   local user="planetai" pass; pass="$(envget MQTT_PASS)"
   if [[ -z "$pass" ]]; then
     pass="$(openssl rand -hex 12 2>/dev/null || head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
@@ -877,6 +882,16 @@ cmd_meshtastic() {
   [[ -s config/mosquitto/passwd ]] || fail "password file is empty after mosquitto_passwd; see $LOG"
   say "starting the broker and restarting the node with MQTT on"
   docker compose up -d >>"$LOG" 2>&1 && docker compose up -d --force-recreate app >>"$LOG" 2>&1 || fail "compose failed; see $LOG"
+}
+
+cmd_meshtastic() {
+  step "Meshtastic"
+  echo "  A LoRa mesh reaches sensors and phones where there is no WiFi. One radio with WiFi is the gateway: it"
+  echo "  uplinks the mesh to a broker on this node, and can send alerts back out. This sets the node side up and"
+  echo "  tells you exactly what to type into the gateway."
+  echo
+  broker_ensure
+  local user="planetai" pass; pass="$(envget MQTT_PASS)"
   local ip; ip="$(lan_ip)"; [[ -n "$ip" ]] || ip="<this machine LAN IP>"
   local region="EU_868"; case "$(envget NODE_CITY)" in bali) region="SG_923 (AS923, the band Indonesia allocates)";; boston) region="US";; santiago) region="LORA_24 or check local allocation";; esac
   step "Now the gateway radio (the ESP32 one), in the Meshtastic app"
@@ -912,6 +927,45 @@ T
   else
     warn "nothing yet. The usual reasons: JSON output off on the gateway; wrong address (this Mac is ${ip}); gateway not on"
     warn "this WiFi; a firewall blocking 1883. Watch with:  planetai logs mosquitto    and    planetai logs"
+  fi
+}
+
+
+# ---------------------------------------------------------------- broker: a DIY node publishing straight to this node
+cmd_broker() {
+  step "This node's broker"
+  echo "  A Making Sense Bali DIY node can publish to this node instead of to smartcitizen.me: the same topics and"
+  echo "  bytes, so no new firmware beyond v4. The node keeps every reading with the device's own time, and passes"
+  echo "  the message on to the platform for any token listed in SC_FORWARD. This sets the node side up and prints"
+  echo "  what to type into the node's setup portal."
+  echo
+  broker_ensure
+  local ip host; ip="$(lan_ip)"; [[ -n "$ip" ]] || ip="<this machine LAN IP>"
+  host="$(scutil --get LocalHostName 2>/dev/null || hostname -s 2>/dev/null)"; host="${host:+${host}.local}"
+  step "Now the DIY node, in its setup portal (firmware v4), under \"Where it publishes\""
+  cat <<T
+     Broker host:      ${host:-$ip}$( [[ -n "$host" ]] && echo "   (or $ip, if the phone cannot resolve .local names)")
+     Broker port:      1883
+     Broker user:      planetai
+     Broker password:  $(envget MQTT_PASS)
+     Device token:     the device's Smart Citizen token if it has a page there; else any six characters you choose
+     Indoors:          tick it when the node hangs in a room, so its readings never enter the outside air
+
+   Give this node a fixed address on the router (a DHCP reservation): the DIY node stores a host, not a search.
+   To keep the device's page on smartcitizen.me:   planetai config set SC_FORWARD <token>[,<token>]
+   and list that device's platform id in SC_EXCLUDE, or the cloud adapter reads it a second time.
+T
+  echo
+  printf '  Waiting for the first message from a DIY node (up to 3 minutes)'
+  local got=""; for i in $(seq 1 90); do
+    got="$(api /health | json 'print(d.get("direct",{}).get("messages",0))' 2>/dev/null || echo 0)"
+    [[ "${got:-0}" -gt 0 ]] && break; printf '.'; sleep 2
+  done; echo
+  if [[ "${got:-0}" -gt 0 ]]; then
+    say "messages arriving. Sensors seen so far:"; cmd_sensors | grep -i "sck-" || echo "   (a meta message only so far; readings follow every minute)"
+  else
+    warn "nothing yet. The node's status page (http://<its name>.local) says whether its last publish succeeded;"
+    echo "  \`planetai logs mosquitto\` shows who connected and from where."
   fi
 }
 
@@ -1001,15 +1055,40 @@ cmd_packs() {
   # `planetai packs` lists; `planetai packs install` writes (.env keys, the image). A listing that rebuilt the image and
   # appended to .env surprised the first tester who only wanted to see what was loaded (6 Sep 2026).
   if [[ "${1:-}" == "install" ]]; then packs_install; return; fi
+  if [[ "${1:-}" == "add" ]]; then shift; packs_add "$@"; return; fi
   step "Packs"
-  local loaded; loaded="$(api /packs || true)"
+  local loaded wild; loaded="$(api /packs || true)"; wild="$(wild_ids)"
   if [[ -z "$loaded" ]]; then
     warn "the node is not answering on port $(port) — the list below is what is on disk, not what is running."
     warn "check with: planetai doctor"
-    ls -d packs/*/ 2>/dev/null | sed 's|packs/||;s|/||' | sed 's/^/    /'
+    local d n core="" w=""
+    for d in packs/*/; do [[ -f "${d}pack.yaml" ]] || continue; n="$(basename "$d")"
+      if [[ -f "${d}.wild" ]]; then w=1; else core="$core    $n"$'\n'; fi; done
+    [[ -z "$core" ]] || printf '  core:\n%s' "$core"
+    [[ -z "$w" ]] || printf '  wild:\n'                 # each named once, with where it came from, below
   else
     echo "  loaded now:"
-    printf '%s' "$loaded" | json 'for p in d: print("    %-16s %-5s %s" % (p["id"], p["kind"], (p.get("description") or "").replace(chr(10)," ")[:70]))'
+    printf '%s' "$loaded" | python3 -c 'import json, sys
+d = json.load(sys.stdin)
+wild = set(sys.argv[1].split())
+for head, rows in (("core", [p for p in d if p["id"] not in wild]), ("wild", [p for p in d if p["id"] in wild])):
+    if rows:
+        print("  " + head + ":")
+        for p in rows:
+            print("    %-16s %-5s %s" % (p["id"], p["kind"], (p.get("description") or "").replace(chr(10), " ")[:70]))
+            if head == "wild":
+                a = p.get("agent_scripts")
+                a = [s for s in a if isinstance(s, str)] if isinstance(a, list) else []
+                print("    %-16s agents may run: %s" % ("", ", ".join(a)) if a else "    %-16s agents run none of its scripts" % "")' "$wild"
+  fi
+  local id
+  for id in $wild; do
+    printf '    %s%s from %s at %s, added %s%s\n' "$D" "$id" "$(wildget "$id" source)" "$(wildget "$id" commit | cut -c1-12)" "$(wildget "$id" added)" "$N"
+  done
+  local refused; refused="$(packs_refused)"
+  if [[ -n "$refused" ]]; then
+    echo "  not loaded, written for another node version:"
+    printf '%s\n' "$refused" | while IFS=$'\t' read -r id why; do printf '    %-16s %s\n' "$id" "$why"; done
   fi
   echo
   # what `install` would do, said rather than done
@@ -1048,6 +1127,107 @@ packs_install() {
   say "installing into the image: $(echo "$reqs" | paste -sd' ' -)  (rebuild, a minute or two)"
   docker compose build app >>"$LOG" 2>&1 && docker compose up -d --force-recreate app >>"$LOG" 2>&1 || fail "rebuild failed; see $LOG"
   say "done. Code packs also need PACKS_ALLOW_CODE=1 in .env to run. Read their adapter.py first."
+}
+
+# ---------------------------------------------------------------- packs add: a wild pack, fetched without git
+# Packs in this repository are core; every other pack is wild (docs/decisions/2026-10-01-packs.md). A node installed
+# the default way has curl and tar and no git, so a wild pack arrives as GitHub's archive of one commit. `.wild`
+# beside it says where it came from and at which commit: it is how `packs` tells core from wild, and how running
+# `packs add` again knows it may replace the folder. A folder without it is core, or put there by hand, and is
+# never replaced.
+WILD_INDEX="https://raw.githubusercontent.com/fabcity/planetai-wild-packs/main/packs.json"
+wild_ids() { local f; for f in packs/*/.wild; do [[ -f "$f" ]] && basename "$(dirname "$f")"; done; return 0; }
+wildget() { sed -n "s/^$2=//p" "packs/$1/.wild" 2>/dev/null | head -1; }
+# Packs on disk this node will not load, and why, one per line as `<id><TAB><reason>`; with an id, only that pack.
+# The rule is app/requires.py, the same one the loader applies, run here on the node's own Python. pack.yaml is
+# read with a pattern because that Python has no YAML: `requires: { node: ">=0.40.0" }` or the block form.
+packs_refused() {
+  python3 -c 'import glob, re, sys
+sys.path.insert(0, "app")
+try:
+    import requires
+except ImportError:
+    sys.exit(0)  # no app/ beside this script: nothing to say, rather than a traceback in a listing
+here, only = sys.argv[1], sys.argv[2]
+for f in sorted(glob.glob("packs/*/pack.yaml")):
+    pid = f.split("/")[1]
+    if only and pid != only:
+        continue
+    block = re.search(r"^requires:.*(?:\n[ \t]+.*)*", open(f, encoding="utf-8").read(), re.M)
+    m = re.search(r"\bnode:\s*[\"\x27]?([^\"\x27}\n]*)", block.group(0)) if block else None
+    why = requires.check(m.group(1).strip() if m else None, here)
+    if why:
+        print(pid + "\t" + why)' "$(envget NODE_VERSION)" "${1:-}"
+}
+
+packs_add() {
+  FAIL_WHAT="The pack was not added."
+  local spec="${1:-}" src="" ref="" status="" want=""
+  [[ -n "$spec" ]] || fail "say which pack:  planetai packs add <id>  (one on the wild list)  or  planetai packs add <owner>/<repo>[/<folder>][@<ref>]"
+  step "Packs: add $spec"
+  if [[ "$spec" != */* ]]; then
+    want="$spec"
+    local idx hit
+    idx="$(curl -fsSL "$WILD_INDEX")" || fail "could not read the wild list at $WILD_INDEX"
+    hit="$(printf '%s' "$idx" | python3 -c 'import json, sys
+try:
+    d = json.load(sys.stdin)
+except ValueError:
+    sys.exit("the wild list is not readable JSON")
+e = [x for x in d if isinstance(x, dict) and x.get("id") == sys.argv[1]]
+ids = sorted(x.get("id", "?") for x in d if isinstance(x, dict))
+if not e:
+    sys.exit("no pack called " + sys.argv[1] + " on the wild list, " + ("which is empty" if not ids else "which has " + ", ".join(ids)))
+print(e[0].get("source", ""), e[0].get("commit", "-"), e[0].get("status", "listed"))' "$spec" 2>&1)" || fail "$hit"
+    read -r src ref status <<< "$hit"
+    [[ "$ref" == "-" ]] && ref=""
+  else
+    src="${spec%%@*}"
+    if [[ "$spec" == *@* ]]; then ref="${spec#*@}"; fi
+  fi
+  [[ "$src" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "/$src/" != */../* && "/$src/" != */./* ]] \
+    || fail "'$src' is not owner/repo or owner/repo/folder"
+  [[ -z "$ref" || "$ref" =~ ^[A-Za-z0-9._/-]+$ ]] || fail "'$ref' is not a commit, branch or tag"
+  local owner="${src%%/*}" rest="${src#*/}" repo path="" sha
+  repo="${rest%%/*}"; if [[ "$rest" == */* ]]; then path="${rest#*/}"; fi
+  # Always pin. A branch or tag is resolved to the commit it names now, and that commit is what is recorded.
+  if [[ "$ref" =~ ^[0-9a-f]{40}$ ]]; then sha="$ref"
+  else sha="$(curl -fsSL -H 'Accept: application/vnd.github.sha' "https://api.github.com/repos/$owner/$repo/commits/${ref:-HEAD}")" \
+         || fail "GitHub does not know $owner/$repo${ref:+ at $ref}"
+  fi
+  [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || fail "GitHub answered something that is not a commit for $owner/$repo${ref:+ at $ref}"
+
+  local tmp; tmp="$(mktemp -d)"; trap "rm -rf '$tmp'" EXIT   # expanded now: at exit, the local is gone
+  curl -fsSL "https://codeload.github.com/$owner/$repo/tar.gz/$sha" -o "$tmp/p.tgz" \
+    || fail "could not download $owner/$repo at ${sha:0:12}"
+  mkdir "$tmp/all"; tar xzf "$tmp/p.tgz" -C "$tmp/all" 2>>"$LOG" || fail "the download of $owner/$repo is not a readable archive"
+  local top; top="$(ls "$tmp/all")"
+  [[ -n "$top" && "$top" != *$'\n'* ]] || fail "the archive of $owner/$repo does not have the one folder GitHub's archives have"
+  local from="$tmp/all/$top${path:+/$path}"
+  [[ -f "$from/pack.yaml" ]] || fail "no pack.yaml at $src (commit ${sha:0:12}): a pack is a folder with a pack.yaml in it"
+  [[ -z "$(find "$from" -type l)" ]] || fail "$src carries symbolic links. A pack is plain files, so it was not added."
+  local id; id="$(sed -n 's/^id:[[:space:]]*//p' "$from/pack.yaml" | head -1 | sed 's/[[:space:]]*#.*$//' | tr -d "\"'[:space:]")"
+  [[ "$id" =~ ^[a-z0-9][a-z0-9-]*$ ]] \
+    || fail "its pack.yaml says id '$id'. A pack's id is its folder name: lowercase letters, digits and hyphens."
+  [[ -z "$want" || "$id" == "$want" ]] || fail "the wild list calls it '$want', but its pack.yaml says '$id'"
+  if [[ -e "packs/$id" && ! -f "packs/$id/.wild" ]]; then
+    fail "packs/$id is already here and did not come from packs add: it is a core pack, or one put there by hand. A wild pack never replaces it."
+  fi
+  local kind=data verb=added; if [[ -f "$from/adapter.py" ]]; then kind=code; fi
+  if [[ -d "packs/$id" ]]; then verb="updated from $(wildget "$id" commit | cut -c1-12)"; rm -rf "packs/$id"; fi
+  mkdir -p packs && mv "$from" "packs/$id"
+  printf 'source=%s\ncommit=%s\nadded=%s\n' "$src" "$sha" "$(date +%F)" > "packs/$id/.wild"
+  say "$id: $verb, a $kind pack, from $src at ${sha:0:12}"
+  if [[ -z "$want" ]]; then warn "it is not on the wild list, so nobody has checked it against this node's release."
+  elif [[ "$status" != "reviewed" ]]; then warn "it is listed, not reviewed: nobody who keeps the wild list has read it."
+  fi
+  if [[ "$kind" == code ]]; then
+    warn "a code pack runs Python with this node's privileges, and only with PACKS_ALLOW_CODE=1. Read packs/$id/adapter.py first."
+  fi
+  local why; why="$(packs_refused "$id" | cut -f2-)"
+  if [[ -n "$why" ]]; then warn "it will not load on this node: $why."; fi
+  packs_install
+  say "planetai restart loads it. To remove it: delete packs/$id and restart."
 }
 
 
@@ -1887,7 +2067,7 @@ from datetime import datetime
 # shell string and one apostrophe ends it, taking the whole snapshot command with it.
 PATHS = ["/health", "/issues", "/stats", "/alerts?limit=200", "/rho", "/cells", "/observations",
          "/sensors", "/trust", "/report/latest", "/nearby", "/forecast",
-         "/actions?limit=2000", "/aggregates?hours=24", "/reach", "/earth", "/shape", "/effect"]
+         "/actions?limit=2000", "/aggregates?hours=24", "/reach", "/earth", "/shape", "/effect", "/issues/days?days=7"]
 base = "http://localhost:" + os.environ["SNAP_PORT"]
 tok = os.environ["SNAP_TOKEN"]
 
@@ -1982,7 +2162,7 @@ case "${1:-help}" in
   update) cmd_update;;  backup) cmd_backup;;  config) shift; cmd_config "$@";;  logs) shift; cmd_logs "$@";;
   start) cmd_start;;  stop) cmd_stop;;  restart) cmd_restart;;  sensors) shift; cmd_sensors "$@";;  cells) shift; cmd_cells "$@";;
   mesh) shift; cmd_mesh "$@";;
-  meshtastic) cmd_meshtastic;;  reticulum) cmd_reticulum;;
+  meshtastic) cmd_meshtastic;;  reticulum) cmd_reticulum;;  broker) cmd_broker;;
   homeassistant|ha) cmd_homeassistant;;
   packs) shift; cmd_packs "$@";;
   sources) shift; cmd_sources "$@";;

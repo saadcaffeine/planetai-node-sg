@@ -1,4 +1,5 @@
 # Turn an old laptop into a node
+<!-- checked: v0.80.10 -->
 
 > **Partly rehearsed, and the part that was rehearsed is not the part this page recommends.**
 > On 10 September 2026 a 2015 MacBook Pro became a live node this way — on **Linux Mint 22.3**, which is
@@ -29,7 +30,7 @@ Check the machine is worth it:
 curl -fsSL planetai.fab.city/preflight | bash
 ```
 
-If it prints *"This hardware is a capable node"*, the CPU, the memory and the OS are settled. It checks
+If it prints *"This hardware is a capable node"*, the CPU and the memory are settled and the OS, which Linux replaces, is the only blocker. It checks
 that the disk has room and can be written to, not that it survives a long write, which is the next
 section and the one that matters most on a machine this old.
 

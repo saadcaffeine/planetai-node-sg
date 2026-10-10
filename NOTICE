@@ -17,3 +17,14 @@ beside the file:
 Circular Std, named by the Fab City design system's --fc-font-wordmark token, is a commercial
 typeface and is deliberately NOT bundled. The token falls back to Funnel Sans.
 
+
+Map libraries bundled in app/static/vendor/, loaded only when UI_GROUND=map draws the ground, with the
+licence text beside each file:
+
+  MapLibre GL JS 5.24.0   BSD 3-Clause, Copyright MapLibre contributors   maplibre-gl.LICENSE.txt
+  deck.gl 9.4.0           MIT, Copyright vis.gl contributors              deck.gl.LICENSE
+
+The coastlines the doors' Node view draws the world with, in app/static/vendor/:
+
+  world-land-110m.json    Natural Earth 1:110m land (public domain), as GeoJSON from world-atlas,
+                          ISC, Copyright 2013-2019 Michael Bostock     world-atlas.LICENSE.txt

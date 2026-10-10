@@ -1,4 +1,5 @@
 # Design
+<!-- checked: v0.80.10 -->
 
 What a PLANETAI surface is made of, and why each part is the way it is. This page is the programme layer
 written out: the colours and what each one means, the type, the four card kinds, the signs, every motion with
@@ -118,6 +119,14 @@ A drawing is a drawing *inside* a card, not a fifth kind. A gap in a series is a
 ramp across a line nobody measured. Every numeral carries its comparison; a numeral with nothing to compare
 it to says so in words.
 
+## Drawn with Plot
+
+The figures are drawn with Observable Plot 0.6.17 and the d3 7.9.0 it is built on, served by the node as two static
+files (ISC; `app/static/licences/`), so the page draws on a network with no route out. `data/vendor.sha256` pins both
+and `make lint` checks them. Plot draws marks; the layer's rules still decide them: ink for readings, red for the line
+and the hours over it, green only for an answer that closed a loop, blue only for focus. A figure is a `series` card,
+so the four card kinds stay four.
+
 ## Signs
 
 Two families, two rules, and each is audited by its own. `app/static/signs.svg` carries 25 counting signs and
@@ -204,7 +213,8 @@ set by eye, or on one screen, or in one room, and have not been measured since. 
 - `planetai-design/decisions/design-log.md`: which round settled what, and why.
 - `app/static/planetai-theme.css`: generated from the first, held to its pin by `tools/check_theme.py`.
 
-The node's page is `index.html` and the static files the node serves beside it, and stays so.
+The node's page is `doors.html` (the five doors) or `index.html` (the classic dashboard at `/?layout=classic`) and the static files
+the node serves beside it, and stays so.
 `planetai.fab.city` may use a framework; the two never share code, and both read this layer.
 
 ## Where this leads

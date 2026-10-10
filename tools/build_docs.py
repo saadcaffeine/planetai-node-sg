@@ -143,6 +143,8 @@ def read_page(src):
     body = text[m.end():] if m else text
     # README-style HTML banners and badge rows have no place on a docs page.
     body = re.sub(r"<p align=\"center\">.*?</p>\s*", "", body, flags=re.S)
+    # The release stamp (`<!-- checked: vX -->`, held to the newest release by check_docs.py) is for the gate, not the reader.
+    body = re.sub(r"^<!-- checked: v[0-9.]+ -->\n?", "", body, flags=re.M)
     return title, body
 
 

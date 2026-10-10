@@ -22,6 +22,8 @@ somebody has to be answerable for what it does there.
 - [ ] `make lint` and `make test` pass on my machine.
 - [ ] If I added a lint gate, I broke something on purpose first and watched it fail.
 - [ ] No secrets, no `.env`, no tokens, and no log lines containing `api.telegram.org/bot`.
+- [ ] My commits are signed off (`git commit -s`).
+- [ ] This is not a pack for one place: that goes to fabcity/planetai-wild-packs. A pack here is a promotion.
 
 ## How I know it works
 

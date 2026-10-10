@@ -70,7 +70,7 @@ const PAI_LOAD = [];
  *
  * These are drawings. There is no fetch here, nothing is arranged, no button does anything, and
  * every number comes out of window.SNAP — which is node #1 on 6 September replayed through the real
- * engine, plus three synthetic contributions that say so.
+ * engine.
  *
  * The four kinds, and the whole of T3:
  *
@@ -171,7 +171,7 @@ function cmpText(o) {
 function readout(o) {
   const id = o.id || uid('readout');
   const c = o.cmp || { none: true, text: 'no comparison yet' };
-  return `<div class="readout${o.unplaced ? ' unplaced' : ''}" data-kind="readout"`
+  return `<div class="readout" data-kind="readout"`
     + ` data-component="${esc(o.component || 'readout')}" id="${esc(id)}"`
     + `${o.ref ? ` data-ref="${esc(o.ref)}"` : ''}>`
     /* PORTED: .lab is shouted, and a readout's title can be a PACK's own words — the water pack's
@@ -253,22 +253,16 @@ function stack(key, d, o = {}) {
   const cols = DIST.map(dist => {
     const c = (d.stack || {})[dist];
     const has = c && c.value != null;
-    /* A column a PACK filled carries the pack's own unit, decimal places and declared comparison.
-     * Water's region is metres below a water table and its room is turbidity in NTU; reading the
-     * issue's own unit and line for both painted 4.2 m red for crossing a 1.0 NTU line, which is
-     * two different quantities on one scale — the thing a stack exists not to do. */
-    const fill = (d.contributions || []).find(x => x.slot === `stack.${dist}` && x.placed !== false);
-    const unit = fill ? fill.data.unit : d.unit;
-    const dp = fill ? fill.data.dp : d.dp;
-    const line = fill ? (fill.data.compare === 'line' ? d.line : null) : d.line;
+    /* Every column is the issue's own quantity, in the issue's own unit, against the issue's own line. A pack
+     * never fills one (docs/decisions/2026-10-01-packs.md, point 4): a pack's number is a readout beside it. */
+    const unit = d.unit, dp = d.dp, line = d.line;
     const crossed = has && line && c.value > line.value;
     const room = ((d.stack || {}).room || {}).value;
     const cmp = !has ? { none: true, text: `nothing at this distance · ${reasonFor(d, dist)}` }
-      : fill ? cmpText({ mode: fill.data.compare, line, unit, dp, reason: fill.data.reason })
-        : line ? cmpText({ mode: 'line', line, unit, dp })
-          : dist === 'room' || room == null
-            ? cmpText({ mode: 'none', reason: `${d.name[LOC]} has no line: ${noLine(d)}` })
-            : cmpText({ mode: 'ring', other: room, otherLabel: 'the house', unit, dp });
+      : line ? cmpText({ mode: 'line', line, unit, dp })
+        : dist === 'room' || room == null
+          ? cmpText({ mode: 'none', reason: `${d.name[LOC]} has no line: ${noLine(d)}` })
+          : cmpText({ mode: 'ring', other: room, otherLabel: 'the house', unit, dp });
     return `<div class="col" id="${esc(id)}-col-${dist}"`
       + ` data-ref="src-${esc(key)}-${dist}">`
       + `<div class="k">${esc(LAB[dist])}</div>`
@@ -314,196 +308,6 @@ const reasonFor = (d, dist) => ({
   room: 'no sensor in the house', yard: 'no kit outside on the street',
   ring: 'no public station reporting', region: 'no model for this point',
 }[dist] || 'no source');
-
-/* --------------------------------------------------------------------------- 3 · series */
-/* Geometry only: the high and the low set the box, the node supplies every value and the line.
- * A hole in the series is a hole in the line — a run of one reading is a dot, never nothing. */
-const runs = (vals, at) => {
-  const out = []; let cur = [];
-  (vals || []).forEach((v, i) => {
-    if (v == null) { if (cur.length) { out.push(cur); cur = []; } return; }
-    cur.push(at(v, i));
-  });
-  if (cur.length) out.push(cur);
-  return out;
-};
-
-function series(key, d, o = {}) {
-  const id = o.id || `series-${key}`;
-  const ser = d.series || {};
-  const sets = DIST.filter(x => Array.isArray(ser[x]) && ser[x].some(v => v != null));
-  if (!sets.length) {
-    return `<div class="series" data-kind="series" data-component="series" id="${esc(id)}"`
-      + ` data-ref="${esc(o.ref || `band-${key}`)}"><p class="note">The day it just had: nothing recorded yet at `
-      + `any distance.</p></div>`;
-  }
-  const W = 720, H = o.h || 180, pad = { l: 8, r: 8, t: 10, b: 10 };
-  const all = sets.flatMap(x => ser[x]).filter(v => v != null);
-  const line = d.line ? d.line.value : null;
-  /* The floor is the data's own, not zero, and the drawing SAYS so. Forcing zero in put every heat
-   * trace on this node — 29 to 34 °C — into the top sixth of its box, with five sixths of the card
-   * blank: the variation a reader is here to see was flattened to nothing by an origin that means
-   * nothing. Zero degrees is not a floor in Bali and zero µg/m³ is not a reading anybody takes.
-   *
-   * A non-zero base exaggerates variation, which is the honest objection to it, and the answer is
-   * to declare it rather than to hide it: both ends of the scale are printed on the axis and in the
-   * text alternative, and the line's own position is inside the range whatever the data did. */
-  const floorAt = Math.min(...all, line == null ? Infinity : line);
-  const ceilAt = Math.max(...all, line == null ? -Infinity : line);
-  const padBy = (ceilAt - floorAt) * 0.12 || Math.abs(ceilAt * 0.1) || 1;
-  const hi = ceilAt + padBy, lo = floorAt - padBy;
-  const n = Math.max(...sets.map(x => ser[x].length));
-  const X = i => pad.l + (i / Math.max(1, n - 1)) * (W - pad.l - pad.r);
-  const Y = v => H - pad.b - ((v - lo) / (hi - lo || 1)) * (H - pad.t - pad.b);
-  const dash = { room: '', yard: '4 3', ring: '1 5', region: '6 4' };
-  const broken = sets.some(k => runs(ser[k], () => 0).length > 1);
-  /* Hours over the line, under the axis. An hour counts when ANY distance drawn above was over it
-   * — the question a household asks is whether this place was over, not whether one particular kit
-   * was — and the mark sits in the same coordinate space as the traces rather than in a div below,
-   * because a strip with its own padding drifts out of line with the hour it is pointing at.
-   * They are counted, never shaded: eight marks is eight hours and a darker band is a mood. */
-  const OVER_BAND = 11;
-  const overIdx = line == null ? []
-    : Array.from({ length: n }, (_, i) =>
-      sets.some(k => ser[k][i] != null && ser[k][i] > line) ? i : -1).filter(i => i >= 0);
-  let s = `<svg viewBox="0 0 ${W} ${H + OVER_BAND}" preserveAspectRatio="none" role="img" aria-label="`
-    + `${esc(d.name[LOC])}, ${sets.length} traces over 24 hours, ${esc(fmt(lo, d.dp))} to `
-    + `${esc(fmt(hi, d.dp))} ${esc(d.unit)}${line != null ? `, the line ${esc(fmt(line, d.dp))}` : ''}`
-    + `${broken ? ', broken where nothing was recorded' : ''}${overIdx.length
-      ? `, over the line in ${overIdx.length} of ${n} hours` : ''}">`;
-  if (line != null) s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${Y(line)}" y2="${Y(line)}"`
-    + ` stroke="var(--signal-worse)" stroke-dasharray="3 6" stroke-opacity=".8"/>`;
-  sets.forEach(k => {
-    const op = k === 'room' ? 1 : .55;
-    runs(ser[k], (v, i) => [X(i), Y(v)]).forEach(r => {
-      s += r.length > 1
-        ? `<polyline points="${r.map(p => p.join(',')).join(' ')}" fill="none" stroke="var(--ink)"`
-          + ` stroke-width="1.6" vector-effect="non-scaling-stroke"`
-          + `${dash[k] ? ` stroke-dasharray="${dash[k]}"` : ''} stroke-opacity="${op}"/>`
-        : `<circle cx="${r[0][0]}" cy="${r[0][1]}" r="1.8" fill="var(--ink)" fill-opacity="${op}"/>`;
-    });
-  });
-  /* One mark per hour that was over, at that hour's own x. Non-scaling stroke so they stay the
-     same weight whatever width the svg is stretched to. */
-  overIdx.forEach(i => {
-    s += `<line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${H + 3}" y2="${H + OVER_BAND - 2}"`
-      + ` stroke="var(--signal-worse)" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
-  });
-  /* Two marks on the traces themselves: a filled dot with a short stem at the highest value, and a hollow
-     ring where the day began. Non-scaling so they stay round-ish whatever the svg is stretched to. */
-  if (peak) s += `<line x1="${X(peak.i).toFixed(1)}" x2="${X(peak.i).toFixed(1)}" y1="${(Y(peak.v) - 1).toFixed(1)}" y2="${H - pad.b}"`
-    + ` stroke="var(--ink)" stroke-opacity=".35" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>`
-    + `<circle cx="${X(peak.i).toFixed(1)}" cy="${Y(peak.v).toFixed(1)}" r="3.2" fill="var(--signal-worse)" stroke="var(--ground)" stroke-width="1"/>`;
-  if (startI >= 0) s += `<circle cx="${X(startI).toFixed(1)}" cy="${Y(ser[sets[0]][startI]).toFixed(1)}" r="3.2" fill="var(--ground)"`
-    + ` stroke="var(--ink)" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
-  s += `</svg>`;
-  /* A distance with nothing to draw is NAMED, not silently dropped. Three traces where there
-     should be four reads as a complete picture unless the fourth says it is missing and why — and
-     on this node `model` is the missing one on every issue, which is a real gap in the record and
-     not a quiet simplification of the drawing. */
-  const gone = DIST.filter(x => !sets.includes(x));
-  const legend = sets.map(k =>
-    `<span><i class="${k === 'room' ? '' : k === 'ring' ? 'dot' : 'dash'}"></i>${esc(LAB[k])}</span>`)
-    .join('')
-    + gone.map(k => `<span class="gone"><i></i>${esc(LAB[k])} — ${esc(reasonFor(d, k))}</span>`).join('')
-    + (overIdx.length ? `<span class="over"><i></i>${overIdx.length} of ${n} hours over the line`
-      + `</span>` : '');
-  // The text alternative sits beside the drawing at every width, not behind it.
-  const first = ser[sets[0]].find(v => v != null), last = [...ser[sets[0]]].reverse().find(v => v != null);
-  /* Highest value recorded in the 24 h drawn (any trace) and the reading 24 h ago (the first trace's first
-     hour), named beside the line: the axis already says how far back the drawing goes, and these say what
-     it went from and how high it got. */
-  let peak = null;
-  sets.forEach(k => ser[k].forEach((v, i) => { if (v != null && (peak == null || v > peak.v)) peak = { v, i, k }; }));
-  const hoursAgo = peak ? n - 1 - peak.i : null;
-  const startI = ser[sets[0]].findIndex(v => v != null);
-  const altCmp = line != null
-    ? `against the line, ${fmt(line, d.dp)} ${d.unit} · ${d.line.source}`
-    : `no comparison yet · ${noLine(d)}`;
-  return `<div class="series" data-kind="series" data-component="series" id="${esc(id)}"`
-    + ` data-ref="${esc(o.ref || `band-${key}`)}">`
-    + `<div class="ax top"><span>${esc(fmt(hi, d.dp))} ${esc(d.unit)}</span>`
-    + `${line != null ? `<span>the line ${esc(fmt(line, d.dp))}</span>` : ''}</div>`
-    + s
-    + `<div class="ax bot"><span>24 h ago</span>`
-    + `${fmt(lo, d.dp) === fmt(0, d.dp) ? '<span class="floor">floor 0</span>'
-      : `<span class="floor">floor ${esc(fmt(lo, d.dp))} ${esc(d.unit)}, not zero</span>`}`
-    + `<span>now</span></div>`
-    + (peak ? `<div class="marks"><span class="mk start"><i></i>24 h ago ${esc(fmt(first, d.dp))} ${esc(d.unit)}</span>`
-      + `<span class="mk peak"><i></i>highest ${esc(fmt(peak.v, d.dp))} ${esc(d.unit)}, `
-      + `${hoursAgo === 0 ? 'now' : `${hoursAgo} h ago`}</span>`
-      + `${line != null ? `<span class="mk ln"><i></i>the line ${esc(fmt(line, d.dp))}</span>` : ''}</div>` : '')
-    + `<p class="alt"><span data-num="${esc(key)}.day" data-cmp="${esc(altCmp)}">`
-    + `${esc(LAB[sets[0]])} opened the day at ${esc(fmt(first, d.dp))} and closed it at `
-    + `${esc(fmt(last, d.dp))} ${esc(d.unit)}</span> — ${esc(altCmp)}.`
-    + `${broken ? ' The line breaks where nothing was recorded.' : ''}</p>`
-    + `<div class="legend">${legend}</div></div>`;
-}
-
-/* The barcode: every issue's day in one strip, one bar an hour.
- *
- * WHY IT IS NOT THE TRACES AGAIN. The traces detail the two issues that have a day; this carries
- * ALL of them, including the ones with nothing, so the shape of a whole day is one object a reader
- * can take in at a glance and the empty ones are visibly empty rather than absent. The matrix is
- * issues by distance, now. This is issues by hour, today. Same rows, the other axis.
- *
- * THE GRAIN IS 24 BARS AND THE CAPTION SAYS SO. The drawing this is built from shows 96 at fifteen
- * minutes. No route on this node can answer that: /series and /sparks are hourly, and `stats` has
- * fifteen-minute means for *now* only, never for a day. So it is hourly and says it is hourly,
- * rather than drawing 96 bars out of 24 readings and calling the difference smoothing.
- *
- * One bar an hour, height for the reading against that issue's own scale, red when it was over
- * that issue's own line — the same red the hours-over marks use, and for the same fact. */
-function barcode(o = {}) {
-  const id = o.id || 'barcode';
-  const rows = (ORDER || []).filter(k => ISS[k]);
-  if (!rows.length) return '';
-  const HRS = 24, BW = 26, BH = 34, GAP = 4;
-  const W = HRS * (BW + GAP);
-  const strip = k => {
-    const d = ISS[k];
-    /* The closest distance that has a day. A barcode of the model when the room is measured would
-       be drawing somewhere else and calling it here. */
-    const pick = (DIST || []).find(x => Array.isArray((d.series || {})[x])
-      && d.series[x].some(v => v != null));
-    const vals = pick ? d.series[pick] : [];
-    const got = vals.filter(v => v != null);
-    if (!got.length) {
-      return `<div class="bc" id="${esc(id)}-${esc(k)}" data-ref="${esc(id)}">`
-        + `<span class="k">${esc(d.name[LOC])}</span>`
-        + `<span class="empty">no hourly record at any distance</span></div>`;
-    }
-    const line = d.line ? d.line.value : null;
-    const lo = Math.min(...got), hi = Math.max(...got, line == null ? -Infinity : line);
-    const span = (hi - lo) || 1;
-    const bars = Array.from({ length: HRS }, (_, i) => {
-      const v = vals[i];
-      if (v == null) return `<rect x="${i * (BW + GAP)}" y="${BH - 1}" width="${BW}" height="1"`
-        + ` class="gap"/>`;
-      const h = Math.max(2, Math.round(((v - lo) / span) * BH));
-      const over = line != null && v > line;
-      return `<rect x="${i * (BW + GAP)}" y="${BH - h}" width="${BW}" height="${h}"`
-        + `${over ? ' class="over"' : ''}/>`;
-    }).join('');
-    const overN = line == null ? 0 : vals.filter(v => v != null && v > line).length;
-    return `<div class="bc" id="${esc(id)}-${esc(k)}" data-ref="${esc(id)}">`
-      + `<span class="k">${esc(d.name[LOC])}</span>`
-      + `<svg viewBox="0 0 ${W} ${BH}" preserveAspectRatio="none" role="img" aria-label="`
-      + `${esc(d.name[LOC])} at the ${esc(LAB[pick])}, ${got.length} of ${HRS} hours recorded`
-      + `${line == null ? '' : `, ${overN} over the line`}">${bars}</svg>`
-      + `<span class="m" data-num="barcode.${esc(k)}" data-cmp="${esc(line == null
-        ? `${d.name[LOC]} has no line: ${noLine(d)}`
-        : `hours over ${fmt(line, d.dp)} ${d.unit || ''}, at the ${LAB[pick]}`)}">`
-      + `${line == null ? '\u2014' : `${overN}/${got.length}`}</span></div>`;
-  };
-  return `<div class="barcode" data-kind="series" data-component="barcode" id="${esc(id)}"`
-    + ` data-ref="${esc(o.ref || 'days')}">${rows.map(strip).join('')}`
-    + `<p class="cap">One bar an hour, 24 hours, at the closest distance each issue has. `
-    + `<b>Every row is on its own scale</b>, because a micrograph and a degree are not the same `
-    + `quantity \u2014 read a row across the day, never one row against another. `
-    + `<b>Hourly, not quarter-hourly</b>: this node keeps fifteen-minute means for now only, never `
-    + `for a day, so an hour is the finest grain it keeps for a whole day.</p></div>`;
-}
 
 /* --------------------------------------------------------------------------- 4 · row */
 function row(o) {
@@ -619,23 +423,19 @@ function heroRule(key, d) {
 }
 
 function sentence(key, d, cls = 'big') {
-  const s = d.sentence ? d.sentence[LOC] : '';
-  const cell = (d.stack || {})[d.headline];
-  const n = cell && cell.value != null ? fmt(cell.value, d.dp) : null;
-  const crossed = !!(d.line && cell && cell.value != null && cell.value > d.line.value
-    && (d.state === 'act' || d.state === 'notable'));
-  const cmp = d.line
-    ? cmpText({ mode: 'line', line: d.line, unit: d.unit, dp: d.dp })
-    : cmpText({ mode: 'none', reason: noLine(d) });
-  /* The figure inside the sentence is set in the mono and nothing else. It is not the monument and
-     does not carry the monument's attributes: the sketch says this number twice — once as a figure
-     large enough to stop being a number, once inside a sentence that reads as a sentence — and two
-     elements claiming `data-role="numeral"` for one reading is one of them lying. */
-  const marked = n
-    ? esc(s).replace(esc(n), `<b class="mono${crossed ? ' crossed' : ''}">${esc(n)}</b>`)
-    : esc(s);
+  /* The title is the sentence's qualitative head — no number, no indicator, the household's words
+     for what is happening. The tagline explains it (the line, the comparison, the day's event) in a
+     smaller font: the readings are introduced slowly, not shouted in the title. The full sentence
+     stays for prose contexts. Older nodes send no title; the sentence stands in.
+     Release A moved the numeral out of the headline: the sentence is words only, so it draws no
+     figure and marks none. The crossed mark moved with the number — it marks the `plain` figure
+     that is over the line, drawn where plain is rendered. */
+  const t = d.title ? d.title[LOC] : '';
+  const s = t || (d.sentence ? d.sentence[LOC] : '');
+  const tag = cls === 'big' && d.tagline ? d.tagline[LOC] : '';
   return `<p class="${cls}" data-component="sentence" data-role="sentence" id="sentence-${esc(key)}"`
-    + ` data-ref="stack-${esc(key)}">${marked}</p>`;
+    + ` data-ref="stack-${esc(key)}">${esc(s)}`
+    + (tag ? `<span class="tag said">${esc(tag)}</span>` : '') + `</p>`;
 }
 
 /* `rule` is the lead's only. It used to be a second paragraph of its own, and `.lead > .why` matched
@@ -701,8 +501,8 @@ function ask(key, d, ref) {
     + didButton(a.id, a.seen) + `</div>`;
 }
 
-/* The one button the page offers on an open alert, and the form it opens. Shared by the ask strip in
- * Act and the ask row simple mode draws in the lead, so both write to the ledger the same way. */
+/* The one button the page offers on an open alert, and the form it opens. Shared by Decide's alert cards
+ * and the ask row simple mode draws in the lead, so both write to the ledger the same way. */
 const didButton = (id, seen) =>
   /* "Seen" records `acknowledged`: somebody has looked, nothing has been done. rho counts it as an answer
      but the alert stays open here, because seeing it is not doing anything (app/issues/schema.py). */
@@ -725,7 +525,7 @@ const didButton = (id, seen) =>
 
 /* SIMPLE MODE'S ASK ROW: the third of the three questions, is there something to do, answered in the
  * lead. The sign of the issue it belongs to, the alert's first line, its id, and the button. Act-level
- * only, because `open_asks` is act-level by construction. Advanced keeps the strip in Act. */
+ * only, because `open_asks` is act-level by construction. Advanced has no strip: Decide draws the cards. */
 function askRow(key, d, a) {
   const h = d.hero || {};
   return `<div class="ask askrow" data-lv="simple" data-component="askRow" data-role="ask"`
@@ -879,30 +679,6 @@ function peerRow() {
     + `<span class="note">${esc(p.never[LOC])}</span></div></div>`;
 }
 
-/* A slot the vocabulary does not contain. It lands on the page with the pack's name on it. */
-function unplaced(c) {
-  return readout({
-    id: `unplaced-${c.pack}`, num: `${c.pack}.unplaced`, component: 'unplaced', unplaced: true,
-    pack: c.pack,
-    title: c.data.title[LOC], value: c.data.value, unit: c.data.unit, dp: c.data.dp,
-    source: `${c.pack} asked for ${c.slot}, which this page has no place for`,
-    prov: c.provenance, ref: 'band-water',
-    cmp: cmpText({ mode: 'none', reason: c.data.reason }),
-  });
-}
-
-/* A contribution a pack made to a slot that does exist. */
-function contribution(c, key) {
-  if (c.slot !== 'band.readout') return '';
-  return readout({
-    id: `contrib-${c.pack}-readout`, num: `${key}.${c.data.metric || 'readout'}`,
-    component: 'readout', pack: c.pack,
-    title: c.data.title[LOC], value: c.data.value, unit: c.data.unit, dp: c.data.dp,
-    source: c.data.source, prov: c.provenance, ref: `stack-${key}`,
-    cmp: cmpText({ mode: c.data.compare, reason: c.data.reason }),
-  });
-}
-
 /* The Phase 1 wireframes are gone from the shipped page.
  *
  * They were grey bars standing in for text and outlined boxes standing in for controls, with a note
@@ -939,7 +715,10 @@ const VIEW_NAMES = new Set(['now', 'historical', 'network', 'wall', 'arrange', '
 function readView() {
   const q = new URLSearchParams(location.search);
   const h = (location.hash || '').replace(/^#/, '');
-  VIEW = (VIEW_NAMES.has(h) ? h : '') || q.get('view') || 'now';
+  /* A hash that names no view is an anchor on THIS page, so with no ?view= it keeps the view the
+     reader is on (the header's nav wrote #network; `#grain` must not send them to Now). Only a first
+     load, where VIEW is still its initial 'now', or an empty hash, falls through to 'now'. */
+  VIEW = VIEW_NAMES.has(h) ? h : (q.get('view') || (h && VIEW ? VIEW : 'now'));
   STATE = q.get('state') || 'populated';
   if (window.K) Object.assign(window.K, { VIEW, STATE });
 }
@@ -950,7 +729,7 @@ function readView() {
 function emptySnapshot() {
   for (const k of Object.keys(ISS)) {
     const d = ISS[k];
-    d.state = 'none'; d.open_asks = []; d.contributions = [];
+    d.state = 'none'; d.open_asks = [];
     d.stack = { room: null, yard: null, ring: null, region: null };
     d.series = { room: null, yard: null, ring: null, region: null };
     d.readouts = []; d.provenance = [];
@@ -999,9 +778,441 @@ const interp = (str, vals) => String(str || '')
    keeps those (node #1: `indoor_pm25_high`), and every section that names a rule's pack reads it here. */
 const rulePack = id => { const s = String(id); return s.includes('/') ? s.split('/')[0] : ''; };
 
+/* ALERT EVENTS (docs/SPEC_dashboard_events.md §4.2). One per issue per house, the way the bot tells them:
+ * the node chose the action and wrote the message, and this draws them. Which of five states Decide is in is
+ * the first thing every caller needs, and the five are different facts (spec §5). */
+function evState() {
+  const e = (S.issues || {}).events;
+  if (e == null) return 'old';
+  if (e.error) return 'error';
+  return e.engine === 'shadow' || e.engine === 'events' ? e.engine : 'rules';
+}
+const evOpen = () => (((S.issues || {}).events || {}).open || []);
+/* The event simple mode's row is about: the shown issue's, else the first open one. */
+const evPick = (evs, hk) => evs.find(e => e.issue === hk) || evs[0];
+/* The button word an answer's stage stands for, in the node's own labels (events.buttons). The same three
+   the buttons wear, so an answer reads as the button that wrote it. */
+function evWord(stage) {
+  const B = ((S.issues || {}).events || {}).buttons || {};
+  return stage === 'acted' ? B.done || 'Done' : stage === 'dismissed' ? B.doesnt_fit || 'Doesn’t fit'
+    : B.not_now || 'Not now';
+}
+function evClock(iso) {
+  const t = new Date(iso);
+  if (isNaN(t)) return '';
+  const tz = S.health && S.health.tz;
+  if (tz) {
+    try {
+      return new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit',
+        hour12: false }).format(t);
+    } catch { /* a zone this browser does not know: say UTC */ }
+  }
+  return `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')} UTC`;
+}
+function evButtons(e) {
+  const B = ((S.issues || {}).events || {}).buttons || {};
+  const id = esc(String(e.id));
+  return `<div class="evbtns">`
+    + `<button type="button" class="evb pri" data-ev="${id}" data-stage="acted">${esc(B.done || 'Done')}</button>`
+    + `<button type="button" class="evb" data-ev="${id}" data-stage="acknowledged">${esc(B.not_now || 'Not now')}</button>`
+    + `<button type="button" class="evb" data-ev="${id}" data-stage="dismissed">${esc(B.doesnt_fit || 'Doesn’t fit')}</button>`
+    + `</div>`
+    + `<form class="evform" hidden data-ev="${id}"><input type="hidden" name="stage">`
+    + `<label><span>Who</span><input name="actor" maxlength="80" autocomplete="name" placeholder="your name"></label>`
+    + `<label class="instead"><span>What did you do instead?</span><input name="note" maxlength="500"`
+    + ` placeholder="optional"></label>`
+    + `<div class="btns"><button type="submit" class="pri">Record it</button>`
+    + `<button type="button" class="cancel">Cancel</button></div>${TOKEN_FINE}</form>`;
+}
+/* The line an answered event wears: who pressed which button, when, and until when a Not now holds. Empty
+   before an answer. Decide's card and simple mode's row both draw it. A Doesn't fit with a note carries the
+   household's own words — the answer to the bot's one question, "what did you do instead?" */
+function evAnswered(e) {
+  const a = e.answer, done = a && a.stage === 'acted';
+  return !a ? '' : `<p class="${done ? 'evdone' : 'evheld'}">`
+    + `${done ? sign('rho-closed', 'closed') : ''}${esc(evWord(a.stage))} · ${esc(a.actor || 'somebody')}`
+    + ` · ${esc(evClock(a.ts))}${a.held_until ? ` · held until ${esc(evClock(a.held_until))}`
+      + ` unless it reaches danger` : ''}`
+    + `${a.note ? `<span class="evnote"> — “${esc(a.note)}”</span>` : ''}</p>`;
+}
+/* `tail` is drawn inside the card, last: Decide puts the folded rule rows there (spec §4.2). */
+/* The live stamp. Everything else on the card is event-scoped — peak, message, context — so an event that
+ * stays open for hours (the margin doing its work on a hot night, docs/decisions/2026-10-10) reads as frozen
+ * while the engine is stepping every minute. The wire already carries last_seen_at; the card says so, and the
+ * age ticks up on every poll, which is the visible proof the feed is alive. No current value here: the hero's
+ * value is not in the event's measure (heat's hero is air temperature, the event is apparent), and the card
+ * will not mix the two. */
+function evLive(e) {
+  const t = new Date(e.last_seen_at || '');
+  if (isNaN(t)) return '';
+  return ` · <span class="m">watching — last seen ${esc(age((Date.now() - t.getTime()) / 6e4))}</span>`;
+}
+function evCard(e, tail = '') {
+  const d = ISS[e.issue] || { name: {} }, h = d.hero || {}, dp = d.dp == null ? 1 : d.dp, unit = d.unit || '';
+  const st = evState(), c = e.context || {}, a = e.answer;
+  const n = v => (v == null ? null : fmt(v, dp));
+  const out = c.outside == null ? null : `outside ${n(c.outside)}`
+    + (c.outside_metric === 'temp' && d.metric !== 'temp' ? ' (air temperature)' : '')
+    + (c.outside_from ? `, from ${c.outside_from}` : '');
+  const cmp = [c.usual == null ? 'no usual for this hour yet' : `usual at this hour ${n(c.usual)}`,
+    out || 'no outside reading', e.line == null ? 'no line' : `the line ${n(e.line)}`].join(' · ');
+  const worse = e.line != null && e.peak != null && e.peak > e.line;
+  const m = e.message;
+  const said = !m ? '' : `<p class="evmsg"><span class="m">${st === 'shadow' ? 'would have sent'
+    : m.sent ? 'sent' : 'held'} ${esc(evClock(m.ts))}</span><span class="said">${esc(m.text || '')}</span></p>`;
+  const done = a && a.stage === 'acted', answered = evAnswered(e);
+  const rows = (e.alerts || []).length;
+  /* A link goes only to a section this page is drawing: `sensors` belongs to a pack a node may not run, and
+     Arrange may have hidden any of them. */
+  const drawn = id => window.PAI.sections.some(s => s.id === id && (s.needs || []).every(window.PAI.has))
+    && !(window.PAI.isHidden && window.PAI.isHidden(id));
+  const links = [drawn('matrix') && `<a href="#matrix">${esc(d.name[LOC] || e.issue)} at every distance</a>`,
+    drawn('day') && `<a href="#day">the day</a>`, drawn('sensors') && `<a href="#sensors">the stations</a>`,
+    rows && `<a href="#evrows-${esc(String(e.id))}">from ${rows} rule row${rows === 1 ? '' : 's'}</a>`]
+    .filter(Boolean);
+  return `<section class="ev${a && a.stage === 'acknowledged' ? ' held' : ''}" id="ev-${esc(String(e.id))}"`
+    + ` data-kind="readout" data-component="event" data-role="ask" data-ref="decide">`
+    + `<div class="evhead">${h.sign ? `<svg class="sgn" viewBox="0 0 24 24" role="img" aria-label="`
+      + `${esc(d.name[LOC] || e.issue)}"><use href="static/signs.svg#${esc(h.sign)}"/></svg>` : ''}`
+    + `<b>${esc(d.name[LOC] || e.issue)}</b> · ${esc(e.kind)} · since ${esc(evClock(e.opened_at))}`
+    + `${(e.rooms || []).length ? ` · ${esc(e.rooms.join(', '))}` : ''}`
+    + evLive(e)
+    + `${st === 'shadow' ? `<span class="m">shadow — nothing was sent</span>` : ''}</div>`
+    + `<p class="evcmp"><span class="evnum${worse ? ' worse' : ''}" data-num="ev.${esc(String(e.id))}.peak"`
+    + ` data-cmp="${esc(cmp)}">${esc(n(e.peak))}</span> ${esc(unit)} peak <small>${esc(cmp)}</small></p>`
+    + (e.action && e.action.text ? `<p class="evact said">${esc(e.action.text)}</p>`
+      : `<p class="evact none">The node chose no action for this event, and this page will not invent one.</p>`)
+    + answered + (done ? '' : evButtons(e)) + said
+    + (links.length ? `<p class="evlinks">evidence: ${links.join(' · ')}</p>` : '')
+    + tail + `</section>`;
+}
+
+/* --------------------------------------------------------------------------- 6 · figures */
+/* Drawn with Observable Plot (static/plot.umd.min.js, with its d3 in static/d3.min.js), vendored so the page draws
+ * on a LAN with no route out (docs/SPEC_dashboard_figures.md §4). The page is HTML strings and Plot makes DOM nodes,
+ * so a figure is a placeholder in the string and a draw function kept here; route() calls mountFigs() after it has
+ * replaced the page, and a figure redraws when its column changes width by more than 20 px.
+ *
+ * NOTHING HERE MAY TOUCH A BROWSER GLOBAL AT LOAD. tests/test_dashboard.py loads this whole file in node, where
+ * there is no ResizeObserver, no CSS and no Plot; they are reached only inside functions a browser calls. */
+const FIGS = new Map();
+let FIG_RO = null;
+
+function fig(id, draw, o = {}) {
+  FIGS.set(id, draw);
+  return `<div class="f-fig" id="${esc(id)}" data-kind="series" data-component="${esc(o.component || 'figure')}"`
+    + ` data-ref="${esc(o.ref || '')}"${o.keys ? ' tabindex="0"' : ''} role="group"`
+    + ` aria-label="${esc(o.label || '')}"></div>`;
+}
+
+function paintFig(el) {
+  try {
+    el.replaceChildren();
+    el.__fig.draw(el, Math.max(280, el.__fig.w || 720));
+  } catch (e) {
+    el.innerHTML = `<p class="note" data-component="failed" id="${esc(el.id)}-failed" data-ref="${esc(el.id)}">`
+      + `This drawing did not render: ${esc(String((e && e.message) || e))}. Its numbers are in the sentence `
+      + `and the matrix beside it.</p>`;
+  }
+}
+
+function mountFigs(root) {
+  if (FIG_RO) FIG_RO.disconnect();
+  FIG_RO = typeof ResizeObserver === 'function' ? new ResizeObserver(es => {
+    for (const e of es) {
+      const f = e.target.__fig, w = Math.round(e.contentRect.width);
+      if (f && Math.abs(w - f.w) > 20) { f.w = w; paintFig(e.target); }
+    }
+  }) : null;
+  for (const [id, draw] of FIGS) {
+    const el = root.querySelector(`#${CSS.escape(id)}`);
+    if (!el) continue;
+    el.__fig = { draw, w: Math.round(el.clientWidth) };
+    paintFig(el);
+    if (FIG_RO) FIG_RO.observe(el);
+  }
+  FIGS.clear();
+}
+
+/* The box a drawing is read against: the data's own range, padded, and never below zero for readings that are all
+ * non-negative. The trace printed "floor -20 µg/m³, not zero" on node #1 on 6 October: headroom under a floor that
+ * does not exist. */
+const boxOf = (vals, line, pad = 0.12) => {
+  const all = vals.filter(v => v != null && Number.isFinite(v)).concat(line == null ? [] : [line]);
+  if (!all.length) return null;
+  const lo = Math.min(...all), hi = Math.max(...all), p = (hi - lo) * pad || Math.abs(hi * 0.1) || 1;
+  return { lo: lo >= 0 ? Math.max(0, lo - p) : lo - p, hi: hi + p };
+};
+/* A time string's own offset in minutes ("+08:00" is 480), so a label says the node's hour, never the reader's. */
+const offsetOf = iso => {
+  const m = /([+-])(\d\d):(\d\d)$/.exec(String(iso || ''));
+  return m ? (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]) : 0;
+};
+/* A wire time's local day, hour and hh:mm, read in that string's own offset (docs/SPEC_dashboard_figures.md §3.4,
+ * §4.2): a bucket, an event, an answer and a last_heard each say their own hour, so a node that changes clock labels
+ * both sides of the change right. Reading every bucket in the last one's offset drew a Madrid day before 25 October
+ * an hour early. `ms` reads another instant in the string's offset (a station's empty hour, named by the bucket
+ * before it; the node's now, in its latest bucket's offset). A time that does not parse is '—', never a throw. */
+const localOf = (iso, ms = Date.parse(iso)) => {
+  if (!Number.isFinite(ms)) return { day: '—', hour: null, hhmm: '—' };
+  const s = new Date(ms + offsetOf(iso) * 60000).toISOString();
+  return { day: s.slice(0, 10), hour: +s.slice(11, 13), hhmm: s.slice(11, 16) };
+};
+/* The register button restyles in place, and the strips' shade ramp is two literal colours read at draw time, so the
+ * drawings on the page are painted again in the register now on. */
+const repaintFigs = () => document.querySelectorAll('.f-fig').forEach(el => el.__fig && paintFig(el));
+function nearestIndex(ts, t) {
+  let b = 0;
+  for (let i = 1; i < ts.length; i++) if (Math.abs(ts[i] - t) < Math.abs(ts[b] - t)) b = i;
+  return b;
+}
+/* A token's value in the register on now, for the one place a colour has to be a colour and not a variable: the
+ * strips' shade ramp, which d3 interpolates. */
+const tokenOf = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const PLOT_STYLE = { background: 'transparent', color: 'var(--ink)', fontFamily: 'var(--mono)', fontSize: '11px',
+  overflow: 'visible' };
+const DASH = { room: null, yard: '4 3', ring: '1 5', region: '6 4' };
+const ANSWER = { acted: 'Done', acknowledged: 'Not now', dismissed: 'Doesn’t fit' };
+const USUAL_WHY = { unread: 'the usual could not be read', no_source: 'no source at this distance',
+  no_history: 'not enough days at this hour yet', not_watched: 'not watched here' };
+
+/* THE DAY FIGURE (docs/SPEC_dashboard_figures.md §4.2). One `series` card per issue: every distance, the usual band,
+ * the line and the hours over it, the event that opened and its answer, the event's own rooms, and a readout that
+ * says in words what the crosshair is on. It replaces the traces and Measure's second copy of them. */
+function dayFigure(key, d, o = {}) {
+  const id = o.id || `day-fig-${key}`, ref = o.ref || 'days';
+  const ser = d.series || {};
+  const sets = DIST.filter(x => Array.isArray(ser[x]) && ser[x].some(v => v != null));
+  if (!sets.length) {
+    return `<p class="note" id="${esc(id)}" data-ref="${esc(ref)}">The day it just had: nothing recorded yet at `
+      + `any distance.</p>`;
+  }
+  const B = d.buckets || [], T = B.map(b => Date.parse(b)), L = B.map(b => localOf(b));
+  const now = Math.max(Date.parse(((S || {}).issues || {}).as_of) || 0, T[T.length - 1]);
+  const hero = sets.includes(d.headline) ? d.headline : sets[0];
+  const line = d.line ? d.line.value : null;
+  const U = d.usual && d.usual.hours ? d.usual.hours : null;
+  const band = U ? T.map((t, i) => ({ t: new Date(t), ...(U[L[i].hour] || {}) })) : [];
+  const E = ((S || {}).issues || {}).events || {};
+  const evs = (E.open || []).concat(E.recent || []).filter(e => e.issue === key)
+    .map(e => ({ e, o: Date.parse(e.opened_at), c: e.cleared_at ? Date.parse(e.cleared_at) : now,
+      a: e.answer ? Date.parse(e.answer.ts) : null }))
+    .filter(x => x.c >= T[0]);
+  const roomsOf = evs.map(x => x.e.series).find(s => s && Array.isArray(s.values) && s.values.length === T.length);
+  const box = boxOf(sets.flatMap(k => ser[k]).concat(band.flatMap(b => [b.median, b.p90]))
+    .concat(roomsOf ? roomsOf.values : []), line);
+  const overAt = i => line != null && sets.some(k => ser[k][i] != null && ser[k][i] > line);
+  const over = T.filter((t, i) => overAt(i));
+  const above = T.filter((t, i) => !overAt(i) && band[i] && band[i].p90 != null && ser[hero][i] != null
+    && ser[hero][i] > band[i].p90);
+  const unit = d.unit || '', dp = d.dp;
+  const first = ser[hero].find(v => v != null), last = [...ser[hero]].reverse().find(v => v != null);
+  const idle = `<b>24 h</b><span>${esc(LAB[hero])} opened the day at ${esc(fmt(first, dp))} and closed it at `
+    + `${esc(fmt(last, dp))} ${esc(unit)}</span>`
+    + (over.length ? `<span class="f-over">${over.length} of ${T.length} hours over the line</span>` : '')
+    + (U ? `<span class="f-usual">${above.length} above the usual, under the line</span>` : '')
+    + `<span class="f-gone">point at an hour, or focus the drawing and use ← →</span>`;
+  const readAt = i => {
+    const ev = evs.find(x => T[i] >= x.o && T[i] <= x.c);
+    return `<b>${esc(L[i].hhmm)}</b>`
+      + sets.map(k => `<span class="f-d f-${k}${ser[k][i] == null ? ' f-gone' : ''}"><i></i>${esc(LAB[k])} `
+        + `${ser[k][i] == null ? 'nothing recorded' : esc(fmt(ser[k][i], dp))}</span>`).join('')
+      + (roomsOf && roomsOf.values[i] != null ? `<span class="f-d f-rooms"><i></i>${esc(roomsOf.rooms.join(', '))} `
+        + `${esc(fmt(roomsOf.values[i], dp))}</span>` : '')
+      + (band[i] && band[i].median != null ? `<span class="f-usual">usual ${esc(fmt(band[i].median, dp))} to `
+        + `${esc(fmt(band[i].p90, dp))}</span>` : '')
+      + (overAt(i) ? `<span class="f-over">over the line ${esc(fmt(line, dp))}</span>` : '')
+      + (ev ? `<span class="f-ev">${esc(ev.e.kind)} open · ${ev.e.answer
+        ? `<b class="${ev.e.answer.stage === 'acted' ? 'f-done' : ''}">${esc(ANSWER[ev.e.answer.stage] || ev.e.answer.stage)}</b>`
+          + ` · ${esc(ev.e.answer.actor || '')} ${esc(localOf(ev.e.answer.ts).hhmm)}` : 'no answer'}</span>` : '');
+  };
+  const draw = (el, W) => {
+    const narrow = W < 600, H = narrow ? 170 : 230, pad = (box.hi - box.lo) * 0.06, evY = box.hi - pad;
+    const at = T.map(t => new Date(t));
+    const rows = k => ser[k].map((v, i) => ({ t: at[i], v }));
+    const lone = k => rows(k).filter((r, i, a) => r.v != null && (i === 0 || a[i - 1].v == null)
+      && (i === a.length - 1 || a[i + 1].v == null));
+    const late = x => (x.o - T[0]) / ((now - T[0]) || 1) > 0.8;
+    const label = x => (narrow ? x.e.kind : `${x.e.kind} · ${localOf(x.e.opened_at).hhmm}`);
+    const ev = evs.map(x => ({ ...x, o: new Date(x.o), c: new Date(x.c), a: x.a == null ? null : new Date(x.a) }));
+    const svg = Plot.plot({
+      width: W, height: H, marginLeft: 8, marginRight: 8, marginTop: 18, marginBottom: 26, style: PLOT_STYLE,
+      x: { type: 'time', domain: [new Date(T[0]), new Date(now)], label: null, tickSize: 0,
+        ticks: at.filter((t, i) => L[i].hour % (narrow ? 6 : 3) === 0), tickFormat: t => (L[T.indexOf(+t)] || {}).hhmm },
+      y: { domain: [box.lo, box.hi], axis: null },
+      marks: [
+        Plot.gridY({ ticks: 4, stroke: 'var(--hair)', strokeOpacity: 1 }),
+        U ? Plot.areaY(band.filter(b => b.median != null && b.p90 != null),
+          { x: 't', y1: 'median', y2: 'p90', fill: 'var(--ink)', fillOpacity: 0.1 }) : null,
+        line == null ? null : Plot.ruleY([line], { stroke: 'var(--signal-worse)', strokeDasharray: '3 6', strokeOpacity: 0.85 }),
+        Plot.ruleX(over.map(t => new Date(t)), { y1: box.lo, y2: box.lo + pad, stroke: 'var(--signal-worse)', strokeWidth: 2 }),
+        Plot.ruleX(above.map(t => new Date(t)), { y1: box.lo, y2: box.lo + pad, stroke: 'var(--ink)', strokeOpacity: 0.6, strokeWidth: 2 }),
+        ...sets.map(k => Plot.lineY(rows(k), { x: 't', y: 'v', stroke: 'var(--ink)', strokeWidth: 1.6,
+          strokeOpacity: k === hero ? 1 : 0.55, strokeDasharray: DASH[k] || undefined })),
+        ...sets.map(k => Plot.dot(lone(k), { x: 't', y: 'v', r: 1.8, fill: 'var(--ink)', fillOpacity: k === hero ? 1 : 0.55 })),
+        roomsOf ? Plot.lineY(roomsOf.values.map((v, i) => ({ t: at[i], v })), { x: 't', y: 'v', stroke: 'var(--ink)', strokeWidth: 2.6 }) : null,
+        Plot.ruleY(ev, { y: evY, x1: 'o', x2: 'c', stroke: 'var(--ink)', strokeWidth: 5, strokeOpacity: 0.22 }),
+        Plot.text(ev.filter(x => !late(x)), { x: 'o', y: evY, text: label, textAnchor: 'start', dx: 4, dy: -9, fill: 'var(--mute)', fontSize: 10.5 }),
+        Plot.text(ev.filter(late), { x: 'c', y: evY, text: label, textAnchor: 'end', dx: -4, dy: -9, fill: 'var(--mute)', fontSize: 10.5 }),
+        Plot.ruleY(ev.filter(x => x.a && x.a > x.c), { y: evY, x1: 'c', x2: 'a', stroke: 'var(--ink)', strokeOpacity: 0.35, strokeDasharray: '1 3' }),
+        Plot.dot(ev.filter(x => x.a && x.e.answer.stage === 'acted'), { x: 'a', y: evY, r: 4.5, stroke: 'var(--rings)', strokeWidth: 2, fill: 'var(--ground)' }),
+        Plot.dot(ev.filter(x => x.a && x.e.answer.stage !== 'acted'), { x: 'a', y: evY, r: 4.5, stroke: 'var(--ink)', strokeWidth: 2, fill: 'var(--ground)' }),
+        Plot.ruleX([new Date(now)], { stroke: 'var(--ink)', strokeOpacity: 0.35 }),
+      ].filter(Boolean),
+    });
+    const inner = document.createElement('div'); inner.className = 'f-in';
+    const hair = document.createElement('i'); hair.className = 'f-hair'; hair.hidden = true;
+    inner.append(svg, hair); el.append(inner);
+    const read = document.getElementById(`${id}-read`);
+    const xs = svg.scale('x');
+    let cur = null;
+    const show = i => {
+      cur = i;
+      if (read) read.innerHTML = i == null ? idle : readAt(i);
+      if (i == null) { hair.hidden = true; return; }
+      const r = svg.getBoundingClientRect();
+      hair.hidden = false;
+      hair.style.left = `${(xs.apply(at[i]) * r.width) / W}px`;
+    };
+    svg.addEventListener('pointermove', e => {
+      const r = svg.getBoundingClientRect();
+      show(nearestIndex(T, +xs.invert(((e.clientX - r.left) * W) / r.width)));
+    });
+    svg.addEventListener('pointerleave', () => show(null));
+    el.onkeydown = e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      show(cur == null ? T.length - 1 : Math.max(0, Math.min(T.length - 1, cur + (e.key === 'ArrowLeft' ? -1 : 1))));
+    };
+    el.onblur = () => show(null);
+  };
+  const gone = DIST.filter(x => !sets.includes(x));
+  const legend = sets.map(k => `<span class="f-d f-${k}"><i></i>${esc(LAB[k])}</span>`).join('')
+    + (roomsOf ? `<span class="f-d f-rooms"><i></i>the event’s own ${roomsOf.rooms.length === 1 ? 'room' : 'rooms'}</span>` : '')
+    + gone.map(k => `<span class="f-gone"><i></i>${esc(LAB[k])} — ${esc(reasonFor(d, k))}</span>`).join('')
+    + (U ? `<span class="f-band"><i></i>usual at this hour, last ${d.usual.window_days} days</span>`
+      : `<span class="f-gone">no usual band — ${esc(USUAL_WHY[d.usual_absent] || 'this node does not send one yet')}</span>`)
+    + (over.length ? `<span class="f-over"><i></i>hours over the line</span>` : '')
+    + (evs.length ? `<span class="f-evl"><i></i>event, opened to cleared</span>` : '')
+    + (evs.some(x => x.e.answer && x.e.answer.stage === 'acted') ? `<span class="f-done"><i></i>answered Done</span>` : '');
+  const altCmp = line != null ? `against the line, ${fmt(line, dp)} ${unit} · ${d.line.source}`
+    : `no comparison yet · ${noLine(d)}`;
+  return `<div class="f-day" data-kind="series" data-component="dayFigure" id="${esc(id)}-card" data-ref="${esc(ref)}">`
+    + `<p class="f-head"><span>${esc(fmt(box.hi, dp))} ${esc(unit)} top · floor ${esc(fmt(box.lo, dp))}`
+    + `${box.lo === 0 ? '' : ', not zero'}</span>${line != null ? `<span class="f-line">the line ${esc(fmt(line, dp))}</span>` : ''}</p>`
+    + fig(id, draw, { ref: `${id}-card`, component: 'dayDrawing', keys: true,
+      label: `${d.name[LOC]}, the last 24 hours at every distance; focus and use the arrow keys to read an hour` })
+    + `<p class="f-read" id="${esc(id)}-read" aria-live="polite">${idle}</p>`
+    + `<p class="f-legend">${legend}</p>`
+    + `<p class="f-alt"><span data-num="${esc(key)}.day" data-cmp="${esc(altCmp)}">${esc(LAB[hero])} opened the day at `
+    + `${esc(fmt(first, dp))} and closed it at ${esc(fmt(last, dp))} ${esc(unit)}</span> — ${esc(altCmp)}.`
+    + (evs.length ? ` ${evs.length === 1 ? 'One event' : `${evs.length} events`} in these hours: `
+      + evs.map(x => `${x.e.kind} ${localOf(x.e.opened_at).hhmm} to ${x.e.cleared_at ? localOf(x.e.cleared_at).hhmm : 'now'}, `
+        + `${x.e.answer ? `${(ANSWER[x.e.answer.stage] || x.e.answer.stage).toLowerCase()} by ${x.e.answer.actor}` : 'no answer'}`)
+        .map(esc).join('; ') + '.' : '')
+    + `</p></div>`;
+}
+
+/* THE STRIPS (docs/SPEC_dashboard_figures.md §4.3). One row a day, one cell an hour, newest at the bottom, from
+ * GET /issues/days. Ink on the issue's own square-root scale; red over the line; an outlined empty cell where
+ * nothing was recorded, never a pale cell that looks low. The right column is the node's own count. */
+function strips(key, D, o = {}) {
+  const id = o.id || `strips-${key}`, ref = o.ref || 'days';
+  const it = D && D.issues ? D.issues[key] : null;
+  const name = ((ISS[key] || {}).name || {})[LOC] || key;
+  if (!D) {
+    return `<p class="note" id="${esc(id)}" data-ref="${esc(ref)}">This node does not send its days yet `
+      + `(GET /issues/days); the strips of ${esc(name)} wait for it.</p>`;
+  }
+  if (!it || !it.distance) {
+    return `<p class="note" id="${esc(id)}" data-ref="${esc(ref)}">No hourly record of ${esc(name)} in these `
+      + `${D.days} days.</p>`;
+  }
+  const dist = it.distance, vals = it.series[dist], line = it.line ? it.line.value : null;
+  const T = D.buckets.map(b => Date.parse(b));
+  /* The strips start at the first local day that holds a reading: a 90-day window on a node with 35 days of record
+     drew 55 empty rows before it began (node #1, 6 October). An hour with nothing recorded after that still shows. */
+  /* Each bucket in its own day and hour. ponytail: a fall-back day repeats 02:00, so its two buckets share one cell and
+     the second paints over the first; per_day's `of: 25` beside the row still says the day had 25 hours. A row of 25
+     cells is the upgrade if a household asks which 02:00 it was. */
+  const every = D.buckets.map((b, i) => { const l = localOf(b); return { day: l.day, hour: l.hour, t: T[i], v: vals[i] }; });
+  const firstDay = every.find(c => c.v != null).day;
+  const cells = every.filter(c => c.day >= firstDay);
+  const days = [...new Set(cells.map(c => c.day))];
+  const trimmed = days.length < new Set(every.map(c => c.day)).size;
+  const got = cells.filter(c => c.v != null);
+  const lo0 = Math.min(...got.map(c => c.v)), hi0 = Math.max(...got.map(c => c.v));
+  const floor = lo0 >= 0 && lo0 < hi0 * 0.2 ? 0 : lo0;
+  const ev = (D.events || []).filter(e => e.issue === key).map(e => ({ ...e, o: Date.parse(e.opened_at),
+    c: e.cleared_at ? Date.parse(e.cleared_at) : T[T.length - 1] }));
+  const inEvent = c => ev.some(e => c.t >= e.o - 3600e3 + 1 && c.t <= e.c);
+  const perDay = Object.fromEntries((it.per_day || []).map(p => [p.date, p]));
+  const dp = (ISS[key] || {}).dp, unit = (ISS[key] || {}).unit || '';
+  const wd = s => new Date(`${s}T00:00:00Z`).toUTCString().slice(0, 11);
+  const draw = (el, W) => {
+    const narrow = W < 600, rowH = narrow ? 11 : 13;
+    const svg = Plot.plot({
+      width: W, height: 26 + days.length * rowH, marginLeft: narrow ? 70 : 92, marginRight: narrow ? 64 : 220,
+      marginTop: 20, marginBottom: 6, style: PLOT_STYLE,
+      x: { type: 'band', domain: Array.from({ length: 24 }, (_, h) => h), axis: 'top', label: null, tickSize: 0,
+        padding: 0.12, tickFormat: h => (h % (narrow ? 6 : 3) === 0 ? String(h).padStart(2, '0') : '') },
+      y: { type: 'band', domain: days, label: null, tickSize: 0, padding: 0.18,
+        tickFormat: (s, i) => (i === 0 || new Date(`${s}T00:00:00Z`).getUTCDay() === 1 ? wd(s) : '') },
+      color: { type: 'sqrt', domain: [floor, hi0], range: [tokenOf('--ground'), tokenOf('--ink')] },
+      marks: [
+        Plot.cell(cells.filter(c => c.v == null), { x: 'hour', y: 'day', fill: 'none', stroke: 'var(--hair)' }),
+        Plot.cell(got.filter(c => line == null || c.v <= line), { x: 'hour', y: 'day', fill: 'v' }),
+        Plot.cell(got.filter(c => line != null && c.v > line), { x: 'hour', y: 'day', fill: 'var(--signal-worse)' }),
+        Plot.cell(cells.filter(inEvent), { x: 'hour', y: 'day', fill: 'none', stroke: 'var(--ink)', strokeWidth: 1.4 }),
+        Plot.text(days.filter(s => perDay[s]), { x: () => 23, y: s => s, dx: narrow ? 22 : 30, textAnchor: 'start',
+          fontSize: 10.5, text: s => (!perDay[s].read ? '—' : perDay[s].over == null ? '' : perDay[s].over ? `${perDay[s].over} h over` : '·'),
+          fill: s => (perDay[s].read && perDay[s].over ? 'var(--signal-worse)' : 'var(--dim)') }),
+        narrow ? null : Plot.text(ev, { x: () => 23, y: e => localOf(e.opened_at).day, dx: 96, textAnchor: 'start', fontSize: 10.5,
+          fill: 'var(--ink)', text: e => `${e.kind} ${localOf(e.opened_at).hhmm}–${e.cleared_at ? localOf(e.cleared_at).hhmm : 'open'}` }),
+        Plot.cell(cells, Plot.pointer({ x: 'hour', y: 'day', fill: 'none', stroke: 'var(--cells)', strokeWidth: 2 })),
+      ].filter(Boolean),
+    });
+    el.append(svg);
+    const read = document.getElementById(`${id}-read`);
+    svg.addEventListener('input', () => {
+      const c = svg.value;
+      if (!read) return;
+      if (!c) { read.innerHTML = idle; return; }
+      const e = ev.find(x => c.t >= x.o - 3600e3 + 1 && c.t <= x.c);
+      read.innerHTML = `<b>${esc(wd(c.day))} ${esc(String(c.hour).padStart(2, '0'))}:00</b>`
+        + `<span>${esc(LAB[dist])} ${c.v == null ? 'nothing recorded' : `${esc(fmt(c.v, dp))} ${esc(unit)}`}</span>`
+        + (line != null && c.v != null && c.v > line ? `<span class="f-over">over the line</span>` : '')
+        + (e ? `<span class="f-ev">${esc(e.kind)} open</span>` : '');
+    });
+  };
+  const nd = `${days.length} day${days.length === 1 ? '' : 's'}`;
+  const totals = (it.per_day || []).filter(p => p.date >= firstDay).reduce((a, p) => ({ over: a.over + (p.over || 0), read: a.read + p.read,
+    of: a.of + p.of }), { over: 0, read: 0, of: 0 });
+  /* With no line the node counts no hours over it (per_day.over is null), so the readout says what was read and nothing
+     about over: a 0 there would be a count nobody made. */
+  const gone = `<span class="f-gone">${totals.of - totals.read} not recorded · point at a cell</span>`;
+  const idle = line == null ? `<span>${totals.read} hour${totals.read === 1 ? '' : 's'} read in ${nd}</span>${gone}`
+    : `<span data-num="${esc(key)}.days.over" data-cmp="`
+      + `${esc(`of ${totals.read} hour${totals.read === 1 ? '' : 's'} read in ${nd}, ${totals.of - totals.read} not recorded`)}">`
+      + `${totals.over} hour${totals.over === 1 ? '' : 's'} over the line</span>${gone}`;
+  return `<div class="f-strips" data-kind="series" data-component="strips" id="${esc(id)}-card" data-ref="${esc(ref)}">`
+    + `<p class="f-head"><span>${esc(name)} · ${esc(LAB[dist])} · ${nd}${trimmed ? `, from ${esc(wd(firstDay))}, the first this node recorded` : ''}</span>`
+    + `<span>shades ${esc(fmt(floor, dp))} to ${esc(fmt(hi0, dp))} ${esc(unit)}${line != null
+      ? ` · <span class="f-line">the line ${esc(fmt(line, dp))}</span>` : ''}</span></p>`
+    + fig(id, draw, { ref: `${id}-card`, component: 'stripsDrawing',
+      label: `${name}, one row a day and one cell an hour over ${nd}` })
+    + `<p class="f-read" id="${esc(id)}-read" aria-live="polite">${idle}</p>`
+    + `<p class="f-legend"><span class="f-lo"><i></i>low</span><span class="f-hi"><i></i>high, on this issue’s own scale</span>`
+    + (line != null ? `<span class="f-red"><i></i>an hour over the line</span>` : '') + `<span class="f-gap"><i></i>nothing recorded</span>`
+    + `<span class="f-evc"><i></i>an alert event</span></p></div>`;
+}
+
 window.K = { esc, fmt, sign, pill, age, uid, cmpText, interp, rulePack, meterBar, METER_CELLS, msToken,
-  readout, stack, series, row, kicker, sentence, why, ask, didButton, stamp, asof, rhoRow, funnel,
-  peerRow, unplaced, contribution, refusedPage, noLine, reasonFor, barcode, REFUSED, TOKEN_FINE };
+  readout, stack, row, kicker, sentence, why, ask, didButton, stamp, asof, rhoRow, funnel,
+  peerRow, refusedPage, noLine, reasonFor, REFUSED, TOKEN_FINE,
+  evState, evOpen, evPick, evClock, evButtons, evAnswered, evCard, evWord, fig, mountFigs, repaintFigs, boxOf, localOf, nearestIndex, PLOT_STYLE,
+  dayFigure, strips };
 
 /* The one place the page's data is bound. boot() has answered by now; nothing above this line ran
  * against a global that was not there. */
@@ -1404,6 +1615,7 @@ const MAX_SPAN_M = 20000;
 
 const ROAD_W = { motorway: 2.2, trunk: 2.2, primary: 1.8, secondary: 1.6, tertiary: 1.3,
   residential: 1.0, unclassified: 1.0, living_street: .9, service: .6, footway: .5, path: .5 };
+window.KMAP_ROAD_W = ROAD_W;   // the map ground draws its roads at these same weights
 
 const d2 = v => Math.round(v * 100) / 100;
 
@@ -1559,7 +1771,7 @@ window.KMAP = { map, caption, frameOf, MAX_SPAN_M };
  *
  * WHY THIS IS A CONTRACT AND NOT A LAYOUT. Tomas asked for a structure a node can extend and then
  * propose back — Meshtastic and Reticulum today, an open hardware manager and local making next,
- * community packs after that. So the page does not know what its sections are. Packs register them:
+ * wild packs after that. So the page does not know what its sections are. Packs register them:
  *
  *     window.PAI.register({
  *       id: 'ground',            // unique; becomes the band's DOM id
@@ -1606,7 +1818,7 @@ PAI_LOAD.push(function () {
 
 const STAGES = [
   ['observe', 'Observe', 'what is read, seen and heard about this place'],
-  ['decide', 'Decide', 'what may be said about it, and at what resolution'],
+  ['decide', 'Decide', 'what to do about it'],
   ['act', 'Act', 'what has been asked, of whom'],
   ['measure', 'Measure', 'whether it worked, and how long it took'],
 ];
@@ -1634,6 +1846,60 @@ function register(mod) {
      full page, absent from the short answer. A section opts INTO simple; it is never opted in for
      it, because what belongs in a four-sentence answer is a judgement its author has to make. */
   sections.push({ order: 50, needs: [], level: 'advanced', learn: [], reads: [], ...mod });
+}
+
+/* SECTIONS A PACK DECLARES AS DATA. A wild pack ships no script (docs/decisions/2026-10-01-packs.md, point 5):
+ * a page script reads the same storage the admin token is kept in, so a stranger's script on this page would hold
+ * admin rights on every node that ran it. It declares its section in its pack.yaml instead, and the node serves it
+ * in /issues as `sections`, with the node's own numbers already in it. This turns each one into a section of the
+ * same shape as every other, drawn with the page's own readout card: the node computes, the page draws, and the
+ * visual gate measures a declared section with the rest. Rebuilt on every render from what the node last said, into
+ * the same two arrays, so a refresh never draws a section twice and a section the node stops serving goes. */
+const fromNode = [];
+const fromNodeProblems = [];
+
+function declared(ctx) {
+  const K = window.K || {}, L = (ctx && ctx.LOC) || K.LOC || 'en';
+  const list = ((((ctx && ctx.S) || K.S || {}).issues || {}).sections) || [];
+  fromNode.length = 0; fromNodeProblems.length = 0;
+  const said = o => (o && (o[L] || o.en)) || '';
+  for (const x of list) {
+    if (!x || !x.id || !(x.stage in STAGE_INDEX)) { fromNodeProblems.push(`${(x && x.id) || '?'}: not a section the page can draw`); continue; }
+    if (sections.some(s => s.id === x.id) || fromNode.some(s => s.id === x.id)) {
+      fromNodeProblems.push(`${x.id}: the ${x.pack} pack declares an id the page already has`); continue;
+    }
+    const title = said(x.title) || x.id, rows = x.readouts || [], want = x.expected || rows.length;
+    const missing = want - rows.length;
+    const card = (r, i) => K.readout({
+      id: `${x.id}-r${i}`, num: `${x.id}.${r.sensor_id || 'x'}.${r.metric}`, component: 'declaredReadout',
+      ref: x.id, pack: x.pack, title: said(r.label) || r.metric, value: r.value, unit: r.unit, dp: r.dp,
+      source: r.source, prov: r.provenance, age: r.age_minutes,
+      cmp: K.cmpText({ mode: 'none', reason: `the ${x.pack} pack shows it beside nothing of this node’s` }),
+    });
+    fromNode.push({
+      id: x.id, pack: x.pack, stage: x.stage, title, order: Number.isInteger(x.order) ? x.order : 50,
+      needs: [], level: 'advanced', learn: ['cards', 'prov'], reads: ['/issues'], declared: true,
+      render() {
+        return `<div class="declared" data-component="declared" data-ref="${K.esc(x.id)}">${rows.map(card).join('')}`
+          + (missing > 0 ? `<p class="note" id="${K.esc(x.id)}-waiting" data-component="declaredWaiting" data-ref="${K.esc(x.id)}">`
+            + (rows.length
+              ? `${missing} of the ${want} readings the ${K.esc(x.pack)} pack declares ${missing === 1 ? 'has' : 'have'} not arrived on this node yet.`
+              : `None of the ${want} readings the ${K.esc(x.pack)} pack declares has arrived on this node yet.`) + `</p>` : '')
+          + `</div>`;
+      },
+      wall: x.wall ? () => rows.map((r, i) => `<div class="col" id="wall-${K.esc(x.id)}-${i}" data-component="declaredCol"`
+        + ` data-ref="wall-field"><h3>${K.esc(said(r.label) || r.metric)}</h3><div class="line">`
+        + `<span class="num" data-num="${K.esc(`${x.id}.${r.sensor_id || 'x'}.${r.metric}`)}"`
+        + ` data-cmp="${K.esc(`the ${x.pack} pack's figure, beside nothing of this node's`)}">${K.esc(K.fmt(r.value, r.dp))}</span>`
+        + `<small>${K.esc(r.unit || '')} · ${K.esc(r.source || x.pack)}</small></div></div>`).join('') : null,
+      notes() {
+        return [{ id: `${x.id}-note`, label: title,
+          text: (said(x.note) ? `${said(x.note)} ` : '') + `Declared by the ${x.pack} pack in its pack.yaml: the node `
+            + `reads these numbers and the page draws them with its own cards; the pack ships no code for this page.` }];
+      },
+    });
+  }
+  return fromNode;
 }
 
 /* A global path like 'H3.nav.plates' resolves or does not. */
@@ -1776,18 +2042,22 @@ function render(ctx, lead, opts = {}) {
      the foot then lists the sections on the view a reader is actually on. */
   const keep = opts.only ? new Set(opts.only) : null;
   const simple = (window.PAI_MODE ? window.PAI_MODE() : 'advanced') === 'simple';
-  const ordered = sections.filter(s => (!keep || keep.has(s.id))
+  /* The order the stages are DRAWN in. The loop runs observe, decide, act, measure and the mark in each
+     head still says so; Now and Arrange put Decide first, because what asks for a person is read first. */
+  const drawn = opts.stages || STAGES.map(s => s[0]);
+  const at = st => drawn.indexOf(st) < 0 ? drawn.length : drawn.indexOf(st);
+  const ordered = sections.concat(declared(ctx)).filter(s => (!keep || keep.has(s.id))
     && (!simple || s.level === 'simple')).slice().sort((a, b) =>
-    STAGE_INDEX[a.stage] - STAGE_INDEX[b.stage] || a.order - b.order || a.id.localeCompare(b.id));
+    at(a.stage) - at(b.stage) || a.order - b.order || a.id.localeCompare(b.id));
   /* Simple on Now is the three questions and nothing else: no sections, no stage names, no notes. */
   if (simple && onNow) return (lead || '') + simpleTail(ctx);
   let html = (lead || '') + (simple && onNow ? digest(ctx) : '');
   const present = new Set(ordered.map(s => s.stage));
-  for (const [key, name, what] of STAGES) {
+  for (const [key, name, what] of drawn.map(k => STAGES[STAGE_INDEX[k]]).filter(Boolean)) {
     const mine = ordered.filter(s => s.stage === key);
     if (!mine.length) continue;
     html += `<div class="stage" id="stage-${key}" data-stage="${key}">`
-      + `<div class="stagehead"><span class="n">${STAGE_INDEX[key] + 1}</span>`
+      + `<div class="stagehead">`
       + `<h2>${esc(name)}</h2><span class="what">${esc(what)}</span>`
       /* THE FOUR SQUARES ARE THE LOOP'S MAP AND ITS NAVIGATION. A square for a stage this view draws is a
          link to that stage; one for a stage it does not (Simple hides most, and Historical and Network
@@ -1816,8 +2086,9 @@ function render(ctx, lead, opts = {}) {
       + `<button type="button" data-mode="advanced">Show all sections</button></div></div>`;
   }
   html += notesBand(ctx, ordered);
-  if (problems.length) {
-    html += `<p class="note" id="pai-problems">Registration problems: ${esc(problems.join('; '))}</p>`;
+  const allProblems = problems.concat(fromNodeProblems);
+  if (allProblems.length) {
+    html += `<p class="note" id="pai-problems">Registration problems: ${esc(allProblems.join('; '))}</p>`;
   }
   return html;
 }
@@ -1876,13 +2147,16 @@ function notesBand(ctx, ordered) {
 
 /* The wall: whatever the registered sections say they can show at three metres, in loop order. */
 function wall(ctx) {
-  const ordered = sections.slice().sort((a, b) =>
+  const ordered = sections.concat(declared(ctx)).sort((a, b) =>
     STAGE_INDEX[a.stage] - STAGE_INDEX[b.stage] || a.order - b.order);
   return ordered.filter(s => s.wall && (s.needs || []).every(has))
     .map(s => { try { return s.wall(ctx) || ''; } catch { return ''; } }).join('');
 }
 
 window.PAI = { STAGES, register, render, wall, sections, problems, has };
+/* The kit's contract above, verbatim (tests/test_dashboard.py holds it), and one addition beside it rather than
+   inside it: the sections the node serves from the packs' declarations, which the router places on Now. */
+window.PAI.declared = declared;
 
 });
 
@@ -1942,7 +2216,19 @@ const BASES = {
   osm: { name: 'street map', host: 'tile.openstreetmap.org', maxZ: 19,
     url: (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
     credit: '© OpenStreetMap contributors' },
+  /* THE NODE'S OWN MAPS, fetched once by `planetai run place basemap` and `planetai run earth-engine basemap`
+     and served by this node at /ground/* (token or this machine, like the plan). They send nothing, so they are
+     offered at every resolution — but only on the map ground (UI_GROUND=map), which can send the token with each
+     tile; an <img> on the svg ground cannot. `own` names the /ground/meta key that says the node holds it. */
+  street: { name: 'street map, on this node', host: null, own: 'vector', credit: '© OpenStreetMap contributors · Protomaps' },
+  imagery: { name: 'satellite, on this node', host: null, own: 'imagery', minZ: 8, maxZ: 15, credit: 'Sentinel-2, Copernicus' },
+  drone: { name: 'drone, on this node', host: null, own: 'drone', minZ: 14, maxZ: 18, credit: 'OpenAerialMap, CC BY 4.0' },
 };
+const isOwn = k => !!(BASES[k] || {}).own;
+/* Offered only where it can be drawn and the node says it holds it. */
+const ownAllowed = k => isOwn(k) && (window.SETTINGS || {}).UI_GROUND === 'map'
+  && !(window.PAI_MODE && window.PAI_MODE() === 'simple')
+  && !!(((window.GROUND_META || {}).on_disk || {})[BASES[k].own]);
 /* Which base when nobody has pressed one. Tomas's rule: from resolution 9 inward, the plan. The
  * node's own map is about 3 km across; the res-9 plate is 1.6 km, so from 9 the plan fills the
  * frame edge to edge — the generated drawing is the better picture there and it sends nothing. At 8
@@ -1957,7 +2243,13 @@ const PLAN_FROM = 9;
 /* ONE predicate, read in both places, so the strip can never offer what baseOf would refuse. */
 const tilesAllowed = (res, settings) =>
   (settings || {}).MAP_TILES === 'on' && res < PLAN_FROM;
-const autoBase = (res, settings) => tilesAllowed(res, settings) ? 'sat' : 'plan';
+/* The node's own maps lead when it holds them: its own satellite picture where 10 m reads (coarser than resolution 9),
+   its own street map from 9 inward, where 10 m blurs. Both send nothing. Then the old rule. */
+const autoBase = (res, settings) => {
+  if (res < PLAN_FROM && ownAllowed('imagery')) return 'imagery';
+  if (ownAllowed('street')) return 'street';
+  return tilesAllowed(res, settings) ? 'sat' : 'plan';
+};
 /* A PRESS MAY ONLY EVER REDUCE WHAT LEAVES THE HOUSE. The prototype's comment said the opposite —
  * "a pressed base always wins over the rule" — and it was written for a drawing, before MAP_TILES
  * existed. On a node it is not a preference: a link in a page cannot be allowed to override the
@@ -1965,7 +2257,8 @@ const autoBase = (res, settings) => tilesAllowed(res, settings) ? 'sat' : 'plan'
  * machine. So `plan` is always pressable and the two live bases are honoured only where they are
  * also offered. */
 const baseOf = (q, res) =>
-  (q in BASES && (q === 'plan' || tilesAllowed(res, window.SETTINGS))) ? q : autoBase(res, window.SETTINGS);
+  (q in BASES && (q === 'plan' || ownAllowed(q) || (!isOwn(q) && tilesAllowed(res, window.SETTINGS))))
+    ? q : autoBase(res, window.SETTINGS);
 
 /* ------------------------------------------------------------------ Web Mercator, in pixels */
 /* World pixel coordinates at zoom z: the whole planet is 256·2^z px across. */
@@ -2043,7 +2336,8 @@ function figure(ctx, opts = {}) {
   if (window.KEEP_GROUND) return '';
   const res = opts.res || ctx.RES;
   const base = baseOf(opts.base || ctx.Q.get('base'), res);
-  if (base === 'plan') return ctx.KMAP.map(res);
+  /* the node's own bases need the map ground; the svg ground draws the plan in their place */
+  if (base === 'plan' || isOwn(base)) return ctx.KMAP.map(res);
   const f = frame(res, opts.size || SIZE, base);
   const B = BASES[base];
   const pc = v => `${(100 * v / f.size).toFixed(3)}%`;
@@ -2139,17 +2433,17 @@ function lead(ctx) {
      kilometre named to a tile server, so it is a price and it belongs on the thing being bought.
      The plan's is zero, and says so rather than being left blank. */
   const cost = (k) => {
-    if (k === 'plan') return 'sends nothing';
+    if (k === 'plan' || isOwn(k)) return 'sends nothing';
     try {
       const n = frame(res, SIZE, k).tiles.length;
       return `${n} request${n === 1 ? '' : 's'}`;
     } catch (e) { return ''; }
   };
   const strip = `<div class="ctlstrip" role="group" aria-label="the ground under the cells">`
-    + Object.entries(BASES).map(([k, b]) => {
+    + Object.entries(BASES).filter(([k]) => !isOwn(k) || ownAllowed(k)).map(([k, b]) => {
       const price = cost(k);
       const inner = `${esc(b.name)}${price ? `<small>${esc(price)}</small>` : ''}`;
-      return (k === 'plan' || allowed)
+      return (k === 'plan' || (isOwn(k) ? ownAllowed(k) : allowed))
         ? `<a class="${k === base ? 'on' : ''}" href="${ctx.qlink({ base: k === autoBase(res, window.SETTINGS) ? null : k })}">${inner}</a>`
         : `<span class="off" aria-disabled="true" title="${esc(why)}">${inner}</span>`;
     }).join('')
@@ -2169,7 +2463,13 @@ function lead(ctx) {
       }</p>`;
 
   let key, cap;
-  if (base === 'plan') {
+  if (isOwn(base)) {
+    const m = ((window.GROUND_META || {}).layers || {})[BASES[base].own] || {};
+    key = `<span><i class="own"></i>the cell this node stands in</span>`
+      + `<span><i></i>${esc(BASES[base].name)}</span>`;
+    cap = `resolution ${res} · kept on this node, sends nothing · ${esc(m.attribution || BASES[base].credit)}`
+      + (base === 'drone' ? ` · ${esc(((m.mosaics || []).map(x => `${x.provider}, ${x.date}`)).join('; '))} · drone tiles from zoom 14: zoom in` : '');
+  } else if (base === 'plan') {
     key = `<span><i class="own"></i>the cell this node stands in</span>`
       + `<span><i></i>buildings, roads, green — OpenStreetMap</span>`
       + `<span><i class="sat-only"></i>only the satellite knows</span>`;
@@ -2200,8 +2500,10 @@ function lead(ctx) {
       : 'no other station within a kilometre'}</p>`;
   /* Simple draws no ladder, so the figure answers to the header there instead of pointing at nothing. */
   const up = (window.PAI_MODE && window.PAI_MODE() === 'simple' && ctx.VIEW === 'now') ? 'header' : 'rail';
+  LAST = ctx;
   return `<figure class="gridwrap mapwrap" id="ground-figure" data-component="ground" data-ref="${up}">`
-    + strip.replace('<p class="ctlrule">', '<p class="ctlrule" data-lv="adv">') + figure(ctx, { base, size: SIZE })
+    + strip.replace('<p class="ctlrule">', '<p class="ctlrule" data-lv="adv">')
+    + (mapOn() ? shell(res, base) : figure(ctx, { base, size: SIZE }))
     + `<div class="gridkey" data-lv="adv">${key}</div>` + plainKey
     + `<figcaption class="cap" data-lv="adv">${cap}</figcaption></figure>`;
 }
@@ -2211,7 +2513,7 @@ function lead(ctx) {
  * a count of requests and the name of the machine that receives them. */
 function render(ctx) {
   if (!sited()) {
-    return `<p class="note" data-component="groundOut" id="ground-out-plan" data-ref="ground-figure">`
+    return `<p class="note" data-component="groundOut" id="ground-out-plan" data-ref="requests-node">`
       + `Nothing is being fetched for a map, because there is no place to fetch one for. A sited `
       + `node draws its own plan from this machine's disk and sends nothing; live tiles, if a keeper `
       + `turns them on, send one request per tile to somebody else's machine.</p>`;
@@ -2223,7 +2525,7 @@ function render(ctx) {
   const live = (k, verb) => {
     const f = frame(res, SIZE, k), B = BASES[k];
     return row({
-      id: `ground-out-${k}`, component: 'groundOut', ref: 'ground-figure', cols,
+      id: `ground-out-${k}`, component: 'groundOut', ref: 'requests-node', cols,
       left: who(B.host, `${B.name} · zoom ${f.z}`),
       line: `${verb} one request per tile to ${B.host}, from the device this page is open on. Each `
         + `names a square of ground ${edge(f.tile_m)} wide, so the server learns which `
@@ -2233,14 +2535,14 @@ function render(ctx) {
     });
   };
   const plan = row({
-    id: 'ground-out-plan', component: 'groundOut', ref: 'ground-figure', cols,
+    id: 'ground-out-plan', component: 'groundOut', ref: 'requests-node', cols,
     left: who('this node', 'plan, offline'),
     line: 'Every shape is on this machine’s disk, fetched once by the place pack. Opening the page '
       + 'asks nothing of anybody.',
     qty: [{ num: 'ground.requests.plan', value: '0 requests',
       cmp: `against the ${frame(res, SIZE, 'sat').tiles.length} the satellite base sends` }],
   });
-  return base === 'plan' ? plan + live('sat', 'Switched on, the satellite base sends')
+  return (base === 'plan' || isOwn(base)) ? plan + live('sat', 'Switched on, the satellite base sends')
     : live(base, 'This view sends') + plan;
 }
 
@@ -2254,7 +2556,7 @@ function notes(ctx) {
       + 'draws the grid itself rather than a map of open water labelled as this household’s ground.' }];
   }
   const base = baseOf(ctx.Q.get('base'), ctx.RES);
-  const f = frame(ctx.RES, SIZE, base === 'plan' ? 'sat' : base);
+  const f = frame(ctx.RES, SIZE, (base === 'plan' || isOwn(base)) ? 'sat' : base);
   return [
     { id: 'ground-rule', label: 'Where the plan takes over',
         text: `From resolution ${PLAN_FROM} inward the ground is this node’s own `
@@ -2310,9 +2612,238 @@ function notes(ctx) {
   ];
 }
 
+/* ------------------------------------------------------------------ the map ground, UI_GROUND=map */
+/* The same ground, drawn by MapLibre (the base) and deck.gl (the cells and stations over it), so it
+ * pans and zooms. Behind a setting, default svg, and the svg drawing is what anything that fails
+ * here gets instead: never a blank.
+ *
+ * THE NODE STILL COMPUTES. Every ring drawn is a `cells_ll` the node sent in /issues' geometry; the
+ * page turns [id, lat, lng, lat, lng, …] into [[lng, lat], …] and nothing more. No h3-js, no
+ * H3HexagonLayer: deck.gl's hexagon layer would compute boundaries in this browser.
+ *
+ * THE COST IS STILL THE STRIP'S. `baseOf` already refused a live base MAP_TILES does not allow, so
+ * the only tile URL that can reach MapLibre is one the strip priced. A live base cannot be dragged
+ * or zoomed: every drag would be tiles nobody priced. The plan pans and zooms freely, because it is
+ * one GeoJSON the page already holds and moving it asks nobody anything.
+ *
+ * The libraries are fetched from this node, once, the first time the ground is drawn this way, and
+ * never on the wall or in simple mode. */
+let LAST = null;
+const mapOn = () => (window.SETTINGS || {}).UI_GROUND === 'map'
+  && !(window.PAI_MODE && window.PAI_MODE() === 'simple');
+
+function shell(res, base) {
+  if (window.KEEP_GROUND) return '';
+  return `<div class="groundmap groundgl" id="groundgl" data-base="${base}" data-res="${res}"`
+    + ` role="img" aria-label="${esc(`resolution ${res} over the ${BASES[base].name}: the cell this `
+      + 'node stands in, the cells around it, and every station in view')}"></div>`;
+}
+
+const webgl2 = () => {
+  try { return !!document.createElement('canvas').getContext('webgl2'); } catch (e) { return false; }
+};
+let LIBS = null;
+function libs() {
+  if (LIBS) return LIBS;
+  const add = (tag, attrs) => new Promise((ok, no) => {
+    const el = Object.assign(document.createElement(tag), attrs);
+    el.onload = ok;
+    el.onerror = () => no(new Error(`static/${(attrs.src || attrs.href).split('/').pop()} did not load`));
+    document.head.appendChild(el);
+  });
+  LIBS = Promise.all([
+    add('link', { rel: 'stylesheet', href: 'static/maplibre-gl.css' }),
+    add('script', { src: 'static/maplibre-gl.js' }).then(() => add('script', { src: 'static/deck.gl.min.js' })),
+  ]);
+  LIBS.catch(() => { LIBS = null; });
+  return LIBS;
+}
+
+/* A token as [r, g, b], read from the element so it follows the register the page is in. */
+const rgb = (el, name) => {
+  const v = getComputedStyle(el).getPropertyValue(name).trim().replace('#', '');
+  const h = v.length === 3 ? v.split('').map(c => c + c).join('') : v;
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) || 0);
+};
+const hex = c => '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+const lnglat = c => { const r = []; for (let i = 1; i < c.length; i += 2) r.push([c[i + 1], c[i]]); return r; };
+
+function fallback(el, why) {
+  const f = document.querySelector('#ground-figure');
+  if (!LAST || !el.isConnected) return;
+  el.outerHTML = figure(LAST, { base: el.dataset.base, size: SIZE });
+  if (f) f.insertAdjacentHTML('beforeend', `<p class="note" data-component="absent" id="groundgl-off"`
+    + ` data-ref="ground-figure">The map ground did not draw here (${esc(why)}), so this is the drawn `
+    + 'ground instead.</p>');
+}
+
+/* The node's own street map, satellite and drone, in the page's tokens: land is the ground, water and buildings are
+   the ink at low strength, green is the rings green faint. Rasters sit over the street map and under its names. */
+const mix = (a, b, t) => hex(a.map((v, i) => Math.round(v + (b[i] - v) * t)));
+function ownStyle(base, T, style) {
+  const G = (window.GROUND_META || {}).on_disk || {}, at = p => `${location.origin}/ground/${p}`;
+  const any = l => ['in', ['get', 'kind'], ['literal', l]];
+  const W = (h, m, n) => ['interpolate', ['exponential', 1.6], ['zoom'], 12, ['match', ['get', 'kind'], 'highway', h[0], 'major_road', m[0], n[0]],
+    18, ['match', ['get', 'kind'], 'highway', h[1], 'major_road', m[1], n[1]]];
+  const water = mix(T.ground, T.cells, 0.14), bldg = mix(T.ground, T.ink, 0.2), casing = mix(T.ground, T.ink, 0.16);
+  const road = mix(T.ground, [255, 255, 255], 0.7), label = mix(T.ground, T.ink, 0.62);
+  style.layers[0].paint['background-color'] = water;
+  if (G.vector) {
+    style.sources.v = { type: 'vector', tiles: [at('vector/{z}/{x}/{y}.pbf')], maxzoom: 15 };
+    style.layers.push(
+      { id: 'v-earth', type: 'fill', source: 'v', 'source-layer': 'earth', paint: { 'fill-color': hex(T.ground) } },
+      { id: 'v-green', type: 'fill', source: 'v', 'source-layer': 'landuse', filter: any(['park', 'wood', 'forest', 'garden', 'grass', 'grassland', 'scrub', 'nature_reserve', 'golf_course', 'cemetery', 'meadow', 'pitch']),
+        paint: { 'fill-color': mix(T.ground, T.rings, 0.14) } },
+      { id: 'v-water', type: 'fill', source: 'v', 'source-layer': 'water', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': water } },
+      { id: 'v-casing', type: 'line', source: 'v', 'source-layer': 'roads', filter: any(['minor_road', 'major_road', 'highway']), minzoom: 12,
+        layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': casing, 'line-width': W([2.4, 22], [1.8, 18], [0.9, 13]) } },
+      { id: 'v-road', type: 'line', source: 'v', 'source-layer': 'roads', filter: any(['minor_road', 'major_road', 'highway']),
+        layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': road, 'line-width': W([1.6, 19], [1.1, 15], [0.5, 10.5]) } },
+      { id: 'v-bldg', type: 'fill', source: 'v', 'source-layer': 'buildings', minzoom: 13, paint: { 'fill-color': bldg } });
+  }
+  if (base !== 'street' && G[base]) {
+    style.sources.photo = { type: 'raster', tiles: [at(`${base}/{z}/{x}/{y}.png`)], tileSize: TILE, minzoom: BASES[base].minZ, maxzoom: BASES[base].maxZ };
+    style.layers.push({ id: 'photo', type: 'raster', source: 'photo', paint: { 'raster-fade-duration': 0 } });
+  }
+  if (G.vector && G.glyphs) {
+    style.glyphs = at('glyphs/{fontstack}/{range}.pbf');
+    const txt = { 'text-color': base === 'street' ? label : '#ffffff', 'text-halo-color': base === 'street' ? hex(T.ground) : 'rgba(0,0,0,.6)', 'text-halo-width': 1.3 };
+    style.layers.push(
+      { id: 'v-road-label', type: 'symbol', source: 'v', 'source-layer': 'roads', minzoom: 14.5, filter: ['has', 'name'],
+        layout: { 'symbol-placement': 'line', 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Regular'], 'text-size': 10.5 }, paint: txt },
+      { id: 'v-place-label', type: 'symbol', source: 'v', 'source-layer': 'places', filter: ['has', 'name'],
+        layout: { 'text-field': ['get', 'name'], 'text-font': ['Noto Sans Medium'], 'text-size': 12, 'text-max-width': 7 }, paint: txt });
+  }
+}
+
+function draw(el) {
+  const res = Number(el.dataset.res), base = el.dataset.base;
+  const plate = H.nav.plates[res];
+  const T = { ground: rgb(el, '--ground'), ink: rgb(el, '--ink'), cells: rgb(el, '--cells'),
+    rings: rgb(el, '--rings'), sat: rgb(el, '--satellite-only') };
+  const style = { version: 8, sources: {},
+    layers: [{ id: 'paper', type: 'background', paint: { 'background-color': hex(T.ground) } }] };
+  const B = BASES[base];
+  if (isOwn(base)) {
+    ownStyle(base, T, style);
+  } else if (B.url) {
+    style.sources.tiles = { type: 'raster', tiles: [B.url('{z}', '{x}', '{y}')], tileSize: TILE,
+      maxzoom: B.maxZ, attribution: B.credit };
+    style.layers.push({ id: 'tiles', type: 'raster', source: 'tiles' });
+  } else if (window.PLAN_GJ) {
+    /* kit-map.js's drawing, as MapLibre layers: the same kinds, the same tokens, the same weights. */
+    style.sources.plan = { type: 'geojson', data: window.PLAN_GJ, attribution: B.credit };
+    const kind = k => ['==', ['get', 'kind'], k];
+    style.layers.push(
+      { id: 'green', type: 'fill', source: 'plan', filter: kind('green'),
+        paint: { 'fill-color': hex(T.rings), 'fill-opacity': 0.26 } },
+      { id: 'roads', type: 'line', source: 'plan', filter: kind('road'),
+        paint: { 'line-color': hex(T.ink), 'line-opacity': 0.65,
+          'line-width': ['match', ['coalesce', ['get', 'highway'], ''],
+            ...Object.entries(window.KMAP_ROAD_W || {}).flat(), 0.8] } },
+      { id: 'buildings', type: 'fill', source: 'plan', filter: kind('building'),
+        paint: { 'fill-color': hex(T.ink), 'fill-opacity': 0.82 } },
+      { id: 'sat', type: 'fill', source: 'plan', filter: kind('sat'),
+        paint: { 'fill-color': hex(T.sat), 'fill-opacity': 0.35 } },
+      { id: 'sat-edge', type: 'line', source: 'plan', filter: kind('sat'),
+        paint: { 'line-color': hex(T.sat), 'line-width': 0.7 } },
+      { id: 'poi', type: 'circle', source: 'plan', filter: kind('poi'),
+        paint: { 'circle-color': hex(T.cells), 'circle-radius': 4.5 } });
+  }
+  /* The frame is still the cells. Live tiles are frame()'s own: the zoom it picks for the 600 px
+     square, scaled to this box exactly as the svg ground scales its percentages, so the same tiles are
+     asked for and the count in the strip is the count sent. */
+  const w = el.clientWidth || SIZE;
+  const f = frame(res, SIZE, B.url ? base : 'sat');
+  const live = !!B.url && !isOwn(base);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let asked = 0;
+  /* The plan keeps kit-map's frame: the plate's bounding box with six per cent round it. */
+  let lng0 = 180, lat0 = 90, lng1 = -180, lat1 = -90;
+  for (const c of plate.cells_ll) {
+    for (let i = 1; i < c.length; i += 2) {
+      lat0 = Math.min(lat0, c[i]); lat1 = Math.max(lat1, c[i]);
+      lng0 = Math.min(lng0, c[i + 1]); lng1 = Math.max(lng1, c[i + 1]);
+    }
+  }
+  const view = live ? { center: [H.node.lon, H.node.lat], zoom: f.z - 1 + Math.log2(w / SIZE) }
+    : { bounds: [[lng0, lat0], [lng1, lat1]], fitBoundsOptions: { padding: Math.round(w * 0.06 / 1.12) } };
+  const map = new maplibregl.Map({
+    container: el, style, ...view,
+    interactive: !live, dragRotate: false, pitchWithRotate: false, touchPitch: false, maxPitch: 0,
+    fadeDuration: reduce ? 0 : 150, attributionControl: false,   // the caption under the figure carries the credit, as it does for the svg ground
+    /* The node's own tiles carry the token the page holds, as every other read does; anything else is counted. */
+    transformRequest: url => {
+      if (url.startsWith(location.origin + '/ground/')) return { url, headers: window.PAI_AUTH ? window.PAI_AUTH() : {} };
+      if (/^https?:/.test(url) && !url.startsWith(location.origin)) asked++;
+      return { url };
+    },
+  });
+  if (!live) map.touchZoomRotate.disableRotation();
+  /* A tile that fails is a gap in the base, as an <img> that fails is in the svg ground; anything
+     else before the first frame is a map that is not going to draw, and the svg ground replaces it. */
+  map.on('error', e => {
+    if (e.sourceId || el.dataset.drawn) return;
+    map.remove();
+    fallback(el, (e.error && e.error.message) || 'the map failed');
+  });
+
+  const cells = plate.cells_ll.map(c => ({ id: c[0], own: c[0] === plate.centre, ring: lnglat(c) }));
+  const claims = (H.claims || []).flatMap(c => (c.cells_ll || []).map(x => ({ id: x[0], claim: c.name, ring: lnglat(x) })));
+  const stations = (H.sensors || []).filter(s => s.lat != null && s.lon != null);
+  const D = window.deck;
+  const px = { lineWidthUnits: 'pixels', radiusUnits: 'pixels' };
+  /* Hairlines as each svg ground draws them: kit-map's thin ink over the plan, the haloed ones
+     that survive a dark roof over a photograph. */
+  const hair = live ? { a: 153, w: 1 } : { a: 64, w: 1 };   // under 1 px a WebGL line aliases into dashes
+  const layers = [
+    /* kit-map's kilometre: a circle of 1,000 m round the node, a radius in metres like the svg's r. */
+    ...(live ? [] : [new D.ScatterplotLayer({ id: 'km', data: [H.node], getPosition: n => [n.lon, n.lat],
+      radiusUnits: 'meters', getRadius: 1000, filled: false, stroked: true, lineWidthUnits: 'pixels',
+      getLineColor: [...T.ink, 89], getLineWidth: 1 })]),
+    new D.PolygonLayer({ id: 'claims', data: claims, getPolygon: d => d.ring, filled: false, ...px,
+      getLineColor: [...T.ink, 40], getLineWidth: 0.5, pickable: true }),
+    ...(live ? [new D.PolygonLayer({ id: 'cells-halo', data: cells.filter(c => !c.own), getPolygon: d => d.ring,
+      filled: false, ...px, getLineColor: [...T.ground, 140], getLineWidth: 2.5 })] : []),
+    new D.PolygonLayer({ id: 'cells', data: cells.filter(c => !c.own), getPolygon: d => d.ring,
+      filled: false, ...px, getLineColor: [...T.ink, hair.a], getLineWidth: hair.w, pickable: true }),
+    new D.PolygonLayer({ id: 'own', data: cells.filter(c => c.own), getPolygon: d => d.ring, ...px,
+      filled: true, getFillColor: [...T.cells, 26], getLineColor: T.cells, getLineWidth: 2.5, pickable: true }),
+    /* Own stations filled, everyone else's hollow, exactly as the svg ground draws them. */
+    new D.ScatterplotLayer({ id: 'stations', data: stations, getPosition: s => [s.lon, s.lat], ...px,
+      stroked: true, filled: true, getRadius: s => s.local ? 5.5 : 3.5,
+      getFillColor: s => s.local ? T.cells : T.ground, getLineColor: T.ink,
+      getLineWidth: s => s.local ? 2 : 1.4, pickable: true }),
+  ];
+  if (!live || H.node.position !== 'cell') {
+    layers.push(new D.ScatterplotLayer({ id: 'node', data: [H.node], getPosition: n => [n.lon, n.lat], ...px,
+      getRadius: 7, getFillColor: T.cells }));
+  }
+  /* An H3 id is printed in full, once per object, never truncated: the hover says which object. */
+  const getTooltip = ({ object: o, layer }) => !o ? null
+    : layer.id === 'stations' ? (o.name || o.sensor_id)
+      : layer.id === 'claims' ? `${o.claim} · ${o.id}` : o.id;
+  map.addControl(new D.MapboxOverlay({ interleaved: true, layers, getTooltip }));
+  map.once('idle', () => {
+    el.dataset.drawn = '1';
+    const n = document.querySelector('[data-num="ground.tiles"]');
+    if (live && n) n.textContent = String(asked);
+  });
+}
+
+/* Called by route() after every render. A data poll swaps the living figure back in (redraw), so a
+   map that is already drawn is never drawn twice and never asks a tile server again on a poll. */
+async function mount() {
+  const el = document.querySelector('#groundgl:not([data-mounted])');
+  if (!el || window.KEEP_GROUND) return;
+  el.dataset.mounted = '1';
+  if (!webgl2()) return fallback(el, 'this browser has no WebGL2');
+  try { await libs(); draw(el); } catch (e) { fallback(el, String((e && e.message) || e)); }
+}
+
 /* PORTED: this module's CSS is in dashboard.css, under a banner naming this file. */
 
-window.GROUND = { figure, frame, BASES, SIZE };
+window.GROUND = { figure, frame, BASES, SIZE, mount };
 
 window.PAI.register({
   id: 'ground', pack: 'place', stage: 'observe', title: 'The ground', order: 0, learn: ['tiles', 'cell'],
@@ -2351,8 +2882,8 @@ window.PAI.register({
     const cols = 'minmax(0,210px) minmax(0,1fr) auto';
     const who = (b, m) => `<span class="who"><b>${esc(b)}</b><span class="m">${esc(m)}</span></span>`;
     return render(ctx)
-      + `<div class="reads" id="requests-node" data-ref="ground-figure">`
-      + row({ id: 'requests-poll', component: 'requestsPoll', ref: 'ground-figure', cols,
+      + `<div class="reads" id="requests-node" data-ref="requests">`
+      + row({ id: 'requests-poll', component: 'requestsPoll', ref: 'requests-node', cols,
         left: who('this node', 'polling, with nobody watching'),
         line: `The node fetches on its own cycle whether or not this page is open, which is how `
           + `there is a day to draw when you arrive. That reaching is the node's, not yours, and it `
@@ -2361,7 +2892,7 @@ window.PAI.register({
           value: `${h.polls == null ? '—' : h.polls} poll${h.polls === 1 ? '' : 's'}`,
           cmp: `${h.ingested == null ? 'an unknown number of' : h.ingested} readings taken in` }] })
       + (upstream.length ? row({ id: 'requests-upstream', component: 'requestsUp',
-        ref: 'ground-figure', cols,
+        ref: 'requests-node', cols,
         left: who('whose machines', 'named by the rows they wrote'),
         line: upstream.join(' · '),
         qty: [{ num: 'requests.upstream', value: String(upstream.length),
@@ -2553,7 +3084,7 @@ window.PAI.register({
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, series, barcode } = window.K;
+const { esc, dayFigure, strips } = window.K;
 
 /* An issue has a day when any distance carries a trace. The node decides what a trace is; this
    only asks whether one arrived. */
@@ -2561,8 +3092,8 @@ const hasDay = d => (window.K.DIST || []).some(x => Array.isArray((d.series || {
   && (d.series[x] || []).some(v => v != null));
 
 window.PAI.register({
-  id: 'day', pack: 'core', stage: 'observe', title: 'The day this place just had', order: 12, learn: ['cards', 'raw'],
-  reads: ['/issues'],
+  id: 'day', pack: 'core', stage: 'observe', title: 'The day this place just had', order: 12, learn: ['cards', 'raw', 'figure'],
+  reads: ['/issues', '/issues/days'],
   render(ctx) {
     const { ISS, ORDER } = ctx;
     const drawn = ORDER.filter(k => ISS[k] && hasDay(ISS[k]));
@@ -2571,11 +3102,11 @@ window.PAI.register({
         + `record yet, so there is no day to draw. The matrix above says what each one has.</p>`;
     }
     const silent = ORDER.filter(k => ISS[k] && !hasDay(ISS[k]));
-    return barcode({ id: 'barcode', ref: 'days' })
-      + `<div class="days" id="days" data-ref="matrix-grid">`
+    return `<div class="days" id="days" data-ref="matrix-grid">`
       + drawn.map(k => `<div class="dayone" id="day-${esc(k)}" data-ref="days">`
         + `<p class="k">${esc(ISS[k].name[LOC])}</p>`
-        + series(k, ISS[k], { id: `day-series-${esc(k)}`, ref: `day-${esc(k)}` }) + `</div>`).join('')
+        + dayFigure(k, ISS[k], { id: `day-fig-${esc(k)}`, ref: `day-${esc(k)}` })
+        + strips(k, window.DAYS, { id: `strips-${esc(k)}`, ref: `day-${esc(k)}` }) + `</div>`).join('')
       + `</div>`
       + (silent.length ? `<p class="note" id="day-silent" data-ref="days">No hourly record for `
         + `${esc(silent.map(k => ISS[k].name[LOC]).join(' or '))} at any distance in this capture, `
@@ -2584,10 +3115,10 @@ window.PAI.register({
   notes(ctx) {
     return [
       { id: 'days', label: 'Height, and how long',
-        text: 'The trace says how high and the marks under the axis say how long. A '
-        + 'brief spike and a long plateau can reach the same height, and only one of them is worth '
-        + 'getting out of a chair for, so the hours over the line are counted under the drawing '
-        + 'rather than left to be read off a curve.' },
+        text: 'The trace says how high and the red ticks under it say how long. A brief spike and a long '
+        + 'plateau can reach the same height, and only one of them is worth getting out of a chair for, '
+        + 'so the hours over the line are counted in the line under the drawing. Point at an hour, or '
+        + 'focus the drawing and use the arrow keys, to read every distance at that hour.' },
       { id: 'day-silent', label: 'A day with nothing to draw',
         text: 'A card appears here when there is a day to draw. An issue with no '
         + 'hourly record at any distance would be an empty box claiming to be a drawing, so it is '
@@ -2647,11 +3178,11 @@ window.PAI.register({
     const pick = m => land.find(r => r.metric === m);
     const built = pick('built_frac'), trees = pick('tree_frac');
     const plan = window.PLAN;
-    const R = o => row({ ...o, ref: 'registry-rows', component: 'unitRow',
+    const R = o => row({ ...o, ref: 'sources-rows', component: 'unitRow',
       cols: 'minmax(0,210px) minmax(0,1fr) auto' });
     const lab = (b, m) => `<span class="who"><b>${esc(b)}</b><span class="m">${esc(m)}</span></span>`;
 
-    let html = `<div class="reads units" id="registry-rows" data-ref="matrix-grid">`
+    let html = `<div class="reads units" id="sources-rows" data-ref="sources">`
       + R({ id: 'src-own', left: lab('This house\u2019s own', 'one sign, one station'),
         signs: many('sensor', own, '', 'One of this house\u2019s own stations'),
         qty: [{ num: 'sources.own', value: String(own),
@@ -2683,14 +3214,14 @@ window.PAI.register({
         signs: many('house', Math.round(plan.counts.buildings / 250), '', 'About 250 buildings'),
         qty: [{ num: 'sources.houses', value: String(plan.counts.buildings),
           cmp: `buildings on the plan within this kilometre, drawn one sign per 250` }] })
-      : `<p class="note" id="src-houses" data-ref="registry-rows">The buildings on this kilometre `
+      : `<p class="note" id="src-houses" data-ref="sources-rows">The buildings on this kilometre `
         + `are on the plan, and the plan needs a token at every share level. Without one this row `
         + `is absent rather than guessed.</p>`;
     return html + `</div>`;
   },
   notes() {
     return [
-      { id: 'registry-rows', label: 'More is more signs',
+      { id: 'sources-more-signs', label: 'More is more signs',
         text: 'More is more signs, never a bigger sign. A row you can count is '
         + 'a measurement; a bar you have to read off an axis is a picture of one. Three units are '
         + 'mixed here and each row says which it is: a station is one sign because you could point '
@@ -2739,7 +3270,7 @@ window.PAI.register({
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, fmt, age, cmpText, noLine } = window.K;
+const { esc, fmt, age, cmpText, noLine, fig, localOf, PLOT_STYLE } = window.K;
 const DEFAULT_VAR = 'pm25';
 
 /* The variable the reader chose, or PM2.5. A key the fixture does not know is not an error to
@@ -2840,47 +3371,62 @@ function scaleFor(H, v, line) {
     for (const b of s.series[v] || []) vals.push(b.min, b.max);
   }
   if (line) vals.push(line.value);
-  if (!vals.length) return null;
-  let lo = Math.min(...vals), hi = Math.max(...vals);
+  /* A bucket with no reading has a null min and max, and Math.min counts a null as 0. */
+  const fin = vals.filter(Number.isFinite);
+  if (!fin.length) return null;
+  let lo = Math.min(...fin), hi = Math.max(...fin);
   const pad = (hi - lo) * 0.08 || 1;
   /* A concentration does not go below zero, so the scale must not either: a box that opened at
    * -1.0 µg/m³ was drawing headroom under a floor. Temperature may. */
   lo = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
   hi += pad;
-  return { lo, hi, Y: y => 4 + (1 - (y - lo) / (hi - lo)) * (48 - 4 - 14) };
+  return { lo, hi };
 }
 
-/* The drawing inside a row. 240 by 48: a light min–max band, an ink polyline of the hourly means,
- * the line dashed in the signal colour where it applies, and the axis words. A station with no
- * series gets one tick at the value at now, and no line pretending to be its day. */
-function graphic(s, v, m, sc, line) {
-  const W = 240, Hh = 48, l = 2, r = 2;
-  const r15 = s.read[v];
-  const ser = s.series[v];
-  let body = '', label;
-  if (line) body += `<line x1="${l}" x2="${W - r}" y1="${sc.Y(line.value).toFixed(1)}"`
-    + ` y2="${sc.Y(line.value).toFixed(1)}" stroke="var(--signal-worse)" stroke-dasharray="3 5"/>`;
-  if (ser && ser.length) {
-    const n = ser.length;
-    const X = i => (l + (i / Math.max(1, n - 1)) * (W - l - r)).toFixed(1);
-    const band = ser.map((b, i) => `${X(i)},${sc.Y(b.max).toFixed(1)}`)
-      .concat(ser.map((b, i) => `${X(i)},${sc.Y(b.min).toFixed(1)}`).reverse()).join(' ');
-    body += `<polygon points="${band}" fill="var(--ink)" fill-opacity=".1"/>`
-      + `<polyline points="${ser.map((b, i) => `${X(i)},${sc.Y(b.mean).toFixed(1)}`).join(' ')}"`
-      + ` fill="none" stroke="var(--ink)" stroke-width="1.5"/>`
-      + `<text x="${l}" y="${Hh - 2}">24 h ago</text>`;
-    const lo = Math.min(...ser.map(b => b.min)), hi = Math.max(...ser.map(b => b.max));
-    label = `${m.label}, ${n} hourly means: opened the day at ${fmt(ser[0].mean, m.dp)} and closed `
-      + `it at ${fmt(ser[n - 1].mean, m.dp)} ${m.unit}; low ${fmt(lo, m.dp)}, high ${fmt(hi, m.dp)}`
-      + (line ? `; the line ${fmt(line.value, m.dp)}` : '');
-  } else {
-    const y = sc.Y(r15.value).toFixed(1);
-    body += `<line x1="${W - r - 1}" x2="${W - r - 1}" y1="${(+y - 4).toFixed(1)}" y2="${(+y + 4).toFixed(1)}"`
-      + ` stroke="var(--ink)" stroke-width="2"/>`;
-    label = `${m.label} ${fmt(r15.value, m.dp)} ${m.unit}, one 15-minute mean at now`;
+/* A station's own day, inside its row (docs/SPEC_dashboard_figures.md §4.4): the hourly mean as a line and the hour's
+ * spread as a band, on the one scale every row of the section shares (scaleFor), the issue's line where it applies,
+ * and one tick at now for a station with no hourly series. An hour the station did not report is a gap: the series
+ * lists only the hours it has, so the grid below puts a null in every hour between them. Pointing at it says that
+ * hour in the row's own words. */
+function spark(s, v, m, sc, line, id, idle) {
+  const ser = ((s.series || {})[v] || []).filter(b => b && b.t);
+  const r15 = (s.read || {})[v];
+  const T = ser.map(b => Date.parse(b.t));
+  const grid = [];
+  /* `iso` is the hour's own bucket, or for an hour the station did not report, the bucket before it: its offset names
+     the empty hour. */
+  for (let t = T[0], i = 0; ser.length && t <= T[T.length - 1]; t += 3600e3) {
+    const b = T[i] === t ? ser[i++] : null;
+    grid.push({ t: new Date(t), iso: ser[Math.max(0, i - 1)].t, mean: b ? b.mean : null, min: b ? b.min : null,
+      max: b ? b.max : null });
   }
-  body += `<text x="${W - r}" y="${Hh - 2}" text-anchor="end">now</text>`;
-  return `<svg class="spark" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(label)}">${body}</svg>`;
+  const draw = (el, W) => {
+    const w = Math.min(W, 320), tick = (sc.hi - sc.lo) * 0.08;
+    const svg = Plot.plot({
+      width: w, height: 48, marginLeft: 2, marginRight: 2, marginTop: 4, marginBottom: 4, style: PLOT_STYLE,
+      x: grid.length ? { type: 'time', domain: [grid[0].t, grid[grid.length - 1].t], axis: null } : { domain: [0, 1], axis: null },
+      y: { domain: [sc.lo, sc.hi], axis: null },
+      marks: [
+        line ? Plot.ruleY([line.value], { stroke: 'var(--signal-worse)', strokeDasharray: '3 5' }) : null,
+        grid.length ? Plot.areaY(grid, { x: 't', y1: 'min', y2: 'max', fill: 'var(--ink)', fillOpacity: 0.1 }) : null,
+        grid.length ? Plot.lineY(grid, { x: 't', y: 'mean', stroke: 'var(--ink)', strokeWidth: 1.5 }) : null,
+        !grid.length && r15 ? Plot.ruleX([1], { y1: r15.value - tick, y2: r15.value + tick, stroke: 'var(--ink)', strokeWidth: 2 }) : null,
+        grid.length ? Plot.ruleX(grid, Plot.pointerX({ x: 't', stroke: 'var(--ink)', strokeOpacity: 0.5 })) : null,
+      ].filter(Boolean),
+    });
+    el.append(svg);
+    const read = document.getElementById(`${id}-read`);
+    svg.addEventListener('input', () => {
+      const b = svg.value;
+      if (!read) return;
+      const at = b && localOf(b.iso, +b.t).hhmm;
+      read.innerHTML = !b ? idle : b.mean == null ? `${esc(at)} nothing recorded`
+        : `${esc(at)} ${esc(fmt(b.mean, m.dp))} (${esc(fmt(b.min, m.dp))} to `
+          + `${esc(fmt(b.max, m.dp))}) ${esc(m.unit)}`;
+    });
+  };
+  return fig(id, draw, { ref: `st-${s.sensor_id}`, component: 'stationDrawing',
+    label: `${s.name || s.sensor_id}, ${m.label}: ${ser.length ? `${ser.length} hourly means` : 'one 15-minute mean at now'}` });
 }
 
 function station(ctx, s, v, m, sc, L, ref) {
@@ -2892,12 +3438,14 @@ function station(ctx, s, v, m, sc, L, ref) {
   const silent = r && r.silent_minutes > 60
     ? ` · <span class="silent">silent</span> ${esc(age(r.silent_minutes))}` : '';
   const ser = s.series[v];
-  const alt = ser && ser.length
-    ? `<span class="alt">opened the day at ${esc(fmt(ser[0].mean, m.dp))}, closed at `
-      + `${esc(fmt(ser[ser.length - 1].mean, m.dp))} ${esc(m.unit)}</span>` : '';
+  const hi = ser && ser.length ? Math.max(...ser.map(b => b.max).filter(x => x != null)) : null;
+  const said = ser && ser.length ? `opened the day at ${esc(fmt(ser[0].mean, m.dp))}, `
+    + `closed at ${esc(fmt(ser[ser.length - 1].mean, m.dp))} ${esc(m.unit)} · high ${esc(fmt(hi, m.dp))}` : '';
+  const alt = said ? `<span class="alt" id="spark-${esc(s.sensor_id)}-${esc(v)}-read">${said}</span>` : '';
   /* km is null when the node has no coordinates: the engine publishes unknown rather than a distance
      from (0, 0). Say unknown — a neighbour's distance from the Gulf of Guinea is not a fact. */
-  const meta = `${s.local ? 'this house' : s.km == null ? 'distance unknown'
+  const inEvent = (ctx.EVROOMS || new Set()).has(s.name);
+  const meta = `${inEvent ? 'in the open event · ' : ''}${s.local ? 'this house' : s.km == null ? 'distance unknown'
     : `${esc(String(s.km))} km`} · ${s.indoor ? 'indoor' : 'outdoor'}`
     + ` · ${src}${silent}`;
   const key = `${m.issue || v}.${s.sensor_id}.${v}`;
@@ -2907,7 +3455,7 @@ function station(ctx, s, v, m, sc, L, ref) {
   return `<div class="row station${s.local ? ' mine' : ''}${r ? '' : ' quiet'}" data-kind="row"`
     + ` data-component="station" id="st-${esc(s.sensor_id)}" data-ref="${esc(ref)}">`
     + `<span class="who"><b>${esc(s.name || s.sensor_id)}</b><span class="m">${meta}</span>${alt}</span>`
-    + `<span class="pic">${r && sc ? graphic(s, v, m, sc, L.line) : ''}</span>`
+    + `<span class="pic">${r && sc ? spark(s, v, m, sc, L.line, `spark-${s.sensor_id}-${v}`, said) : ''}</span>`
     + `<span class="qty">${r
       ? `<span class="num${crossed ? ' crossed' : ''}" data-num="${esc(key)}" data-cmp="${esc(cmp)}">`
         + `${esc(fmt(r.value, m.dp))}</span><small>${esc(m.unit)}</small>`
@@ -2927,6 +3475,8 @@ function groups(ctx, ids) {
     if (!by.has(c)) by.set(c, []);
     by.get(c).push(s);
   }
+  /* The rooms of an open event lead their cell (docs/SPEC_dashboard_figures.md §4.4): they are why a reader is here. */
+  const rooms = ctx.EVROOMS = new Set((((ctx.S.issues || {}).events || {}).open || []).flatMap(e => e.rooms || []));
   const own = ctx.N.chain[ctx.RES];
   /* Unsited, every km is null: the groups keep the order the node sent and the header says the
      distance is not known rather than ordering the neighbourhood by a number that is not one. */
@@ -2937,7 +3487,7 @@ function groups(ctx, ids) {
      is on the page. */
   return [...by.entries()].map(([cell, ss]) => ({
     cell, n: ss.length, own: cell === own,
-    ss: ss.slice().sort((a, b) => (a.km ?? Infinity) - (b.km ?? Infinity))
+    ss: ss.slice().sort((a, b) => (rooms.has(b.name) - rooms.has(a.name)) || (a.km ?? Infinity) - (b.km ?? Infinity))
       .filter(s => !ids || ids.has(s.sensor_id)),
     km: kms(ss).length ? Math.min(...kms(ss)) : null,
     kmMax: kms(ss).length ? Math.max(...kms(ss)) : null,
@@ -2951,6 +3501,35 @@ const KM = g => g.own ? 'this node’s own cell'
 const CELLHEAD = (ctx, g) => g.cell ? ctx.KH.address(g.cell, ctx.RES)
   : `<span class="addr mono">outside the ${ctx.N.steps} steps this node published at resolution `
     + `${ctx.RES}</span>`;
+
+/* The archive of silence (docs/SPEC_dashboard_figures.md §4.4, after Bali Air Dispatch). A station heard in the last
+ * 30 days and not in the last day keeps a line here, with when it was last heard; the node has already left out a
+ * relay of a kit that still reports. A node older than v0.79 sends no stations_silent, and this says nothing. */
+function silentFold(ctx) {
+  const st = (ctx.S.issues || {}).stations_silent;
+  const gone = ctx.H.silent || [];
+  if (!st) return '';
+  if (!st.read) {
+    return `<p class="cap" id="sensors-silent" data-ref="sensors-list">This node could not say which stations `
+      + `stopped reporting in the last ${esc(String(st.within_days))} days.</p>`;
+  }
+  if (!gone.length) {
+    return `<p class="cap" id="sensors-silent" data-ref="sensors-list">No station this node heard in the last `
+      + `${esc(String(st.within_days))} days has gone quiet.</p>`;
+  }
+  return `<details class="silentfold" id="sensors-silent" data-component="silentStations" data-ref="sensors-list">`
+    + `<summary><b data-num="sensors.silent" data-cmp="stations heard in the last ${esc(String(st.within_days))} days `
+    + `and not in the last day">${gone.length}</b> no longer heard</summary>`
+    + gone.map(s => { const lh = localOf(s.last_heard);
+      return `<p class="row silent" data-kind="row" data-component="silentStation" id="st-gone-${esc(s.sensor_id)}"`
+      + ` data-ref="sensors-silent"><span class="who"><b>${esc(s.name || s.sensor_id)}</b><span class="m">`
+      + `${s.km == null ? 'distance unknown' : `${esc(String(s.km))} km`} · ${s.indoor ? 'indoor' : 'outdoor'} · `
+      + `${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.source)}</a>` : esc(s.source)}`
+      + `</span></span><span class="said">${lh.hour != null
+        ? `last heard ${esc(lh.day)} ${esc(lh.hhmm)}` : 'last heard: not known'}</span></p>`; }).join('')
+    + `</details>`;
+}
+
 
 window.PAI.register({
   id: 'sensors', pack: 'air-quality', stage: 'observe', title: 'What the stations read', order: 20,
@@ -2988,7 +3567,7 @@ window.PAI.register({
         + `${g.n === 1 ? 'station' : 'stations'} · ${KM(g)}</span></div>`
         + g.ss.map(s => station(ctx, s, v, m, sc, L, id)).join('');
     }
-    html += moreLine(ctx, cap) + `</div>`;
+    html += moreLine(ctx, cap) + silentFold(ctx) + `</div>`;
     const carry = H.sensors.filter(s => s.read[v]).length;
     const traced = H.sensors.filter(s => (s.series[v] || []).length).length;
     const attrib = [...new Set(H.sensors.map(s => s.attribution).filter(Boolean))];
@@ -3351,10 +3930,9 @@ window.PAI.register({
  *     tree fractions. /earth carries nine years of embeddings, eight change pairs with their
  *     hectares over threshold, the Sentinel and Landsat years, and two credit lines — and no
  *     fraction of anything, per year or otherwise. The prompt says to read it first and omit if so.
- *   · The barcode grown into a year of daily means. There is no daily route: /series and /sparks
- *     are hourly, a snapshot carries twenty-four hours of readings_1h, and the sensors here only
- *     reach twenty days anyway. A year of bars from twenty days of readings would be a drawing of
- *     nothing.
+ *   · A year of daily means. GET /issues/days carries the days, up to 90, and Historical's strips
+ *     draw every day the node holds; the sensors here reach weeks, not a year. A year of bars from
+ *     a few weeks of readings would be a drawing of nothing.
  *
  * Neither is stamped `example`. An absence that says which absence it is can be answered later; a
  * drawing of invented data cannot be un-seen.
@@ -3421,12 +3999,13 @@ window.PAI.register({
         + 'node kept them; the kit in the house reaches twenty days because that is how long it has '
         + 'been running. A question about a year has a different answer for each, and that is the '
         + 'thing this panel exists to say before anybody asks one.' },
-      { id: 'reach-cap', label: 'Two things not on the wire',
+      { id: 'reach-cap', label: 'Two things not drawn here',
         text: 'Prompt 4 asked for Isotype year rows lighting with the loop, and '
-        + 'for the barcode grown into a year of daily means. Neither is on this node\u2019s wire: '
-        + '/earth has no per-year fractions and there is no daily route at all. The instruction was '
-        + 'to read the endpoint first and omit if it does not carry them, which is what this is \u2014 '
-        + 'not a stamp saying `example` over a drawing of numbers nobody computed.' },
+        + 'for a year of daily means. /earth has no per-year fractions, so the first is not on this '
+        + 'node\u2019s wire. The days are, up to 90, and Historical\u2019s strips draw every one the node '
+        + 'holds; the kit here does not reach a year. The instruction was to read the endpoint first '
+        + 'and omit what it does not carry, which is what this is \u2014 not a stamp saying `example` '
+        + 'over a drawing of numbers nobody computed.' },
     ];
   },
 });
@@ -3772,7 +4351,7 @@ window.PAI.register({
  * for, and the thing a drawing of it has to show rather than tidy away with a pin.
  *
  * This is the first pack section in the folder that is not the renderer's own: it registers with the
- * page contract exactly the way a Meshtastic section, an open hardware manager, or a community pack
+ * page contract exactly the way a Meshtastic section, an open hardware manager, or a wild pack
  * would, and the page knows nothing about it except what it declares here.
  */
 PAI_LOAD.push(function () {
@@ -3936,7 +4515,7 @@ window.PAI.register({
         + 'to turn it on.' },
       { id: 'mesh-pack', label: 'A small pack on purpose',
         text: 'A pack section, and a small one on purpose: it shows the shape a '
-        + 'community pack’s contribution takes — a file that registers a title, a stage, what it '
+        + 'pack’s section takes — a file that registers a title, a stage, what it '
         + 'needs, and what it says.' },
     ];
   },
@@ -4038,7 +4617,7 @@ window.PAI.register({
         + '"not connected". Until then the contract’s rule holds: a missing pack is one line that '
         + 'says so, never a blank.' },
       { id: 'hardware-shape', label: 'What a pack contributes',
-        text: 'This is the shape a community pack’s contribution takes: a '
+        text: 'This is the shape a pack’s contribution takes: a '
         + 'title, a stage, what it needs, what it says, and its notes. A node that adds a device adds '
         + 'a row; a node that writes a pack adds a file; proposing either back is sending the file.' },
     ];
@@ -4080,7 +4659,7 @@ function claimCard(ctx, c) {
   const mine = H.claims[H.claims.length - 1];
   const bars = Object.entries(c.drawn.by_res).sort((a, b) => a[0] - b[0]);
   const total = bars.reduce((a, [, v]) => a + v, 0);
-  return `<section class="claim" id="claim-${esc(c.key)}" data-component="claim" data-ref="rail">`
+  return `<section class="claim" id="claim-${esc(c.key)}" data-component="claim" data-ref="claims">`
     + `<div><h3>${esc(c.name)}</h3>`
     + `<p class="what">${esc(c.what)}</p>`
     + `<div class="facts">`
@@ -4205,7 +4784,7 @@ function table(ctx) {
      cannot be focused cannot be scrolled from a keyboard — the finding that put tabindex on the
      page before this one, re-made here. */
   return `<div class="tblwrap" tabindex="0" role="region" aria-label="all eleven rungs">`
-    + `<table class="tbl" id="grain-table" data-component="grainTable" data-ref="rail">`
+    + `<table class="tbl" id="grain-table" data-component="grainTable" data-ref="grain-line">`
     + `<thead><tr><th>resolution</th><th>one cell</th><th>edge</th>`
     + `<th>cells the ${H.sensors.length} stations fall in</th><th>in this node's own cell</th>`
     + `<th></th></tr></thead><tbody>`
@@ -4255,13 +4834,13 @@ function flatRun(H) {
  * lead carrying a monument numeral and four meters, it was six blocks deep and pushing the as-of
  * line off the first screen on a phone. T1's fifth leg, for a paragraph that was in the wrong stage.
  *
- * It keeps its id. The rail points at `grain-line` as the sentence a press re-derives, and Decide is
- * on the same page as the rail, so the arm still lands. */
+ * It keeps its id. It moved to Network with its section in v0.78, and the rail, which stays on Now, points
+ * at the ground figure instead (the arm that named `grain-line` would land nowhere on Now). */
 function grainLine(ctx) {
   const G = ctx.grain, t = H.grain_table || [], finest = t.length ? t[t.length - 1] : null;
   const n = (H.sensors || []).length;
   if (!window.KH.sited()) {
-    return `<p class="why grainline" id="grain-line" data-component="grainLine" data-ref="rail">`
+    return `<p class="why grainline" id="grain-line" data-component="grainLine" data-ref="grain">`
       + `At resolution ${ctx.RES} one cell is ${esc(km2(G.area_m2))}. Which cell this node stands in `
       + `is not known: it has no NODE_LAT/NODE_LON, so none of its ${n} stations has a cell yet and `
       + `the counts that would go here would be counts about open water.</p>`;
@@ -4272,7 +4851,7 @@ function grainLine(ctx) {
    * one thing the rail exists to let them do. The sentence is not lost: it is the comparison, which
    * is where a readout keeps the words that qualify its figure. */
   return readout({
-    id: 'grain-line', component: 'grainLine', ref: 'rail',
+    id: 'grain-line', component: 'grainLine', ref: 'grain',
     title: `occupied cells at resolution ${ctx.RES}`,
     num: 'grain.occupied',
     /* "of N stations" and not "of every station this node reads": H.sensors is what /issues
@@ -4388,9 +4967,7 @@ function template(ctx) {
       cols: 'minmax(0,210px) minmax(0,1fr) auto',
       left: `<span class="who"><b>How a sentence is built</b>`
         + `<span class="m">the same for all ${(ORDER || []).length}</span></span>`,
-      line: `The state, then the reading at the closest distance that has one, then how the other `
-        + `distances stand against it. Never a distance the node cannot read, and never a `
-        + `comparison against a line the issue does not have.`,
+      line: `The headline speaks in words only (sentence), \`plain\` carries the figures, \`about\` says what the metric is.`,
       qty: [{ num: 'template.parts', value: `${2 + (others.length ? 1 : 0)} parts`,
         cmp: `state \u00b7 the ${LAB[d.headline]} reading`
           + `${others.length ? ` \u00b7 ${others.length} other distance`
@@ -4417,7 +4994,7 @@ window.PAI.register({
     const flat = flatRun(H);
     const rows = (H.grain_table || []).length;
     const finding = flat.length
-      ? `<p class="honest" id="flat-run" data-component="finding" data-ref="rail">Resolutions `
+      ? `<p class="honest" id="flat-run" data-component="finding" data-ref="grain-line">Resolutions `
         + `${flat[0].res} to ${flat[flat.length - 1].res} are one row repeated ${flat.length} times. `
         + `Each is seven times finer than the one above it — `
         + `<span data-num="grain.flat.ratio" data-cmp="the area ratio across ${flat.length - 1} steps `
@@ -4427,7 +5004,7 @@ window.PAI.register({
       /* No flat run is not a failure and not a blank: it is a different node, and the table below is
          still worth reading. The two cases are named apart because they mean opposite things —
          nothing to file, against a grain that is still earning its precision at the finest stop. */
-      : `<p class="honest" id="flat-run" data-component="finding" data-ref="rail">`
+      : `<p class="honest" id="flat-run" data-component="finding" data-ref="grain-line">`
         + (H.sensors && H.sensors.length
           ? `On this node on this day the count of occupied cells is still changing at the finest `
             + `resolution in the table, so there is no flat run to report: every rung of the ladder is `
@@ -4478,13 +5055,13 @@ window.PAI.register({
  * not. This section is the ledger of that — the open ask, the asks sent in the window, and the
  * funnel they went down — so that "act" is a thing on the page and not a verb in a slogan.
  *
- * The green button is the one control on the page that is not the dial, and it is drawn where the
- * kit draws it: in the ask strip, never anywhere else.
+ * The strip that used to sit above this is gone: the buttons are on Decide now, and this section is
+ * only the record of what was asked and what was answered (docs/SPEC_dashboard_events.md §4.3).
  */
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, fmt, age, pill, row, ask, sign, rulePack } = window.K;
+const { esc, fmt, age, pill, row, sign, rulePack, evState, evClock, evWord } = window.K;
 
 /* The alerts in the fixture that asked for something, most recent first. `level: act` is the rule
  * saying a person should do something; `info` and `warn` said something and asked nothing. They
@@ -4522,6 +5099,23 @@ function ringsFor(list, open) {
     out += sign(i < full ? 'rho-closed' : 'rho-open', i < full ? 'closed' : '', i < full ? 'An answered alert' : 'An alert still open');
   }
   return { html: out, closed, total, unit: UNIT };
+}
+
+/* THE EVENTS ACT RECORDS: the node's open and recent ones, newest opened first. `recent` is sorted by clear
+ * and `open` by seriousness, so neither order is the one a record reads in. An id in both is drawn once. */
+function evLog(E) {
+  const seen = new Set();
+  return [...(E.open || []), ...(E.recent || [])].filter(e => !seen.has(e.id) && seen.add(e.id))
+    .sort((a, b) => String(b.opened_at).localeCompare(String(a.opened_at)));
+}
+/* What was answered, in the button's word. `cleared_after_min` is the node's number, and only a Done that
+ * was followed by a clear carries it, so it is said only then. */
+function evAnswerText(e) {
+  const a = e.answer;
+  if (!a) return 'no answer';
+  return a.stage !== 'acted' ? evWord(a.stage)
+    : `${evWord(a.stage)} \u00b7 ${a.actor || 'somebody'}`
+      + (e.cleared_after_min == null ? '' : ` \u00b7 cleared ${Math.round(e.cleared_after_min)} min after`);
 }
 
 /* WHERE TO GO, under the ask it answers.
@@ -4604,14 +5198,14 @@ window.PAI.register({
   id: 'asks', pack: 'core', stage: 'act', order: 10, learn: ['levels', 'current'],
   reads: ['/issues', '/rho', '/sensors', '/settings', '/stats'],
   /* `workshop` is drawn by whereToGo() on the row it explains, not in the kicker. */
-  title: 'The alerts this node has sent',
+  title: 'What was asked, and what was answered',
   /* PORTED: the prototype also needed SNAP.funnel, which was one of its three synthetic
      contributions — no endpoint on this node computes a stage split or the 2x2. The ledger is the
      node's own (GET /issues publishes `asks`), so the section stands on that and draws the funnel
      only where there is one. */
   needs: ['H3.asks'],
   render(ctx) {
-    const S = ctx.S, ISS = ctx.ISS;
+    const S = ctx.S, ISS = ctx.ISS, st = evState(), E = S.issues.events || {};
     const acts = ACTS();
     const open = OPEN_IDS();
     const byRule = {};
@@ -4619,16 +5213,11 @@ window.PAI.register({
     const rules = Object.entries(byRule).sort((a, b) => b[1].length - a[1].length);
     const captured = Date.parse(S.base.captured_utc);
     /* ONE COLUMN, FULL WIDTH. This was a `two-up` with a single child, so the grid reserved half the
-       band for a second column that no branch of this render ever fills — the ask cards and every
-       rule row were squeezed into the left half and the right half of Act was white from the strip
-       to the foot. `two-up` is for the sections that genuinely draw two things (Measure's rows
-       beside its series, the radio's map beside its rows); Act draws one list. */
-    return `<div>`
-      + ctx.ORDER.filter(k => ISS[k] && (ISS[k].open_asks || []).length).map(k => ask(k, ISS[k], 'asks-rows')).join('')
-      + (ctx.ORDER.some(k => ISS[k] && (ISS[k].open_asks || []).length) ? ''
-        : ask(S.issues.headline, ISS[S.issues.headline], 'asks-rows'))
-      + `<div class="reads" id="asks-rows" data-ref="funnel">`
-      + rules.map(([rule, list]) => {
+       band for a second column that no branch of this render ever fills — every rule row was squeezed
+       into the left half and the right half of Act was white. `two-up` is for the sections that
+       genuinely draw two things; Act draws one list. THE STRIP IS GONE from every node: Decide holds the
+       buttons now (spec §4.3), and this is the record of what was asked and answered. */
+    const byRuleRows = () => rules.map(([rule, list]) => {
         /* A rule id is `pack/rule` today, but a node's ledger keeps alerts from before packs named their
            rules (node #1: `indoor_pm25_high`, `inside_worse_ventilate`), and splitting those left the rule
            undefined, which threw and took the whole section down on 28 Sep 2026. */
@@ -4655,7 +5244,47 @@ window.PAI.register({
               + `outcome was measured, never merely by being seen`
               + `${r.unit > 1 ? ` \u00b7 one ring per ${r.unit}` : ''}` }],
         });
-      }).join('')
+      }).join('');
+    /* ONE ROW AN EVENT, newest first, and the rings above them: closed when the event has an answer. The
+       seven days are all the wire carries, so there is no fold. */
+    const eventRows = () => {
+      const log = evLog(E);
+      if (!log.length) {
+        return `<p class="note" id="asks-none" data-component="absent" data-ref="asks-rows">No event in the `
+          + `last 7 days: nothing was asked, and nothing needed asking.</p>`;
+      }
+      const unanswered = new Set(log.filter(e => !e.answer).map(e => e.id));
+      const r = ringsFor(log, unanswered);
+      const head = row({ id: 'asks-events', component: 'askEvents', ref: 'asks-rows', cols: 'minmax(0,1fr)',
+        left: `<span class="who"><span><span data-num="asks.events.n" data-cmp="alert events this node opened `
+          + `in the last 7 days, open or cleared">${log.length}</span> event${log.length === 1 ? '' : 's'} in 7 `
+          + `days \u00b7 <span data-num="asks.events.answered" data-cmp="of ${log.length}: events somebody `
+          + `answered with Done, Not now or Doesn\u2019t fit">${r.closed}</span> answered</span></span>`,
+        signs: r.html });
+      return head + log.map(e => {
+        const d = ISS[e.issue] || { name: {} };
+        const key = esc(String(e.id));
+        const mins = Math.round((captured - Date.parse(e.opened_at)) / 60000);
+        return row({ id: `ask-ev-${key}`, component: 'askEvent', ref: 'asks-rows',
+          cls: e.answer && e.answer.stage === 'acted' ? '' : 'quiet',
+          cols: 'minmax(0,170px) minmax(0,1fr) auto',
+          left: `<span class="who"><b>${esc(d.name[ctx.LOC] || e.issue)}</b>`
+            + `<span class="m">${esc(e.kind)} \u00b7 ${esc(age(mins))}</span></span>`,
+          line: `${evClock(e.opened_at)}\u2013${e.cleared_at ? evClock(e.cleared_at) : 'open'}`
+            + `${(e.rooms || []).length ? ` \u00b7 ${e.rooms.join(', ')}` : ''}`
+            /* The action is a sentence, so it rides the wrapping middle column: `qty` does not wrap. */
+            + ` \u00b7 \u201c${e.action && e.action.text ? e.action.text : 'no action chosen'}\u201d`,
+          qty: [{ num: `ev.${key}.answer`, value: evAnswerText(e),
+            cmp: 'the answer a person gave, in the button\u2019s word; the clear time is the node\u2019s own' }] });
+      }).join('');
+    };
+    const events = st === 'events' || st === 'shadow';
+    return `<div>`
+      + `<div class="reads" id="asks-rows" data-ref="funnel">`
+      + (events ? eventRows()
+        /* `error` says what the node said (spec §5), escaped; `rules` and `old` say the one sentence. */
+        : `<p class="note" id="asks-engine" data-component="absent" data-ref="asks-rows">`
+          + (st === 'error' ? esc(E.error) : 'This node sends alerts, not events.') + `</p>` + byRuleRows())
       + whereToGo()
       + capacity()
       + `</div>`
@@ -4682,14 +5311,16 @@ window.PAI.register({
         text: 'An alert is a rule crossing a line and the node saying so to a '
         + 'person, on Telegram. It is the only thing on this page that is addressed to somebody; '
         + 'everything else is addressed to nobody in particular. "Nothing has been asked" and '
-        + '"nothing to do" are two different sentences, and the alert strip says which one is true.' },
-      { id: 'asks-rows', label: 'One ring, one alert',
-        text: 'One ring an alert, closed first. An alert closes when somebody acted '
-        + 'or the outcome was measured \u2014 being seen is not closing it, which is the node\u2019s rule '
-        + 'and not this page\u2019s: the page reads which alerts are still open from the node\u2019s own '
-        + 'answer rather than keeping a copy of the rule that decides it. A rule that has asked '
-        + 'more times than a person can count gets a coarser unit and says which, and the figure '
-        + 'beside the strip is always exact.' },
+        + '"nothing to do" are two different sentences, and Act says which one is true: a row for every event '
+        + 'that was asked, or the sentence that there was none.' },
+      { id: 'asks-rows', label: 'One ring, one event',
+        text: 'On a node that tells events, one ring an event, closed when somebody answered it with Done, '
+        + 'Not now or Doesn\u2019t fit, and a row under them for each of the last seven days\u2019 events: '
+        + 'what the node asked for, in its own words, and the answer. \u201cCleared 40 min after\u201d is '
+        + 'the node\u2019s own number, and appears only on a Done that a clear followed. On a node that '
+        + 'sends alerts, one ring an alert, closed when somebody acted or the outcome was measured \u2014 '
+        + 'which is the node\u2019s rule and not this page\u2019s \u2014 and a rule that has asked more '
+        + 'times than a person can count gets a coarser unit and says which.' },
       { id: 'where-to-go', label: 'The nearest place to get it made',
         text: 'The nearest place you could get something made, under the alert it '
         + 'answers rather than as a tile of its own \u2014 the pack that stores it says the line belongs '
@@ -4703,10 +5334,6 @@ window.PAI.register({
         + 'pack ships off and why the switch carries that sentence where a keeper will read it '
         + 'before turning it on. With the pack off this row does not exist and the node\u2019s own '
         + 'words say why \u2014 never this page\u2019s summary of them.' },
-      { id: 'asks-button', label: 'The green button',
-        text: 'The green button is the one control on the page that is not the '
-        + 'ladder. It is a response, so it is green — the layer’s rule is that orange means what only '
-        + 'the satellite knows and nothing else — and it is drawn in the alert strip and nowhere else.' },
     ];
   },
 });
@@ -4849,30 +5476,12 @@ window.PAI.register({
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, fmt } = window.K;
+const { esc, fmt, strips } = window.K;
 
-const W = 640, HT = 150, PAD = { l: 34, r: 8, t: 10, b: 20 };
-
-function plot(hours) {
-  const vals = hours.flatMap(h => [h.indoor, h.outdoor]).filter(v => v != null);
-  if (!vals.length) return '';
-  const top = Math.max(...vals) * 1.15;
-  const x = h => PAD.l + (h / 23) * (W - PAD.l - PAD.r);
-  const y = v => HT - PAD.b - (v / top) * (HT - PAD.t - PAD.b);
-  const path = key => hours.filter(h => h[key] != null)
-    .map((h, i) => `${i ? 'L' : 'M'}${x(h.hour).toFixed(1)},${y(h[key]).toFixed(1)}`).join('');
-  /* Two lines, told apart by dash and weight and not by hue — the page's rule everywhere else. */
-  const ticks = [0, 6, 12, 18, 23].map(h =>
-    `<text x="${x(h).toFixed(1)}" y="${HT - 6}" text-anchor="middle">${h}</text>`).join('');
-  const grid = [0, top / 2, top].map(v =>
-    `<line x1="${PAD.l}" y1="${y(v).toFixed(1)}" x2="${W - PAD.r}" y2="${y(v).toFixed(1)}"/>`
-    + `<text x="${PAD.l - 5}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end">${fmt(v, 0)}</text>`)
-    .join('');
-  return `<svg class="shapeplot" viewBox="0 0 ${W} ${HT}" role="img" preserveAspectRatio="none"`
-    + ` aria-label="the usual day, hour by hour, inside against outside">`
-    + `<g class="grid">${grid}</g><g class="hrs">${ticks}</g>`
-    + `<path class="out" d="${path('outdoor')}"/><path class="in" d="${path('indoor')}"/></svg>`;
-}
+/* Historical asks for its 90 days when it is first drawn (askDays90 in the shell), so for one render there is
+   nothing yet. A live node that has not answered is pending; a capture (its days are set at boot), or a node that
+   answered or refused (DAYS90_DONE), is not. */
+const DAYS90_PENDING = () => !window.SNAP.fixture && !window.DAYS90_DONE;
 
 /* The two hours worth naming: where each line is highest. A shape nobody reads off the drawing is a
    drawing; the sentence is the finding. */
@@ -4884,44 +5493,38 @@ function peak(hours, key) {
 const hh = h => `${String(h).padStart(2, '0')}:00`;
 
 window.PAI.register({
-  id: 'shape', pack: 'core', stage: 'observe', order: 15, learn: ['shape'],
-  reads: ['/shape'],
+  id: 'shape', pack: 'core', stage: 'observe', order: 15, learn: ['shape', 'strips'],
+  reads: ['/issues/days', '/shape'],
   title: 'The day this place usually has',
-  needs: ['SHAPE.hours'],
+  needs: [],
   anchor: 'shape',
   render(ctx) {
-    const S = window.SHAPE, hours = S.hours || [];
-    /* Not an error and not a blank: a node that has just been switched on has nothing to average and
-       the honest sentence says when it will. */
-    if (!S.windows || !S.windows.day) {
-      return `<p class="note" id="shape-young" data-component="absent" data-ref="reach">`
-        + `This node has ${S.days === 1 ? 'one day' : `${S.days} days`} of its own readings. `
-        + `A usual day is an average over the days it has seen, so this waits for seven \u2014 `
-        + `about ${Math.max(1, 7 - (S.days || 0))} more. Nothing is missing; it has not watched `
-        + `long enough yet.</p>`;
-    }
+    const S = window.SHAPE || {}, hours = S.hours || [];
+    const D = window.DAYS90;
+    /* The finding is an average and waits for a week; the strips are not an average and draw what there is. */
     const pin = peak(hours, 'indoor'), pout = peak(hours, 'outdoor');
-    const both = pin && pout;
-    /* The finding, printed above the drawing, as everywhere else on this page: the sentence is what
-       a household acts on and the drawing is the evidence for it. */
-    const finding = both
-      ? `<p class="honest" id="shape-finding" data-component="finding" data-ref="shape">`
-        + `Over ${S.days} days, the air in this house is worst around `
-        + `<span data-num="shape.indoor.peak" data-cmp="against ${esc(fmt(pout.indoor, 1))} outside `
-        + `at the same hour">${esc(hh(pin.hour))}</span> and the air outside is worst around `
-        + `<span data-num="shape.outdoor.peak" data-cmp="against ${esc(fmt(pin.outdoor, 1))} inside `
-        + `at the same hour">${esc(hh(pout.hour))}</span>`
-        + `${pin.hour !== pout.hour ? ' \u2014 they do not peak together, so there are hours when '
-          + 'opening a window helps and hours when it does not' : ''}.</p>`
-      : '';
-    return finding + plot(hours)
-      + `<p class="cap" id="shape-key" data-component="shapeKey" data-ref="shape">`
-      + `<b>\u2014\u2014</b> inside \u00b7 <b>- -</b> outside \u00b7 hour of the day, in this `
-      + `node\u2019s own time \u00b7 ${esc(S.metric)} \u00b7 averaged over ${S.days} days</p>`
-      + `<p class="cap">${Object.entries(S.windows).filter(([, v]) => !v).length
-        ? `Not yet: ${Object.entries(S.windows).filter(([, v]) => !v).map(([k]) => k).join(', ')}. `
-          + `This node decides that from the length of its own record, not from this page.`
-        : `This record supports every window this node knows how to draw.`}</p>`;
+    const finding = !S.windows || !S.windows.day
+      ? `<p class="note" id="shape-young" data-component="absent" data-ref="reach">`
+        + `This node has ${S.days === 1 ? 'one day' : `${S.days || 0} days`} of its own readings. `
+        + `The usual hour of the worst air waits for seven \u2014 about ${Math.max(1, 7 - (S.days || 0))} more. `
+        + `The days it has are drawn below as they were.</p>`
+      : pin && pout
+        ? `<p class="honest" id="shape-finding" data-component="finding" data-ref="shape">`
+          + `Over ${S.days} days, the air in this house is worst around `
+          + `<span data-num="shape.indoor.peak" data-cmp="against ${esc(fmt(pout.indoor, 1))} outside `
+          + `at the same hour">${esc(hh(pin.hour))}</span> and the air outside is worst around `
+          + `<span data-num="shape.outdoor.peak" data-cmp="against ${esc(fmt(pin.outdoor, 1))} inside `
+          + `at the same hour">${esc(hh(pout.hour))}</span>`
+          + `${pin.hour !== pout.hour ? ' \u2014 they do not peak together, so there are hours when '
+            + 'opening a window helps and hours when it does not' : ''}.</p>`
+        : '';
+    if (DAYS90_PENDING()) {
+      return finding + `<p class="note" id="shape-days" data-ref="shape">Asking the node for the days it holds\u2026</p>`;
+    }
+    return finding + `<div id="shape-strips" data-ref="shape">`
+      + ctx.ORDER.filter(k => ctx.ISS[k] && ctx.ISS[k].watched !== false)
+        .map(k => strips(k, D, { id: `hstrips-${esc(k)}`, ref: 'shape-strips' })).join('')
+      + `</div>`;
   },
   notes() {
     const S = window.SHAPE || {};
@@ -4934,8 +5537,8 @@ window.PAI.register({
         + 'timezone from NODE_TZ on every connection, and its comment records that this was found '
         + 'once before, in the day boundaries.' },
       { id: 'shape-two-lines', label: 'Why inside and outside are apart',
-        text: 'Inside and outside are drawn apart because they are not the '
-        + 'same day. On the node this was built against they are anti-phased: inside peaks when '
+        text: 'The strips draw the house; the sentence above them compares inside and outside, '
+        + 'which are apart because they are not the same day. On the node this was built against they are anti-phased: inside peaks when '
         + 'somebody is cooking and outside peaks in the evening, so at midday inside is about twice '
         + 'outside and at six in the evening it is the other way round. A single average over both '
         + 'would describe neither, and the difference is the only thing here anybody can act on.' },
@@ -4974,7 +5577,8 @@ window.PAI.register({
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, age } = window.K;
+const { esc, age, evState, evOpen, evCard, evClock } = window.K;
+const { H } = window.KH;
 
 /* The recommendation, which is the last paragraph and starts with the pointing hand. Absent on a
    rule whose author did not write one — and then this says so rather than inventing advice, which
@@ -4985,7 +5589,24 @@ function suggestion(text) {
   return hit ? hit.replace(/^\u{1F449}\s*/u, '') : null;
 }
 
-function card(ctx, key, d, a) {
+/* The rule rows an event covers, folded inside its card (spec §4.2: id, rule, time). An id the ledger
+   no longer holds says so rather than being dropped: /issues keeps the last 200 alerts. */
+function rowsOf(ctx, e) {
+  const ids = e.alerts || [];
+  if (!ids.length) return '';
+  const acts = (H.asks || {}).acts || [];
+  const now = Date.parse(((ctx.S || {}).base || {}).captured_utc) || Date.now();
+  const line = id => {
+    const x = acts.find(a => a.id === id);
+    return `<p class="m">#${esc(String(id))} \u00b7 `
+      + (x ? `${esc(String(x.rule_id || 'a rule'))} \u00b7 ${esc(age(Math.round((now - Date.parse(x.ts)) / 60000)))}`
+        : 'older than the 200 alerts this page reads') + `</p>`;
+  };
+  return `<details class="evrows" id="evrows-${esc(String(e.id))}"><summary>from ${ids.length} rule `
+    + `row${ids.length === 1 ? '' : 's'}</summary>${ids.map(line).join('')}</details>`;
+}
+
+function card(ctx, key, d, a, did) {
   const sug = suggestion(a.text);
   const seen = String(a.text || '').split('\n')[0];
   const id = `decide-${esc(key)}`;
@@ -5014,41 +5635,72 @@ function card(ctx, key, d, a) {
     + (sug ? `<button type="button" class="take">Take its word</button>` : '')
     + `<button type="submit" class="pri">Record the decision</button></div>`
     + `<p class="fine">This closes no alert and moves no number. When it is done, press `
-    + `<b>I did this</b> under Act.</p>`
+    + `<b>I did this</b> on this card.</p>`
     + window.K.TOKEN_FINE
-    + `</form></section>`;
+    + `</form>${did ? `<div class="ask">${window.K.didButton(a.id)}</div>` : ''}</section>`;
 }
 
 window.PAI.register({
   id: 'decide', pack: 'core', stage: 'decide', order: 5, level: 'simple',
   reads: ['/issues'],
-  learn: ['recommend', 'looked', 'agent'],
+  learn: ['events', 'buttons'],
   title: 'What to do about it',
   needs: ['H3.asks'],
   anchor: 'decide',
   render(ctx) {
-    const ISS = ctx.ISS;
-    const open = ctx.ORDER.filter(k => ISS[k] && (ISS[k].open_asks || []).length);
-    if (!open.length) {
-      return `<p class="note" id="decide-none" data-component="absent" data-ref="asks-rows">`
-        + `Nothing is asking for a decision. When a reading crosses a line this node watches, what `
-        + `it saw and what it suggests appear here, with somewhere to say what you decided.</p>`;
+    const ISS = ctx.ISS, st = evState(), E = ctx.S.issues.events || {};
+    const asks = k => (ISS[k] && ISS[k].open_asks) || [];
+    if (st === 'events' || st === 'shadow') {
+      const unc = new Set(E.uncovered_asks || []);
+      /* One card per issue, the way the fallback draws them: card() ids itself decide-<key>. */
+      const left = ctx.ORDER.map(k => [k, asks(k).find(a => unc.has(a.id))]).filter(([, a]) => a)
+        .map(([k, a]) => card(ctx, k, ISS[k], a, true));
+      const open = evOpen();
+      if (!open.length && !left.length) {
+        const last = E.last_cleared;
+        return `<p class="note evnone" id="decide-none" data-component="absent" data-ref="stage-decide">`
+          + `Nothing open.${E.cleared_today ? ` ${E.cleared_today} cleared today`
+            + `${last ? `, the last at ${esc(evClock(last.ts))} (${esc((ISS[last.issue] || { name: {} }).name[ctx.LOC]
+              || last.issue)})` : ''}.` : ''}</p>`;
+      }
+      return open.map(e => evCard(e, rowsOf(ctx, e))).join('') + left.join('');
     }
-    /* One card per ISSUE, not per ask: four open asks about the same air are one decision, and a
-       household asked to decide four times about one room stops deciding. */
-    return open.map(k => card(ctx, k, ISS[k], ISS[k].open_asks[0])).join('');
+    /* rules, a node older than v0.77, or an events block that could not be read: each says which, then
+       draws the alert cards, because nothing that asks a person something may disappear. */
+    const why = st === 'old' ? `This node is ${esc((ctx.S.health || {}).version || 'older than v0.77')}: it sends `
+      + `alerts, not events.` : st === 'error' ? esc(E.error) : 'This node sends alerts, not events.';
+    const open = ctx.ORDER.filter(k => asks(k).length);
+    return `<p class="note" id="decide-engine" data-component="absent" data-ref="stage-decide">${why}</p>`
+      + (open.length ? open.map(k => card(ctx, k, ISS[k], asks(k)[0], true)).join('')
+        : `<p class="note" id="decide-none" data-component="absent" data-ref="stage-decide">Nothing is asking for `
+          + `anything.</p>`);
   },
   notes() {
     return [
+      { id: 'decide-events', label: 'What an event is',
+        text: 'An event is the bot\u2019s own unit: one issue in one house, from when its rule first fires '
+        + 'to when it clears, however many rule rows that took. The node chose the action and wrote the '
+        + 'message, and this page draws them. Where a rule row is not covered by any event, it is drawn '
+        + 'after the events as an alert, with I did this, so nothing that asks a person something '
+        + 'disappears.' },
+      { id: 'decide-buttons', label: 'What each button writes',
+        text: 'Done, Not now and Doesn\u2019t fit each write one row to the node\u2019s record, by event: '
+        + 'who pressed, when, and for Doesn\u2019t fit what was done instead. Done closes the loop; Not '
+        + 'now holds the card until the time it names, unless the reading reaches danger. \u03c1 does not '
+        + 'count events yet, so none of the three moves it.' },
       { id: 'decide-suggestion', label: 'The suggestion is the rule’s own',
-        text: 'The suggested action is the rule\u2019s own last line, the one '
+        text: 'This is the alert card, which Decide draws on a node that sends alerts, not events, '
+        + 'and on an older node or one whose events cannot be read. Its suggested action is the '
+        + 'rule\u2019s own last line, the one '
         + 'that begins with a pointing hand, written by whoever wrote the rule and shipped in every '
         + 'language this node speaks. It is not generated here and it is not a model\u2019s: a node '
         + 'with no agent running shows exactly the same words. Where a rule carries no '
         + 'recommendation the card says so, because a page that invents advice about somebody\u2019s '
-        + 'air is a page that cannot be trusted about anything.' },
+        + 'air is a page that cannot be trusted about anything. An event card has no such line: '
+        + 'the node chose its action.' },
       { id: 'decide-moves-nothing', label: 'A decision moves nothing',
-        text: 'A decision moves nothing. It does not close the alert, it '
+        text: 'On an alert card, which is the fallback for a node that sends alerts, not events, '
+        + 'a decision moves nothing. It does not close the alert, it '
         + 'does not enter \u03c1, and it is not a stage in the funnel \u2014 the alert stays open and the '
         + 'node keeps watching. What it changes is the record: a household that looked, decided and '
         + 'never managed it used to leave the same trace as one that never looked, which was none.' },
@@ -5088,7 +5740,7 @@ window.PAI.register({
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, row, age } = window.K;
+const { esc, row, age, evWord } = window.K;
 const { H } = window.KH;
 
 /* ALL OF IT FOLDED, and the head says how many. Eight rows and a five-line head were 1,029 px at 390
@@ -5141,6 +5793,36 @@ function line(x, ctx, all) {
   });
 }
 
+/* THE ANSWERS TO EVENTS: each open or recent event's latest answer, one row, newest first. The node keeps
+   one answer an event that matters (the latest), so this reads `answer` and never replays the ledger. An id
+   in both lists is read once. */
+function evAnswers(E) {
+  const seen = new Set();
+  return [...(E.open || []), ...(E.recent || [])]
+    .filter(e => e.answer && !seen.has(e.id) && seen.add(e.id))
+    .map(e => ({ ts: e.answer.ts, event: e, answer: e.answer }))
+    .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+}
+
+function evLine(x, ctx) {
+  const e = x.event, a = x.answer, d = ctx.ISS[e.issue] || { name: {} };
+  const notes = window.ACT_NOTES;
+  const note = notes ? notes[`ev${e.id}:${a.stage}`] : null;
+  const mins = Math.round((Date.parse(ctx.S.base.captured_utc) - Date.parse(a.ts)) / 60000);
+  return row({
+    id: `act-ev${esc(String(e.id))}-${esc(String(a.stage))}`,
+    component: 'ledgerRow', ref: 'asks-rows',
+    cls: a.stage === 'acted' ? '' : 'quiet',
+    cols: 'minmax(0,170px) minmax(0,1fr) auto',
+    left: `<span class="who"><b>${esc(String(a.actor || '').trim() || 'somebody')}</b>`
+      + `<span class="m">${esc(evWord(a.stage))} \u00b7 ${esc(age(mins))}</span></span>`,
+    /* The sentence if this reader may have it; otherwise the issue it was about, so the row still says what
+       was answered. */
+    line: note || `${d.name[ctx.LOC] || e.issue} \u00b7 ${e.kind}`,
+    qty: [],
+  });
+}
+
 window.PAI.register({
   id: 'ledger', pack: 'core', stage: 'act', order: 20, learn: ['note', 'bot', 'actions'],
   reads: ['/issues', '/actions'],
@@ -5150,7 +5832,12 @@ window.PAI.register({
   render(ctx) {
     const rows = (((H.asks || {}).actions) || []).slice()
       .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
-    if (!rows.length) {
+    /* Alert acts and event answers, in the order they happened. An event answer is a different row from an
+       alert act and counts toward neither `decided first` nor the practice figure, which are alert acts'. */
+    const items = rows.map(x => ({ ts: x.ts, html: line(x, ctx, rows) }))
+      .concat(evAnswers(ctx.S.issues.events || {}).map(x => ({ ts: x.ts, html: evLine(x, ctx) })))
+      .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));
+    if (!items.length) {
       return `<p class="note" id="ledger-none" data-component="absent" data-ref="asks-rows">`
         + `Nobody has answered an alert on this node yet. When somebody does \u2014 from this page, `
         + `from Telegram, or from a terminal \u2014 what they did and who they are is recorded here.`
@@ -5174,19 +5861,19 @@ window.PAI.register({
         + `is the rule">${led}</span> of ${acts.length} had a decision recorded first.`
       : '';
     const head = `<p class="why" id="ledger-head" data-component="ledgerHead" data-ref="ledger">`
-      + `${rows.length} answer${rows.length === 1 ? '' : 's'} on this node.${practice} `
+      + `${items.length} answer${items.length === 1 ? '' : 's'} on this node.${practice} `
       + (words
         ? `${said} carr${said === 1 ? 'ies' : 'y'} the sentence somebody wrote.`
         : `The sentences need a token \u2014 a note is the household\u2019s own words about its own `
           + `house. Set up \u2192 unlock.`)
       + `</p>`;
-    const first = rows.slice(0, SHOWN).map(x => line(x, ctx, rows)).join('');
-    const rest = rows.slice(SHOWN);
+    const first = items.slice(0, SHOWN).map(x => x.html).join('');
+    const rest = items.slice(SHOWN);
     return head + `<div class="reads" id="ledger-rows" data-ref="asks-rows">${first}`
       + (rest.length
         ? `<details class="fold"><summary>${SHOWN ? `The other ${rest.length}`
           : `All ${rest.length}, newest first`}</summary>`
-          + rest.map(x => line(x, ctx, rows)).join('') + `</details>`
+          + rest.map(x => x.html).join('') + `</details>`
         : '')
       + `</div>`;
   },
@@ -5210,17 +5897,17 @@ window.PAI.register({
 /* measure · core · measure
  *
  * Whether it worked, and how long it took. The loop's last stage and the one that makes it a loop:
- * ρ, the share of asks that were answered; the median minutes from ask to answer; and the day the
- * node's own probes just had, which is the reading coming back — or not — after somebody acted.
+ * ρ, the share of asks that were answered; the median minutes from ask to answer; and the hours the
+ * house spent over the line, which is the reading coming back — or not — after somebody acted.
  *
  * Nothing here is a gauge. ρ is a row of rings, answered first, and the numeral beside it says the
- * same thing in words; the day is a trace with its axis, its origin, its line and its text
- * alternative. The four card kinds are enough.
+ * same thing in words. The hours over the line are counted from the node's own per-day counts,
+ * today and in the days the strips draw; the day itself is drawn once, under Observe.
  */
 PAI_LOAD.push(function () {
 'use strict';
 
-const { esc, fmt, row, rhoRow, series, peerRow, unplaced, funnel, sign } = window.K;
+const { esc, fmt, row, rhoRow, peerRow, funnel, sign, localOf } = window.K;
 
 /* The care label: the refusals that hold across every stage, from ARCHITECTURE.md §7, drawn where the
  * loop closes because a refusal is the last thing a reader should meet, not the first.
@@ -5249,14 +5936,46 @@ function careLabel() {
     + `</div>`;
 }
 
+/* Hours over the line, counted (docs/SPEC_dashboard_figures.md §4.5, after Bali Air Dispatch): how long, not how
+ * high, which is what a household acts on. Today and the days GET /issues/days covers, from the node's own per-day
+ * counts; an hour with nothing recorded is named beside them and never counted as clean. */
+function overRows(ctx) {
+  const D = window.DAYS;
+  if (!D) {
+    return `<p class="note" id="measure-over" data-ref="rho">This node does not send its days yet, so the hours over `
+      + `the line are not counted here.</p>`;
+  }
+  const I = D.issues || {};
+  const keys = ctx.ORDER.filter(k => I[k] && I[k].distance && I[k].line);
+  if (!keys.length) {
+    return `<p class="note" id="measure-over" data-ref="rho">No issue here has a line to count hours against.</p>`;
+  }
+  const sum = ps => ps.reduce((a, p) => ({ over: a.over + (p.over || 0), read: a.read + p.read, of: a.of + p.of }),
+    { over: 0, read: 0, of: 0 });
+  /* The node's today: /issues' as_of (an instant, UTC on a live node) read in the offset of the latest bucket. A DAYS
+     answered before local midnight, or kept after a failed fetch, ends on yesterday, and that is not today's count. */
+  const today = localOf((D.buckets || []).slice(-1)[0], Date.parse(((ctx.S || {}).issues || {}).as_of)).day;
+  return `<div class="reads" id="measure-over" data-ref="rho">` + keys.map(k => {
+    const it = I[k], u = ctx.ISS[k], last = it.per_day.slice(-1);
+    const t = last.length && last[0].date === today ? sum(last) : { over: 0, read: 0, of: 0 }, w = sum(it.per_day);
+    return row({ id: `measure-over-${k}`, component: 'overCount', ref: 'measure-over',
+      cols: 'minmax(0,210px) minmax(0,1fr) auto',
+      left: `<span class="who"><b>${esc(u.name[LOC])}</b><span class="m">${esc(ctx.LAB[it.distance])} · over `
+        + `${esc(fmt(it.line.value, u.dp))} ${esc(u.unit)}</span></span>`,
+      line: `Hours over the line today, and in these ${D.days} days.`,
+      qty: [{ num: `${k}.over.today`, value: t.read ? `${t.over} h` : null, cmp: `of ${t.read} hour${t.read === 1 ? '' : 's'} read today, ${t.of - t.read} not recorded` },
+        { num: `${k}.over.days`, value: w.read ? `${w.over} h` : null, cmp: `of ${w.read} hour${w.read === 1 ? '' : 's'} read in ${D.days} days, ${w.of - w.read} not recorded` }],
+    });
+  }).join('') + `</div>`;
+}
+
 window.PAI.register({
   id: 'measure', pack: 'core', stage: 'measure', order: 10, learn: ['rho', 'refusals'],
-  reads: ['/rho', '/issues'],
+  reads: ['/rho', '/issues', '/issues/days'],
   title: 'Whether it worked',
   needs: ['SNAP.rho'],
   render(ctx) {
-    const { S, ISS, ORDER } = ctx;
-    const hk = S.issues.headline;
+    const { S } = ctx;
     const r = S.rho;
     return `<div class="two-up">`
       + `<div>${rhoRow()}`
@@ -5284,11 +6003,7 @@ window.PAI.register({
           cmp: `${r.acted} answered of ${r.alerts_act} asked in ${r.window_days} days` }],
       })
       + `</div>${funnel()}${careLabel()}</div>`
-      + `<div>${series(hk, ISS[hk])}`
-      + `${(S.issues.undeclared_slots || []).map(u => {
-        const c = (ISS.water && ISS.water.contributions || []).find(x => x.slot === u.slot);
-        return c ? unplaced(c) : '';
-      }).join('')}</div></div>`;
+      + `<div>${overRows(ctx)}</div></div>`;
   },
   notes(ctx) {
     const r = ctx.S.rho;
@@ -5301,6 +6016,11 @@ window.PAI.register({
         + 'second ρ is specified and does not exist: ρ observed would ask whether the reading came '
         + 'back under the line, and no rule has yet said what its own line is, so the page prints '
         + 'those words rather than a zero that would read as a node that looked and found nothing.' },
+      { id: 'measure-over', label: 'How long, counted',
+        text: 'A reading over the line for one hour and for nine are different days, and a curve does not say which. '
+        + 'These rows count the hours the house was over the line, from the node’s own count per local day: today, '
+        + 'and the days the strips under Observe draw. An hour nothing was recorded is named beside the count, never '
+        + 'counted as clean, and a day with nothing recorded shows a dash, not a zero.' },
       { id: 'funnel', label: 'One thing counted four times',
         text: 'The funnel counts one thing four times: how many alerts the node sent, '
         + 'how many were acknowledged, how many led to something being done, and how many stopped '
@@ -5318,21 +6038,11 @@ window.PAI.register({
         + 'first, and what it will not do once they have seen it. The row about the human row went '
         + 'without a sign until one was drawn for it: borrowing the answered-alert ring would have '
         + 'made that ring mean two things twelve pixels apart.' },
-      { id: 'measure-day', label: 'The headline issue’s own trace',
-        text: 'The day is the headline issue’s own trace: the node supplies every '
-        + 'value and the line, the page supplies only the box. A hole in the series is a hole in the '
-        + 'line — a run of one reading is a dot, never nothing — and the text alternative beside the '
-        + 'drawing says where the day opened and closed.' },
       { id: 'measure-loop', label: 'Where the loop closes',
         text: 'This is the stage that closes the loop. Observe put a number on '
         + 'the page; decide said how far that number may be trusted; act asked somebody to do '
         + 'something; measure is the reading coming back after they did, or did not, and how long it '
         + 'took. The next observation is the first section again.' },
-      { id: 'measure-unplaced', label: 'A slot this page has no place for',
-        text: 'A pack that asks for a slot this page has no place for lands '
-        + 'here with the pack’s name on it, rather than being dropped — the water pack’s gauge is the '
-        + 'example. That is how a community pack finds out the vocabulary has a gap without its '
-        + 'reading disappearing.' },
     ];
   },
 });
@@ -5512,7 +6222,7 @@ function drawForecast(ctx) {
 }
 
 window.PAI.register({
-  id: 'forecast', pack: 'forecast', stage: 'observe', order: 50, learn: ['forecast'],
+  id: 'forecast', pack: 'forecast', stage: 'observe', order: 14, learn: ['forecast'],
   reads: ['/forecast', '/issues'],
   title: 'The day it is about to have',
   needs: ['FORECAST'],
@@ -6179,6 +6889,8 @@ async function api(path) {
  * from 855 of 2,713 buildings, which is why nothing here resamples or simplifies. */
 async function plan(health) {
   const gj = await api('/place/geojson');
+  /* The map ground (UI_GROUND=map) hands this to MapLibre as it came, in degrees: no second request. */
+  window.PLAN_GJ = gj;
   const LAT = health.lat, LON = health.lon;
   const K = Math.cos(LAT * Math.PI / 180) * 111320;
   const r1 = v => Math.round(v * 10) / 10;
@@ -6295,7 +7007,10 @@ function bind(issues, health, rho) {
   window.SNAP = { issues, health, base: { captured_utc: issues.as_of },
     rho, peer: issues.peer || null, fixture: FIXTURE || null };
   const geo = issues.geometry || {};
-  window.H3 = { ...geo, sensors: issues.stations || [], metrics: issues.metrics || {},
+  /* A station in stations_silent.stations stopped reporting (docs/SPEC_dashboard_figures.md §3.3). It is not a
+     station this node reads now, so it is neither on the map nor in the groups; What the stations read lists it in a fold. */
+  window.H3 = { ...geo, sensors: issues.stations || [], silent: (issues.stations_silent || {}).stations || [],
+    metrics: issues.metrics || {},
     asks: issues.asks || null,
     radio: { ...(geo.radio || {}), mesh: issues.mesh || null,
       mesh_sensor: issues.mesh && issues.mesh.device, mesh_reads: issues.mesh ? issues.mesh.reads : [] },
@@ -6321,7 +7036,7 @@ async function boot() {
   /* What the node doubts about its own sensors, and the day this place is about to have. Two routes
      the node already serves and the page it replaces already read. A refusal or a pack that has
      never run leaves the global null, and the section whose `needs` names it prints one line. */
-  const [trust, forecast, sensors, cells, reach, notes, dayshape, effect] = await Promise.all([
+  const [trust, forecast, sensors, cells, reach, notes, dayshape, effect, days] = await Promise.all([
     api('/trust').catch(() => null), api('/forecast').catch(() => null),
     /* The network figure's own two reads, restored with it. /issues publishes only stations that
        carry a coordinate, so `models` counted 0 on a node running five of them — the figure needs
@@ -6341,9 +7056,12 @@ async function boot() {
        words about what they did in their own house. So the ledger draws from /issues for everyone
        and asks this route only for the sentences, which arrive for a reader holding a token and do
        not for anyone else. A 403 here is the node working. */
-    api('/actions').catch(() => null),
+    api('/actions?events=1').catch(() => null),
     api('/shape').catch(() => null),
     api('/effect').catch(() => null),
+    /* The strips and Measure's count (docs/SPEC_dashboard_figures.md §4.3, §4.5). A capture carries the 7 days it was
+       taken with; a node older than v0.79 answers 404, and the strips say so. */
+    FIXTURE ? Promise.resolve((snapshot && snapshot.issues_days) || null) : api('/issues/days?days=7').catch(() => null),
   ]);
 
   bind(issues, health, rho);
@@ -6364,9 +7082,20 @@ async function boot() {
      reader and it is the words that are gated. */
   window.SHAPE = dayshape;
   window.EFFECT = effect;
+  window.DAYS = days;
+  window.DAYS_AT = Date.now();
+  /* A capture holds one window; Historical draws what it holds. A live node is asked for 90 days on first use. */
+  window.DAYS90 = FIXTURE ? days : null;
   window.ACT_NOTES = Array.isArray(notes)
-    ? notes.reduce((m, x) => { if (x && x.alert_id != null && String(x.note || '').trim()) {
-      m[`${x.alert_id}:${x.stage}`] = x.note; } return m; }, {})
+    ? notes.reduce((m, x) => {
+      /* ?events=1 adds the answers to events, which carry an event_id (an alert's answer carries an alert_id).
+         A node older than v0.77 ignores the query and sends alert rows only. */
+      if (x && String(x.note || '').trim()) {
+        if (x.alert_id != null) m[`${x.alert_id}:${x.stage}`] = x.note;
+        if (x.event_id != null) m[`ev${x.event_id}:${x.stage}`] = x.note;
+      }
+      return m;
+    }, {})
     : null;
   /* /stats, and ONLY on a node that has an appliance to say anything about.
    *
@@ -6382,6 +7111,8 @@ async function boot() {
   window.STATS = (sensors || []).some(x => x && x.source === 'xiaomi-air')
     ? await api('/stats').catch(() => null) : null;
   window.PLAN = await plan(health).catch(() => null);
+  /* What this node holds of its own map (planetai run place basemap): read only for the map ground, which can draw it. */
+  window.GROUND_META = ((window.SETTINGS || {}).UI_GROUND === 'map') ? await api('/ground/meta').catch(() => null) : null;
 }
 
 /* ------------------------------------------------------------------ Arrange */
@@ -7569,10 +8300,13 @@ const LATE = new Set(['SOURCES']);
 
 function main() {
   const { S, ISS, ORDER, DIST, LAB, LOC, esc, fmt, pill, kicker, sentence, why, ask, asof,
-    refusedPage, VIEW, STATE } = window.K;
+    refusedPage, VIEW, STATE, evState, evOpen, evPick, evClock, evButtons, evAnswered } = window.K;
   const { H, km2, edge } = window.KH;
   const { N, where, link } = window.KN;
   const PAI = window.PAI;
+  /* LAYOUT is this closure's; the kit's evCard asks whether a section was hidden in Arrange through this.
+     Set here, not at the top of the shell: window.PAI does not exist until the kit's PAI_LOAD has run. */
+  PAI.isHidden = id => (LAYOUT.hidden || []).includes(id);
 
   document.title = `PLANETAI · ${S.health.node || 'node'}`;
 
@@ -7673,24 +8407,12 @@ function main() {
        that pointed at `satellite` died when the satellite moved to Historical in v0.56 and had been
        naming an id that was not on the page for two releases. A component pointing at an id that is
        not there is what T5 counts. */
-    const ref = 'grain-line';
+    const ref = 'ground-figure';
     return `<div class="rail" id="rail" data-component="rail" data-kind="row" data-ref="${esc(ref)}"`
       + ` role="group" aria-label="resolution, ${N.res_min} to ${N.res_max}; `
       + `standing at ${RES}">${stops}</div>`
       + (window.PAI_SCALES ? window.PAI_SCALES.scaleStrip(H.grain_table, RES) : '')
-      + ruler()
       + `<div class="railkey" data-component="railKey" data-ref="rail">`
-      /* The two zone explanations are one icon rather than two lines: the rail already says the zones in
-         texture, and the sentences are for the reader who asks what the texture means. */
-      + `<details class="rinfo" data-component="railKeyInfo" data-ref="rail"><summary aria-label="What the dotted and struck-through stops mean" title="What the dotted and struck-through stops mean">i</summary><div class="rinfo-body">`
-      + `<span><i class="leaves"></i>may leave this machine — resolution ${ctx.FLOOR} and coarser, `
-      + `which is the <code>RETICULUM_PRESENCE_RES</code> setting</span>`
-      + `<span><i class="fine"></i>finer than this node says where it is — past ${ctx.PUB.res}, `
-      + `because ${esc(String(ctx.PUB.why || '').replace(/\s*—.*$/, ''))}</span></div></details>`
-      /* `occupied`, `in_my_cell` and `mine_in_my_cell` are the rail's figures too, and they are
-         drawn ONCE — in the grain line this rail re-derives and points at, where they are a
-         sentence rather than three numbers in a key. Printing them here as well made the key three
-         lines deep at 390 and pushed the as-of off the first screen, which is T1's fifth leg. */
       /* THE FOLD'S TRIGGER IS THIS CHIP, and it is this chip because a fold of its own cost 33.5 px
          and T1 lost the ask and the as-of off the first screen at both 390 and 1440 — measured, on
          a gate that was green the render before. The key's last chip already names the fold's
@@ -7761,6 +8483,13 @@ function main() {
        dial closed it, which is precisely the move it is for. `link()` copies the whole query, so
        every stop carries the key with no work and nothing has to listen for anything. */
     return `<div class="railfold" id="railfold" data-component="railFold" data-ref="rail">`
+      + ruler()
+      + `<div class="railkey" data-component="railKey" data-ref="rail">`
+      + `<span><i class="leaves"></i>may leave this machine — resolution ${ctx.FLOOR} and coarser, `
+      + `which is the <code>RETICULUM_PRESENCE_RES</code> setting</span>`
+      + `<span><i class="fine"></i>finer than this node says where it is — past ${ctx.PUB.res}, `
+      + `because ${esc(String(ctx.PUB.why || '').replace(/\s*—.*$/, ''))}</span>`
+      + `</div>`
       + `<div class="rh"><h2>What one cell at resolution ${RES} is worth</h2>`
       + `<a href="${ctx.qlink({ worth: null })}">Close</a></div>`
       + `<div class="rf">${fig}<div class="rfx"><p>Each rung down is about seven times finer by `
@@ -7818,11 +8547,29 @@ function main() {
        was the lead's fifth block and the only one a reader could act on, which made the lead a
        control panel as well as a sentence. The stamp line below says how many are open and where
        they are, which is what the lead owes a reader: the fact, and the way to it. */
-    const openAll = ORDER.reduce((n, k) => n + ((ISS[k].open_asks || []).length), 0);
-    /* `open_asks` holds the alert rows themselves, not their ids: printing the row gave
-       `#[object Object]` in the stamp line. */
-    const firstAsk = (((d.open_asks || [])[0]
-      ?? ORDER.map(k => (ISS[k].open_asks || [])[0]).find(x => x != null)) || {}).id;
+    /* WHAT THE LAST LINE COUNTS follows the node. On events or shadow it is events, the way the bot tells
+       them (docs/SPEC_dashboard_events.md §4.1); on a rules node, an older one or an unreadable block it is
+       alerts, because that is what the node has. `open_asks` holds the alert rows themselves. */
+    const st = evState(), evs = evOpen(), E = (S.issues || {}).events || {};
+    const evMode = st === 'events' || st === 'shadow';
+    /* On events or shadow an alert an open event covers is drawn as that event, so only the uncovered ones
+       are left to count or pick, the same set Decide draws as cards: the two must say the same thing. */
+    const unc = new Set(E.uncovered_asks || []);
+    const asksOf = k => (ISS[k].open_asks || []).filter(a => !evMode || unc.has(a.id));
+    const openAll = ORDER.reduce((n, k) => n + asksOf(k).length, 0);
+    const nEv = evs.length, asEv = evMode && nEv > 0, nAsk = asEv ? nEv : openAll, e0 = evs[0] || {};
+    const askLine = nAsk
+      ? `<a class="askref" href="#stage-decide" data-role="ask" data-component="askRef"`
+        + ` data-ref="stage-decide">`
+        + (asEv
+          ? `<b data-num="events.open" data-cmp="alert events open">${nEv}</b> event${nEv === 1 ? '' : 's'} open`
+            + ` \u00b7 ${esc(String(e0.issue))} \u00b7 ${esc(String(e0.kind))} since ${esc(evClock(e0.opened_at))}`
+            + `${st === 'shadow' ? ' \u00b7 shadow' : ''}`
+          : `<b data-num="asks.open" data-cmp="alerts open across ${ORDER.length} issues">${openAll}</b>`
+            + ` alert${openAll === 1 ? '' : 's'} open`)
+        + ` \u00b7 in Decide</a>`
+      : `<span class="askref none" data-role="ask" data-component="askRef" data-ref="stage-decide">`
+        + `nothing open${evMode && E.cleared_today ? ` \u00b7 ${E.cleared_today} cleared today` : ''}</span>`;
     /* THE ISSUE'S PICTOGRAM. One per issue, drawn once, at hero size, and never repeated to show
        quantity — that is the whole difference between this family and the counting signs, and it is
        why it is 15x11 rather than on the 24-unit grid. A <use> of a symbol already in signs.svg, so
@@ -7831,6 +8578,15 @@ function main() {
     const pix = heroPix(hk, d);
     const stamp = ((d.hero || {}).stamp || {})[LOC] || '';
     const plain = ((d.hero || {}).plain || {})[LOC] || '';
+    /* The plain figure gets the crossed mark when over the line (same rule as monument). Extract
+       numerals from plain and wrap them; if plain has no numeral, render unchanged. */
+    const cell = (d.stack || {})[d.headline];
+    const plainCrossed = !!(d.line && cell && cell.value != null && cell.value > d.line.value
+      && (d.state === 'act' || d.state === 'notable'));
+    const markedPlain = plain && cell && cell.value != null
+      ? esc(plain).replace(esc(fmt(cell.value, d.dp)),
+          `<b class="${plainCrossed ? 'crossed ' : ''}mono">${esc(fmt(cell.value, d.dp))}</b>`)
+      : esc(plain);
     /* Simple's eyebrow: the issue and when it was read, in words, with no state word in capitals. */
     const eb = `<div class="eb" data-lv="simple" data-component="heroEyebrow" data-ref="num-${esc(hk)}">`
       + `<b>${esc(d.name[LOC])}</b>${stamp ? ` \u00b7 ${esc(stamp)}` : ''}`
@@ -7838,36 +8594,40 @@ function main() {
         ? `<span class="pin">you are looking at this \u00b7 the node\u2019s pick is `
           + `${esc(ISS[nodePick].name[LOC])}</span><button type="button" class="back" data-hero="">back</button>`
         : '') + `</div>`;
-    const askAt = (d.open_asks || []).length ? hk : ORDER.find(k => (ISS[k].open_asks || []).length);
+    const askAt = asksOf(hk).length ? hk : ORDER.find(k => asksOf(k).length);
+    /* SIMPLE'S OPEN ROW on events or shadow is the open event's action and its three buttons (spec §4.4),
+       with the shown issue's sign. `data-ref` is the lead's own numeral (hk), which monument() ids
+       `num-<hk>`; the event's issue can differ, and the sign is the event's. */
+    const evRow = (e, key, n) => {
+      const ed = ISS[e.issue] || { name: {} }, sg = (ed.hero || {}).sign;
+      return `<div class="ask askrow evrow" data-lv="simple" data-component="eventRow" data-role="ask"`
+        + ` id="evrow-${esc(String(e.id))}" data-ref="num-${esc(key)}">`
+        + (sg ? `<svg class="sgn" viewBox="0 0 24 24" role="img" aria-label="${esc(ed.name[LOC] || e.issue)}">`
+          + `<use href="static/signs.svg#${esc(sg)}"/></svg>` : '')
+        + `<div class="what">${e.action && e.action.text ? esc(e.action.text)
+          : `${esc(e.kind)}${(e.rooms || []).length ? ` \u00b7 ${esc(e.rooms.join(', '))}` : ''}`}`
+        + `${st === 'shadow' ? `<span class="m">shadow \u2014 nothing was sent</span>` : ''}</div>`
+        + evAnswered(e) + (e.answer && e.answer.stage === 'acted' ? '' : evButtons(e))
+        + (n > 1 ? `<p class="evmore" data-lv="simple">and ${n - 1} more open \u00b7 in advanced</p>` : '') + `</div>`;
+    };
     return `<section class="lead" id="band-${esc(hk)}" data-band="lead">`
       + lv(`<div class="leadk">${kicker(hk, d)}${mark('lead', `sentence-${esc(hk)}`)}</div>`, 'adv')
       + eb + monument(hk, d, pix) + sentence(hk, d, 'big')
       + lv(why(hk, d, (S.issues.headline_rule || {})[LOC] || ''), 'adv')
       + (plain ? `<p class="plain" data-lv="simple" data-component="heroPlain" data-ref="sentence-${esc(hk)}">`
-        + `${esc(plain)}</p>` : '')
+        + `${markedPlain}</p>` : '')
       /* The rule the hero declares, where the four meters were. They drew every issue on a scale
          worked out from tonight's numbers; the rule's ends are the issue's own, so a reading of 12
          looks the same size tomorrow as tonight. The four distances in full are in the matrix. */
       + heroRule(hk, d)
-      + (askAt ? askRow(askAt, ISS[askAt], ISS[askAt].open_asks[0]) : '')
+      + (asEv ? evRow(evPick(evs, hk), hk, nEv) : askAt ? askRow(askAt, ISS[askAt], asksOf(askAt)[0]) : '')
       /* WHY THIS ONE IS AT THE TOP is in the why line above, not in a paragraph of its own. The
          words are the node's now (`headline_rule` on /issues) rather than three strings in this file:
          v0.59 changed the ranking on 18 September and the page's copy of the explanation had no way
          of knowing. A ranking a reader cannot check is the one thing this page does not do. */
       + `<div class="whenline">${stamp ? `<span class="stamp" data-lv="adv" data-component="heroStamp"`
         + ` data-ref="num-${esc(hk)}">${esc(stamp)}</span>` : ''}${asof()}`
-      + lv(openAll
-        /* `data-role="ask"` is what T1's fourth leg looks for. The strip itself is in Act now, and
-           this line is the lead's statement about it — the count, the id and where to go. A reader
-           who has to infer "nothing to do" from an absence has not been told anything, so the
-           other branch says it in words rather than drawing nothing. */
-        ? `<a class="askref" href="#stage-act" data-role="ask" data-component="askRef"`
-          + ` data-ref="stage-act">`
-          + `<b data-num="asks.open" data-cmp="alerts open across ${ORDER.length} issues">${openAll}</b>`
-          + ` alert${openAll === 1 ? '' : 's'} open`
-          + `${firstAsk != null ? ` · #${esc(String(firstAsk))}` : ''} · in 3 Act</a>`
-        : `<span class="askref none" data-role="ask" data-component="askRef" data-ref="stage-act">`
-          + `nothing open · 3 Act is empty</span>`, 'adv')
+      + lv(askLine, 'adv')
             + lv(`${window.K.stamp()}`, 'adv')
       + lv(S.fixture ? pill('cached', 'a committed snapshot, replayed through this node’s own engine')
         : window.STALE ? pill('stale', 'the last reading this node gave; it has stopped answering')
@@ -7876,11 +8636,13 @@ function main() {
       + fig + (figMarks ? `<div class="figmarks">${figMarks}</div>` : '') + `</section>`;
   }
 
-  /* Decision of 15 September: Now carries the ground, the stations, the claims, the grain, the asks
-     and the measure; the satellite, the two radios and the hardware are the Network view. One
-     registry serves both, and the notes band follows each view's own sections. */
-  const NOW = ['ground', 'matrix', 'day', 'sources', 'sensors', 'requests', 'forecast', 'decide',
-    'claims', 'grain', 'asks', 'ledger', 'measure', 'effect', 'figures'];
+  /* Decision of 15 September: Now carries the ground, the stations, the asks and the measure; the
+     satellite, the two radios and the hardware are the Network view. One registry serves both, and the
+     notes band follows each view's own sections. The claims, the grain, the sources and the requests moved
+     to Network in v0.78 (docs/SPEC_dashboard_events.md §4.1): they are about what this node may say and
+     send, which is the node in relation to the network. */
+  const NOW = ['ground', 'matrix', 'day', 'sensors', 'forecast', 'decide',
+    'asks', 'ledger', 'measure', 'effect', 'figures'];
   /* Network is this node in relation to the network, and nothing else: who it hears over radio, who
      hears it, and what hardware does the hearing. Satellite was put here on 15 September and moved
      out on 16 September at Tomas's word — a Sentinel annual median is not a neighbour, it is a
@@ -7888,7 +8650,8 @@ function main() {
      them rather than at the top of the page about the network.
      Trust moves with it for the same reason: a sensor's coverage over seven days and the hours since
      it last spoke are a history of that sensor, not a fact about now. */
-  const NETWORK = ['netmap', 'registry', 'reticulum', 'meshtastic', 'hardware'];
+  const NETWORK = ['netmap', 'registry', 'reticulum', 'meshtastic', 'hardware', 'sources', 'requests', 'claims',
+    'grain'];
   const HISTORICAL = ['shape', 'satellite', 'reach', 'trust'];
   /* NOW IS THE DEFAULT HOME, AND WITHOUT THIS LINE THE CONTRACT IS A LIE.
    *
@@ -7906,7 +8669,7 @@ function main() {
    * the page about this place now, which is where a section about this place goes unless somebody
    * has said otherwise. Order is untouched: render() sorts by stage, then order, then id. */
   const placed = new Set([...NOW, ...NETWORK, ...HISTORICAL]);
-  const homeless = PAI.sections.map(s => s.id).filter(id => !placed.has(id));
+  const homeless = PAI.sections.concat(PAI.declared(ctx)).map(s => s.id).filter(id => !placed.has(id));
   applyOrder();
 
   const el = document.getElementById('page');
@@ -7938,7 +8701,8 @@ function main() {
   } else if (VIEW === 'now' || VIEW === 'arrange') {
     ARRANGING = VIEW === 'arrange';
     el.innerHTML = head() + `<div class="wrap">`
-      + `${PAI.render(ctx, lead(), { only: want([...NOW, ...homeless]) })}</div>`
+      + `${PAI.render(ctx, lead(), { only: want([...NOW, ...homeless]),
+        stages: ['decide', 'observe', 'act', 'measure'] })}</div>`
       + foot(S) + (ARRANGING ? arrbar() : '');
     if (ARRANGING) { arrangeControls(); fillRestore(); }
   } else if (VIEW === 'network') {
@@ -8080,9 +8844,23 @@ function askSources() {
   api('/sources').then(d => { window.SOURCES = d; route(); }).catch(() => { window.SOURCES = null; });
 }
 
+/* Historical's strips reach as far back as the node holds, up to 90 days. Asked the first time Historical is drawn,
+ * not at boot: a household that never opens Historical never pays for it. */
+let DAYS90_ASKED = false;
+function askDays90() {
+  if (DAYS90_ASKED || FIXTURE || VIEW !== 'historical') return;
+  DAYS90_ASKED = true;
+  /* DAYS90_DONE is set either way, so a refusal draws the strips' own "does not send its days yet" line instead of
+     "asking" for good. */
+  api('/issues/days?days=90')
+    .then(d => { window.DAYS90 = d; window.DAYS90_DONE = true; redraw(); })
+    .catch(() => { window.DAYS90 = null; window.DAYS90_DONE = true; redraw(); });
+}
+
 function route() {
   readView();
   askSources();
+  askDays90();
   askLearn();
   document.body.className = '';
   main();
@@ -8090,6 +8868,10 @@ function route() {
      any timer from the last render is pointing at elements that are gone. */
   const page = document.getElementById('page');
   if (page) wireSat(page);
+  /* Figures are placeholders in the markup main() just wrote; the kit draws them now (kit 6 · figures). */
+  if (page) window.K.mountFigs(page);
+  /* The map ground (UI_GROUND=map) mounts the same way, once per fresh figure; a poll swaps the living one back. */
+  if (window.GROUND && window.GROUND.mount) window.GROUND.mount();
   learnSync();
   /* The pane lives outside #page and keeps its thread; it only needs telling the body was reset. */
   if (window.PAI_ASK) window.PAI_ASK.draw();
@@ -8214,7 +8996,7 @@ async function didThis(form, force) {
         return;
       }
       say(decision
-        ? 'Decided. Nothing has moved — press "I did this" under Act when it is done.'
+        ? 'Decided. Nothing has moved — press "I did this" on this card when it is done.'
         : 'Recorded. The node watches what happens next.');
       if (!decision) {
         form.hidden = true;
@@ -8236,15 +9018,64 @@ async function didThis(form, force) {
   } finally { btn.disabled = false; const sb2 = form.closest('.ask') && form.closest('.ask').querySelector('.seen'); if (sb2) sb2.disabled = false; }
 }
 
-document.addEventListener('submit', ev => {
-  const form = ev.target.closest && ev.target.closest('form.did, form.decided');
+/* Done, Not now and Doesn't fit on an alert EVENT. The id is the event's, not an alert's; the node
+   answers with the event's own refusals, so the sentences are the ones didThis prints. Returns true
+   only when the node took it, so the form can close on a yes and stay open, with what was typed, on a no. */
+async function answerEvent(id, stage, actor, note) {
+  try {
+    const r = await fetch('/actions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...auth_() },
+      body: JSON.stringify({ event_id: Number(id), stage, actor: String(actor || ''), note: String(note || '') }),
+    });
+    const said = r.ok ? '' : await nodeSaid(r);
+    if (r.status === 401 || r.status === 403) {
+      say(`${said || 'This node will not take that from here.'} · \`planetai ui\` prints the `
+        + `act token; Set up → unlock holds it.`, true);
+    } else if (r.status === 404) {
+      say('This node has no such event any more. Reload and look again.', true);
+    } else if (!r.ok) {
+      say(said || `The node refused it (${r.status}).`, true);
+    } else {
+      try { if (actor) localStorage.setItem('planetai_actor', String(actor)); } catch { /* no storage here */ }
+      say(stage === 'acted' ? 'Recorded.' : stage === 'acknowledged'
+        ? 'Not now. The node holds this for three hours, unless it reaches danger.' : 'Noted: it doesn’t fit.');
+      await refresh();
+      return true;
+    }
+  } catch (e) {
+    say(`The node did not answer: ${String((e && e.message) || e)}`, true);
+  }
+  return false;
+}
+
+document.addEventListener('submit', async ev => {
+  const form = ev.target.closest && ev.target.closest('form.did, form.decided, form.evform');
   if (!form) return;
   ev.preventDefault();
   if (FIXTURE || STATE !== 'populated') {
     say('This is a capture, not a live node — its alerts belong to the node it came from.', true);
     return;
   }
-  didThis(form);
+  if (!form.classList.contains('evform')) { didThis(form); return; }
+  const val = n => String((form.elements[n] || {}).value || '').trim();
+  if (!val('actor')) {
+    /* ρ is built out of who answered. The buttons post at once only when this browser already knows a name;
+       the form is where a name is given, and it does not send an anonymous one. Five nameless rows landed on
+       node #1 the morning the card looked frozen — presses that worked but could not say whose they were.
+       (The node still takes an empty actor from curl — a LoRa bridge may not know names — and the card says
+       "somebody"; the page is where households press, so the page is where the name is insisted on.) */
+    say('A name first, so the record says who.', true);
+    form.elements.actor.focus();
+    return;
+  }
+  const sub = form.querySelector('button[type="submit"]');
+  if (sub) sub.disabled = true;
+  try {
+    /* The note is Doesn't fit's alone: one typed there and cancelled must not ride on a later Done. */
+    const note = val('stage') === 'dismissed' ? val('note') : '';
+    if (await answerEvent(form.dataset.ev, val('stage'), val('actor'), note)) form.hidden = true;
+  } finally { if (sub) sub.disabled = false; }
 });
 
 document.addEventListener('click', ev => {
@@ -8266,6 +9097,35 @@ document.addEventListener('click', ev => {
     if (f) didThis(f, 'acknowledged');
     return;
   }
+  /* An alert event's three buttons. Done and Not now post at once when this browser has a name;
+     with none, and always for Doesn't fit, the card's form opens so the name (and the note) can be said. */
+  const evb = ev.target.closest && ev.target.closest('.evb');
+  if (evb) {
+    const card = evb.closest('.ev, .evrow'), form = card && card.querySelector('form.evform');
+    if (!form) return;
+    const stage = evb.getAttribute('data-stage');
+    let who = '';
+    try { who = localStorage.getItem('planetai_actor') || ''; } catch { /* no storage here */ }
+    if (stage === 'dismissed' || !who) {
+      form.hidden = false;
+      form.elements.stage.value = stage;
+      if (!form.elements.actor.value) form.elements.actor.value = who;
+      const inst = form.querySelector('.instead');
+      if (inst) inst.hidden = stage !== 'dismissed';
+      if (stage !== 'dismissed') form.elements.note.value = '';
+      (stage === 'dismissed' && form.elements.actor.value ? form.elements.note : form.elements.actor).focus();
+      return;
+    }
+    if (FIXTURE || STATE !== 'populated') {
+      say('This is a capture, not a live node — its alerts belong to the node it came from.', true);
+      return;
+    }
+    evb.disabled = true;
+    answerEvent(evb.getAttribute('data-ev'), stage, who, '').finally(() => { evb.disabled = false; });
+    return;
+  }
+  const evc = ev.target.closest && ev.target.closest('form.evform .cancel');
+  if (evc) { evc.closest('form.evform').hidden = true; return; }
   const go = ev.target.closest && ev.target.closest('.ask .go');
   if (go) {
     const form = go.parentElement.querySelector('form.did');
@@ -8395,6 +9255,7 @@ document.addEventListener('click', ev => {
     /* Not a re-render: the register is one attribute and every rule under it is already written, so
        toggling in place restyles the whole page without scrolling it back to the top. */
     applyRegister(VIEW);
+    window.K.repaintFigs();
     rb.parentNode.querySelectorAll('button').forEach(x => {
       const on = x === rb;
       x.classList.toggle('on', on);
@@ -8496,6 +9357,11 @@ async function refresh() {
   /* ρ is the node measuring itself and is the slowest of the three. It failing is not a reason to
      throw away a good reading of the air, so the last one stands and the page says nothing new. */
   rho = await api('/rho').catch(() => (window.SNAP || {}).rho || null);
+  /* The strips move by an hour at a time, so the days are read again at most every 15 minutes, not on every poll. */
+  if (Date.now() - (window.DAYS_AT || 0) > 15 * 60e3) {
+    window.DAYS = await api('/issues/days?days=7').catch(() => window.DAYS || null);
+    window.DAYS_AT = Date.now();
+  }
   window.STALE = null;
   ASKING.landed(issues);
   bind(issues, health, rho);

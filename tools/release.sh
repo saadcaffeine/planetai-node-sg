@@ -42,7 +42,7 @@ fi
 # it describes another release; the fix is a commit in the site repo, before the tag, not after.
 if [[ -d "$SITE_/.git" ]]; then
   python3 tools/check_site.py --site "$SITE_" --version "v${V}" \
-    || die "the programme page ($SITE_/web/src/data.js) does not describe v${V}. Update it, commit it, then release."
+    || die "the programme page does not describe v${V}: update $SITE_/web/src/data.js, run make root and make staging there, commit, then release."
 fi
 
 say "lint + tests"

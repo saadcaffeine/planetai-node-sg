@@ -13,9 +13,17 @@ set -uo pipefail
 # own environment — the hook was fixed too, but this is the half that cannot be bypassed.
 unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
+# The throwaway commits need an identity, and it comes from the environment, never `git config`. This
+# suite used to run `git config user.email t@t` after a `cd` it never checked; when that config landed
+# in the real checkout's shared .git/config instead, every worktree committed as `t <t@t>` — 267 commits
+# on main from 11 Sep. An environment variable dies with this process, whatever directory it is in.
+export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+
 cd "$(dirname "$0")/.."
-SHIP="$PWD/tools/ship.sh"; fails=0
+ROOT="$PWD"; SHIP="$ROOT/tools/ship.sh"; fails=0
+email_before="$(git config --local user.email)"
 ok(){ echo "  ok   $1"; }; bad(){ echo "  FAIL $1"; fails=$((fails+1)); }
+fatal(){ echo "  FAIL $1"; exit 1; }
 
 # The region lifted from ship.sh runs from the sync check through the line that reads the version the
 # release will be LABELLED with — as one range, in ship.sh's own order. Lifting the label line separately
@@ -39,11 +47,10 @@ block="$(sed -n "${fetch_line},${here_line}p" "$SHIP")"
 
 # a bare "origin" and a clone of it, so ahead/behind/diverged are real rather than mocked
 setup() {
-  D="$(mktemp -d)"
-  git init -q --bare -b main "$D/origin.git"
-  git clone -q "$D/origin.git" "$D/work" 2>/dev/null
-  cd "$D/work"
-  git config user.email t@t; git config user.name t
+  D="$(mktemp -d)" || fatal "setup: mktemp"
+  git init -q --bare -b main "$D/origin.git" || fatal "setup: git init $D/origin.git"
+  git clone -q "$D/origin.git" "$D/work" 2>/dev/null || fatal "setup: git clone into $D/work"
+  cd "$D/work" || fatal "setup: cd $D/work"
   git checkout -q -B main
   echo one > f; git add f; git commit -q -m one
   git push -q -u origin main 2>/dev/null
@@ -67,7 +74,7 @@ cd /; rm -rf "$D"
 
 setup                                                   # behind: a merge landed on origin, and was tagged
 git tag -a v0.49 -m v0.49                               # what this checkout can still see
-git clone -q "$D/origin.git" "$D/other" 2>/dev/null && cd "$D/other" && git config user.email t@t && git config user.name t
+git clone -q "$D/origin.git" "$D/other" 2>/dev/null && cd "$D/other" || fatal "clone into $D/other"
 git checkout -q main 2>/dev/null
 echo two > g && git add g && git commit -q -m two && git tag -a v0.50 -m v0.50 \
   && git push -q origin main 2>/dev/null && git push -q origin v0.50 2>/dev/null
@@ -92,7 +99,7 @@ grep -q "git push" <<<"$out" && ok "and names the command" || bad "no command na
 cd /; rm -rf "$D"
 
 setup                                                   # diverged: both sides moved
-git clone -q "$D/origin.git" "$D/other" 2>/dev/null && cd "$D/other" && git config user.email t@t && git config user.name t
+git clone -q "$D/origin.git" "$D/other" 2>/dev/null && cd "$D/other" || fatal "clone into $D/other"
 git checkout -q main 2>/dev/null
 echo far > i && git add i && git commit -q -m far && git push -q origin main 2>/dev/null
 cd "$D/work" && echo near > j && git add j && git commit -q -m near && git fetch -q origin
@@ -126,8 +133,7 @@ git -C "$D/work" tag -a v1 -m v1
 git -C "$D/work" push -q origin main 2>/dev/null
 
 # origin moves ahead AND edits the script, exactly as a merged release does
-git clone -q "$D/origin.git" "$D/other" 2>/dev/null
-git -C "$D/other" config user.email t@t; git -C "$D/other" config user.name t
+git clone -q "$D/origin.git" "$D/other" 2>/dev/null || fatal "clone into $D/other"
 sed -i.bak 's/I AM version-one/I AM version-two/' "$D/other/tools/s.sh" && rm -f "$D/other/tools/s.sh.bak"
 git -C "$D/other" commit -q -am "the script, version two"
 git -C "$D/other" tag -a v2 -m v2
@@ -160,5 +166,10 @@ out="$(cd "$D/work" && bash tools/s.sh 2>&1)"; rc=$?
   || bad "shipped with nothing having tested the commit (rc=$rc): $out"
 
 cd /; rm -rf "$D"
+
+# Whatever ran above, the repository this suite was run from keeps the identity it came in with.
+[[ "$(git -C "$ROOT" config --local user.email)" == "$email_before" ]] \
+  && ok "the invoking repo's local user.email is unchanged" \
+  || bad "the invoking repo's local user.email changed from '$email_before' to '$(git -C "$ROOT" config --local user.email)'"
 
 [[ $fails -eq 0 ]] && { echo "ship gate tests pass"; exit 0; } || { echo "$fails failed"; exit 1; }

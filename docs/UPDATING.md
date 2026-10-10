@@ -1,4 +1,5 @@
 # Updating
+<!-- checked: v0.80.10 -->
 
 ```bash
 planetai update
@@ -9,6 +10,10 @@ node has no repository access, check its checksum **and its signature**, and sto
 `init.sql`, which is idempotent, to the live database; merge new keys from
 `.env.example` into `.env` under a dated marker; rebuild the image; restart; run the doctor; report the schema before
 and after.
+
+If the version arriving ships a core pack with the same id as a wild pack on the node (one `planetai packs add`
+fetched), it stops after the backup and before anything moves, names the wild copy and where it came from, and asks
+for it to be deleted (`rm -rf packs/<id>`); run the update again and the core pack takes its place.
 
 `update.sh` runs from a copy of itself, because pulling rewrites the file bash is reading and it would otherwise continue
 from a random offset in the new file.
@@ -30,7 +35,7 @@ how.
 The checksum and the signature are not the same check. The checksum is served from the same place as the tarball, so it
 only tells you the download arrived whole; whoever can write one can write the other. The signature is made with a key
 that is not on the web server. `planetai version` prints the fingerprint your node checks against, and `planetai doctor`
-has a row saying whether the last update was verified.
+has a row saying whether the last update was verified (on a node installed from the tarball; a git checkout has no such row).
 
 Two other things it can say, both with the fix attached:
 
@@ -46,18 +51,25 @@ doctor` will show that the node took one.
 
 ## If it fails
 
-**`git pull failed`**: local changes. The update clears `.DS_Store` itself before it pulls, so if you edited files in
-the node folder, `git stash`, then update again.
+**`git pull failed`**: local changes. The update clears `.DS_Store` itself before it pulls. When it fails, it names
+the offending files (up to ten) and any commits that exist only here but not on origin. If you edited files in the
+node folder, `git stash`, then update again. Operational files a node writes (its update log and its
+before-copies, `.planetai-*` and `.env.before-*`) are in `.gitignore` now — untrack them if they were
+committed, never commit them.
 
 **`backup failed — not updating`**: the update refused on purpose. `planetai backup` alone shows why; `planetai storage`
 shows where it is trying to write.
 
 **`app answering ✗`**: `docker compose logs app | tail -40`. Paste it.
 
+**no-op pull (nothing moved)**: the script asks the channel `/VERSION`. If the commit served there has not landed on
+this branch yet, it says "already at the newest commit on $branch ($here), but the channel serves $latest, which has
+not landed on this branch yet — it is still shipping; try again shortly". Otherwise it confirms you are up to date.
+
 ## Rollback
 
 ```bash
-git checkout v0.75.2      # or whichever tag you want back
+git checkout v0.76        # or whichever tag you want back
 docker compose build app  # the code is inside the image; a restart alone keeps running the new one
 planetai restart
 planetai restore backups/<node>-<date>.sql.gz    # only if the schema went forward and you need the old shape

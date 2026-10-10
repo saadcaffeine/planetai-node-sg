@@ -1,4 +1,5 @@
 # A Mac mini as an always-on node
+<!-- checked: v0.80.10 -->
 
 The laptop is for trying it. The mini is for leaving it. An hour, once, with a monitor plugged in for the permission
 dialogs. Any Apple Silicon mini; an 8 GB base model idles under 10%. A 2018 Intel mini on macOS 14+ also works

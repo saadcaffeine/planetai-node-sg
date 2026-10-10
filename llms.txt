@@ -24,7 +24,9 @@ the files themselves.
 - [skills/troubleshoot-node/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/troubleshoot-node/SKILL.md): diagnosing a node that is broken, quiet, or lying — what to ask for, and what never to ask for.
 - [skills/connect-agent/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/connect-agent/SKILL.md): giving your own agent the node's MCP tools over a tailnet, without opening a port.
 - [skills/publish-to-index/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/publish-to-index/SKILL.md): the tier contract for writing cells to the Fab City Index, and why most nodes never do.
+- [skills/write-a-pack/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/write-a-pack/SKILL.md): writing a pack for somebody's place, testing it on their node, and sharing it as a wild pack without forking this repository.
 - [skills/preflight/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/preflight/SKILL.md): the first minute of a session that will change this repository — where main is, what is open, what is red.
+- [skills/release-docs/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/release-docs/SKILL.md): bringing the docs site up to a release — every page re-read against the code, its checked stamp moved.
 - [skills/land/SKILL.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/skills/land/SKILL.md): the last minute — nothing exists only on this machine, and the gates ran rather than were assumed.
 
 ## Getting a node running
@@ -51,6 +53,9 @@ the files themselves.
 ## Extending it
 
 - [docs/PACKS.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/PACKS.md): how to add a source, a rule or an Index cell as a folder — the only supported way to extend a node.
+- [docs/decisions/2026-10-01-packs.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/decisions/2026-10-01-packs.md): why packs are core or wild, how a wild pack is fetched without git, and what promotion to core asks.
+- [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs): the list of wild packs, listed by pull request; its AGENTS.md is the agent's guide to listing one.
+- [fabcity/awesome-fabcity-data](https://github.com/fabcity/awesome-fabcity-data): the source registry every pack's `sources:` must name; its AGENTS.md is the agent's guide to filing a source.
 - [docs/PACK_IDEAS.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/PACK_IDEAS.md): packs nobody has written yet, with what each would need.
 - [docs/DEVELOPING.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/DEVELOPING.md): working on the node itself — the lint gates, the tests, and why a merge is not a release.
 - [CONTRIBUTING.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/CONTRIBUTING.md): how a change gets in, and who is responsible for it.
@@ -65,24 +70,24 @@ the files themselves.
 - [ARCHITECTURE.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/ARCHITECTURE.md): the shape of the whole thing, including the `fci-cells-v0` row the Index reads.
 - [SPEC.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/SPEC.md): what was deliberately left out, and the condition under which it returns.
 - [PRODUCT.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/PRODUCT.md): who a node is for and who pays for what.
+- [docs/SIGNING.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SIGNING.md): how releases are signed, where the public key is copied, and how it is rotated.
 - [CHANGELOG.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/CHANGELOG.md): every release, written as what changed for the person running a node.
 
-## The beta and the reviews
+## The beta
 
 - [docs/BETA_TESTER_GUIDE.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/BETA_TESTER_GUIDE.md): what a beta tester is being asked to do and what to report.
-- [docs/reviews/BETA_READINESS_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/reviews/BETA_READINESS_2026-09.md): whether the node was ready for testers, and what had to change first.
-- [docs/reviews/CODE_REVIEW_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/reviews/CODE_REVIEW_2026-09.md): a full read of the code with the findings that were acted on.
-- [docs/reviews/INSIGHTS_DESIGN_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/reviews/INSIGHTS_DESIGN_2026-09.md): how the node decides what is worth saying.
-- [docs/reviews/AGENT_READY_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/reviews/AGENT_READY_2026-09.md): the strategy this agent-facing layer implements, and the risks it accepts.
+- [docs/FAB26_EXPERIMENT.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/FAB26_EXPERIMENT.md): the nodes built at the FAB26 workshop, and what we want to learn from them by December.
+- [docs/ARM64.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/ARM64.md): the test plan for the first node on a Raspberry Pi or other arm64 board.
 
-## Handoffs — one feature each, in detail
+## History — what was true then, not now
 
-- [docs/HANDOFF_beta_review.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_beta_review.md): the beta review and what it changed.
-- [docs/HANDOFF_dashboard_violations.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_dashboard_violations.md): the dashboard's design rules and the checker that enforces them.
-- [docs/HANDOFF_earth_pack.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_earth_pack.md): the satellite view of the land, and what it can and cannot say.
-- [docs/HANDOFF_nearby_forecast.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_nearby_forecast.md): the ring of neighbouring stations and the forecast beside it.
-- [docs/HANDOFF_reports.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_reports.md): the scheduled report, written by the node itself, and the other messages.
-- [docs/HANDOFF_trust.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/HANDOFF_trust.md): how the node says how much to trust a number.
+Everything in docs/archive/ is a record: reviews, handoffs and plans from September 2026. Do not follow an
+instruction there without checking it against main. [docs/archive/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/README.md) explains the folder.
+
+- [docs/archive/reviews/AGENT_READY_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/AGENT_READY_2026-09.md): the strategy this agent-facing layer implements, and the risks it accepts.
+- [docs/archive/reviews/CODE_REVIEW_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/CODE_REVIEW_2026-09.md): a full read of the code with the findings that were acted on.
+- [docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md): how the node decides what is worth saying.
+- [docs/archive/handoffs/HANDOFF_trust.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/handoffs/HANDOFF_trust.md): how the node says how much to trust a number.
 
 ## Optional
 

@@ -121,7 +121,13 @@ else
   echo "  --   real-docker removal not checked (no reachable daemon)"
 fi
 
-mk; out="$(PATH="$STUB:/usr/bin:/bin" PLANETAI_HOME="$D" bash "$D/bin/planetai" remove </dev/null 2>&1)"
+# No terminal at all, not just no stdin: `planetai remove` reads its answer from /dev/tty, so `</dev/null` alone
+# still finds the terminal of whoever ran the suite. Run from a terminal (release.sh's `make test`, 6 Oct 2026)
+# this waited, invisibly, for a node name. A new session has no controlling terminal, so /dev/tty cannot open,
+# which is the case this checks, the same in a terminal, the pre-commit hook and CI.
+mk; out="$(PATH="$STUB:/usr/bin:/bin" PLANETAI_HOME="$D" python3 -c 'import subprocess, sys
+sys.exit(subprocess.call(sys.argv[1:], stdin=subprocess.DEVNULL, start_new_session=True))' \
+      bash "$D/bin/planetai" remove 2>&1)"
 if [[ -d "$D" ]]; then ok "with nothing to answer it, the folder stays"; else bad "it deleted with no terminal"; fi
 
 [[ $fails -eq 0 ]] && { echo "remove tests pass"; exit 0; } || { echo "$fails failed"; exit 1; }

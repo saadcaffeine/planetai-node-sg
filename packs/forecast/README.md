@@ -86,3 +86,13 @@ planetai run forecast status    # the next day: wind, rain, temperature, and whe
 Weather forecast data from **BMKG** (Badan Meteorologi, Klimatologi, dan Geofisika), api.bmkg.go.id — BMKG must be
 named as the data source inside the application, and is, on the card and in the export.
 Model forecast from **Open-Meteo**, open-meteo.com, CC-BY 4.0.
+
+## The wind field
+
+With `FORECAST_OPENMETEO=1`, each poll also keeps Open-Meteo's hourly 10 m wind for the next day at
+`FORECAST_WIND_N` × `FORECAST_WIND_N` points (8 × 8) over `FORECAST_WIND_KM` (30 km) each side of the node, in one
+request, as `out/ground/wind.json`; the node serves it at `/ground/wind` and the map draws it moving, the way Bali Air
+Dispatch draws its 64 points over the island. It asks with `cell_selection=nearest`: the default moves a sea point
+to the nearest land cell, up to 12 km off, which would draw the wind where it was not. It is a model's field, never
+a reading: it reaches no cell, no alert and no report. `planetai run forecast windfield` refreshes it now.
+
