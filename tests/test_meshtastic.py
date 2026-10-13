@@ -37,6 +37,13 @@ assert s[0]["name"] == "Subak edge" and s[0]["meta"]["hardware"] == 46 and r == 
 s, _, _ = sources.meshtastic_message(T, pkt("telemetry", {"temperature": 30.0}), indoor_ids={"!deadbeef"})
 assert s[0]["indoor"] is True
 
+# text message: the parser hands the node the whole message (it stores and forwards; the sensor row keeps only 200 chars)
+s, r, info = sources.meshtastic_message(T, json.dumps({"channel": 0, "from": 3735928559, "id": 77, "sender": "!deadbeef",
+    "timestamp": 1756800000, "to": 4294967295, "type": "text", "payload": {"text": "anyone near Geylang?"}}).encode())
+t = info["text"]
+assert t["id"] == 77 and t["from"] == "!deadbeef" and t["text"] == "anyone near Geylang?" and t["gateway"] == "!a1b2c3d4"
+assert "text" not in sources.meshtastic_message(T, pkt("telemetry", {"temperature": 25.0}))[2]
+
 # protobuf topic (JSON output off) is ignored, not an error
 assert sources.meshtastic_message("msh/SG_923/2/e/LongFast/!a1b2c3d4", b"\x08\x01") == ([], [], {})
 

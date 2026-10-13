@@ -4483,7 +4483,9 @@ window.PAI.register({
         line: `Reports over LoRa and carries no position: it is in this node's cell because this `
           + `node is. Last heard ${esc(last)}.`,
         qty: [{ num: 'nav.mesh.packets', value: String(m.packets),
-          cmp: `packets since this node started` }],
+          cmp: `packets since this node started` },
+          { num: 'nav.mesh.texts', value: `${m.seen || 0} seen · ${m.sent || 0} sent`,
+            cmp: `text messages on the mesh; the words go to Telegram, not to this page` }],
       })
       + (shown.length ? shown.map(r => {
         const mt = H.metrics[r.metric];

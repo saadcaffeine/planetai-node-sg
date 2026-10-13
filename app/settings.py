@@ -88,6 +88,7 @@ RUNTIME = {
                            "Comma-separated: purifier, ac, fan, windows (windows that open). The event engine "
                            "only suggests what is here to use."),
     "MESH_ALERTS":        ("alerts", "Alerts over the LoRa mesh", False, False, "1 to send act-level alerts through the gateway radio."),
+    "MESH_TG_FORWARD":    ("alerts", "Mesh texts to Telegram", False, False, "1 (default) to forward text messages heard on the mesh to the Telegram bot. They are logged to out/mesh-messages.jsonl either way."),
     "MESH_GATEWAY_NODE_NUM": ("alerts", "Gateway node number", False, False, "Decimal, for mesh downlink."),
     # Off by default, and a community's switch rather than the software's. A node in a house records
     # an act whether or not anybody deliberated first -- somebody smells smoke and opens a window,

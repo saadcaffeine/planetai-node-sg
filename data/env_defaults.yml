@@ -164,6 +164,9 @@ MESH_INDOOR_NODES:
 MESH_ALERTS:
   default: "0"
   help: "Send act-level alerts back over the mesh (needs downlink enabled on the gateway's channel)"
+MESH_TG_FORWARD:
+  default: "1"
+  help: "Forward text messages heard on the mesh to the Telegram bot (1) or only log them to out/mesh-messages.jsonl (0)"
 MESH_GATEWAY_NODE_NUM:
   default: "0"
   help: "The gateway's node number (decimal), used as the sender for downlink. `planetai meshtastic` shows how to find it."

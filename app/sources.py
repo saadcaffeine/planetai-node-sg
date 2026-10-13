@@ -520,6 +520,8 @@ def meshtastic_message(topic: str, payload: bytes, indoor_ids: set | None = None
         sensor["meta"]["hardware"] = p.get("hardware")
     elif kind == "text":
         sensor["meta"]["last_text"] = str(p.get("text", ""))[:200] if isinstance(p, dict) else str(p)[:200]
+        text_msg = {"id": m.get("id"), "from": node, "to": m.get("to"), "channel": channel, "gateway": gateway,
+                    "ts": ts.isoformat(), "text": str(p.get("text", "") if isinstance(p, dict) else p)[:500]}
     else:
         return [], [], {"root_topic": root, "gateway": gateway}
     # a sensor row is only worth writing if it carries something new (name, position) or has readings
@@ -527,7 +529,10 @@ def meshtastic_message(topic: str, payload: bytes, indoor_ids: set | None = None
         return [], [], {"root_topic": root, "gateway": gateway}
     if sensor["name"] is None:
         sensor["name"] = f"mesh {node}"
-    return [sensor], readings, {"root_topic": root, "gateway": gateway, "channel": channel, "kind": kind, "node": node}
+    info = {"root_topic": root, "gateway": gateway, "channel": channel, "kind": kind, "node": node}
+    if kind == "text":
+        info["text"] = text_msg          # the node stores and forwards it (main.mesh_text); the dashboard only counts
+    return [sensor], readings, info
 
 
 def meshtastic_downlink(root_topic: str, gateway_node_num: int, text: str, channel: int = 0) -> tuple[str, bytes]:

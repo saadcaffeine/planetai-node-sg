@@ -81,7 +81,60 @@ def HA_DISCOVERY():
     return settings.get("HA_DISCOVERY", "0") == "1" and bool(os.getenv("MQTT_HOST", "").strip())
 _ha_announced: set = set()
 RETICULUM_URL = os.getenv("RETICULUM_URL", "").strip()       # the reticulum bridge, e.g. http://reticulum:4243
-mesh_state = {"root_topic": None, "gateway": None, "packets": 0, "last": None}
+mesh_state = {"root_topic": None, "gateway": None, "packets": 0, "last": None, "seen": 0, "sent": 0}
+# Text messages heard on the mesh: appended to one JSON-lines file (out/ is the one writable mount, so it survives a
+# rebuild), counted as seen (from other nodes) or sent (from this node's own gateway radio). The dashboard shows the
+# two counts and nothing else; the text itself goes to the Telegram bot (MESH_TG_FORWARD) and the file.
+MESH_LOG = Path(os.getenv("MESH_LOG", "/app/out/mesh-messages.jsonl"))
+_mesh_ids: collections.deque = collections.deque(maxlen=500)     # packet ids already logged: one packet arrives once per gateway
+_mesh_fwd: collections.deque = collections.deque(maxlen=20)      # monotonic times of recent forwards, to cap the rate
+_mesh_lock = threading.Lock()
+
+
+def MESH_TG_FORWARD():
+    return settings.get("MESH_TG_FORWARD", "1") == "1"
+
+
+def mesh_counts_load() -> None:
+    """Counts survive a restart because the file does."""
+    try:
+        with MESH_LOG.open(encoding="utf-8") as f:
+            for line in f:
+                try:
+                    mesh_state["sent" if json.loads(line).get("dir") == "sent" else "seen"] += 1
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+
+
+def mesh_text(t: dict, gateway: str | None) -> None:
+    """Log one text message, count it, and pass a received one to Telegram. Our own radio's messages are
+    logged as sent and never forwarded (no loop, no echo of what the household typed)."""
+    mid = t.get("id")
+    with _mesh_lock:
+        if mid is not None:
+            if mid in _mesh_ids:
+                return
+            _mesh_ids.append(mid)
+        direction = "sent" if gateway and t.get("from") == gateway else "seen"
+        mesh_state[direction] += 1
+        try:
+            MESH_LOG.parent.mkdir(parents=True, exist_ok=True)
+            with MESH_LOG.open("a", encoding="utf-8") as f:
+                f.write(json.dumps({**t, "dir": direction}, ensure_ascii=False) + "\n")
+        except OSError as e:
+            log.warning("mesh message log not writable: %s", type(e).__name__)
+        forward = direction == "seen" and MESH_TG_FORWARD() and t.get("text")
+        if forward:
+            now = time.monotonic()
+            if len(_mesh_fwd) == _mesh_fwd.maxlen and now - _mesh_fwd[0] < 60:
+                forward = False                       # more than 20 a minute is a flood, not a conversation: logged, not forwarded
+            else:
+                _mesh_fwd.append(now)
+    if forward:
+        threading.Thread(target=telegram, args=(f"📡 {t.get('from')}: {t['text']}",), daemon=True).start()
+
 # Kits and DIY nodes publishing Smart Citizen's own wire format to this node's broker (sources.smartcitizen_mqtt).
 # `queued` is what still has to reach smartcitizen.me for the devices in SC_FORWARD.
 sc_state = {"devices": 0, "messages": 0, "last": None, "forwarded": 0, "forward_failed": 0, "queued": 0}
@@ -187,6 +240,8 @@ def mqtt_thread() -> None:
                 if info.get("root_topic"):
                     mesh_state.update({"root_topic": info["root_topic"], "gateway": info.get("gateway"),
                                        "packets": mesh_state["packets"] + 1, "last": datetime.now(timezone.utc).isoformat()})
+                if info.get("text"):
+                    mesh_text(info["text"], info.get("gateway"))
                 if sensors or readings:
                     _store(sensors, readings)
             elif msg.topic.startswith("planetai/sensors/"):
@@ -520,12 +575,17 @@ def notify(level: str, text: str, keyboard: list | None = None) -> None:
                 httpx.post(f"{RETICULUM_URL}/send", json={"text": text}, timeout=10)
             except Exception as e:  # noqa: BLE001
                 log.warning("reticulum send failed: %s", type(e).__name__)
+    telegram(f"{icon} {text}".strip(), keyboard)
+
+
+def telegram(text: str, keyboard: list | None = None) -> None:
+    """Send one message to every configured chat. Quiet when no bot is set up."""
     tok, chats = TG()
     if not tok or not chats:
         return
     for chat in chats:
         try:
-            body = {"chat_id": chat, "text": f"{icon} {text}".strip()}
+            body = {"chat_id": chat, "text": text}
             if keyboard:
                 body["reply_markup"] = {"inline_keyboard": keyboard}
             httpx.post(f"https://api.telegram.org/bot{tok}/sendMessage",
@@ -748,6 +808,7 @@ except Exception as e:  # noqa: BLE001  — a node whose schema predates 0.22 ha
     log.warning("channel roles: %s", e)
 
 if MQTT_HOST:
+    mesh_counts_load()
     threading.Thread(target=mqtt_thread, daemon=True, name="mqtt").start()
     threading.Thread(target=sc_forward_thread, daemon=True, name="sc-forward").start()
 
