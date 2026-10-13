@@ -520,7 +520,9 @@ def meshtastic_message(topic: str, payload: bytes, indoor_ids: set | None = None
         sensor["meta"]["hardware"] = p.get("hardware")
     elif kind == "text":
         sensor["meta"]["last_text"] = str(p.get("text", ""))[:200] if isinstance(p, dict) else str(p)[:200]
-        text_msg = {"id": m.get("id"), "from": node, "to": m.get("to"), "channel": channel, "gateway": gateway,
+        # "sender" in the gateway's JSON is the gateway that relayed the packet; "from" is the node that wrote it
+        origin = f"!{m['from']:08x}" if isinstance(m.get("from"), int) else node
+        text_msg = {"id": m.get("id"), "from": origin, "to": m.get("to"), "channel": channel, "gateway": gateway,
                     "ts": ts.isoformat(), "text": str(p.get("text", "") if isinstance(p, dict) else p)[:500]}
     else:
         return [], [], {"root_topic": root, "gateway": gateway}

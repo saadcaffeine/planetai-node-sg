@@ -42,6 +42,11 @@ s, r, info = sources.meshtastic_message(T, json.dumps({"channel": 0, "from": 373
     "timestamp": 1756800000, "to": 4294967295, "type": "text", "payload": {"text": "anyone near Geylang?"}}).encode())
 t = info["text"]
 assert t["id"] == 77 and t["from"] == "!deadbeef" and t["text"] == "anyone near Geylang?" and t["gateway"] == "!a1b2c3d4"
+# relayed through our gateway: the origin is "from", not "sender"
+_, _, info = sources.meshtastic_message(T, json.dumps({"from": 2086328928, "id": 78, "sender": "!a1b2c3d4", "type": "text",
+    "timestamp": 1756800000, "to": 4294967295, "payload": {"text": "relayed"}}).encode())
+assert info["text"]["from"] == "!7c4f4560" or info["text"]["from"] == f"!{2086328928:08x}"
+assert info["text"]["from"] != info["gateway"]
 assert "text" not in sources.meshtastic_message(T, pkt("telemetry", {"temperature": 25.0}))[2]
 
 # protobuf topic (JSON output off) is ignored, not an error
