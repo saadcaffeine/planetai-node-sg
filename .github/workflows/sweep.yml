@@ -26,6 +26,7 @@ jobs:
       - name: one issue, edited in place
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}   # in a fork, gh would otherwise target the parent repo
         run: |
           n="$(gh issue list --state open --search 'in:title "Daily sweep"' --json number,title \
                --jq '[.[] | select(.title == "Daily sweep")] | .[0].number // empty')"
@@ -33,7 +34,7 @@ jobs:
             gh issue edit "$n" --body-file /tmp/sweep.md
             echo "edited #$n"
           else
-            url="$(gh issue create --title "Daily sweep" --body-file /tmp/sweep.md --label maintenance 2>/dev/null \
+            url="$(gh issue create --title "Daily sweep" --body-file /tmp/sweep.md --label maintenance \
                    || gh issue create --title "Daily sweep" --body-file /tmp/sweep.md)"
             gh issue pin "$url" || true
             echo "created $url"
