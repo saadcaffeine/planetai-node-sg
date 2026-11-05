@@ -34,7 +34,7 @@ compare:
 line:
   value: 35
   unit: °C
-  source: "apparent temperature 35 °C: calibrated indoors at a Bali node, kept for Singapore until this node has its own data (NEA WBGT is the local heat-stress line)"
+  source: "this place's own line, measured at node #1 (Kuta Selatan), not a global one"
   sql: heat/heat_stress_now
 
 packs:
@@ -247,29 +247,6 @@ empty:
   en: Heat needs temperature and humidity from the same sensor. Add one indoors and the house fills in.
   id: Panas memerlukan suhu dan kelembapan dari sensor yang sama. Tambahkan satu di dalam ruangan.
   es: El calor necesita temperatura y humedad del mismo sensor. Añade uno dentro y la casa se rellena.
-
-# Singapore: what NEA measures near here, beside the apparent temperature above. Shown in Figures.
-readouts:
-  - metric: wbgt
-    sensor_id: nea-wbgt
-    unit: °C
-    dp: 1
-    label: { en: heat stress (WBGT), id: tekanan panas (WBGT), es: estrés térmico (WBGT) }
-  - metric: temp
-    sensor_id: nea-temp
-    unit: °C
-    dp: 1
-    label: { en: NEA air temperature, id: suhu udara NEA, es: temperatura NEA }
-  - metric: humidity
-    sensor_id: nea-humidity
-    unit: "%"
-    dp: 0
-    label: { en: NEA humidity, id: kelembapan NEA, es: humedad NEA }
-  - metric: uv
-    sensor_id: nea-uv
-    unit: UV
-    dp: 0
-    label: { en: UV index, id: indeks UV, es: índice UV }
 
 # Events (docs/SPEC_alerts.md §4–§5). One message per heat event at this house, whichever rooms it spans; one
 # action, the first below whose `when:` holds. The id and es strings are ASSISTANT-WRITTEN. As air's: words first,

@@ -271,8 +271,6 @@ def meshtastic_message(topic: str, payload: bytes, indoor_ids: set | None = None
     # a sensor row is only worth writing if it carries something new (name, position) or has readings
     if not readings and sensor["name"] is None and sensor["lat"] is None and kind != "text":
         return [], [], {"root_topic": root, "gateway": gateway}
-    if sensor["name"] is None:
-        sensor["name"] = f"mesh {node}"
     info = {"root_topic": root, "gateway": gateway, "channel": channel, "kind": kind, "node": node}
     if kind == "text":
         info["text"] = text_msg          # the node stores and forwards it (main.mesh_text); the dashboard only counts

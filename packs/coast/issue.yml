@@ -53,18 +53,6 @@ readouts:
     unit: °C
     dp: 1
     label: { en: sea, id: laut, es: mar }
-  # Singapore: NEA's weekly Enterococcus banding of the beaches this node follows (packs/singapore-beach, BEACH_AREAS).
-  # 1 Normal, 2 Elevated, 3 High; the worst of each beach's stretches. Read the stretch nearest the house on the sensor.
-  - metric: beach_band
-    sensor_id: nea-beach-east-coast
-    unit: of 3
-    dp: 0
-    label: { en: East Coast beach water band, id: pita air pantai East Coast, es: banda del agua de East Coast }
-  - metric: beach_band
-    sensor_id: nea-beach-changi
-    unit: of 3
-    dp: 0
-    label: { en: Changi beach water band, id: pita air pantai Changi, es: banda del agua de Changi }
 
 # A wave is not over a square of the map.
 where:

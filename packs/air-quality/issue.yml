@@ -50,8 +50,6 @@ packs:
     - insight/agreement
     - insight/rhythm
     - example-cooking-hours/post_cooking_summary
-    - singapore-nea/wind_southeast_rising   # south-east wind, settled and rising: the pattern this place watches for
-    - singapore-nea/wind_pm25_correlated    # PM2.5 rising with the wind in the south-east, tested on this node's own kit
 
 # The four distances, which are the columns of every issue. Each says where its number comes from,
 # which rows, which field and how they are combined. An absent distance is `~` and the page says why.
@@ -83,10 +81,9 @@ distances:
     # deviation holds. This was JavaScript in the dashboard (index.html:761) until now.
     aggregate: fenced_median
   region:
-    # Singapore: NEA's own hourly PM2.5 for the nearest region (packs/singapore-nea), not the CAMS model.
     from: observations
-    sensor_id: nea-pm25
-    metrics: [pm25]
+    sensor_id: cams-point
+    metrics: [pm25_model]
 
 sentences:
   en:
@@ -257,10 +254,8 @@ hero:
   unit: µg/m³
   dp: 0
   rule:
-    # 60, not 20: Singapore's haze pushes street PM2.5 past 20 often, and a rule that ends at 20 pins every such reading
-    # to the end. NEA's own "unhealthy" starts at PSI 100, about 55 µg/m³ of PM2.5. The line at 15 stays the WHO's.
     min: 0
-    max: 60
+    max: 20
     ends: { en: [clean, bad], id: [bersih, buruk], es: [limpio, malo] }
     dots: [room, yard, ring]
     line: true
@@ -270,41 +265,6 @@ empty:
   en: The node reads the model for these coordinates. Add a sensor under Set up and the house fills in.
   id: Node membaca model untuk koordinat ini. Tambahkan sensor di Set up dan rumah akan terisi.
   es: El nodo lee el modelo para estas coordenadas. Añade un sensor en Set up y la casa se rellena.
-
-# Singapore: NEA's own index and pollutant figures, beside the readings above. Shown in Figures.
-readouts:
-  - metric: psi
-    sensor_id: nea-psi
-    unit: PSI
-    dp: 0
-    label: { en: NEA PSI, id: PSI NEA, es: PSI de NEA }
-  - metric: pm25_24h
-    sensor_id: nea-psi
-    unit: µg/m³
-    dp: 0
-    label: { en: PM2.5 24 h, id: PM2.5 24 jam, es: PM2.5 24 h }
-  - metric: pm10_24h
-    sensor_id: nea-psi
-    unit: µg/m³
-    dp: 0
-    label: { en: PM10 24 h, id: PM10 24 jam, es: PM10 24 h }
-  - metric: o3_8h_max
-    sensor_id: nea-psi
-    unit: µg/m³
-    dp: 0
-    label: { en: ozone 8 h max, id: ozon maks 8 jam, es: ozono máx. 8 h }
-  # Singapore: the wind, beside the air. The bearing is where the wind blows FROM (135 is south-east), a 10 minute mean
-  # at the nearest NEA station. South-east (ESE to SSE) that persists and strengthens is when the air here tends to worsen.
-  - metric: wind_dir
-    sensor_id: nea-winddir
-    unit: °
-    dp: 0
-    label: { en: wind from, id: angin dari, es: viento de }
-  - metric: wind_speed
-    sensor_id: nea-windspeed
-    unit: kn
-    dp: 0
-    label: { en: wind speed, id: kecepatan angin, es: velocidad del viento }
 
 # Events (docs/SPEC_alerts.md §4–§5). The id and es strings are ASSISTANT-WRITTEN. The voice (14 Oct): the story in
 # words first, then ONE reading, then whose line it is; {peak} and {line} carry their unit, so a template never types
