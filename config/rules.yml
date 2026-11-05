@@ -1,4 +1,5 @@
-# Core rules. Domain-blind on purpose: these work whatever a node is measuring.
+# Core rules. Domain-blind on purpose: these work whatever a node is measuring. The first two are about whether a
+# sensor is heard at all; trust's three, at the end, about whether what it says can be believed.
 # Anything about a specific metric — PM2.5, turbidity, kWh, machine hours — belongs in a pack (docs/PACKS.md).
 # Variables from the `stats` view: sensor_id, metric, name, indoor, local, last, silent_minutes, mean_15m, mean_1h, mean_24h.
 
@@ -29,3 +30,191 @@
     en: "🌅 Good morning from your node.\n\nIt kept watch through the night and is still listening to your sensors. If something matters today, you will hear about it here.\n\nAsk me anything about the air, the heat or the sea, whenever you like."
     id: "🌅 Selamat pagi dari node Anda.\n\nSemalam tetap berjaga dan masih mendengarkan sensor Anda. Kalau ada yang penting hari ini, Anda akan tahu dari sini.\n\nTanya apa saja tentang udara, panas, atau laut, kapan pun."
     es: "🌅 Buenos días desde tu nodo.\n\nHa hecho guardia toda la noche y sigue escuchando tus sensores. Si hoy pasa algo que importe, lo sabrás por aquí.\n\nPregúntame lo que quieras sobre el aire, el calor o el mar, cuando quieras."
+
+
+# ================================================================ trust: whether the node's own sensors tell the truth
+# Core since 22 Oct 2026 (docs/decisions/2026-10-21-core-and-packs.md); until then packs/trust. The ids keep their
+# `trust/` prefix so every alert already sent, its cooldown and its silence carry on. GET /trust counts a frozen
+# channel by running channel_dead's own SQL, so the card and the alert cannot drift apart again.
+# Whether the node's own numbers are worth saying out loud. Every rule reads only local sensors: a public
+# reference station's coverage is not ours to police.
+#
+# Silence is defined by VALUE CHANGE, not by a timestamp. Smart Citizen's per-kit `recorded_at` is null on every
+# kit node #1 reads, so the adapter stamps every channel with the kit-level `last_reading_at`. A dead channel then
+# carries a fresh timestamp forever, and its frozen value is re-inserted under new timestamps, which pulls the
+# 24-hour mean toward itself and shrinks the variance. The reading looks steadier as it dies.
+#
+# A WEEK, OR SILENCE. Every rule here joins `seasoned`: a sensor with under seven days of readings on this node is
+# never named. A statement about an instrument needs a week — a day of it says more about the weather and the hour
+# than about the sensor. The gate is written into each rule's SQL, and repeated three times, because a pack must
+# not depend on a loader change to be safe: a `min_history_days` rule key in app/packs.py is the right long-term
+# home for it and is noted in docs/archive/handoffs/HANDOFF_trust.md.
+
+# ---------------------------------------------------------------- a channel that stopped changing under a live kit
+- id: trust/channel_dead
+  level: info
+  cooldown_minutes: 10080
+  sql: |
+    WITH seasoned AS (
+      SELECT sensor_id FROM readings
+      WHERE ts > now() - interval '30 days'
+      GROUP BY 1 HAVING min(ts) < now() - interval '7 days'),
+    ours AS (
+      SELECT r.sensor_id, r.metric, s.name, s.source
+      FROM readings_1h r JOIN sensors s USING (sensor_id) JOIN seasoned USING (sensor_id)
+      JOIN channel_roles c ON c.source = s.source AND c.metric = r.metric
+      WHERE s.local AND s.kind = 'sensor' AND c.role IN ('ambient', 'enclosure')
+      GROUP BY 1, 2, 3, 4),
+    -- Frozen means a day, not an evening. Every hourly bucket of the last 24 has to be there and flat
+    -- (max - min = 0). The v0.35 form -- six flat hours out of 24, latest bucket flat too -- fired at dusk on
+    -- Ungasan Kit's light channel, which reads 0 from dusk to dawn: eleven flat hours ending in the latest
+    -- bucket, every evening, on every kit with a light channel. Night in Kuta Selatan is under twelve hours, so
+    -- a full day needs no metric-specific exception, and a channel that genuinely dies still matches after a day.
+    frozen AS (
+      SELECT o.sensor_id, o.metric, o.name,
+             count(*) AS hours,
+             count(*) FILTER (WHERE r.max - r.min > 0) AS moved,
+             max(r.max) AS stuck_at
+      FROM ours o JOIN readings_1h r ON r.sensor_id = o.sensor_id AND r.metric = o.metric
+      WHERE r.bucket > now() - interval '24 hours'
+      GROUP BY 1, 2, 3),
+    -- another ambient channel on the same kit that did move in the same day. One sensor failing looks like this;
+    -- a whole kit in a cupboard does not, and `alive` alone cannot tell them apart.
+    moving AS (
+      SELECT DISTINCT r.sensor_id, r.metric
+      FROM readings_1h r JOIN sensors s USING (sensor_id)
+      JOIN channel_roles c ON c.source = s.source AND c.metric = r.metric
+      WHERE c.role = 'ambient' AND r.bucket > now() - interval '24 hours' AND r.max - r.min > 0),
+    alive AS (
+      SELECT sensor_id, max(ts) AS kit_ts FROM readings
+      WHERE ts > now() - interval '2 hours' GROUP BY 1),
+    -- A message used to print the raw metric code ("pm25", "temp"). The runner has no label map, so the names are
+    -- here: metric_name is [en, id, es], and each message picks its own ({metric_name[0]} is English), so every
+    -- language keeps the same placeholder. A metric not listed falls back to its code.
+    labels AS (
+      SELECT metric, en, id, es FROM (VALUES
+        ('pm1', 'very fine dust (PM1)', 'debu sangat halus (PM1)', 'polvo muy fino (PM1)'),
+        ('pm25', 'fine dust (PM2.5)', 'debu halus (PM2.5)', 'polvo fino (PM2.5)'),
+        ('pm10', 'dust (PM10)', 'debu (PM10)', 'polvo (PM10)'),
+        ('temp', 'temperature', 'suhu', 'temperatura'),
+        ('humidity', 'humidity', 'kelembapan', 'humedad'),
+        ('pressure', 'air pressure', 'tekanan udara', 'presión del aire'),
+        ('co2', 'CO₂', 'CO₂', 'CO₂'),
+        ('noise', 'noise', 'kebisingan', 'ruido'),
+        ('light', 'light', 'cahaya', 'luz'),
+        ('gas_resistance', 'gas sensor', 'sensor gas', 'sensor de gases'),
+        ('tvoc', 'chemical vapours (TVOC)', 'uap kimia (TVOC)', 'vapores químicos (TVOC)'),
+        ('tvoc_index', 'chemical vapours (TVOC)', 'uap kimia (TVOC)', 'vapores químicos (TVOC)'),
+        ('nox_index', 'nitrogen oxides (NOx)', 'nitrogen oksida (NOx)', 'óxidos de nitrógeno (NOx)'),
+        ('eco2', 'estimated CO₂', 'perkiraan CO₂', 'CO₂ estimado'),
+        ('iaq', 'indoor air index', 'indeks udara dalam ruangan', 'índice del aire interior'),
+        ('bme_iaq', 'indoor air index', 'indeks udara dalam ruangan', 'índice del aire interior')) AS v(metric, en, id, es))
+    SELECT f.sensor_id, f.name, f.metric, f.hours, ARRAY[coalesce(l.en, f.metric), coalesce(l.id, f.metric), coalesce(l.es, f.metric)] AS metric_name
+    FROM frozen f JOIN alive a USING (sensor_id) LEFT JOIN labels l ON l.metric = f.metric
+    WHERE f.hours >= 24 AND f.moved = 0
+      -- a floor is not a freeze: light, uv, rain and noise all sit at 0 for hours on end, legitimately.
+      AND f.stuck_at <> 0
+      AND EXISTS (SELECT 1 FROM moving m WHERE m.sensor_id = f.sensor_id AND m.metric <> f.metric)
+  message:
+    en: "\U0001F9CA One reading at {name} has stopped moving.\n\nIts {metric_name[0]} has been the same number for a whole day while the rest of the kit keeps reporting. That usually means one sensor has failed, not the kit.\n\n\U0001F449 Power-cycle it. If the number stays frozen, the sensor needs replacing, and nothing it has recorded for {metric_name[0]} since it froze can be trusted."
+    id: "\U0001F9CA Satu bacaan di {name} berhenti bergerak.\n\nNilai {metric_name[1]} sama sepanjang satu hari penuh padahal kit-nya masih melapor. Biasanya itu satu sensor yang rusak, bukan kit-nya.\n\n\U0001F449 Matikan lalu nyalakan lagi. Kalau angkanya tetap beku, sensornya harus diganti, dan semua yang tercatat untuk {metric_name[1]} sejak ia beku tidak bisa dipercaya."
+    es: "🧊 Una lectura de {name} ha dejado de moverse.\n\nSu {metric_name[2]} lleva un día entero con el mismo número mientras el resto del equipo sigue informando. Eso suele ser un sensor averiado, no el equipo.\n\n👉 Apágalo y vuelve a encenderlo. Si el número sigue congelado, hay que sustituir el sensor, y nada de lo que haya registrado de {metric_name[2]} desde que se congeló es fiable."
+
+# ---------------------------------------------------------------- a local sensor with holes in the week
+- id: trust/coverage_low
+  level: info
+  cooldown_minutes: 10080
+  sql: |
+    WITH seasoned AS (
+      SELECT sensor_id FROM readings
+      WHERE ts > now() - interval '30 days'
+      GROUP BY 1 HAVING min(ts) < now() - interval '7 days'),
+    have AS (
+      SELECT r.sensor_id, s.name, count(DISTINCT r.bucket) AS hours
+      FROM readings_1h r JOIN sensors s USING (sensor_id) JOIN seasoned USING (sensor_id)
+      JOIN channel_roles c ON c.source = s.source AND c.metric = r.metric
+      WHERE s.local AND s.kind = 'sensor' AND c.role = 'ambient' AND c.comparable
+        AND r.bucket > now() - interval '7 days'
+      GROUP BY 1, 2)
+    SELECT sensor_id, name, hours, round(100.0 * hours / 168) AS pct
+    FROM have
+    WHERE 100.0 * hours / 168 < 60
+  message:
+    en: "🕳️ {name} is missing most of this week.\n\nIt reported for only part of the last seven days, so any weekly figure that includes it is really a figure about the hours it was awake. Its own latest reading still looks current, which is why this needs saying.\n\n👉 Check its power and its WiFi. If it cannot hold a connection where it is, it needs moving or a better aerial."
+    id: "🕳️ {name} kehilangan sebagian besar data minggu ini.\n\nIa hanya melapor sebagian dari tujuh hari terakhir, jadi angka mingguan yang memakainya sebenarnya hanya soal jam-jam saat ia hidup. Bacaan terakhirnya tetap tampak baru, dan itu sebabnya ini perlu disebut.\n\n👉 Periksa listrik dan WiFi-nya. Kalau tidak bisa menjaga koneksi di tempatnya sekarang, ia perlu dipindah atau antena yang lebih baik."
+    es: "🕳️ A {name} le falta la mayor parte de esta semana.\n\nSolo informó durante una parte de los últimos siete días, así que cualquier cifra semanal que lo incluya es en realidad una cifra sobre las horas que estuvo despierto. Su última lectura sigue pareciendo reciente, y por eso hay que decirlo.\n\n👉 Revisa su corriente y su WiFi. Si no aguanta la conexión donde está, hay que moverlo o ponerle una antena mejor."
+
+# ---------------------------------------------------------------- two sensors in the same place, different levels
+- id: trust/peer_disagreement
+  level: info
+  cooldown_minutes: 10080
+  sql: |
+    WITH seasoned AS (
+      SELECT sensor_id FROM readings
+      WHERE ts > now() - interval '30 days'
+      GROUP BY 1 HAVING min(ts) < now() - interval '7 days'),
+    -- An absolute floor per metric, because a ratio alone says nothing in clean air. Node #1's pm1 means on
+    -- 7 September were 16.3, 6.9 and 7.3 ug/m3; at 7 ug/m3 the 0.85-1.15 band is +/-1 ug/m3, which is the integer
+    -- resolution of a Plantower-class sensor and ten times inside its stated accuracy at low concentration. Two
+    -- identical units in clean air disagree by more than that most days, and this rule said so twice tonight.
+    -- Where each number comes from: 5 ug/m3 is Plantower's own +/-10 ug/m3 (or +/-10%) below 100 ug/m3, halved;
+    -- 2 C and 5 points of humidity are what two boxes a few metres apart differ by on a still afternoon with the
+    -- SHT31's +/-0.3 C and +/-2% on top of siting; 0.3 kPa is 3 hPa, and pressure is stored in kPa here
+    -- (config/channels.yml). These are instrument facts, not statistics from one week at one house. A metric with
+    -- no floor falls back to 15% of the pair's own mean, which is the relative band restated, so a metric nobody
+    -- has thought about yet is never louder than the band already allows.
+    floors AS (
+      SELECT metric, floor_abs FROM (VALUES
+        ('pm1', 5.0), ('pm25', 5.0), ('pm10', 5.0),
+        ('temp', 2.0), ('humidity', 5.0), ('pressure', 0.3)) AS v(metric, floor_abs)),
+    -- Seven days, not 24 hours, and at least 100 of the week's 168 hourly buckets from both units: a day of two
+    -- boxes is a statement about the day.
+    ambient AS (
+      SELECT r.sensor_id, s.name, s.lat, s.lon, r.metric, avg(r.mean) AS mean
+      FROM readings_1h r JOIN sensors s USING (sensor_id) JOIN seasoned USING (sensor_id)
+      JOIN channel_roles c ON c.source = s.source AND c.metric = r.metric
+      WHERE s.local AND s.kind = 'sensor' AND c.role = 'ambient' AND c.comparable
+        AND s.lat IS NOT NULL AND r.bucket > now() - interval '7 days'
+      GROUP BY 1, 2, 3, 4, 5 HAVING count(*) >= 100),
+    -- collocated: within 50 m of each other. Equirectangular, which is exact enough at this distance.
+    -- One row per pair, not two: a.sensor_id < b.sensor_id. A != B and B != A are one fact, and the v0.35 form
+    -- sent both. The cooldown is keyed on the pair, so the fact is held for a week rather than each unit's half
+    -- of it being held separately.
+    pairs AS (
+      SELECT a.sensor_id || '|' || b.sensor_id AS sensor_id, a.name AS name_a, b.name AS name_b, a.metric,
+             a.mean AS mean_a, b.mean AS mean_b
+      FROM ambient a JOIN ambient b
+        ON b.metric = a.metric AND a.sensor_id < b.sensor_id
+       AND sqrt(power((b.lat - a.lat) * 111320, 2)
+              + power((b.lon - a.lon) * 111320 * cos(radians((a.lat + b.lat) / 2)), 2)) <= 50),
+    -- A message used to print the raw metric code ("pm25", "temp"). The runner has no label map, so the names are
+    -- here: metric_name is [en, id, es], and each message picks its own ({metric_name[0]} is English), so every
+    -- language keeps the same placeholder. A metric not listed falls back to its code.
+    labels AS (
+      SELECT metric, en, id, es FROM (VALUES
+        ('pm1', 'very fine dust (PM1)', 'debu sangat halus (PM1)', 'polvo muy fino (PM1)'),
+        ('pm25', 'fine dust (PM2.5)', 'debu halus (PM2.5)', 'polvo fino (PM2.5)'),
+        ('pm10', 'dust (PM10)', 'debu (PM10)', 'polvo (PM10)'),
+        ('temp', 'temperature', 'suhu', 'temperatura'),
+        ('humidity', 'humidity', 'kelembapan', 'humedad'),
+        ('pressure', 'air pressure', 'tekanan udara', 'presión del aire'),
+        ('co2', 'CO₂', 'CO₂', 'CO₂'),
+        ('noise', 'noise', 'kebisingan', 'ruido'),
+        ('light', 'light', 'cahaya', 'luz'),
+        ('gas_resistance', 'gas sensor', 'sensor gas', 'sensor de gases'),
+        ('tvoc', 'chemical vapours (TVOC)', 'uap kimia (TVOC)', 'vapores químicos (TVOC)'),
+        ('tvoc_index', 'chemical vapours (TVOC)', 'uap kimia (TVOC)', 'vapores químicos (TVOC)'),
+        ('nox_index', 'nitrogen oxides (NOx)', 'nitrogen oksida (NOx)', 'óxidos de nitrógeno (NOx)'),
+        ('eco2', 'estimated CO₂', 'perkiraan CO₂', 'CO₂ estimado'),
+        ('iaq', 'indoor air index', 'indeks udara dalam ruangan', 'índice del aire interior'),
+        ('bme_iaq', 'indoor air index', 'indeks udara dalam ruangan', 'índice del aire interior')) AS v(metric, en, id, es))
+    SELECT p.sensor_id, p.name_a, p.name_b, p.metric, ARRAY[coalesce(l.en, p.metric), coalesce(l.id, p.metric), coalesce(l.es, p.metric)] AS metric_name,
+           round(p.mean_a::numeric, 1) AS a, round(p.mean_b::numeric, 1) AS b
+    FROM pairs p LEFT JOIN floors f USING (metric) LEFT JOIN labels l ON l.metric = p.metric
+    WHERE (p.mean_a / nullif(p.mean_b, 0) < 0.85 OR p.mean_a / nullif(p.mean_b, 0) > 1.15)
+      AND abs(p.mean_a - p.mean_b) >= coalesce(f.floor_abs, 0.15 * (p.mean_a + p.mean_b) / 2)
+    ORDER BY abs(p.mean_a - p.mean_b) DESC
+  message:
+    en: "\u2696\uFE0F {name_a} and {name_b} disagree about {metric_name[0]}: {a} against {b} over the last week.\n\nThey are a few metres apart and see the same air, so one of them is reading off, or one is sitting closer to something the other cannot smell.\n\n\U0001F449 Swap the two units' positions for a day. If the gap follows the box it is the sensor; if it stays with the spot it is the siting."
+    id: "\u2696\uFE0F {name_a} dan {name_b} tidak sepakat soal {metric_name[1]}: {a} berbanding {b} selama seminggu terakhir.\n\nJaraknya hanya beberapa meter dan udaranya sama, jadi salah satunya membaca keliru, atau salah satunya lebih dekat ke sesuatu yang tidak tercium yang lain.\n\n\U0001F449 Tukar posisi dua unit itu selama sehari. Kalau selisihnya ikut kotaknya, sensornya; kalau tetap di tempatnya, penempatannya."
+    es: "⚖️ {name_a} y {name_b} no se ponen de acuerdo sobre {metric_name[2]}: {a} frente a {b} durante la última semana.\n\nEstán a unos metros el uno del otro y ven el mismo aire, así que uno de los dos lee mal, o uno está más cerca de algo que el otro no huele.\n\n👉 Intercambia la posición de los dos equipos durante un día. Si la diferencia sigue a la caja, es el sensor; si se queda en el sitio, es la ubicación."

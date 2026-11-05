@@ -3,7 +3,7 @@ url: https://openaq.org/
 description: |
   Reference-grade air quality aggregator. Pulls from ~10k+ regulatory
   monitoring stations globally and harmonises to a common schema.
-  Free public API with optional auth for higher rate limits.
+  Free API; v3 needs a free key from an OpenAQ account.
 pillar: environmental
 scale: city
 status: live
@@ -13,10 +13,17 @@ pilot_relevance: [barcelona, boston, santiago, bali, global]
 places: [bali, barcelona, boston, santiago-de-chile]
 tags: [air-quality, regulatory-monitoring, harmonised]
 added: 2026-05-04
-auth: key-free-rate-limited
+assisted_by: Claude Code
+auth: api-key
+updated: 2026-10-15
 feeds_cells: [Environmental|City]
 upstream_listed_in: [awesome-public-datasets]
 notes: |
-  v3 API recommends API key for production use. Bbox queries are the
-  fastest filter. Combine with Sensor.Community for community-tier
+  Bbox queries are the fastest filter. Combine with Sensor.Community for community-tier
   density layer, with Smart Citizen for community-deployed sensors.
+
+  AUTH VERIFIED 2026-10-15 by making the call: GET /v3/locations?limit=1 without a key
+  returned 401, "Unauthorized. A valid API key must be provided in the X-API-Key header."
+  So a key is required, not recommended. docs.openaq.org (using-the-api/api-key): "Sign up
+  at explore.openaq.org/register to get your API key"; no approval step is described, hence
+  `api-key` rather than `registration`. Send it as `X-API-Key`.

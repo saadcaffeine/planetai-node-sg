@@ -1,0 +1,444 @@
+{
+ "uid": "planetai-node",
+ "title": "This node · keeper's view · no provenance",
+ "tags": [
+  "planetai"
+ ],
+ "editable": true,
+ "description": "Shipped with the node and replaced on update. Save as to make your own. docs/site/grafana.md",
+ "schemaVersion": 39,
+ "timezone": "",
+ "time": {
+  "from": "now-30d",
+  "to": "now"
+ },
+ "refresh": "",
+ "templating": {
+  "list": [
+   {
+    "name": "metric",
+    "label": "metric",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "planetai-node"
+    },
+    "query": "SELECT DISTINCT r.metric FROM readings r JOIN sensors s USING (sensor_id) WHERE s.local AND s.kind = 'sensor' AND r.ts > now() - interval '7 days' AND r.ts <= now() ORDER BY 1",
+    "definition": "SELECT DISTINCT r.metric FROM readings r JOIN sensors s USING (sensor_id) WHERE s.local AND s.kind = 'sensor' AND r.ts > now() - interval '7 days' AND r.ts <= now() ORDER BY 1",
+    "refresh": 1,
+    "includeAll": false,
+    "multi": false,
+    "sort": 1,
+    "current": {
+     "text": "pm25",
+     "value": "pm25"
+    }
+   },
+   {
+    "name": "indoor",
+    "label": "a room",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "planetai-node"
+    },
+    "query": "SELECT coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS __text, s.sensor_id AS __value FROM sensors s WHERE s.local AND s.kind = 'sensor' AND s.indoor IS TRUE AND EXISTS (SELECT 1 FROM readings r WHERE r.sensor_id = s.sensor_id AND r.metric = '${metric}' AND r.ts > now() - interval '7 days' AND r.ts <= now()) ORDER BY 1",
+    "definition": "SELECT coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS __text, s.sensor_id AS __value FROM sensors s WHERE s.local AND s.kind = 'sensor' AND s.indoor IS TRUE AND EXISTS (SELECT 1 FROM readings r WHERE r.sensor_id = s.sensor_id AND r.metric = '${metric}' AND r.ts > now() - interval '7 days' AND r.ts <= now()) ORDER BY 1",
+    "refresh": 1,
+    "includeAll": false,
+    "multi": false,
+    "sort": 1,
+    "current": {}
+   },
+   {
+    "name": "outdoor",
+    "label": "outside",
+    "type": "query",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "planetai-node"
+    },
+    "query": "SELECT coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS __text, s.sensor_id AS __value FROM sensors s WHERE s.local AND s.kind = 'sensor' AND s.indoor IS NOT TRUE AND EXISTS (SELECT 1 FROM readings r WHERE r.sensor_id = s.sensor_id AND r.metric = '${metric}' AND r.ts > now() - interval '7 days' AND r.ts <= now()) ORDER BY 1",
+    "definition": "SELECT coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS __text, s.sensor_id AS __value FROM sensors s WHERE s.local AND s.kind = 'sensor' AND s.indoor IS NOT TRUE AND EXISTS (SELECT 1 FROM readings r WHERE r.sensor_id = s.sensor_id AND r.metric = '${metric}' AND r.ts > now() - interval '7 days' AND r.ts <= now()) ORDER BY 1",
+    "refresh": 1,
+    "includeAll": false,
+    "multi": false,
+    "sort": 1,
+    "current": {}
+   }
+  ]
+ },
+ "annotations": {
+  "list": [
+   {
+    "name": "What the node said",
+    "enable": true,
+    "iconColor": "red",
+    "datasource": {
+     "type": "grafana-postgresql-datasource",
+     "uid": "planetai-node"
+    },
+    "rawQuery": "SELECT opened_at AS time, coalesce(cleared_at, last_seen_at) AS timeend, issue || ' · ' || kind || ' · ' || level || CASE WHEN ever_sent THEN ' · sent' ELSE ' · held' END AS text, issue AS tags FROM alert_events WHERE $__timeFilter(opened_at) AND opened_at <= now()",
+    "target": {
+     "refId": "Anno",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code",
+     "rawSql": "SELECT opened_at AS time, coalesce(cleared_at, last_seen_at) AS timeend, issue || ' · ' || kind || ' · ' || level || CASE WHEN ever_sent THEN ' · sent' ELSE ' · held' END AS text, issue AS tags FROM alert_events WHERE $__timeFilter(opened_at) AND opened_at <= now()"
+    }
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "${metric} in every room and yard, hourly",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "The household's own sensors, hourly means of the raw readings. A silence of three hours or more breaks the line.",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "SELECT $__timeGroupAlias(r.ts, '1h'), coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS metric, avg(r.value) AS value\nFROM readings r JOIN sensors s USING (sensor_id)\nWHERE $__timeFilter(r.ts) AND r.ts <= now() AND r.metric = '${metric}' AND s.local AND s.kind = 'sensor'\nGROUP BY 1, 2 ORDER BY 1",
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "insertNulls": 10800000,
+      "spanNulls": false,
+      "lineWidth": 1
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "calcs": [
+      "mean",
+      "max",
+      "p95"
+     ]
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "title": "${metric} in ${indoor} by hour of day, one column per day",
+   "type": "heatmap",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "Each cell is that hour's mean in the node's own timezone. A habit shows as a row, a bad day as a column.",
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 14,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "WITH b AS (\n  SELECT date_trunc('day', r.ts AT TIME ZONE current_setting('TimeZone')) AS d,\n         extract(hour FROM r.ts AT TIME ZONE current_setting('TimeZone'))::int AS h, r.value AS value\n  FROM readings r\n  WHERE $__timeFilter(r.ts) AND r.ts <= now() AND r.metric = '${metric}' AND r.sensor_id = '${indoor}')\nSELECT d AT TIME ZONE current_setting('TimeZone') AS time,\navg(value) FILTER (WHERE h = 0) AS \"0\",\navg(value) FILTER (WHERE h = 1) AS \"1\",\navg(value) FILTER (WHERE h = 2) AS \"2\",\navg(value) FILTER (WHERE h = 3) AS \"3\",\navg(value) FILTER (WHERE h = 4) AS \"4\",\navg(value) FILTER (WHERE h = 5) AS \"5\",\navg(value) FILTER (WHERE h = 6) AS \"6\",\navg(value) FILTER (WHERE h = 7) AS \"7\",\navg(value) FILTER (WHERE h = 8) AS \"8\",\navg(value) FILTER (WHERE h = 9) AS \"9\",\navg(value) FILTER (WHERE h = 10) AS \"10\",\navg(value) FILTER (WHERE h = 11) AS \"11\",\navg(value) FILTER (WHERE h = 12) AS \"12\",\navg(value) FILTER (WHERE h = 13) AS \"13\",\navg(value) FILTER (WHERE h = 14) AS \"14\",\navg(value) FILTER (WHERE h = 15) AS \"15\",\navg(value) FILTER (WHERE h = 16) AS \"16\",\navg(value) FILTER (WHERE h = 17) AS \"17\",\navg(value) FILTER (WHERE h = 18) AS \"18\",\navg(value) FILTER (WHERE h = 19) AS \"19\",\navg(value) FILTER (WHERE h = 20) AS \"20\",\navg(value) FILTER (WHERE h = 21) AS \"21\",\navg(value) FILTER (WHERE h = 22) AS \"22\",\navg(value) FILTER (WHERE h = 23) AS \"23\"\nFROM b GROUP BY d ORDER BY d",
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": []
+   },
+   "options": {
+    "calculate": false,
+    "yAxis": {
+     "axisLabel": "hour of day",
+     "reverse": true
+    },
+    "color": {
+     "mode": "opacity",
+     "fill": "dark-orange",
+     "scale": "exponential",
+     "exponent": 0.5,
+     "steps": 64
+    },
+    "cellGap": 1,
+    "rowsFrame": {
+     "layout": "auto"
+    },
+    "legend": {
+     "show": true
+    },
+    "tooltip": {
+     "mode": "single",
+     "yHistogram": false
+    }
+   }
+  },
+  {
+   "id": 3,
+   "title": "${indoor} against ${outdoor}, hourly means",
+   "type": "xychart",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "One dot per hour. Above the diagonal the room is worse than outside: the source is indoors.",
+   "gridPos": {
+    "x": 14,
+    "y": 9,
+    "w": 10,
+    "h": 10
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "WITH h AS (\n  SELECT date_trunc('hour', r.ts) AS hr, r.sensor_id, avg(r.value) AS v FROM readings r\n  WHERE $__timeFilter(r.ts) AND r.ts <= now() AND r.metric = '${metric}' AND r.sensor_id IN ('${indoor}', '${outdoor}')\n  GROUP BY 1, 2)\nSELECT o.v AS outdoor, i.v AS indoor\nFROM h i JOIN h o ON o.hr = i.hr AND o.sensor_id = '${outdoor}' WHERE i.sensor_id = '${indoor}'",
+     "format": "table",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "show": "points",
+      "pointSize": {
+       "fixed": 4
+      }
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "mapping": "auto",
+    "series": [
+     {}
+    ],
+    "legend": {
+     "showLegend": false
+    }
+   }
+  },
+  {
+   "id": 4,
+   "title": "When each sensor was heard (readings per 3 h, red = silent)",
+   "type": "status-history",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "Every sensor of the household's, every three hours, the ones that have gone quiet included. A sensor that never spoke is a red row.",
+   "gridPos": {
+    "x": 0,
+    "y": 19,
+    "w": 24,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "WITH sn AS (SELECT sensor_id, coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS label FROM sensors s WHERE s.local AND s.kind = 'sensor'),\ntb AS (SELECT generate_series(to_timestamp(floor(extract(epoch FROM $__timeFrom()::timestamptz) / 10800) * 10800),\n                              least($__timeTo()::timestamptz, now()), interval '3 hours') AS b),\nc AS (SELECT to_timestamp(floor(extract(epoch FROM r.ts) / 10800) * 10800) AS b, r.sensor_id, count(*) AS n\n      FROM readings r WHERE $__timeFilter(r.ts) AND r.ts <= now() GROUP BY 1, 2)\nSELECT tb.b AS time, sn.label AS metric, coalesce(c.n, 0) AS value\nFROM tb CROSS JOIN sn LEFT JOIN c ON c.b = tb.b AND c.sensor_id = sn.sensor_id ORDER BY 1",
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "color": {
+      "mode": "thresholds"
+     },
+     "custom": {
+      "lineWidth": 0,
+      "fillOpacity": 90
+     },
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "red",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 1
+       },
+       {
+        "color": "green",
+        "value": 6
+       }
+      ]
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "showValue": "never",
+    "rowHeight": 0.85,
+    "legend": {
+     "showLegend": false
+    },
+    "colWidth": 1
+   }
+  },
+  {
+   "id": 5,
+   "title": "Outside: every station the node reads, and the model",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "Hourly means of every outdoor sensor, the neighbours' included, and the model where there is one (dashed). Click a name to isolate it.",
+   "gridPos": {
+    "x": 0,
+    "y": 28,
+    "w": 16,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "SELECT $__timeGroupAlias(r.ts, '1h'), coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) AS metric, avg(r.value) AS value\nFROM readings r JOIN sensors s USING (sensor_id)\nWHERE $__timeFilter(r.ts) AND r.ts <= now() AND s.indoor IS NOT TRUE\n  AND ((s.kind = 'sensor' AND r.metric = '${metric}') OR (s.kind = 'model' AND r.metric = '${metric}_model'))\nGROUP BY 1, 2 ORDER BY 1",
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "insertNulls": 10800000,
+      "spanNulls": false,
+      "lineWidth": 1
+     }
+    },
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": ".*model.*"
+      },
+      "properties": [
+       {
+        "id": "custom.lineStyle",
+        "value": {
+         "fill": "dash",
+         "dash": [
+          6,
+          4
+         ]
+        }
+       },
+       {
+        "id": "custom.lineWidth",
+        "value": 2
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "timeFrom": "14d"
+  },
+  {
+   "id": 6,
+   "title": "Radios: how busy the LoRa channel is",
+   "type": "timeseries",
+   "datasource": {
+    "type": "grafana-postgresql-datasource",
+    "uid": "planetai-node"
+   },
+   "description": "Airtime and channel use each Meshtastic radio reports. Empty on a node with no radio.",
+   "gridPos": {
+    "x": 16,
+    "y": 28,
+    "w": 8,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "grafana-postgresql-datasource",
+      "uid": "planetai-node"
+     },
+     "rawSql": "SELECT $__timeGroupAlias(r.ts, $__interval), coalesce(nullif(s.room, ''), nullif(s.name, ''), s.sensor_id) || ' ' || r.metric AS metric, avg(r.value) AS value\nFROM readings r JOIN sensors s USING (sensor_id)\nWHERE $__timeFilter(r.ts) AND r.ts <= now() AND r.metric IN ('lora_util_pct', 'lora_channel_pct')\nGROUP BY 1, 2 ORDER BY 1",
+     "format": "time_series",
+     "rawQuery": true,
+     "editorMode": "code"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "insertNulls": 1800000,
+      "spanNulls": false,
+      "lineWidth": 1
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "timeFrom": "7d"
+  }
+ ]
+}

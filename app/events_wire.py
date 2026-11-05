@@ -21,7 +21,16 @@ ORDER = ("danger", "sustained", "unusual", "spike", "ahead")   # which open even
 HOLD = dt.timedelta(hours=3)                                   # Not now: docs/SPEC_alerts.md §7
 RECENT = dt.timedelta(days=7)                                  # Act's record (§4.3)
 OUTSIDE = {"apparent": "temp", "temp": "temp", "pm25": "pm25"}  # an issue's metric -> events_pg.context's outside_*
-SENT_ACTION = "\n\n👉 "                                         # how actions.render puts the action under the story
+SENT_ACTION = "\n"              # how actions.render puts the action under the story, since 14 Oct (one sign per message)
+SENT_ACTION_OLD = "\n\n👉 "     # how it did before: messages already sent keep it, and their cards still find the action
+
+
+def _action_of(said: str):
+    """The action line of a sent message: under the story, in the old shape or the new one; None when there is none."""
+    for sep in (SENT_ACTION_OLD, SENT_ACTION):
+        if sep in said:
+            return said.split(sep, 1)[1]
+    return None
 
 
 def engine_of(value) -> str:
@@ -84,13 +93,22 @@ def build(engine, events, messages, answers, covered, contexts, decl, locale, no
                "opened_at": _iso(e["opened_at"]), "last_seen_at": _iso(e["last_seen_at"]), "cleared_at": _iso(cleared),
                "peak": e.get("peak"), "line": (issue.get("line") or {}).get("value"),
                "rooms": sorted(e.get("rooms") or []), "places": sorted(e.get("places") or []),
-               "action": ({"id": am["action_id"], "text": said.split(SENT_ACTION, 1)[1] if SENT_ACTION in said else None}
+               "action": ({"id": am["action_id"], "text": _action_of(said)}
                           if am else None),
                "message": {"text": m.get("text"), "ts": _iso(m["ts"]), "sent": bool(m.get("sent"))} if m else None,
                "alerts": sorted(covered.get(eid) or []),
                "answer": _answer(a, e["kind"])}
+        # Whether the card still asks: until somebody answers, and again once a Not now's hold has run out (the node
+        # asks again then). Every page draws its buttons from this, so an answered card never offers them twice.
+        held = (row["answer"] or {}).get("held_until")
+        row["asking"] = cleared is None and (a is None or (a["stage"] == "acknowledged" and held is not None
+                                                            and _t(held) <= now))
         if cleared is None:
             ctx, key = contexts.get(eid) or {}, OUTSIDE.get(issue.get("metric"))
+            # The card is the present: its action is chosen again from the context as it is now. The message that
+            # was sent keeps its words, as history.
+            if ctx:
+                row["action"] = A.now_say(issue, ctx, locale, e.get("rooms"), e.get("peak")) or row["action"]
             outside = ctx.get(f"outside_{key}") if key else None
             # outside_source only describes the temperature; an outside PM2.5 always came from an outdoor sensor
             came = None if outside is None else "outside" if key == "pm25" else ctx.get("outside_source")
@@ -158,11 +176,36 @@ def live(cur, decl: dict, locale: str, now: dt.datetime) -> dict:
     answers = [dict(x) for x in cur.fetchall()]
     covered, contexts = {}, {}
     for e in events:
-        # Until Plan 2 writes alerts.event_id, an event covers its issue's packs' rows inside its own window.
-        packs = [p for p, i in P.PACK_ISSUE.items() if i == e["issue"]] or [e["issue"]]
+        # Until Plan 2 writes alerts.event_id, an event covers its issue's pack's rows inside its own window.
+        packs = [(decl.get(e["issue"]) or {}).get("pack") or e["issue"]]      # the pack that ships the issue
         cur.execute("SELECT id FROM alerts WHERE event_id = %s OR (split_part(rule_id, '/', 1) = ANY(%s) "
                     "AND ts >= %s AND ts <= %s)", (e["id"], packs, e["opened_at"], e["cleared_at"] or now))
         covered[e["id"]] = [x["id"] for x in cur.fetchall()]
         if e["cleared_at"] is None and engine != "rules":
             contexts[e["id"]] = _context(cur, P, e, (decl.get(e["issue"]) or {}).get("metric"), r["hour"], now)
-    return build(engine, events, messages, answers, covered, contexts, decl, locale, now, tz)
+    out = build(engine, events, messages, answers, covered, contexts, decl, locale, now, tz)
+    out["sent_24h"] = _sent(cur, engine, now)
+    return out
+
+
+LEVELS = {"act": 2, "warn": 1, "info": 0}
+
+
+def _sent(cur, engine: str, now: dt.datetime) -> int:
+    """What reached a phone in the last 24 hours, for the Node door's "Alerts, to a phone". An alerts row is written
+    whether or not it was sent, so this counts what run_rules sends (app/main.py): a row at ALERT_LEVEL or above, never
+    one of a pack the event engine speaks for once it has spoken (learn.silent), and the engine's own sent messages.
+    Counting every row said 30 on node #1 when the engine had sent a handful.
+    ponytail: quiet hours leave no trace in the table, so a warn they held still counts; a `sent` column if it matters."""
+    import learn                     # noqa: PLC0415
+    import packs                     # noqa: PLC0415
+    floor = LEVELS.get(settings.get("ALERT_LEVEL", "act"), LEVELS["act"])
+    replaced = {r["id"].split("/", 1)[0] for r in packs.load_rules() if r.get("kind")} if engine == "events" else set()
+    cur.execute("SELECT min(ts) AS since FROM event_messages WHERE mode = 'events'")
+    since = (cur.fetchone() or {}).get("since")
+    cur.execute("SELECT rule_id, level, ts FROM alerts WHERE ts > %s", (now - dt.timedelta(hours=24),))
+    rows = [x for x in cur.fetchall() if LEVELS.get(x.get("level"), 0) >= floor
+            and not learn.silent(x.get("rule_id") or "", x.get("ts"), replaced, since)]
+    cur.execute("SELECT count(*) AS n FROM event_messages WHERE sent AND mode = 'events' AND ts > %s",
+                (now - dt.timedelta(hours=24),))
+    return len(rows) + int((cur.fetchone() or {}).get("n") or 0)

@@ -30,3 +30,10 @@ notes: |
   planet total). No sub-national. A bioregion is a sum or filter of ISO3
   country rows. Also carries NY.ADJ.* adjusted net savings and depletion
   series as a partial natural-capital signal.
+  ENERGY, read 2026-10-13 by fabcity/fci-index compute/energy.py: EG.IMP.CONS.ZS (net energy imports, % of energy use,
+  1990-2024, 25 of the 26 tracker countries; Bhutan absent) and EG.USE.PCAP.KG.OE (kg of oil equivalent per person).
+  The series metadata (sources/2/series/EG.IMP.CONS.ZS/metadata) carries License_Type CC BY-4.0 and names the IEA
+  Energy Statistics Data Browser as source, accessed 2025-03-25; the Bank's licence, not the IEA's, is what it grants.
+  EG.EGY.PROD.KT.OE and EG.USE.COMM.KT.OE (production and use in ktoe) are retired: "The indicator was not found".
+  The country/all query with per_page=20000 answers in about three minutes. Read as the energy half of the Index's
+  country bracket (index.fab.city/countries): one minus net imports over use is the share made at home.

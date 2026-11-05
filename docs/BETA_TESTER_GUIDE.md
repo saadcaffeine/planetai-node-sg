@@ -27,7 +27,7 @@ Basics → Alert language, or `ALERT_LOCALE=es` in `.env`.
 Open a terminal and paste:
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 What happens, in order:
@@ -43,8 +43,8 @@ What happens, in order:
    - *Do you have a sensor?* — pick `1`, *None yet*. You can add one later.
 3. *Here's the plan* — check the place and the time zone, press Enter.
 4. *Installing* — one to three minutes the first time (it downloads the database image and builds the node's image).
-5. A checklist. **Two crosses are normal now**: *telegram connected* and *a backup exists*. Telegram comes next; the
-   first backup runs tonight at 03:17.
+5. A checklist, then **To finish setting up**. **Two lines are normal there now**: *Connect Telegram* and *No backup
+   yet*. Telegram comes next; the first backup runs tonight at 03:17.
 6. **The green screen: "Your node is running."** It shows the dashboard address (`http://localhost:8080`), the address
    for your phone on the same WiFi, and the settings token (write it down; `planetai ui` shows it again). Then
    *What now?* Press `o` to open the dashboard, `t` to connect Telegram, or Enter to stay in the terminal.

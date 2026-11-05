@@ -235,6 +235,17 @@ assert one["events"] == [{"id": 2, "issue": "air", "kind": "danger", "level": "a
                           "opened_at": "2026-10-05T23:18:00+00:00", "cleared_at": None}]
 assert engine.days(Cur(SNAP), Settings(), DECL, 0, now=NOW)["days"] == 1
 assert engine.days(Cur(SNAP), Settings(), DECL, 500, now=NOW)["days"] == engine.DAYS_MAX == 90
+# The past hours speak the node's words: one [title, tagline] per bucket in the locale asked for, words only in
+# the title, the reading in the tagline; a context issue has none, and another locale is another language.
+for k, v in one["issues"].items():
+    if v["hours"] is None:
+        assert DECL[k]["kind"] != "sensed" or v["distance"] is None, f"{k}: a sensed issue lost its hours"
+        continue
+    h = v["hours"]["en"]
+    assert len(h) == len(one["buckets"]), f"{k}: {len(h)} hours for {len(one['buckets'])} buckets"
+    assert all(t and (not g or not any(c.isdigit() for c in t)) and "{" not in t + g for t, g in h), f"{k}: {h[-2]}"
+    es = engine.days(Cur(SNAP, EV), Settings(), DECL, 1, now=NOW, loc="es")["issues"][k]["hours"]
+    assert list(es) == ["es"] and es["es"][-2] != h[-2], f"{k}: es reads {es['es'][-2]}"
 print("  /issues/days: one day is /issues' own 24 values; the node counts hours over per local day; 1 to 90 days")
 
 # Across a daylight-saving change the buckets are stepped in UTC and shown in the node's zone: Madrid's 25 October holds

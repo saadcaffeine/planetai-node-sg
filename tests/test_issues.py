@@ -4,7 +4,7 @@
   · every enabled pack's domain reaches an issue, or is named here as deliberately not one
   · every alert rule a cross-domain pack ships is claimed by an issue, or named here
   · the line each issue names is the same number as the pack rule it points at
-  · a synthetic water.yml loads and appears, with no code change anywhere
+  · a synthetic tap-water issue loads and appears, with no code change anywhere
   · NODE_ISSUES parsing: unknown names dropped, empty falls back, duplicates collapse
 
 Run: PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues.py
@@ -34,15 +34,47 @@ logging.getLogger("planetai.issues").setLevel(logging.ERROR)
 fails = []
 DECL = I.load()
 
-# --- the four shipped files validate -------------------------------------------------------------
-for want in ("air", "heat", "land", "coast"):
+# --- the five shipped files validate -------------------------------------------------------------
+# Since 23 Oct 2026 an issue ships in the pack that watches it (packs/<id>/issue.yml), read while that pack is on.
+OWNER = {"air": "air-quality", "heat": "heat", "land": "earth", "coast": "coast", "water": "terrain"}
+for want, pk in OWNER.items():
     if want not in DECL:
-        raw = yaml.safe_load((ROOT / f"app/issues/{want}.yml").read_text()) or {}
-        fails += [f"app/issues/{want}.yml: {b}" for b in I._problems(want, raw)] or \
-                 [f"app/issues/{want}.yml does not load"]
-shipped = {p.stem for p in (ROOT / "app/issues").glob("*.yml")}
+        raw = yaml.safe_load((ROOT / f"packs/{pk}/issue.yml").read_text()) or {}
+        fails += [f"packs/{pk}/issue.yml: {b}" for b in I._problems(want, raw)] or \
+                 [f"packs/{pk}/issue.yml does not load"]
+shipped = {yaml.safe_load(p.read_text()).get("key") for p in (ROOT / "packs").glob("*/issue.yml")}
 for extra in shipped - set(DECL):
-    fails.append(f"app/issues/{extra}.yml exists but did not validate")
+    fails.append(f"an issue.yml declares {extra!r}, which did not validate")
+assert not list((ROOT / "app/issues").glob("*.yml")), "the core ships no issue of its own; each is its pack's"
+assert all(yaml.safe_load((ROOT / f"packs/{pk}/issue.yml").read_text())["key"] == k for k, pk in OWNER.items())
+
+# update.sh step 5d: a node that lists its packs keeps the issues it draws, by gaining the pack that ships each one.
+import os as _os, subprocess as _sp, tempfile as _tf
+_u = open(ROOT / "update.sh").read()
+_step = _u[_u.index("# 5d."):_u.index("# 5e.")]
+_STUB = r"""
+pq() {   # the settings table, as a key=value file
+  if [[ "$1" == SELECT* ]]; then k="$(sed -E "s/.*key = '([A-Z_]+)'.*/\1/" <<< "$1")"; sed -n "s/^${k}=//p" "$DB"
+  else add="$(sed -E "s/.*\|\| ',([a-z-]+)'.*/\1/" <<< "$1")"; sed -i.bak -E "s/^(PACKS_ENABLED=.+)$/\1,${add}/" "$DB"; rm -f "$DB.bak"; fi
+}
+"""
+def _5d(db, env):
+    with _tf.TemporaryDirectory() as t:
+        open(f"{t}/db", "w").write(db); open(f"{t}/.env", "w").write(env)
+        _sp.run(["bash", "-c", "set -euo pipefail\n" + _STUB + _step], cwd=t, env={**_os.environ, "DB": f"{t}/db"},
+                capture_output=True, text=True, check=True)
+        return open(f"{t}/db").read(), open(f"{t}/.env").read()
+_db, _ = _5d("NODE_ISSUES=air,heat\nPACKS_ENABLED=smartcitizen,heat\n", "")
+assert _db.endswith("PACKS_ENABLED=smartcitizen,heat,air-quality\n"), _db
+assert _5d(_db, "")[0] == _db, "a second update changed the list again"
+_, _env = _5d("", "NODE_ISSUES=\nPACKS_ENABLED=heat\n")
+assert "PACKS_ENABLED=heat,air-quality,coast,earth,terrain" in _env, "NODE_ISSUES empty draws every issue: every owner"
+# Every shipped issue's pack is in 5d's list: on 23 Oct 2026 `water` shipped without it, so naming water in a node's
+# NODE_ISSUES drew nothing on a node that lists its packs (node #1 does).
+_pairs = set(_step.split("for owned in ", 1)[1].split(";", 1)[0].split())
+assert _pairs == {f"{k}:{pk}" for k, pk in OWNER.items()}, _pairs
+assert _5d("NODE_ISSUES=air\n", "PACKS_ENABLED=\n") == ("NODE_ISSUES=air\n", "PACKS_ENABLED=\n"), "an empty list is every pack"
+print("  update.sh 5d: a node that lists its packs gains the pack of each issue it draws, once")
 
 # The validator has to actually refuse things, or "it validates" means nothing. Ten ways in.
 BREAKS = {
@@ -58,7 +90,7 @@ BREAKS = {
     "apparent on one metric": lambda d: d["distances"]["room"].__setitem__("metrics", ["temp"]),
 }
 for name, break_it in BREAKS.items():
-    d = yaml.safe_load((ROOT / "app/issues/air.yml").read_text())
+    d = yaml.safe_load((ROOT / "packs/air-quality/issue.yml").read_text())
     if name == "apparent on one metric":
         d["distances"]["room"]["function"] = "apparent"
     try:
@@ -83,11 +115,11 @@ HERO_BREAKS = {
     "one end word": lambda d: d["hero"]["rule"]["ends"].__setitem__("es", ["en calma"]),
 }
 for name, break_it in HERO_BREAKS.items():
-    d = yaml.safe_load((ROOT / "app/issues/coast.yml").read_text())
+    d = yaml.safe_load((ROOT / "packs/coast/issue.yml").read_text())
     break_it(d)
     if not I._problems("coast", d):
         fails.append(f"the validator accepts a hero with {name}")
-_ok = yaml.safe_load((ROOT / "app/issues/coast.yml").read_text())
+_ok = yaml.safe_load((ROOT / "packs/coast/issue.yml").read_text())
 _ok["hero"]["numeral"] = "swell_height_m"
 if I._problems("coast", _ok):
     fails.append("the validator refuses a hero whose numeral is one of the issue's own readouts")
@@ -154,12 +186,14 @@ for key, d in DECL.items():
                      f"the two moved; they must say the same thing.")
 
 # --- a fifth issue is a fifth file ---------------------------------------------------------------
+# Tap water, not `water`: since 23 Oct 2026 the terrain pack ships a real `water` issue (where rain runs), so the
+# synthetic one needs a key of its own.
 WATER = {
-    "name": {"en": "Water", "id": "Air bersih", "es": "Agua"},
+    "name": {"en": "Tap water", "id": "Air bersih", "es": "Agua del grifo"},
     "kind": "sensed", "metric": "turbidity", "unit": "NTU", "dp": 1,
     "compare": {"mode": "ratio", "margin": 1.5},
     "line": {"value": 5, "unit": "NTU", "source": "WHO drinking-water guideline", "sql": None},
-    "packs": {"domains": ["water"], "rules": []},
+    "packs": {"domains": ["tapwater"], "rules": []},
     "distances": {
         "room": {"from": "stats", "place": "room", "metrics": ["turbidity"], "field": "mean_15m",
                  "aggregate": "mean"},
@@ -171,19 +205,19 @@ WATER = {
     "empty": {loc: "No water sensor here yet." for loc in I.LOCALES},
 }
 with tempfile.TemporaryDirectory() as tmp:
-    for f in (ROOT / "app/issues").glob("*.yml"):
-        shutil.copy(f, tmp)
-    (Path(tmp) / "water.yml").write_text(yaml.safe_dump(WATER, allow_unicode=True))
+    for k, pk in OWNER.items():                       # the five shipped issues, as files in one directory
+        shutil.copy(ROOT / f"packs/{pk}/issue.yml", Path(tmp) / f"{k}.yml")
+    (Path(tmp) / "tapwater.yml").write_text(yaml.safe_dump(WATER, allow_unicode=True))
     five = I.load(tmp)
-    if "water" not in five:
-        fails.append("a synthetic water.yml did not load — adding an issue is not one file after all")
-    elif five["water"]["name"]["en"] != "Water":
-        fails.append("water.yml loaded but its name did not survive")
+    if "tapwater" not in five:
+        fails.append("a synthetic tapwater.yml did not load — adding an issue is not one file after all")
+    elif five["tapwater"]["name"]["en"] != "Tap water":
+        fails.append("tapwater.yml loaded but its name did not survive")
     if len(five) != len(DECL) + 1:
-        fails.append(f"loading five files gave {len(five)} issues")
-    got, dropped = I.order("air,water,heat", five)
-    if got != ["air", "water", "heat"]:
-        fails.append(f"NODE_ISSUES=air,water,heat gave {got} — a new issue must be orderable at once")
+        fails.append(f"loading six files gave {len(five)} issues")
+    got, dropped = I.order("air,tapwater,heat", five)
+    if got != ["air", "tapwater", "heat"]:
+        fails.append(f"NODE_ISSUES=air,tapwater,heat gave {got} — a new issue must be orderable at once")
     if dropped:
         fails.append(f"nothing should have been dropped, but {dropped} was")
 

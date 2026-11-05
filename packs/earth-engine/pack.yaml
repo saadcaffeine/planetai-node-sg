@@ -25,3 +25,6 @@ env:
 needs: >-
   A Google Earth Engine project (free for research and non-commercial use) and a service-account key:
   EE_PROJECT, EE_SERVICE_ACCOUNT, EE_KEY_FILE in .env, with the key mounted read-only into the app container.
+# The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
+share:
+  open: [/earth/frame.png]

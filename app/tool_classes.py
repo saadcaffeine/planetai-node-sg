@@ -34,7 +34,7 @@ TOOL_CLASS = {
     "status": "read", "health_check": "read", "sensors": "read", "context": "read", "readings": "read",
     "report_latest": "read", "report_bundle": "read", "history": "read", "alerts": "read",
     "settings_get": "read", "packs": "read", "cells": "read", "issues": "read", "series": "read",
-    "export_day": "read",
+    "export_day": "read", "learned": "read",
     "act": "act",
     "settings_set": "admin", "run_pack_script": "admin", "maintenance": "admin", "report_now": "admin",
 }

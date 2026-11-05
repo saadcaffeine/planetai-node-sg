@@ -62,24 +62,9 @@ THINGDATA_SCALE:
 THINGDATA_MAX:
   default: "5000"
   help: "Refuse to count a collection larger than this, rather than report a truncated total as a total."
-BAD_ENABLED:
-  default: "1"
-  help: "---- reference / context sources (public data around you) ---- Bali Air Dispatch — island-wide aggregator for Bali. Set 0 outside Bali. (OpenAQ adapter for elsewhere: planned.)"
-BAD_RADIUS_KM:
-  default: "15"
-  help: "---- reference / context sources (public data around you) ---- Bali Air Dispatch — island-wide aggregator for Bali. Set 0 outside Bali. (OpenAQ adapter for elsewhere: planned.)"
-BAD_MIN_SEPARATION_M:
-  default: "150"
-  help: "The ring is other people's stations. These three keep this node's own kit from entering it a second time: how close a station has to be to this node before it is assumed to be our own hardware, station ids to drop by hand, and whether stations the archive suspects are indoors come through at all."
-BAD_EXCLUDE:
-  default: ""
-  help: "The ring is other people's stations. These three keep this node's own kit from entering it a second time: how close a station has to be to this node before it is assumed to be our own hardware, station ids to drop by hand, and whether stations the archive suspects are indoors come through at all."
-BAD_INCLUDE_INDOOR:
-  default: "0"
-  help: "The ring is other people's stations. These three keep this node's own kit from entering it a second time: how close a station has to be to this node before it is assumed to be our own hardware, station ids to drop by hand, and whether stations the archive suspects are indoors come through at all."
 POLL_SECONDS:
   default: "300"
-  help: "The ring is other people's stations. These three keep this node's own kit from entering it a second time: how close a station has to be to this node before it is assumed to be our own hardware, station ids to drop by hand, and whether stations the archive suspects are indoors come through at all."
+  help: "---- reference / context sources (public data around you) ---- Public stations around you come as packs: packs/bali-air-dispatch in Bali (presets/bali.env turns it on)."
 SC_USER:
   default: ""
   help: "---- integrations ---- Discover every kit in a Smart Citizen account instead of listing ids. They are all yours; indoor or outdoor comes from each kit's own setting. SC_EXCLUDE leaves out kits that belong to another site."
@@ -107,21 +92,24 @@ REPORT_ANCHOR:
 REPORT_DEPTH:
   default: ""
   help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report."
+LEARN_PUSH:
+  default: ""
+  help: "all | week | off. Blank = all: the first report each day also carries, on Telegram only, yesterday's diary entry (the week's on Mondays, the month's on the 1st) and what the node's learnings changed."
 ALERT_LEVEL:
   default: "act"
-  help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report. act | warn | info — what reaches your phone between reports; everything is still recorded"
+  help: "The lowest level of alert sent to your phone between reports. act | warn | info — what reaches your phone between reports; everything is still recorded"
 QUIET_HOURS:
   default: "1"
-  help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report."
+  help: "1 = between QUIET_FROM and QUIET_TO (local hours) only act-level alerts are sent; the rest wait for the morning report."
 QUIET_FROM:
   default: "22"
-  help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report."
+  help: "Local hour quiet starts."
 QUIET_TO:
   default: "6"
-  help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report."
+  help: "Local hour quiet ends."
 ALERT_LOCALE:
   default: "en"
-  help: "auto | brief | standard | deep. Blank = auto. Nothing until a model is in the path of a report. en | id | es   (every rules.yml carries all three)"
+  help: "Language of the alerts and reports. en | id | es   (every rules.yml carries all three)"
 ALERT_ENGINE:
   default: "rules"
   help: "rules (default) | shadow | events. docs/SPEC_alerts.md: shadow records what the event engine would send and sends nothing; events sends the engine's heat and air messages instead of the old heat and air rules."
@@ -146,6 +134,15 @@ DECISION_REQUIRED:
 COMPOSE_PROFILES:
   default: ""
   help: "---- optional layers (set by `planetai meshtastic` / `planetai reticulum`; leave alone by hand) ---- Which extra containers to run: mqtt, reticulum, or both, comma-separated. Empty = the two base containers only."
+GRAFANA_PORT:
+  default: "3000"
+  help: "Grafana (profile grafana, `planetai grafana`): the port, the address it listens on (127.0.0.1 = this machine only; 0.0.0.0 = the house network, after a password) and its admin password (blank = admin). docs/site/grafana.md"
+GRAFANA_BIND:
+  default: "127.0.0.1"
+  help: "Grafana (profile grafana, `planetai grafana`): the port, the address it listens on (127.0.0.1 = this machine only; 0.0.0.0 = the house network, after a password) and its admin password (blank = admin). docs/site/grafana.md"
+GRAFANA_ADMIN_PASSWORD:
+  default: ""
+  help: "Grafana (profile grafana, `planetai grafana`): the port, the address it listens on (127.0.0.1 = this machine only; 0.0.0.0 = the house network, after a password) and its admin password (blank = admin). docs/site/grafana.md"
 MQTT_HOST:
   default: ""
   help: "Meshtastic via MQTT. The gateway radio publishes to the node's Mosquitto with these credentials."
@@ -170,6 +167,9 @@ MESH_TG_FORWARD:
 MESH_GATEWAY_NODE_NUM:
   default: "0"
   help: "The gateway's node number (decimal), used as the sender for downlink. `planetai meshtastic` shows how to find it."
+RADIO_PEERS:
+  default: ""
+  help: "Other nodes this node's broker bridges to (planetai radio federate): name=<tailnet host>:1883:<their MQTT_PASS>,… Only fabcity/ topics cross: text and alerts on the fabcity channel, and presence. Never a reading."
 RETICULUM_URL:
   default: ""
   help: "Reticulum bridge (LXMF). Alert destinations: LXMF address hashes from Sideband, comma-separated, no spaces."
@@ -199,13 +199,16 @@ ACT_TOKEN:
   help: "weaker token for recording that someone acted on an alert (POST /actions) from off this machine; it cannot read a secret or change a setting. planetai ui generates it and shows it beside the admin token."
 SHARE_LEVEL:
   default: "off"
-  help: "What a request carrying no token may read. off (default) = the dashboard, /health with the position rounded to 110 m, the daily export, the layout. open = the whole read API to anything on your network, which is what a wall screen or a phone needs; writes still need a token. A request WITH a token reads everything at either level, from anywhere, so the NAS, Home Assistant and the agent are unaffected. The building's plan needs a token always."
+  help: "What a request carrying no token may read. off (default) = the dashboard, /health with the position as the centre of the node's resolution 8 cell, the daily export, the layout. open = the whole read API to anything on your network, which is what a wall screen or a phone needs; writes still need a token. A request WITH a token reads everything at either level, from anywhere, so the NAS, Home Assistant and the agent are unaffected. The building's plan needs a token always."
 MAP_TILES:
   default: "off"
   help: "dashboard: live map tiles (satellite and street) under the cells. Each tile request tells a tile server which square of the planet this house is looking at, so this is off until a keeper turns it on in Set up. off | on"
 UPDATE_CHECK:
   default: "on"
-  help: "Once a day, ask planetai.fab.city which version is current, and say so in the header, planetai doctor and once on Telegram when a newer one is out. The request carries nothing about this house, but it shows this house's internet address to Fab City's host. Nothing is installed: planetai update stays yours to run. on | off"
+  help: "Every hour, ask planetai.fab.city which version is current and read the programme's list of nodes from GitHub, and say so in the header, planetai doctor and once on Telegram when a newer version is out. The request carries nothing about this house, but it shows this house's internet address to Fab City's host. Nothing is installed: planetai update stays yours to run. on | off"
+SPECIES_MATCH:
+  default: "off"
+  help: "Name the species in images with GBIF: a plant or animal's scientific name is asked of api.gbif.org, and nothing else, never the picture or where it was taken. GBIF's server sees this house's internet address. Weekly, it also reads this country's list of introduced and invasive species (GRIIS), which tells GBIF the country (from NODE_TZ), and counts the open records others made in the node's seven cells, which tells GBIF the area, about 2 km across. off | on"
 STATIONS_SHOWN:
   default: "3"
   help: "How many of the neighbourhood's stations the dashboard lists, nearest first. 0 lists every one; this node's own hardware is always listed and is never counted here."
@@ -242,6 +245,9 @@ IPFS_PUBLISH:
 DATA_DIR:
   default: ""
   help: "Where the live database lives. Blank = a Docker volume on this machine. A path = a LOCAL disk or partition only."
+CAPTURES_DIR:
+  default: ""
+  help: "Where the pictures the household takes are kept (SPEC_eyes). Blank = ./out/captures on this machine. Unlike DATA_DIR this MAY be a NAS share or any mounted storage — these are files, not Postgres. The node refuses a capture with a clear error, and `planetai doctor` goes red, when the folder is missing or not writable. Change it with: planetai storage set captures <dir>"
 EE_PROJECT:
   default: ""
   help: "---- code packs (only needed if you enable the pack that uses them; see packs/<id>/README.md) ---- earth-engine: a registered Earth Engine project and a service-account key"
@@ -283,13 +289,13 @@ AGENT_PREFER:
   help: "private   = nothing leaves your network. This is the default, and it is the default because the alternative is a household that pasted a key into the Model page and never opened this line having its report bundle — its numbers, its room names, its own sentences — sent to somebody else's API first. fallback  = your own remote model, then online, then the small local one. Online sits above local on purpose: a rung is skipped only when it fails, and a 4B model never fails, it answers badly. Local is the floor that still works with no internet. strongest = online, remote, local in that order — every question goes to the online model when one is set. This decides for the dashboard's ask pane too. With fallback or strongest, what somebody asks there and the page's own sentences and numbers (never a position, a sensor name or an id) go to the online provider."
 AGENT_REMOTE_URL:
   default: ""
-  help: "A bigger model on another machine of yours, on this network or the tailnet. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
+  help: "A bigger model on another machine of yours, on this network or the tailnet. An address outside both counts as online, so private does not use it. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
 AGENT_REMOTE_MODEL:
   default: "gpt-oss-120b"
-  help: "A bigger model on another machine of yours, on this network or the tailnet. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
+  help: "A bigger model on another machine of yours, on this network or the tailnet. An address outside both counts as online, so private does not use it. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
 AGENT_REMOTE_KEY:
   default: ""
-  help: "A bigger model on another machine of yours, on this network or the tailnet. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
+  help: "A bigger model on another machine of yours, on this network or the tailnet. An address outside both counts as online, so private does not use it. Ollama on a laptop: http://<laptop>.local:11434/v1, with OLLAMA_HOST=0.0.0.0 set on the laptop. exo: http://100.107.91.18:8082/v1 Comments go ABOVE a key that ships blank, never after it: compose's env_file strips a trailing comment only when the key has a value, so `KEY=   # note` hands the container \"# note\" as the value. That is how node #1 came to hold the text of this file's own comment in AGENT_ONLINE_URL."
 AGENT_ONLINE_URL:
   default: ""
   help: "https://api.anthropic.com/v1 · https://api.openai.com/v1 · https://generativelanguage.googleapis.com/v1beta/openai The URL and nothing else. A value that is not a URL is not a rung: the agent logs it and skips that rung."
@@ -299,3 +305,6 @@ AGENT_ONLINE_MODEL:
 AGENT_ONLINE_KEY:
   default: ""
   help: "Ask the key which models it can actually see, and paste an id from that list: curl -s \"$AGENT_ONLINE_URL/models\" -H \"Authorization: Bearer $AGENT_ONLINE_KEY\" | grep -o '\"id\":\"[^\"]*\"' Worth doing rather than trusting a name you remember. Providers retire models, and a retired one answers 404, which reads like a bad key or a wrong URL — node #1 lost an evening to `gemini-2.5-flash`, gone by then. Gemini also prefixes its ids: models/gemini-3.8-flash, not gemini-3.8-flash. Its key comes from aistudio.google.com; a Gemini *app* subscription is a different product and carries no API access."
+EYES_MODEL:
+  default: ""
+  help: "The image model (SPEC_eyes step 2): a vision model in this machine's Ollama that describes each image and lists what it finds. Local only; the picture never leaves. Blank = off. On 16 GB: qwen2.5vl:7b (ollama pull qwen2.5vl:7b). Each upload form has a Describe it box; Data, Images can describe any image again."

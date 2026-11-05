@@ -1,0 +1,21 @@
+id: eyes
+name: Eyes
+description: >-
+  The pictures a household takes of its own place (microscope, phone, camera, drone, balloon), cleaned on arrival and
+  kept on its own disk; what the node's own image model sees in them, as findings in the flows classes; the species
+  GBIF names for them, with whether this country lists them as introduced or invasive (GRIIS) and how many open records
+  others have made in the node's seven cells. Core until 24 October 2026.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.83.0" }
+kind: code
+domain: species
+scales: [community]
+needs: >-
+  A disk for the pictures (CAPTURES_DIR). The image model on this house's own network (EYES_MODEL). For names, with
+  SPECIES_MATCH on: api.gbif.org, asked a scientific name and nothing else.
+thresholds: >-
+  None. A finding is the model's until a person confirms it; nothing here raises an alert.
+attribution: >-
+  Species names: GBIF Backbone Taxonomy, gbif.org. Introduced and invasive: GRIIS, the Global Register of Introduced
+  and Invasive Species, through GBIF.

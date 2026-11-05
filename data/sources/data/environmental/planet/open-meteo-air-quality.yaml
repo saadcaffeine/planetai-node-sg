@@ -12,21 +12,21 @@ api: https://air-quality-api.open-meteo.com/v1/air-quality
 pilot_relevance: [global]
 tags: [air-quality, pm25, cams, copernicus, model, forecast, reanalysis]
 added: 2026-09-18
-adapter: core:openmeteo_air
+adapter: pack:air-quality
 feeds_cells: []
 auth: none
 upstream_listed_in: []
 notes: |
   Model output, not measurement: at a node this is the reference row, never
   `live`. Free for non-commercial use; commercial use needs an Open-Meteo
-  subscription. PLANETAI: `app/sources.py::openmeteo_air()` samples it hourly
-  at the node's coordinates as sensor `cams-point` (kind=model, scale=planet)
-  and `app/bootstrap.py::cams_history()` pulls the 92-day history at first
-  start. Where no public sensor is within reach, the indoor/outdoor rule
-  compares against this and names it in the alert.
+  subscription. PLANETAI: `packs/air-quality/adapter.py` samples it hourly at
+  the node's coordinates as sensor `cams-point` (kind=model, scale=planet),
+  and its `history()` pulls the 92 days at first start. Both were core
+  (`app/sources.py`, `app/bootstrap.py`) until fabcity/planetai-node#344.
+  Where no public sensor is within reach, the indoor/outdoor rule compares
+  against this and names it in the alert.
 
-  PLANETAI: two readers. `app/sources.py::openmeteo_air()` samples it hourly and
-  `app/bootstrap.py::cams_history()` backfills 92 days at first start; `adapter` names the first.
-  `feeds_cells` is empty on purpose: both write `pm25_model` to a sensor stamped `kind='model'`,
-  and every pack cell requires `s.custody` or `s.kind='sensor'`. This is a boundary condition a
-  local reading is compared against, not an Index cell. Deliberate — see docs/SPEC_custody.md.
+  `feeds_cells` is empty on purpose: it writes `pm25_model` to a sensor
+  stamped `kind='model'`, and every pack cell requires `s.custody` or
+  `s.kind='sensor'`. A boundary condition a local reading is compared
+  against, not an Index cell. See docs/SPEC_custody.md.

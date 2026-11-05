@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS alerts (
   text      TEXT
 );
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS id BIGSERIAL;
+-- the buttons a rule offered with this alert (app/buttons.py normalizes them before they are stored)
+ALTER TABLE alerts ADD COLUMN IF NOT EXISTS buttons JSONB;
 CREATE INDEX IF NOT EXISTS alerts_cooldown ON alerts (rule_id, sensor_id, ts DESC);
 
 -- The ρ instrument. A human (or an app on their behalf) records what happened after an alert.
@@ -65,38 +67,77 @@ CREATE TABLE IF NOT EXISTS actions (
   actor     TEXT,
   note      TEXT
 );
+-- which of the alert's buttons was pressed; the note stays what the person said
+ALTER TABLE actions ADD COLUMN IF NOT EXISTS choice TEXT;
 
--- Hourly means. A plain view is fine until this node holds millions of rows; then materialize it.
+-- Hourly means. Finished hours are kept in readings_1h_done; the view reads them and groups only the readings from
+-- the table's last hour onward, live. Until 22 Oct 2026 the view grouped every reading ever stored on every read:
+-- 434 ms for the last two hours on node #1, 2.7 s for ninety days. app/main.py::refresh_hourly fills the table: the
+-- last 26 hours every hour (late child pushes, a radio that caught up), the whole of it on start and once a day
+-- (a backfill, a deletion). The live half starts where the table ends, so an empty or stale table makes the view
+-- slower, never shorter. Buckets are cut in the session's time zone, NODE_TZ, as the view always cut them.
+CREATE TABLE IF NOT EXISTS readings_1h_done (
+  bucket    TIMESTAMPTZ NOT NULL,
+  sensor_id TEXT NOT NULL,
+  metric    TEXT NOT NULL,
+  mean      DOUBLE PRECISION,
+  min       DOUBLE PRECISION,
+  max       DOUBLE PRECISION,
+  n         BIGINT,
+  PRIMARY KEY (sensor_id, metric, bucket)
+);
+CREATE INDEX IF NOT EXISTS readings_1h_done_bucket ON readings_1h_done (bucket);
+CREATE INDEX IF NOT EXISTS readings_ts ON readings (ts);    -- the live half reads only the last hour or two
 DROP VIEW IF EXISTS readings_1h CASCADE;
 CREATE VIEW readings_1h AS
-SELECT date_trunc('hour', ts) AS bucket, sensor_id, metric,
-       avg(value) AS mean, min(value) AS min, max(value) AS max, count(*) AS n
-FROM readings GROUP BY 1, 2, 3;
+SELECT d.bucket, d.sensor_id, d.metric, d.mean, d.min, d.max, d.n FROM readings_1h_done d
+UNION ALL
+SELECT date_trunc('hour', r.ts) AS bucket, r.sensor_id, r.metric,
+       avg(r.value) AS mean, min(r.value) AS min, max(r.value) AS max, count(*) AS n
+FROM readings r
+WHERE r.ts >= (SELECT COALESCE(max(bucket) + INTERVAL '1 hour', '-infinity'::timestamptz) FROM readings_1h_done)
+GROUP BY 1, 2, 3;
 
--- Rolling stats per sensor/metric, used by rules. One row per (sensor, metric).
+-- Rolling stats per sensor/metric, used by rules. One row per (sensor, metric). Aggregated on (sensor_id, metric) alone
+-- and joined to the sensor after: grouping on all nine columns sorted every reading of the day by them, 320 ms on
+-- node #1 (24 Oct 2026), 133 ms this way, the same rows. Rolling stats are for sensors only: slow sources (portals,
+-- models) live in the `observations` view.
 DROP VIEW IF EXISTS stats CASCADE;
 CREATE VIEW stats AS
-SELECT r.sensor_id, r.metric, s.indoor, s.local, s.kind, s.scale, s.lat, s.lon, s.name,
-       (array_agg(r.value ORDER BY r.ts DESC))[1]                          AS last,
-       max(r.ts)                                                             AS last_ts,
-       extract(epoch FROM now() - max(r.ts)) / 60                            AS silent_minutes,
-       avg(r.value) FILTER (WHERE r.ts > now() - interval '15 minutes')      AS mean_15m,
-       avg(r.value) FILTER (WHERE r.ts > now() - interval '1 hour')          AS mean_1h,
-       avg(r.value) FILTER (WHERE r.ts > now() - interval '24 hours')        AS mean_24h
-FROM readings r JOIN sensors s USING (sensor_id)
--- rolling stats are for sensors only; slow sources (portals, models) live in the `observations` view
-WHERE r.ts > now() - interval '24 hours' AND s.kind = 'sensor'
-GROUP BY r.sensor_id, r.metric, s.indoor, s.local, s.kind, s.scale, s.lat, s.lon, s.name;
+SELECT a.sensor_id, a.metric, s.indoor, s.local, s.kind, s.scale, s.lat, s.lon, s.name,
+       a.last, a.last_ts, extract(epoch FROM now() - a.last_ts) / 60 AS silent_minutes,
+       a.mean_15m, a.mean_1h, a.mean_24h
+FROM (SELECT r.sensor_id, r.metric,
+             (array_agg(r.value ORDER BY r.ts DESC))[1]                       AS last,
+             max(r.ts)                                                          AS last_ts,
+             avg(r.value) FILTER (WHERE r.ts > now() - interval '15 minutes')   AS mean_15m,
+             avg(r.value) FILTER (WHERE r.ts > now() - interval '1 hour')       AS mean_1h,
+             avg(r.value) FILTER (WHERE r.ts > now() - interval '24 hours')     AS mean_24h
+      FROM readings r
+      WHERE r.ts > now() - interval '24 hours'
+        AND r.sensor_id IN (SELECT sensor_id FROM sensors WHERE kind = 'sensor')
+      GROUP BY r.sensor_id, r.metric) a
+JOIN sensors s ON s.sensor_id = a.sensor_id;
 
 -- Slow-moving numbers (a city statistic, a satellite point sample, a survey) don't belong in a 24h rolling view.
--- One row per source per metric per period, latest wins.
+-- One row per source per metric per period, latest wins. Found by walking readings_lookup, (sensor_id, metric,
+-- ts DESC): each metric of each non-sensor, then its newest row. DISTINCT ON sorted every row those sources ever
+-- wrote, 66,067 for 93 on node #1 (24 Oct 2026, 221 ms); this reads about one index entry per answer (6 ms).
 DROP VIEW IF EXISTS observations CASCADE;
 CREATE VIEW observations AS
-SELECT DISTINCT ON (r.sensor_id, r.metric)
-       r.sensor_id, r.metric, r.value, r.ts, s.name, s.kind, s.scale, s.local, s.cadence, s.meta
-FROM readings r JOIN sensors s USING (sensor_id)
-WHERE s.kind <> 'sensor'
-ORDER BY r.sensor_id, r.metric, r.ts DESC;
+WITH RECURSIVE m AS (
+  SELECT s.sensor_id, (SELECT min(r.metric) FROM readings r WHERE r.sensor_id = s.sensor_id) AS metric
+  FROM sensors s WHERE s.kind <> 'sensor'
+  UNION ALL
+  SELECT m.sensor_id, (SELECT min(r.metric) FROM readings r WHERE r.sensor_id = m.sensor_id AND r.metric > m.metric)
+  FROM m WHERE m.metric IS NOT NULL
+)
+SELECT m.sensor_id, m.metric, l.value, l.ts, s.name, s.kind, s.scale, s.local, s.cadence, s.meta
+FROM m JOIN sensors s ON s.sensor_id = m.sensor_id
+CROSS JOIN LATERAL (SELECT r.value, r.ts FROM readings r WHERE r.sensor_id = m.sensor_id AND r.metric = m.metric
+                      AND r.ts <= now()          -- a forecast hour is not an observation yet
+                    ORDER BY r.ts DESC LIMIT 1) l
+WHERE m.metric IS NOT NULL;
 
 -- Where this node's schema is. Read by update.sh and reported at /health.
 CREATE TABLE IF NOT EXISTS schema_version (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now());
@@ -113,7 +154,7 @@ INSERT INTO schema_version (version) VALUES ('0.14') ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS channel_roles (
   source      TEXT NOT NULL,
   metric      TEXT NOT NULL,
-  role        TEXT NOT NULL CHECK (role IN ('ambient','enclosure','device_health','derived','index')),
+  role        TEXT NOT NULL CHECK (role IN ('ambient','enclosure','device_health','derived','index','private')),
   comparable  BOOLEAN NOT NULL DEFAULT FALSE,   -- may be compared between sensors at the same place
   unit        TEXT,
   reference   TEXT,                             -- instrument family, so peer comparison groups like with like
@@ -226,7 +267,8 @@ ALTER TABLE events DROP COLUMN IF EXISTS cleared_at;
 INSERT INTO schema_version (version) VALUES ('0.51') ON CONFLICT DO NOTHING;
 
 -- The releases this node has told its household about, one row each, so a restart or an hourly re-check never
--- sends the same "a new version is out" twice. Written by check_release() in app/main.py; nothing else reads it.
+-- sends the same "a new version is out" twice. Written by check_release() in app/main.py. Rows `pack:<id>` are the
+-- wild-list packs it has told them about (check_wild), and GET /packs/all reads those to mark a pack new.
 CREATE TABLE IF NOT EXISTS release_notices (
   version  TEXT PRIMARY KEY,
   told_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -248,10 +290,14 @@ WITH b AS (
   GROUP BY 1, 2, 3)
 SELECT bucket, sensor_id, metric, mean FROM b
 UNION ALL
-SELECT t.bucket, t.sensor_id, 'apparent',
-       t.mean + 0.33 * (h.mean / 100.0 * 6.105 * exp(17.27 * t.mean / (237.7 + t.mean))) - 4.0
-FROM b t JOIN b h ON h.sensor_id = t.sensor_id AND h.bucket = t.bucket AND h.metric = 'humidity'
-WHERE t.metric = 'temp';
+-- temp and humidity side by side in one grouping, not b joined to itself: Postgres guessed one sensor row where node #1
+-- has 31, chose a nested loop, and compared 2.57 million pairs for 1,604 rows, 590 of the view's 645 ms, about nine
+-- times a minute (21 Oct 2026). The same rows in 57 ms.
+SELECT bucket, sensor_id, 'apparent', t + 0.33 * (h / 100.0 * 6.105 * exp(17.27 * t / (237.7 + t))) - 4.0
+FROM (SELECT bucket, sensor_id, max(mean) FILTER (WHERE metric = 'temp') AS t,
+             max(mean) FILTER (WHERE metric = 'humidity') AS h
+      FROM b WHERE metric IN ('temp', 'humidity') GROUP BY 1, 2) p
+WHERE t IS NOT NULL AND h IS NOT NULL;
 
 -- usual_by_hour: this room's own normal for each local hour, from the fourteen complete local days before today
 -- (date_trunc in the session's NODE_TZ). Today is left out on purpose: a long hot run must not raise the bar it is
@@ -327,4 +373,139 @@ ALTER TABLE event_messages ADD COLUMN IF NOT EXISTS action_id TEXT;
 ALTER TABLE alerts  ADD COLUMN IF NOT EXISTS event_id BIGINT REFERENCES alert_events(id);
 ALTER TABLE actions ADD COLUMN IF NOT EXISTS event_id BIGINT REFERENCES alert_events(id);
 GRANT SELECT ON alert_events, event_messages TO planetai_ro;
-INSERT INTO schema_version (version) VALUES ('0.53') ON CONFLICT DO NOTHING;
+
+-- A capture is one picture with the facts a reading has (SPEC_eyes §2): when, which cell, who, with what. The
+-- file lives in CAPTURES_DIR, never in this database; `file` is a name inside that folder, never a client's path.
+-- The exact point is kept (token only, like the file) and only the FILE is cleaned of EXIF/GPS: a tree or a dump
+-- is worth its precise position. `outside` and `at_home` are computed once, on arrival (12 Oct 2026, Tomas).
+CREATE TABLE IF NOT EXISTS captures (
+  id          BIGSERIAL PRIMARY KEY,
+  ts          TIMESTAMPTZ NOT NULL DEFAULT now(),   -- taken: the form's taken_at, else the file's own date, else now
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  kind        TEXT NOT NULL CHECK (kind IN ('microscope','phone','camera','drone','balloon')),
+  cell        TEXT NOT NULL,                        -- H3 res 10, the room, derived from the point or given
+  lat         DOUBLE PRECISION,                     -- the exact point, nullable when the person gave none, token only
+  lon         DOUBLE PRECISION,
+  outside     BOOLEAN,                              -- the point is not in the node's seven res-8 cells
+  at_home     BOOLEAN,                              -- the point is in the res-10 cell of NODE_LAT/NODE_LON
+  actor       TEXT,                                 -- the name the phone keeps in planetai_actor
+  note        TEXT,
+  file        TEXT NOT NULL,                        -- a name inside CAPTURES_DIR, never a path from the client
+  sha256      TEXT NOT NULL UNIQUE,
+  bytes       BIGINT NOT NULL,
+  mime        TEXT NOT NULL
+);
+-- The household's own words about an image beyond its note: key → value, edited from the Data door (PATCH /captures).
+ALTER TABLE captures ADD COLUMN IF NOT EXISTS meta JSONB NOT NULL DEFAULT '{}'::jsonb;
+-- What the image model found (SPEC_eyes step 2): {model, asked, at, summary, findings: [{category, name, count}],
+-- confirmed_by}. NULL = not described yet. A finding is the model's until a person here confirms it.
+ALTER TABLE captures ADD COLUMN IF NOT EXISTS analysis JSONB;
+CREATE INDEX IF NOT EXISTS captures_cell ON captures (cell);
+CREATE INDEX IF NOT EXISTS captures_ts ON captures (ts DESC);
+-- Not readable by pack SQL: a rule's text reaches /alerts, which a LAN stranger may read, and a capture's exact
+-- point must not ride out in one. Same reason settings is revoked (0.21); the default privileges granted it above.
+REVOKE ALL ON captures FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.54') ON CONFLICT DO NOTHING;
+
+-- 0.55: the `private` role (docs/decisions/2026-10-03-pack-design.md, point 2 (A)). A private reading is the house's:
+-- used on the page, by rules and by cells, and never in the export, a parent's aggregates, the report bundle or an
+-- agent's read (packs.public_sql). The CHECK is replaced, because a database made before 0.55 refuses the word.
+ALTER TABLE channel_roles DROP CONSTRAINT IF EXISTS channel_roles_role_check;
+ALTER TABLE channel_roles ADD CONSTRAINT channel_roles_role_check
+  CHECK (role IN ('ambient','enclosure','device_health','derived','index','private'));
+INSERT INTO schema_version (version) VALUES ('0.55') ON CONFLICT DO NOTHING;
+
+-- 0.56: the things a home keeps (docs/SPEC_inventory.md). Kept as captures are: not in the export, not readable by
+-- pack SQL; the page, rules and cells read the three private counts per class the node writes as readings
+-- (stock.<class>, idle.<class>, repair.<class> on the `things:<node>` survey sensor, role private).
+CREATE TABLE IF NOT EXISTS things (
+  id          BIGSERIAL PRIMARY KEY,
+  added_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  class       TEXT NOT NULL,                       -- a flows 1.0 physical class (THING_CLASSES in app/main.py)
+  name        TEXT NOT NULL,                       -- the household's words: "cordless drill"
+  count       INTEGER NOT NULL DEFAULT 1 CHECK (count >= 1),
+  used        TEXT NOT NULL DEFAULT 'monthly' CHECK (used IN ('weekly','monthly','yearly','never')),
+  condition   TEXT NOT NULL DEFAULT 'works' CHECK (condition IN ('works','needs_repair','broken')),
+  offer       TEXT NOT NULL DEFAULT 'no' CHECK (offer IN ('no','lend','give')),   -- nothing leaves until step 4
+  capture_id  BIGINT,                              -- the photo it came from, if any
+  note        TEXT
+);
+REVOKE ALL ON things FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.56') ON CONFLICT DO NOTHING;
+
+-- 0.57: what the node learns (docs/SPEC_learn.md). One row per learning, re-checked and never deleted: a learning
+-- that stops holding is marked `weakening` or `gone`. Kept as things are: revoked from pack SQL, in no export, push
+-- or report bundle; read by GET /learned with the admin token, and by an agent only while models stay home.
+CREATE TABLE IF NOT EXISTS learnings (
+  kind        TEXT NOT NULL,                 -- worked (step 1) · usual · asks (step 2)
+  key         TEXT NOT NULL,                 -- what it is about: a rule id for `worked`
+  issue       TEXT,
+  metric      TEXT,
+  status      TEXT NOT NULL CHECK (status IN ('too_early','holding','weakening','gone')),
+  statement   TEXT NOT NULL,                 -- written by the node from `numbers`, never by a model
+  numbers     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  n           INTEGER NOT NULL DEFAULT 0,
+  scope       TEXT NOT NULL DEFAULT 'house' CHECK (scope IN ('house','place')),
+  first_seen  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  checked_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (kind, key)
+);
+REVOKE ALL ON learnings FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.57') ON CONFLICT DO NOTHING;
+
+-- 0.58: the digests (docs/SPEC_learn.md §6): one per completed day, week, month and year, written by the node from
+-- its numbers, with the household's own words for what was done. Full-text searched by GET /learned/search; kept as
+-- learnings are: revoked from pack SQL, in no export, push or report, never deleted.
+CREATE TABLE IF NOT EXISTS digests (
+  scale        TEXT NOT NULL CHECK (scale IN ('day','week','month','year')),
+  period_start DATE NOT NULL,
+  label        TEXT NOT NULL,
+  text         TEXT NOT NULL,
+  numbers      JSONB NOT NULL DEFAULT '{}'::jsonb,
+  written_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  tsv          TSVECTOR GENERATED ALWAYS AS (to_tsvector('simple', label || ' ' || text)) STORED,
+  PRIMARY KEY (scale, period_start)
+);
+CREATE INDEX IF NOT EXISTS digests_tsv ON digests USING gin (tsv);
+REVOKE ALL ON digests FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.58') ON CONFLICT DO NOTHING;
+
+-- 0.59: who is in the house (docs/SPEC_learn.md §8). One row of yes/no answers the household gives, so the node can say
+-- which learnings matter most here. Never a name, an age or a count; changes no threshold; never leaves: revoked from
+-- pack SQL, in no export, push or report, read by GET /household with the admin token.
+CREATE TABLE IF NOT EXISTS household (
+  id         INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  people     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+REVOKE ALL ON household FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.59') ON CONFLICT DO NOTHING;
+
+-- 0.60: the morning message (docs/SPEC_learn.md §6). A learning keeps the local day its status last changed, so the
+-- morning says what changed and nothing else; rows from before take their first day. A report row says whether it
+-- carried the house's memory, so one report a day does, whatever restarts in between.
+ALTER TABLE learnings ADD COLUMN IF NOT EXISTS status_since DATE;
+UPDATE learnings SET status_since = first_seen::date WHERE status_since IS NULL;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS memory BOOLEAN NOT NULL DEFAULT false;
+INSERT INTO schema_version (version) VALUES ('0.60') ON CONFLICT DO NOTHING;
+
+-- 0.61: rooms in the household's words (Tomas, 14 Oct 2026: node #1's K, L and S are Kids, Living Room and Studio). A
+-- kit's platform names its sensors ("K ROOM - BAYU HOLES") and every poll writes that name back. A room the household
+-- set (PATCH /sensors/{id}) becomes the name whatever writes the row, core or a pack, so the rules, the stats, the
+-- report, the event messages and the pages all say the room; the platform's own name is kept in `source_name`.
+ALTER TABLE sensors ADD COLUMN IF NOT EXISTS room TEXT;
+ALTER TABLE sensors ADD COLUMN IF NOT EXISTS source_name TEXT;
+CREATE OR REPLACE FUNCTION sensors_room_is_the_name() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF coalesce(NEW.room, '') <> '' THEN
+    -- the incoming name is the platform's unless it is the room this row already had (a rename, not a poll)
+    IF NEW.name IS DISTINCT FROM NEW.room AND (TG_OP = 'INSERT' OR NEW.name IS DISTINCT FROM OLD.room) THEN
+      NEW.source_name := NEW.name;
+    END IF;
+    NEW.name := NEW.room;
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS sensors_room ON sensors;
+CREATE TRIGGER sensors_room BEFORE INSERT OR UPDATE ON sensors FOR EACH ROW EXECUTE FUNCTION sensors_room_is_the_name();
+INSERT INTO schema_version (version) VALUES ('0.61') ON CONFLICT DO NOTHING;

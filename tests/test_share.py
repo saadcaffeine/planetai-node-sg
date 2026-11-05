@@ -14,7 +14,7 @@ import ast
 import os
 import re
 
-SRC = open("app/main.py").read()
+SRC = open("app/main.py").read() + open("app/auth.py").read()   # auth.py: the allowlists, since 22 Oct
 SETTINGS = open("app/settings.py").read()
 ENV = open(".env.example").read()
 # The page is three files since the renderer landed: a skeleton, a script and a
@@ -65,7 +65,7 @@ assert '"node": NODE' in SRC, "/health keeps the node name: /export publishes it
 # The two paths that are on no allowlist at any level, and the one the middleware must not decide twice.
 mw = ast.get_source_segment(SRC, funcs["_share_level"])
 allow = SRC[SRC.index("_SHARE_OFF = ("):SRC.index("_SHARE = {")]
-for p in ("place/geojson", "settings/raw", "backups", "actions", "aggregates", "test-alert"):
+for p in ("place/geojson", "settings/raw", "backups", "actions", "aggregates", "test-alert", "captures"):
     assert f'"/{p}"' not in allow, f"/{p} is on a SHARE_LEVEL allowlist and must never be"
 assert 'startswith("/mcp")' in mw, "the middleware must pass /mcp through: _mcp_auth has already decided it"
 assert "_bearer_ok" in mw, "the middleware must reuse _bearer_ok, which is constant-time"
@@ -149,7 +149,7 @@ except ImportError:
 import logging
 import time
 logging.disable(logging.WARNING)      # main.py logs a failed bootstrap connect on import; that is the point of the stub
-os.environ.update(ADMIN_TOKEN="admin-tok", ACT_TOKEN="act-tok", NODE_LAT="-8.6478291", NODE_LON="115.1385412",
+os.environ.update(ADMIN_TOKEN="admin-tok", ACT_TOKEN="act-tok", AGGREGATE_TOKEN="agg-tok", NODE_LAT="-8.6478291", NODE_LON="115.1385412",
                   NODE_NAME="bayu-2", DATABASE_URL="postgresql://unused/never-connected")
 import settings                                    # noqa: F811 — the same module; the stub below is what matters
 settings._cache = {"at": time.time() + 1e9, "rows": {}}     # never touch a database: get() falls through to the environment
@@ -182,6 +182,20 @@ assert local.get("/sensors").status_code == 200, "off: this machine still reads 
 assert lan.get("/health").status_code == 200 and lan.get("/").status_code == 200, "off: the shell stays readable"
 assert lan.get("/export").status_code != 403, "off: backup.sh fetches /export over the published port to write the daily file"
 print("off: /sensors refused from the WiFi, answered to a token and to this machine")
+
+# A child node holds AGGREGATE_TOKEN, and a child is another household (15 Oct 2026): it may push, never read as one.
+CHILD = {"Authorization": "Bearer agg-tok"}
+for lv in ("off", "open"):
+    level(lv)
+    assert lan.get("/place/geojson", headers=CHILD).status_code == 403, f"{lv}: a child read its parent's building"
+    assert lan.get("/health", headers=CHILD).json().get("position") == "cell", f"{lv}: a child read its parent's point"
+assert lan.get("/sensors", headers=CHILD).json()[0]["meta"].get("host") is None, "open: a child read the unredacted row"
+level("off")
+assert lan.get("/sensors", headers=CHILD).status_code == 403, "off: a child read /sensors"
+_lan5 = TestClient(main.app, raise_server_exceptions=False)    # the push reaches the database, which is stubbed to raise
+assert _lan5.post("/aggregates", json={}, headers=CHILD).status_code != 403, "a child's push must still pass SHARE_LEVEL"
+assert lan.post("/aggregates", json={}).status_code == 401, "a push with no token is refused by the route itself"
+print("child token: pushes pass, reads are a stranger's")
 
 for lv in ("off", "open"):
     level(lv)
@@ -221,7 +235,61 @@ assert s0["meta"]["licence"] == "CC BY 4.0", "open: provenance must survive the 
 assert dp(s0["lat"]) <= 3 and dp(s0["lon"]) <= 3, f"open: /sensors hands out {s0['lat']},{s0['lon']}"
 assert (s0["lat"], s0["lon"]) == main._coarse(-8.6478291, 115.1385412), \
     "open: the household's own sensor must stand at its cell's centre for an untrusted reader (R25)"
-assert s0["name"] == "Kitchen, upstairs", "open: the sensor's name is on the dashboard and stays"
+# 15 Oct: a house on a cell's edge has sensors in the next cell; they stand at the house's point, not ~700 m off.
+_h = lan.get("/health").json()
+# /health names its keys (docs/site/api.md). It spread the timers' whole `state` until 21 Oct 2026: the node list,
+# the bot's username and 12 kB of GBIF maps went to every reader, every ~20 s, from every screen.
+main.state.update(registry={"nodes": [1]}, bot={"username": "x_bot"}, griis={"marks": 1}, others={"cells": {}},
+                  learned_on="2026-10-21", bootstrap=[{"key": "k"}])
+_hk = lan.get("/health").json()
+assert not {"registry", "bot", "griis", "others", "learned_on", "bootstrap"} & set(_hk), sorted(_hk)
+assert {"ok", "node", "version", "polls", "last_poll", "last_error", "ingested", "errors", "locale", "tz"} <= set(_hk), sorted(_hk)
+for _k in ("registry", "bot", "griis", "others", "learned_on", "bootstrap"):
+    main.state.pop(_k)
+assert main._own_point({"local": True, "kind": "sensor", "lat": -8.6528, "lon": 115.1445}) == (_h["lat"], _h["lon"]), \
+    "a house's own sensor in the neighbouring cell must stand where the house does"
+assert main._own_point({"local": False, "kind": "child", "lat": -8.6528, "lon": 115.1445}) == main._coarse(-8.6528, 115.1445), \
+    "a child's row is another house: its own cell's centre"
+# Tomas, 15 Oct 2026: a screen without a key never reads what the house calls its rooms or its sensors.
+main._HOUSE.update(at=time.time() + 1e9, map=[("Kitchen, upstairs", "Sensor 1")])   # the database is stubbed out
+r = lan.get("/sensors"); s0 = r.json()[0]
+assert s0["name"] == "Sensor 1" and "Kitchen" not in r.text, f"open: the house's own name reached a stranger: {s0['name']}"
+assert lan.get("/sensors", headers=ADMIN).json()[0]["name"] == "Kitchen, upstairs", "a key still reads the house's names"
+# gzip is the outermost layer (main.py, after _share_level): what it compresses is the relabelled answer
+from starlette.middleware.gzip import GZipMiddleware as _GZ  # noqa: E402
+assert issubclass(main.app.user_middleware[0].cls, _GZ), [m.cls for m in main.app.user_middleware]
+_q1 = main.q                                                  # twenty kits, so the answer is big enough to compress
+main.q = lambda sql, *a: [dict(ROW, sensor_id=f"ag-{i}", meta=dict(ROW["meta"])) for i in range(20)] if "FROM sensors" in sql else []
+r = lan.get("/sensors", headers={"Accept-Encoding": "gzip"})
+main.q = _q1
+assert r.headers.get("content-encoding") == "gzip", f"a {len(r.content)}-byte JSON answer went out uncompressed"
+assert "Kitchen" not in r.text and r.json()[0]["name"] == "Sensor 1", "a compressed answer carried the house's names"
+_seen = []                                                      # /mcp passes through as it was (SPEC_mobile §9)
+async def _probe(scope, receive, send):
+    _seen.append(scope["path"])
+    await send({"type": "http.response.start", "status": 200, "headers": [(b"content-type", b"application/json")]})
+    await send({"type": "http.response.body", "body": b"x" * 5000})
+_mw = main.app.user_middleware[0]
+from starlette.testclient import TestClient as _TC  # noqa: E402
+_raw = _TC(_mw.cls(_probe, **_mw.kwargs))
+assert _raw.get("/mcp", headers={"Accept-Encoding": "gzip"}).headers.get("content-encoding") is None, "/mcp was gzipped"
+assert _raw.get("/issues", headers={"Accept-Encoding": "gzip"}).headers.get("content-encoding") == "gzip"
+print("open: answers are gzipped after the house's labels are swapped, never before; /mcp is left as it was")
+main._HOUSE.update(map=[("K ROOM - BAYU HOLES", "Sensor 1"), ("Kids", "Room A")])
+_q0 = main.q
+main.q = lambda sql, *a: ([{"id": 1, "ts": "2026-10-15T10:00:00+08:00", "rule_id": "x", "sensor_id": "ag-1", "level": "act",
+                                 "text": "The air in K ROOM - BAYU HOLES is unhealthy", "acted_at": None,
+                                 "buttons": [[{"text": {"en": "K ROOM - BAYU HOLES is fine"}, "value": "fine", "stage": "acted", "ask": None}]]}] if "FROM alerts" in sql
+                          else _q0(sql, *a))
+_al = lan.get("/alerts").json()
+assert _al and _al[0]["text"] is None and "BAYU" not in lan.get("/alerts").text, f"open: an alert's sentence reached a stranger: {_al}"
+assert _al[0]["buttons"] is None, f"open: a pack's button words can name a sensor or a place, so they go with the sentence: {_al}"
+assert main._unhoused(b'{"rooms": ["Kids"], "t": "Smoke in Kids"}', "/issues") == b'{"rooms": ["Room A"], "t": "Smoke in Room A"}'
+assert main._unlabelled("Smoke or dust in Kids and K ROOM - BAYU HOLES") == "Smoke or dust in Room A and Sensor 1", \
+    "/export's alert lines travel as CC BY whoever asked for them: they carry Room A, never the house's names"
+assert "_unlabelled(a[\"text\"]" in SRC, "/export must swap the house's labels in its alert lines"
+main.q = _q0; main._HOUSE.update(at=0.0, map=[])
+print("open: rooms and the house's sensor names are swapped for Room A / Sensor 1; old alert sentences left out")
 print("open: sensors readable, hostnames and firmware gone, own sensors at their cell's centre")
 
 # A FACILITY IS NOT A SENSOR, and the filter above was written about sensors. A fab lab is somebody
@@ -270,6 +338,17 @@ level("off")
 assert lan.get("/reach").status_code == 403, "off: /reach is not on the off allowlist and must refuse"
 level("open")
 print("open: /reach readable, and refused at off")
+
+# SPEC_eyes step 1: a picture and its row are on no share level — a stranger gets 403 at off AND at open,
+# and the middleware's own message says no share level opens it. The route's token rules live in test_captures.
+for lv in ("off", "open"):
+    level(lv)
+    r = lan.get("/captures")
+    assert r.status_code == 403, f"{lv}: a stranger must not list the captures"
+    assert "No share level opens this one" in r.json()["error"], \
+        f"{lv}: /captures must refuse like /backups, not offer the open setting: {r.json()}"
+    assert lan.get("/captures/1/file").status_code == 403, f"{lv}: a stranger must not fetch a picture"
+print("captures: a stranger is refused at off and at open, with the no-level-opens-this message")
 
 # F10 · closing a loop. The middleware refuses the anonymous case; the route refuses a read-only token.
 level("open")
@@ -334,9 +413,9 @@ assert not _slow, ("act-level rules slower than index.MEASURED_WINDOW_MIN="
                    "call their alerts measured while they are still waiting to fire again.")
 print(f"measured window {_index.MEASURED_WINDOW_MIN}m outlasts every act-level cooldown")
 
-# The map ground's three vendored files and the doors' world coast are served by name, and nothing else under vendor/
+# The map ground's three vendored files, the doors' world coast and Set up's QR code maker are served by name, and nothing else under vendor/
 # is: the allowlist is the whole of what /static answers, and a directory of libraries must not become one the LAN walks.
-_vendor = {"maplibre-gl.js", "maplibre-gl.css", "deck.gl.min.js", "world-land-110m.json"}
+_vendor = {"maplibre-gl.js", "maplibre-gl.css", "deck.gl.min.js", "world-land-110m.json", "qrcode.js"}
 for _n in sorted(_vendor):
     _r = lan.get(f"/static/{_n}")
     assert _r.status_code == 200 and len(_r.content) > 10000, f"/static/{_n} does not serve the vendored file"
@@ -344,15 +423,31 @@ _served = {k for k, (p, _t) in main.COMPANIONS.items() if p.parent.name == "vend
 assert _served == _vendor, f"/static serves vendored files nobody listed here: {sorted(_served - _vendor)}"
 for _n in ("vendor/maplibre-gl.js", "maplibre-gl.LICENSE.txt", "deck.gl.LICENSE", "..%2Fmain.py"):
     assert lan.get(f"/static/{_n}").status_code == 404, f"/static/{_n} answered: the route takes a name, not a path"
-print("static: the four vendored files are served, and nothing else under vendor/")
-
-# The map workbench (GET /geo/*): the node computes every ring and distance the Place door draws, and none of it is
-# on an allowlist, because the node's cell at a fine resolution and "metres from the node" give away its point.
+print("static: the five vendored files are served, and nothing else under vendor/")
+# Set up's QR unlock: /settings/phone hands the act token to the admin token and to no one else, at either level
 for _lv in ("off", "open"):
     level(_lv)
-    for _u in ("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8", "/geo/cell?lat=-8.65&lon=115.14&res=9",
-               "/geo/measure?path=115.14,-8.65&from_node=true", "/geo/rings"):
+    assert lan.get("/settings/phone").status_code == 403 and lan.get("/settings/phone", headers=ACT).status_code == 401
+    assert lan.get("/settings/phone", headers=ADMIN).json() == {"act": "act-tok"}
+level("off")
+print("settings/phone: the act token, for the admin only")
+
+# The map workbench (GET /geo/*): the node computes every ring and distance the Place door draws, and none of it is
+# on an allowlist, because the node's cell at a fine resolution and "metres from the node" give away its point. The
+# one exception is /geo/cell at `open` (the phone's walk), which answers a stranger without its node-relative fields.
+for _lv in ("off", "open"):
+    level(_lv)
+    for _u in ("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8", "/geo/measure?path=115.14,-8.65&from_node=true", "/geo/rings"):
         assert lan.get(_u).status_code == 403, f"{_u} answered a stranger at SHARE_LEVEL={_lv}: it locates the node"
+    _gc = lan.get("/geo/cell?lat=-8.6478291&lon=115.1385412&res=15&children=15&polar=true")
+    assert _gc.status_code == (403 if _lv == "off" else 422), (_lv, _gc.status_code)
+    _gc = lan.get("/geo/cell?lat=-8.6478291&lon=115.1385412&res=6&children=8&polar=true")
+    if _lv == "off":
+        assert _gc.status_code == 403, "/geo/cell answered a stranger at SHARE_LEVEL=off"
+    else:
+        assert _gc.status_code == 200 and _gc.json()["ring"], _gc.status_code
+        _leak = {"is_node", "cells_from_node", "ring_polar", "children_polar"} & set(_gc.json())
+        assert not _leak, f"/geo/cell told a stranger where its cell stands from the node: {_leak}"
 level("off")
 _g = local.get("/geo/grid?bbox=115.13,-8.66,115.15,-8.64&res=8").json()
 _own = _g["node"][0]
@@ -388,17 +483,18 @@ print("geo: grid, cell, measure and rings answer this machine and a token, refus
 # The ground kept on disk (GET /ground/*): served from out/ground/ by name, private like /place/geojson.
 import gzip as _gz, importlib.util as _iu, json as _json, sqlite3 as _sq, tempfile as _tf
 from pathlib import Path as _P
-_out = _P(_tf.mkdtemp()); main.OUT = _out; (_out / "ground" / "glyphs" / "Noto Sans Regular").mkdir(parents=True)
+_out = _P(_tf.mkdtemp()); main.OUT = main.basemap.OUT = _out; (_out / "ground" / "glyphs" / "Noto Sans Regular").mkdir(parents=True)
 _db = _sq.connect(_out / "ground" / "vector.mbtiles")
 _db.executescript("CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB);")
 _db.execute("INSERT INTO tiles VALUES (15, 26866, ?, ?)", ((1 << 15) - 1 - 17189, _gz.compress(b"mvt")))
 _db.commit(); _db.close()
 (_out / "ground" / "glyphs" / "Noto Sans Regular" / "0-255.pbf").write_bytes(b"glyphs")
 (_out / "ground" / "meta.json").write_text(_json.dumps({"vector": {"tiles": 1}}))
+# At `open` it answers a stranger: public data, centred no closer than /health's rounded point (the phone's walk).
 for _lv in ("off", "open"):
     level(_lv)
     for _u in ("/ground/meta", "/ground/vector/15/26866/17189.pbf", "/ground/glyphs/Noto Sans Regular/0-255.pbf"):
-        assert lan.get(_u).status_code == 403, f"{_u} answered a stranger at SHARE_LEVEL={_lv}: a tile pyramid locates the node"
+        assert lan.get(_u).status_code == (403 if _lv == "off" else 200), f"{_u} at SHARE_LEVEL={_lv}: {lan.get(_u).status_code}"
 level("off")
 _t = local.get("/ground/vector/15/26866/17189.pbf")
 assert _t.status_code == 200 and _t.content == b"mvt" and _t.headers["content-type"] == "application/x-protobuf", (_t.status_code, _t.headers)
@@ -409,7 +505,7 @@ assert local.get("/ground/glyphs/Noto Sans Regular/0-255.pbf").content == b"glyp
 assert local.get("/ground/glyphs/..%2F..%2Fmeta/0-255.pbf").status_code == 404, "a font name is a name, not a path"
 assert local.get("/ground/wind").status_code == 204, "no field until the forecast pack has written one"
 (_out / "ground" / "wind.json").write_text(_json.dumps({"n": 8, "times": ["2026-10-07T06:00Z"]}))
-assert local.get("/ground/wind").json()["n"] == 8 and lan.get("/ground/wind").status_code == 403
+assert local.get("/ground/wind").json()["n"] == 8 and lan.get("/ground/wind").status_code == 403, "off refuses the LAN"
 _m = local.get("/ground/meta").json()
 assert _m["on_disk"]["wind"] and _m["fetch"]["wind"] == "planetai run forecast windfield"
 assert _m["on_disk"]["vector"] and not _m["on_disk"]["imagery"] and _m["layers"]["vector"]["tiles"] == 1, _m
@@ -425,7 +521,7 @@ def _v(n):
             return out
 # two entries: tile 5 run 1 at offset 0 length 10; tile 6 run 2, offset 0 meaning "right after the previous"
 assert _b.parse_dir(_v(2) + _v(5) + _v(1) + _v(1) + _v(2) + _v(10) + _v(20) + _v(1) + _v(0)) == [(5, 0, 10, 1), (6, 10, 20, 2)]
-print("ground: tiles, fonts and meta answer this machine, refuse the LAN, read the archive by Hilbert id")
+print("ground: tiles, fonts and meta answer this machine, the LAN only at open, read the archive by Hilbert id")
 
 # GET /storage (the Set up page's Storage): what the machine holds is the keeper's, at every level.
 for _lv in ("off", "open"):
@@ -434,5 +530,44 @@ for _lv in ("off", "open"):
     assert lan.get("/machine").status_code == 403, f"/machine answered a stranger at SHARE_LEVEL={_lv}"
 level("off")
 print("storage and machine: the keeper's, refused to the LAN at every level")
+
+# The workbench is a shell like /ui: it answers a stranger at every level, and the reads behind it stay gated. It is
+# the Data door's Workbench tab (Tomas, 27 Oct 2026): doors-data.js frames it, so it brings no chrome of its own, and
+# it flashes from this node, offline: the flasher under /static/vendor/, the firmware under /static/firmware/ once
+# app/firmware.py has kept a copy, and the site's addresses only before that.
+import tempfile as _wbtf
+_wbout, main.OUT = main.OUT, _P(_wbtf.mkdtemp())
+_dt = re.findall(r"^  (\w+): \['([^']+)'", open("app/static/doors-data.js").read().split("const DTABS = {")[1].split("};")[0], re.M)
+assert ("workbench", "Workbench") in _dt, "the workbench must be one of the Data door's tabs (DTABS in doors-data.js)"
+assert 'id="d-workbench"' in open("app/static/doors.html").read(), "doors.html must hold the Workbench tab's section"
+for _lv in ("off", "open"):
+    level(_lv)
+    _wb = lan.get("/workbench")
+    assert _wb.status_code == 200, f"/workbench refused a stranger at SHARE_LEVEL={_lv}"
+    assert 'href="/static/planetai-theme.css"' in _wb.text and 'href="/kit/' not in _wb.text, "/workbench must point the stylesheet at /static/"
+    assert "location.replace('/#data/workbench'" in _wb.text and _wb.text.index("window.parent === window") < _wb.text.index('<nav class="top"'), \
+        "/workbench opened on its own must go to the Data door's tab"
+    assert 'class="nbar"' not in _wb.text, "framed in the Data door, /workbench must not draw a second bar"
+    assert "planetai_theme" in _wb.text and 'data-theme="dark">' not in _wb.text.split("<head>")[0], "/workbench must take the node's register"
+    assert "new URL('/static/vendor/esp-web-tools/install-button.js'" in _wb.text, "the flasher must come from this node"
+    assert "makingsense.fablabbali.com/flash/firmware/';" in _wb.text and "'https://planetai.fab.city/sensors/firmware/meshtastic/'" in _wb.text, \
+        "with no copy kept yet, the firmware comes from where the site reads it"
+    assert lan.get("/static/vendor/esp-web-tools/install-button.js").status_code == 200, f"the flasher refused a stranger at SHARE_LEVEL={_lv}"
+    for _bad in ("/static/vendor/esp-web-tools/..%2F..%2Fdoors.html", "/static/vendor/esp-web-tools/x.html"):
+        assert lan.get(_bad).status_code == 404, f"{_bad} must not be served"
+    _old = lan.get("/tester", follow_redirects=False)
+    assert _old.status_code == 308 and _old.headers["location"] == "/workbench", "/tester must send a bookmark to /workbench"
+# with a copy kept, the page and the files are this node's
+for _f, _b in (("bayu/manifest.json", b"{}"), ("meshtastic/files.json", b"{}"), ("meshtastic/2.7/fw.uf2", b"uf2")):
+    (main.OUT / "firmware" / _f).parent.mkdir(parents=True, exist_ok=True)
+    (main.OUT / "firmware" / _f).write_bytes(_b)
+_wb = lan.get("/workbench").text
+assert "const FW = '/static/firmware/';" in _wb and "const MT_FW = '/static/firmware/meshtastic/';" in _wb, "a kept copy must be what the page flashes"
+assert lan.get("/static/firmware/meshtastic/2.7/fw.uf2").content == b"uf2", "a kept firmware file must answer a stranger"
+for _bad in ("/static/firmware/..%2F..%2Fetc%2Fpasswd", "/static/firmware/meshtastic", "/static/firmware/nothing.bin"):
+    assert lan.get(_bad).status_code == 404, f"{_bad} must not be served"
+main.OUT = _wbout
+level("off")
+print("workbench: the Data door's tab, offline flasher and firmware, answers at every level, /tester redirects")
 
 print("all share-level checks passed")

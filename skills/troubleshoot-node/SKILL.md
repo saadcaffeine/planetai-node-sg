@@ -27,17 +27,19 @@ again. A log line containing `api.telegram.org/bot` is the same leak; that strin
 1. The *When it breaks* table in `docs/START_HERE.md`. Everything in it has happened to a real node, and
    most pastes are one of its rows. Do not copy that table into your answer; read it and point at the row.
 2. `planetai doctor` output — every failing check already carries its own fix. Use that fix before you
-   invent one.
+   invent one. Its **Data sources** block and *To finish setting up* list what is not set up yet (a sensor,
+   Telegram, the backup); a node with a cross there is unfinished, not broken.
 3. `docs/UPDATING.md` if the trouble began at an update, `docs/NETWORKING.md` if it began at a network
    change, `docs/STORAGE.md` if it is about the database or backups.
 4. `AGENTS.md` — how to read `status.errors`, what `local` and `indoor` mean, and what "outside" resolves to.
 
-## The three that are not in the table
+## The four that are not in the table
 
 | what you see | what it actually is |
 |---|---|
 | The node is healthy and silent for days | Usually correct. Check ρ and the alert count before assuming a fault; a quiet node is the normal state of a good week. |
 | Alerts stopped after somebody "fixed the noise" | A threshold was raised. **A node that is quiet because you raised its threshold is lying.** Put it back and say why the place is noisy instead. |
+| The bot answers "This node answers its household only" | That chat is not in `TELEGRAM_CHAT_IDS`. The message carries the chat's id; whoever runs the node adds it to *Telegram chat ids* in Set up, after the ids already there. |
 | One neighbour station reads wildly high | Not necessarily a fault. Read the note in `CHANGELOG.md` for v0.41.2: either something is burning there or that sensor is wrong, and the node is built to say both. |
 
 ## What you may touch, and what you may not

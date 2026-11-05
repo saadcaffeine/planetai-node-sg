@@ -227,8 +227,8 @@ land = no_earth["issues"]["land"]
 check(land["stack"]["region"] is None, "with no earth record land's region is empty")
 check(land["state"] == "none" and land["reason"]["code"] == "no_source",
       f"with no earth record land is {land['state']}/{land['reason']['code']}, expected none/no_source")
-check("earth fetch" in land["sentence"]["en"] or "satellite record" in land["sentence"]["en"],
-      f"land must say how to get a record: {land['sentence']['en']}")
+check("satellite" in land["sentence"]["en"] and "planetai" not in land["sentence"]["en"],
+      f"land says there is no record yet, in the household's words, never the command: {land['sentence']['en']}")
 check(land["readouts"], "land keeps its built and trees readouts with no change record")
 # and the mechanism is gone, not just unused
 from issues import _distance_problems  # noqa: E402
@@ -329,7 +329,7 @@ for declared in ("air,heat", "heat,air"):
 # 8: an undeclared issue is still shown, greyed, as not watched here
 part = run(declared="air,heat", earth=EARTH)
 check(part["order"] == ["air", "heat"], f"order is {part['order']}")
-check(part["undeclared"] == ["coast", "land"], f"undeclared is {part['undeclared']}")
+check(part["undeclared"] == ["coast", "land", "water"], f"undeclared is {part['undeclared']}")
 check(part["issues"]["land"]["state"] == "none" and part["issues"]["land"]["watched"] is False,
       "an undeclared issue is none and not watched")
 check(part["issues"]["land"]["reason"]["code"] == "not_watched",
@@ -372,11 +372,12 @@ for key, d in DECL.items():
 _air_s = OUT["issues"]["air"]["sentence"]["en"]
 check("In the house it is 5" in OUT["issues"]["air"]["hero"]["plain"]["en"],
       f"air's numeral is not in its plain: {OUT['issues']['air']['hero']['plain']['en']}")
-check(not re.search(r"\d", _air_s), f"air's headline carries a number: {_air_s}")
+# the title is words only; the tagline may carry the day's time and hours ("until 15:00, 1 hour today")
+check(not re.search(r"\d", OUT["issues"]["air"]["title"]["en"]), f"air's title carries a number: {_air_s}")
 _heat_s = OUT["issues"]["heat"]["sentence"]["en"]
 check("In the house it is 30.8" in OUT["issues"]["heat"]["hero"]["plain"]["en"],
       f"heat's numeral is not in its plain: {OUT['issues']['heat']['hero']['plain']['en']}")
-check(not re.search(r"\d", _heat_s), f"heat's headline carries a number: {_heat_s}")
+check(not re.search(r"\d", OUT["issues"]["heat"]["title"]["en"]), f"heat's title carries a number: {_heat_s}")
 
 # --- attribution ---------------------------------------------------------------------------------
 check(OUT["issues"]["air"]["attribution"] == "clear",
@@ -469,6 +470,21 @@ else:
     band = next((v for s in st for v in s["series"].values() if v), None)
     if not band or band[0].get("min") is None or band[0].get("max") is None or band[0].get("n") is None:
         fails.append(f"readings_1h has min/max/n in the fixture, so a station's series must carry them: {band}")
+    keys = {k for s in st for k in s["series"]}
+    if not keys <= set(engine.METRICS):
+        fails.append(f"a station's series carries only the metrics the page may show (dashboard.js looks each up in "
+                     f"`metrics`, and an unknown one threw): {sorted(keys - set(engine.METRICS))}")
+    long = [v for s in st for pts in s["series"].values() for p in pts for v in (p["mean"], p["min"], p["max"])
+            if isinstance(v, float) and v != round(v, 2)]
+    if long:
+        fails.append(f"a station's hourly values are rounded to two decimals, as its read is: {long[:3]}")
+    _two = engine._stations([], [{"sensor_id": "x", "metric": "lora_util_pct", "bucket": "2026-10-24T00:00:00+08:00",
+                                  "mean": 1.234567, "min": 0, "max": 2, "n": 3},
+                                 {"sensor_id": "x", "metric": "pm25", "bucket": "2026-10-24T00:00:00+08:00",
+                                  "mean": 7.891234, "min": 1, "max": 9, "n": 3}], -8.8, 115.1, True,
+                            [{"sensor_id": "x", "name": "x", "lat": -8.8, "lon": 115.1, "last_heard": "2026-10-23"}])
+    if [list(s["series"]) for s in _two] != [["pm25"]] or _two[0]["series"]["pm25"][0]["mean"] != 7.89:
+        fails.append(f"_stations keeps pm25 at two decimals and drops a radio's lora_util_pct: {_two}")
 
 m = body.get("metrics", {})
 if m.get("pm25", {}).get("issue") != "air" or m.get("temp", {}).get("dp") != 1:
@@ -480,6 +496,9 @@ if len(a.get("acts", [])) != 21 or len(a.get("actions", [])) != 11 or a.get("lev
                  f"{len(a.get('actions', []))}, {a.get('levels')}")
 if any("\n" in x["text"] or len(x["text"]) > 160 for x in a.get("acts", [])):
     fails.append("an ask's text is its first line, at most 160 characters")
+if any(x.get("level") != "act" for x in a.get("acts", [])):
+    fails.append("every act carries level act: the dashboard's ledger draws a rule quiet when its latest ask has none, "
+                 f"and drew every rule quiet: {[x.get('level') for x in a.get('acts', [])][:5]}")
 
 mesh = body.get("mesh")
 if not mesh or mesh["gateway"] != "!8f491db0" or mesh["packets"] != 12:
@@ -590,21 +609,29 @@ check(_L21["value"] == 91 and _L21["stamp"]["en"] == "looked at in July 2025 \u0
 # --- Release C: the headline clauses ---------------------------------------------------------
 # The {line} clause is computed from the value, so the sentence can never contradict the line:
 # air at 12 against a line of 15 is under it; heat at 33.9 against 35 is near it.
-_S21 = {k: _O21[k]["sentence"]["en"] for k in ("air", "heat", "coast", "land")}
+# Air was over the line for one hour that afternoon, so its title says the day (below). The hour's clauses are read with
+# the day's knob out of reach, which is the sentence a day with no hour over says.
+_knob, engine.DAY_OVER_HOURS = engine.DAY_OVER_HOURS, 25
+_H21 = engine.replay(_F21, Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["issues"]
+engine.DAY_OVER_HOURS = _knob
+_S21 = {k: _H21[k]["sentence"]["en"] for k in ("air", "heat", "coast", "land")}
 check("under the WHO line" in _S21["air"] and "past the WHO line" not in _S21["air"],
       f"line clause: air reads {_S21['air']!r}")
-check("near this house's own line" in _S21["heat"] and "under the WHO line" not in _S21["heat"],
+check("close to this house's own heat line" in _S21["heat"] and "under the WHO line" not in _S21["heat"],
       f"line clause: heat reads {_S21['heat']!r}")
 # The {event} clause: heat's ask opened today and the room is back under the line, so the sentence
 # names the crossing — the act band and the calm words agree. Air's stale ask could be from any
 # day, so it gets no such clause.
-check("It crossed the line earlier today." in _S21["heat"],
+check("crossed the line earlier today." in _S21["heat"],
       f"event clause: heat reads {_S21['heat']!r}")
 check("earlier today" not in _S21["air"], f"event clause: air reads {_S21['air']!r}")
-# The comparison speaks each issue's own words, not one skeleton for all.
-check("cleaner than" in _S21["air"], f"cmp voice: air reads {_S21['air']!r}")
-check("otter than" in _S21["heat"] or "hot as" in _S21["heat"],
-      f"cmp voice: heat reads {_S21['heat']!r}")
+# The household's words, not the instruments': no "ring" or "region", no dash drama, and no word of the
+# title said again in the tagline's opening (the review of 11 Oct: "holding … holding off", said twice).
+for _k in ("air", "heat"):
+    for _loc in I.LOCALES:
+        _t, _g = _O21[_k]["title"][_loc], _O21[_k]["tagline"][_loc]
+        check(not re.search(r"\b(ring|region)\b", _t + " " + _g) and "\u2014" not in _t + _g,
+              f"voice: {_k}.{_loc} reads {_t!r} | {_g!r}")
 # Context issues carry no jargon in the headline layer.
 check("cell" not in _S21["coast"].lower(), f"coast headline reads {_S21['coast']!r}")
 check("square" not in _S21["land"].lower(), f"land headline reads {_S21['land']!r}")
@@ -625,6 +652,32 @@ for _loc in I.LOCALES:
     for _k in ("air", "heat"):
         _s = _O21[_k]["sentence"][_loc]
         check(_s and "{" not in _s, f"sentence: {_k}.{_loc} is {_s!r}")
+# --- the title / tagline split (v0.80.8) ------------------------------------------------------
+# The title is words only: no digit and no line in any issue, attribution, locale or line relation.
+# The tagline meets the instrument, and opens a sentence of its own.
+for _k in ("air", "heat"):
+    _d = DECL[_k]
+    for _loc in I.LOCALES:
+        _blk = _d["sentences"][_loc]
+        for _att in _blk["attribution"]:
+            for _n in (0.2, 0.95, 3.0):
+                _v = round(_d["line"]["value"] * _n, 1)
+                _f, _t, _g = engine._sentence_parts(_d, {"room": {"value": _v}}, "notable", "room", "rising",
+                                                    _loc, _d.get("compare") or {}, _att, _d["line"], None)
+                check(_t and _g and not re.search(r"\d", _t)
+                      and not any(w in _t for w in _blk["line"].values())
+                      and _g[0].isupper(),
+                      f"split: {_k}.{_loc}.{_att} at {_v} gives {_t!r} | {_g!r}")
+check(engine._sentence_parts(DECL["air"], {}, "none", "room", "steady", "en", {}, None)[2] == "",
+      "split: a template with no {line} has no tagline")
+# --- the past hour: the engine's words, never the page's ----------------------------------------
+# Rendered by /issues/days (tests/test_figures_wire.py checks it per bucket); here, one hour on its own: the
+# line relation is the engine's (0.95 of the line is near, never under) and an empty hour has no tagline.
+_air_near = engine._hour_parts(_air, {"room": [_air["line"]["value"] * 0.95]}, [NOW], 0, "room", "en", _cmp_mode,
+                               _air["line"])
+check("close to the WHO line" in _air_near[1], f"hours: 0.95 of the line reads {_air_near!r}")
+check(engine._hour_parts(_air, {"room": [None]}, [NOW], 0, "room", "en", _cmp_mode, _air["line"])[1] == "",
+      "hours: an hour with no reading has no tagline")
 
 
 # ---------------------------------------------------------------- simple mode's paragraph
@@ -636,12 +689,14 @@ check(_D21["en"] == "This house has 5 stations of its own; the nearest other sta
       "has asked 101 times and somebody answered 7; the usual wait was 112 minutes.",
       f"digest.simple reads {_D21['en']!r}")
 _P21 = engine.replay(_F21, Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["digest"]["prompts"]
-# The three the pane opens with are unchanged; after them, the pool it rotates through (28 Sep 2026).
-check(_P21["en"][:3] == ["Why is heat what the node leads with?", "What should I do about alert #168?",
-                         "What does the line for heat mean?"], f"digest.prompts opens with {_P21['en'][:3]}")
-check(len(_P21["en"]) > 3 and "What is air like right now?" in _P21["en"]
-      and any(re.fullmatch(r"What should I do about alert #(?!168\b)\d+\?", q) for q in _P21["en"]),
-      f"digest.prompts has no pool to rotate through: {_P21['en']}")
+# The three the pane opens with, in a household's words and never an alert number; after them, the pool it rotates through.
+check(_P21["en"][:3] == ["What should I know about the heat today?", "What can I do about the heat right now?",
+                         "Where does the line for the heat come from?"], f"digest.prompts opens with {_P21['en'][:3]}")
+check(len(_P21["en"]) > 3 and "How is the air right now?" in _P21["en"]
+      and "Is the heat worse than usual for this hour?" in _P21["en"]
+      and not any("#" in q for l in I.LOCALES for q in _P21[l]),
+      f"digest.prompts has no pool to rotate through, or names an alert number: {_P21['en']}")
+check(_P21["es"][0] == "\u00bfQu\u00e9 deber\u00eda saber hoy sobre el calor?", f"digest.prompts es: {_P21['es'][:2]}")
 check(all(len(_P21[l]) == len(_P21["en"]) <= engine.PROMPTS_MAX and len(set(_P21[l])) == len(_P21[l])
           and all("{" not in q for q in _P21[l]) for l in I.LOCALES), f"digest.prompts: {_P21}")
 check(set(_D21) == set(I.LOCALES) and all(v and "{" not in v for v in _D21.values()),
@@ -754,8 +809,80 @@ assert _moved([]) == 0.0 and _moved(None) == 0.0, "no series at all is not an er
 print("  the lead is the headline rule, says which step decided it, and skips an issue with no hero")
 
 
+# --- the day behind the hour (14 Oct 2026) -----------------------------------------------------------
+# Node #1 at 19:00 said "The air is clean, inside and out" beside "12 h over the line today". The title now says the
+# day when the reading is back under the line after hours over it, and its count is the one /issues/days prints.
+_FF = json.loads((ROOT / "app/issues/fixtures/node1-2026-10-06-figures.json").read_text())
+_OF = engine.replay(_FF, Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["issues"]
+_today = {k: v["per_day"][-1]["over"] for k, v in _FF["issues_days"]["issues"].items() if v.get("per_day")}
+check(_today["air"] == 2 and _OF["air"]["title"]["en"] == "The air is clean now, after a dusty morning"
+      and _OF["air"]["tagline"]["en"] == "In the house it was past the WHO line for fine dust until 09:00, 2 hours today.",
+      f"day: air on 6 Oct 19:22 reads {_OF['air']['title']['en']!r} | {_OF['air']['tagline']['en']!r} "
+      f"beside {_today['air']} h over the line today")
+check(_today["heat"] == 0 and _OF["heat"]["title"]["en"] == "The heat is bearable, inside and out",
+      f"day: a day with no hour over keeps the hour's title, heat reads {_OF['heat']['title']['en']!r}")
+for _loc in I.LOCALES:
+    _t, _g = _OF["air"]["title"][_loc], _OF["air"]["tagline"][_loc]
+    check(_t and not re.search(r"\d", _t) and "{" not in _t + _g and "09:00" in _g and "2" in _g.replace("09:00", ""),
+          f"day: air.{_loc} reads {_t!r} | {_g!r}")
+# _day itself: twelve hours over from midnight is a morning (the later part on a tie), until the end of the last hour;
+# yesterday's hours are not today's; an hour still running ends now; nothing over is no day.
+_tz = timezone(timedelta(hours=8))
+_bk = [datetime(2026, 10, 14, 19, tzinfo=_tz) - timedelta(hours=23 - i) for i in range(24)]
+_sv = [30 if b.hour <= 11 or b.day == 13 else 5 for b in _bk]
+_now = datetime(2026, 10, 14, 19, 30, tzinfo=_tz)
+check(engine._day(_sv, _bk, {"value": 15}, _now) == {"over": 12, "until": "12:00", "running": False, "part": "morning"},
+      f"_day: {engine._day(_sv, _bk, {'value': 15}, _now)}")
+_run = engine._day(_sv[:-1] + [30], _bk, {"value": 15}, _now)
+check(_run["until"] == "19:30" and _run["running"], "_day: an hour still running ends now, and says it is running")
+# Audit 15 Oct: "clean now … past the WHO line until 10:47" at 10:47 read as still over. A running hour is said in words.
+import yaml as _y
+for _f in ("packs/air-quality/issue.yml", "packs/heat/issue.yml"):
+    for _loc, _sx in _y.safe_load(open(_f))["sentences"].items():
+        _dw = _sx.get("day") or {}
+        check(_dw.get("recent") and "{t}" in _dw.get("at", ""), f"{_f} {_loc}: day needs `at` and `recent` for a running hour")
+check(engine._day([5] * 24, _bk, {"value": 15}, _now) is None and engine._day(_sv, _bk, None, _now) is None,
+      "_day: no hour over, or no line, is no day")
+# near the line after a day over it is "better", not "clean"; over the line now keeps the hour's words
+_dy = {"over": 3, "until": "11:00", "part": "morning", "distance": "room"}
+_sn = engine._sentence_parts(_air, {"room": {"value": 14}}, "notable", "room", "steady", "en", _cmp_mode, "clear",
+                             _air["line"], {"code": "no_alert"}, _dy)
+_so = engine._sentence_parts(_air, {"room": {"value": 42}}, "notable", "room", "steady", "en", _cmp_mode, "inside",
+                             _air["line"], {"code": "no_alert"}, _dy)
+check(_sn[1] == "The air is better now, after a dusty morning" and "3 hours today" in _sn[2], f"day near: {_sn}")
+check(_so[1] == "Something in the house is making the air dirty", f"day while over: {_so}")
+print("  the day behind the hour: the title says it when the reading came back, counted as /issues/days counts")
+
+# --- asking: one answer to "is something asked of this house now" (14 Oct 2026) -------------------------
+# Now's Decide said "No event was open for air" from the events while the Wall showed an open ask from open_asks.
+# 6 Oct 19:22 (events): air's one open ask is a nearby alert from 2 Oct whose reading came back, and heat's event was
+# answered Done: nothing is asked now, while open_asks keeps the stale one.
+check(_OF["air"]["asking"] == [] and [a["id"] for a in _OF["air"]["open_asks"]] == [570] and _OF["heat"]["asking"] == [],
+      f"asking at 19:22: air {_OF['air']['asking']}, heat {_OF['heat']['asking']}")
+# 6 Oct 09:00 (events): the danger event is open and unanswered, and the two nearby alerts hold while the room is over
+_OE = engine.replay(json.loads((ROOT / "app/issues/fixtures/node1-2026-10-06-events.json").read_text()),
+                    Settings(NODE_ISSUES="air,heat,land,coast"), DECL)["issues"]
+_ae = _OE["air"]["asking"]
+check([(a.get("event_id"), a.get("alert_id")) for a in _ae] == [(2, None), (None, 571), (None, 570)]
+      and all(a["says"][_l] for a in _ae for _l in I.LOCALES) and "how" in _ae[1],
+      f"asking at 09:00: {_ae}")
+# 21 Sep (rules, no events): the current open asks, never the stale ones
+_ah = _O21["heat"]
+check([a["alert_id"] for a in _ah["asking"]] == [a["id"] for a in _ah["open_asks"] if a["current"]]
+      and len(_ah["asking"]) < len(_ah["open_asks"]), f"asking on rules: {len(_ah['asking'])} of {len(_ah['open_asks'])}")
+print("  asking: the open event while it asks, then the current alerts; a stale one stays open and is not asked")
+
+
 print("\n".join(f"  x {f}" for f in fails if f) or
       f"  issues/engine: the stack, the fence, the five states on eight cases, the headline rule, "
       f"attribution in six classes, and {len(OUT['issues']) * len(I.LOCALES)} sentences with every "
       f"placeholder filled — replayed against node #1, 6 Sep 14:08 UTC")
+# a reason's time from another day says its day (the Wall read "asked at 21:22" under a 22:00 clock, for 2 Oct)
+from datetime import datetime as _D, timezone as _Z, timedelta as _T   # noqa: E402
+_wita = _Z(_T(hours=8)); _now = _D(2026, 10, 14, 14, 0, tzinfo=_Z.utc)
+_old = engine._reason_text({"code": "open_ask_stale", "at": "2026-10-02T13:22:00+00:00", "today": engine._today(_now, _wita)}, "en")
+_new = engine._reason_text({"code": "open_ask_stale", "at": "2026-10-14T05:22:00+00:00", "today": engine._today(_now, _wita)}, "en")
+assert _old.startswith("asked at 2 Oct 21:22;") and _new.startswith("asked at 13:22;"), (_old, _new)
+print("reasons: a time from another day carries its date, today's is the local clock")
 sys.exit(1 if [f for f in fails if f] else 0)
+

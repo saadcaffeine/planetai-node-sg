@@ -1,0 +1,41 @@
+name: OpenLitterMap
+url: https://openlittermap.com/
+description: |
+  Citizen-science map of litter and plastic pollution: geotagged photos, each
+  tagged by object, material and brand, verified by people before they reach
+  the map. Open source (GPL-3.0), data under ODbL.
+pillar: environmental
+scale: community
+status: candidate
+license: ODbL-1.0
+api: https://openlittermap.com/api/points
+pilot_relevance: [global]
+tags: [litter, plastic, pollution, citizen-science, photos, dumping, geojson]
+added: 2026-10-12
+updated: 2026-10-12
+auth: none
+feeds_cells: [Environmental|Community]
+upstream_listed_in: []
+notes: |
+  LICENCE VERIFIED 2026-10-12 in the project's own README
+  (github.com/OpenLitterMap/openlittermap-web): "Code: GPL v3 | Data: ODbL".
+  The terms page (openlittermap.com/terms) renders in JavaScript and returned
+  only its title to a plain fetch, so the README is the statement quoted here.
+
+  ENDPOINT VERIFIED 2026-10-12, no key and no account:
+  `GET /api/points?bbox[left]=115.0&bbox[bottom]=-8.9&bbox[right]=115.3&bbox[top]=-8.6&zoom=16`
+  returned HTTP 200 and a GeoJSON FeatureCollection with 2 points around
+  Ungasan, Bali, the latest dated 2026-09-25. Paged (`page`, `per_page` max
+  500); filters by category, object, material, brand and date. The API
+  reference is readme/API.md in the repository ("Auth: None (public)").
+
+  PERSONAL DATA: each point carries `username`, `name`, `team` and `social`
+  when the contributor allowed it. A reader keeps the point, its time, its
+  verification level, `picked_up` and the tag summary, and drops the rest.
+
+  WHY: Fab City asked for a place where a node's own litter and dumping
+  findings can be offered back (planetai-node docs/SPEC_eyes.md, 12 Oct 2026),
+  and the same map is context a node can read about its own cells on setup.
+
+  Promotes to live when a node's adapter reads it for its cells, or somebody
+  reads it for a real territory and files the review.

@@ -158,6 +158,12 @@ strong { font-weight: 600; }
 hr { border: 0; border-top: 1px solid var(--hair); margin: 32px 0; }
 img { max-width: 100%; }
 
+/* ---- figures: a diagram is inline SVG on the page's tokens, a screenshot is a framed picture ---- */
+.fig { margin: 22px 0 26px; max-width: var(--measure); }
+.fig svg { display: block; width: 100%; height: auto; }
+.fig.shot img { display: block; border: 1px solid var(--hair); }
+.fig figcaption { margin-top: 8px; font-size: .875rem; color: var(--mute); }
+
 /* ---- code ---- */
 code {
   font-size: .875em; font-weight: 500;

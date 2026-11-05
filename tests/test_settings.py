@@ -1,6 +1,7 @@
 """The settings layer: DB overlays env, blank returns to env, secrets mask, only RUNTIME keys are writable.
 Run: PYTHONPATH=/tmp/stub:app python3 tests/test_settings.py"""
 import re
+import json
 import os
 import sys
 
@@ -84,5 +85,16 @@ assert settings.CHOICES["AGENT_PREFER"][0] == "private", \
 assert "AGENT_PREFER" in settings.OUTWARD, "it decides whether the online path is used at all"
 assert settings.RUNTIME["AGENT_PREFER"][4].startswith("private"), \
     "the help is the one line each surface shows and the one the refusal quotes; the consequences are in it"
+
+# Grafana's keys are read at start and shown in Set up › System; its password only ever as "set" (24 Oct 2026)
+os.environ.update(GRAFANA_ADMIN_PASSWORD="hunter2-not-shown", GRAFANA_BIND="127.0.0.1")
+for _unlocked in (False, True):
+    _b = {b["key"]: b for b in settings.describe(unlocked=_unlocked)["bootstrap"]}
+    assert _b["GRAFANA_ADMIN_PASSWORD"]["value"] == "set" and _b["GRAFANA_ADMIN_PASSWORD"]["secret"], _b["GRAFANA_ADMIN_PASSWORD"]
+    assert "hunter2" not in json.dumps(settings.describe(unlocked=_unlocked)), "the Grafana password reached /settings"
+    assert _b["GRAFANA_BIND"]["value"] == "127.0.0.1" and not _b["GRAFANA_BIND"]["secret"]
+os.environ.pop("GRAFANA_ADMIN_PASSWORD")
+assert {b["key"]: b for b in settings.describe()["bootstrap"]}["GRAFANA_ADMIN_PASSWORD"]["value"] == ""
+print("settings: Grafana's address and port are shown, its password only as set or not")
 
 print("all settings tests pass")

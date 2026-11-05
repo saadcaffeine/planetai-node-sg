@@ -4,5 +4,5 @@ description: Don't shout about indoor PM2.5 during normal cooking hours — say 
 author: planetai-node core (example)
 version: 0.1.0
 requires: { node: ">=0.1.1" }
-kind: data          # data = rules/cells only, no code. code = ships adapter.py.
+kind: data          # data = rules/cells only, no code. code = any .py in the folder (the loader decides, not this line).
 scales: [community]

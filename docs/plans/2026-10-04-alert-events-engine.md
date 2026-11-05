@@ -35,7 +35,7 @@ switch. Telegram buttons and ρ (§7), anticipation (§6) and report settings (�
 - Old rules are not edited or removed in this plan. Kinded rules are new rules beside them; the old path skips any
   rule with a `kind:`.
 - Messages in en, id and es with the same placeholders (`tests/test_packs.py`). The id and es strings are
-  assistant-written; say so in a comment, as `app/issues/heat.yml` does.
+  assistant-written; say so in a comment, as `packs/heat/issue.yml` does.
 - A new test suite is one line in `tests/all` and moves the expected count (55 today) by one, in the same commit.
   A suite ends in its last `print`, never `sys.exit()` with tests below it.
 - Every new setting: `app/settings.py` (`RUNTIME` + `CHOICES`), `.env.example` (comment above the key),
@@ -56,7 +56,7 @@ switch. Telegram buttons and ρ (§7), anticipation (§6) and report settings (�
 | `app/actions.py` (new) | `when:` evaluation and action choice; template rendering |
 | `app/main.py` | refresh `usual_by_hour` hourly; `run_rules` skips kinded rules on the old path and calls the engine in `shadow`/`events` |
 | `app/settings.py`, `.env.example`, `docs/site/configuration.md` | `ALERT_ENGINE`, `ALERT_MAX_PER_DAY`, `HOME_HAS` |
-| `app/issues/heat.yml`, `app/issues/air.yml` | `events:` templates and `actions:` lists |
+| `packs/heat/issue.yml`, `packs/air-quality/issue.yml` | `events:` templates and `actions:` lists |
 | `packs/heat/rules.yml`, `packs/air-quality/rules.yml` | new kinded rules |
 | `tests/trustdb.py` | the replay harness learns `recent_15m` and `usual_by_hour` |
 | `tests/test_measures.py`, `tests/test_events.py`, `tests/test_actions.py`, `tests/test_kinded_rules.py` (new) | suites |
@@ -902,7 +902,7 @@ PR body note: "`init.sql` changes: two maintainers (GOVERNANCE.md)."
 
 **Files:**
 - Create: `app/actions.py`
-- Modify: `app/issues/heat.yml`, `app/issues/air.yml` (append `events:` and `actions:`)
+- Modify: `packs/heat/issue.yml`, `packs/air-quality/issue.yml` (append `events:` and `actions:`)
 - Modify: `app/events_pg.py` (`context(cur, e)`, fill `event_messages.text` and `events.action_id`)
 - Create: `tests/test_actions.py`; `tests/all` (58 → 59)
 
@@ -948,8 +948,8 @@ import actions as A
 import events as E
 
 ROOT = Path(__file__).resolve().parent.parent
-heat = yaml.safe_load((ROOT / "app/issues/heat.yml").read_text())
-air = yaml.safe_load((ROOT / "app/issues/air.yml").read_text())
+heat = yaml.safe_load((ROOT / "packs/heat/issue.yml").read_text())
+air = yaml.safe_load((ROOT / "packs/air-quality/issue.yml").read_text())
 
 night = dict(inside_temp=29.3, outside_temp=24.9, outside_pm25=10, inside_pm25=8, hour=20, home_has=set(),
              where={"inside"}, kind="sustained")
@@ -1074,7 +1074,7 @@ def render(issue: dict, msg, ctx: dict, locale: str) -> tuple[str, str | None]:
 
 - [ ] **Step 4: Append templates and actions to the issue files**
 
-At the end of `app/issues/heat.yml`:
+At the end of `packs/heat/issue.yml`:
 
 ```yaml
 # Events (docs/SPEC_alerts.md §4–§5). One message per heat event at this house, whichever rooms it spans; one
@@ -1129,7 +1129,7 @@ actions:
       es: "Bebe agua, mueve el aire y afloja el trabajo duro hasta que baje."
 ```
 
-At the end of `app/issues/air.yml`:
+At the end of `packs/air-quality/issue.yml`:
 
 ```yaml
 # Events (docs/SPEC_alerts.md §4–§5). The id and es strings are ASSISTANT-WRITTEN.
@@ -1249,7 +1249,7 @@ pass: the new top-level keys must not break the issue contract. If `test_issues_
 Run: `make lint && make test` — `59 suites: 59 passed`.
 
 ```bash
-git add app/actions.py app/events_pg.py app/issues/heat.yml app/issues/air.yml tests/test_actions.py tests/all
+git add app/actions.py app/events_pg.py packs/heat/issue.yml packs/air-quality/issue.yml tests/test_actions.py tests/all
 git commit -m "events: one action per event, chosen from inside, outside, the hour and what the home has"
 ```
 

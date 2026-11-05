@@ -3,7 +3,7 @@
 
     python3 tools/check_registry.py          # in `make lint`
 
-`data/sources/` is a snapshot of `awesome-fabcity-data` at one commit (tools/sync_registry.sh). Seven
+`data/sources/` is a snapshot of `awesome-fabcity-data` at one commit (tools/sync_registry.sh). Nine
 things have to stay true about it, and one is only a warning.
 
   · REGISTRY_VERSION is there and parses — without it nothing downstream can say what it is serving.
@@ -14,10 +14,17 @@ things have to stay true about it, and one is only a warning.
   · Every entry sits in the directory its own `pillar`/`scale` name, because `slug` and `cell` are
     both derived from the path and a mismatch makes them lie.
   · Every `sources:` id in every packs/*/pack.yaml resolves to an entry.
+  · Every entry a pack reads names an `adapter`, and every `adapter` resolves here: `pack:<id>` to a
+    folder under packs/, `core:<fn>` to a function in app/sources.py or app/bootstrap.py.
   · Every review under reviews/ names an `entry` that is one of the vendored entries. A review of a
     source this pin does not carry is evidence about nothing, and it would fold onto no row.
   · Every cells/<file>.yaml is named for its own `cell` key. Both are no-ops on a pin taken before
     those trees existed upstream, which is every pin before 2026-09-22.
+
+**The `adapter` check was the registry's own (scripts/wired.py there) until 24 Oct 2026.** It read this
+repository's live main, so its green expired when the node shipped, with no commit to the registry, and
+every move of a reader out of the core left it red until a registry PR and a re-pin caught up. Here it
+reads the pin and this tree, the two things that ship together, so a move and its re-pin are one PR.
 
 **This replaced tools/check_sources.py, which asked the last question of a sibling checkout of the
 registry — and so answered it only on a laptop that had one.** In CI and on a node it printed a line
@@ -110,6 +117,20 @@ def main() -> int:
             hint = f"did you mean `{near[0]}`?" if near else "no entry in the registry"
             errs.append(f"{path.relative_to(ROOT)}: `{sid}` does not resolve — {hint}")
 
+    # `adapter` is a pointer, and a pointer is only worth having if it is dereferenced: both directions.
+    pack_dirs = {p.parent.name for p in ROOT.glob("packs/*/pack.yaml")}
+    funcs = {f for mod in ("app/sources.py", "app/bootstrap.py")
+             if (ROOT / mod).is_file() for f in re.findall(r"^def ([a-z][a-z_]*)\(", (ROOT / mod).read_text(), re.M)}
+    named = {e["slug"]: e["adapter"] for e in entries if e.get("adapter")}
+    for sid in sorted({sid for _, sid in pairs if sid in ids} - set(named)):
+        errs.append(f"`{sid}` is read by a pack and its entry names no `adapter` — PR `adapter: pack:<id>` "
+                    f"to it upstream")
+    for slug, a in sorted(named.items()):
+        kind, _, name = a.partition(":")
+        if name not in (pack_dirs if kind == "pack" else funcs):
+            where = "no such folder under packs/" if kind == "pack" else "no such function in app/sources.py or app/bootstrap.py"
+            errs.append(f"`{slug}`: adapter `{a}` names nothing here ({where}) — PR the new one upstream")
+
     # reviews/ and cells/ arrived upstream 2026-09-22. Absent is fine and silent: a pin from before
     # then simply has neither tree, and `rglob` over a directory that is not there yields nothing.
     for rp in sorted((SOURCES / "reviews").rglob("*.yaml")) if (SOURCES / "reviews").is_dir() else []:
@@ -157,7 +178,8 @@ def main() -> int:
               f"{ver['source']}, then re-pin with tools/sync_registry.sh <merge sha>.")
         return 1
 
-    print(f"  {len(index)} registry entries @ {ver['short']}, {len(pairs)} pack source ids resolve")
+    print(f"  {len(index)} registry entries @ {ver['short']}, {len(pairs)} pack source ids resolve, "
+          f"{len(named)} adapters name something here")
     for w in warns:
         print(f"  ! {w}")
     return 0

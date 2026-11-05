@@ -1,35 +1,37 @@
 # Platforms
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
 
-**Linux first, macOS second, Windows third.** Not a preference — a consequence. A node's home is a box
-that stays on, and a laptop under macOS is designed to go to sleep. More to the point: on macOS the floor
-rises every year, and on Linux it does not. Docker Desktop supports "the current and two previous major
-macOS releases" *by policy*, so a Mac falls off that list on its own, with nobody deciding anything.
-Docker Engine still supports Ubuntu 22.04 and Debian 11, four and five years old.
+This page says which machines can run a node, the oldest OS each one needs, and what to do with a machine below
+that floor. Linux comes first, macOS second and Windows third. A node's home is a box that stays on, and a laptop
+under macOS is designed to go to sleep. On macOS the floor also rises every year: Docker Desktop supports the
+current and two previous major macOS releases, so a Mac falls off the list with nobody deciding anything, while
+Docker Engine still supports Ubuntu 22.04 and Debian 11.
 
-One installer, five platforms. It detects which. What it cannot do is make a machine newer than it is, so
-this page states the floor for each, where the floor comes from, and what a machine below it should do
-instead — which is usually Linux, on the same hardware.
+One installer covers all of them and detects which it is on. Before you install, the preflight says whether this
+machine qualifies, and every failing row carries the command that fixes it on that machine:
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/preflight | bash        # nothing installed yet
+planetai preflight                                    # on a node
+planetai preflight --json                             # to paste into an issue
 ```
 
-## The matrix
+What its verdicts mean is on [Install](site/install.md).
 
-The container runtime is the only hard requirement the node adds; everything else it installs itself.
-This table and the sources under it are generated from `data/platform_floors.yml`, so the page cannot
-drift from what the installer asserts.
+## The floors
+
+The container runtime is the only hard requirement the node adds; the installer brings everything else. This
+table and the sources under it are generated from `data/platform_floors.yml`, the same file the preflight reads.
 
 <!-- BEGIN GENERATED: tools/render_platforms.py from data/platform_floors.yml -->
 | Machine | Minimum OS | Container runtime that installs there | RAM | Free disk |
 |---|---|---|---|---|
-| **Ubuntu / Debian (amd64)** — *the first choice* | Ubuntu 22.04 · Debian 11 | Docker Engine, installed by the script | 4 GB | 3 GB |
+| **Ubuntu / Debian (amd64)**, *the first choice* | Ubuntu 22.04 · Debian 11 | Docker Engine, installed by the script | 4 GB | 3 GB |
 | **Arch, and Omarchy on top of it (amd64)** | rolling | Docker from Arch's own repository, installed by the script | 4 GB | 3 GB |
-| **macOS, Apple Silicon (arm64)** | **13.0** | OrbStack, Docker Desktop or Colima. Colima reaches 13.0 here; since v0.63 the database image is native arm64, not emulated. | 4 GB | 3 GB |
-| **macOS, Intel (x86_64)** | **13.5** | ≥14.0: all three · 13.5–13.7: **Colima only** (`--vm-type vz`) · **below 13.5: none, and Linux is the route** | 4 GB | 3 GB |
+| **macOS, Apple Silicon (arm64)** | **13.0** | OrbStack, Docker Desktop or Colima. Colima reaches 13.0 here. The database image is native arm64. | 4 GB | 3 GB |
+| **macOS, Intel (x86_64)** | **13.5** | ≥14.0: all three · 13.5 to 13.7: **Colima only** (`--vm-type vz`) · **below 13.5: none, and Linux is the route** | 4 GB | 3 GB |
 | **Windows via WSL2 (amd64)** | 10 22H2 (build 19045) | Docker Desktop, WSL2 backend | 8 GB | 3 GB |
-| **Raspberry Pi OS 64-bit (arm64)** | — | Docker Engine, installed by the script. The database image is published for arm64 since v0.63; **no Pi has run a node yet.** 8 GB and an SSD, never an SD card: see below. | — | — |
+| **Raspberry Pi OS 64-bit (arm64)** | not set | Docker Engine, installed by the script. The database image is published for arm64; **no Pi has run a node yet.** 8 GB and an SSD, never an SD card: see below. | 8 GB | not measured |
 
 ### Where each number comes from
 
@@ -52,135 +54,84 @@ Every floor below is the vendor's own current sentence, with the date it was rea
 | [Docker on Arch](https://wiki.archlinux.org/title/Docker) | rolling | Arch has no Docker Engine page at docs.docker.com; docker is packaged in Arch's own extra repository and the installer uses pacman. Rolling release, s… | 2026-09-08 |
 | [Docker Desktop with the WSL2 backend](https://docs.docker.com/desktop/setup/install/windows-install/) | 10 22H2 (build 19045) | "Windows 10 64-bit: Enterprise, Pro, or Education version 22H2 (build 19045). Windows 11 64-bit: Enterprise, Pro, or Education version 23H2 (build 226… | 2026-09-08 |
 
-*Docker Desktop's floor moves on its own: Docker Desktop is supported on the current and two previous major macOS releases — so it drops the oldest macOS each autumn whether or not anyone edits this page.*
+*Docker Desktop's floor moves on its own: Docker Desktop is supported on the current and two previous major macOS releases, so it drops the oldest macOS each autumn whether or not anyone edits this page.*
 <!-- END GENERATED -->
 
-RAM and disk are the runtime vendors' floors, not the node's own. The node itself is much smaller — see
-*What the node actually costs* below — so the runtime is what decides whether a machine qualifies.
+RAM and disk in the table are the runtime vendors' floors. The node itself is much smaller (see
+[what it costs](#what-the-node-costs)), so the runtime is what decides whether a machine qualifies.
 
 ## Two ways to put Linux on a machine
 
-The choice is not really which distribution. It is whether anybody still uses the machine.
+The choice depends on whether anybody still uses the machine.
 
-**Ubuntu Server** — nobody uses it, it just runs. No desktop, ssh in, the lowest upkeep of anything here,
-and the longest support window: 22.04 is four years old and Docker still supports it. This is the right
-answer for a mini PC in a hallway, or a laptop with the lid shut on a shelf.
+**Ubuntu Server** if nobody does and it just runs. No desktop, you reach it over ssh, it needs the least upkeep,
+and it has the longest support window: Docker still supports 22.04. This is the answer for a mini PC in a hallway,
+or a laptop with the lid shut on a shelf.
 
-**Omarchy** — a machine somebody uses *and* a node. Arch underneath, Hyprland on top, installed from an
-ISO by answering five questions. Its own page says a 2011 ThinkPad X220 with 2 GB of RAM runs it, which
-is smaller than any node in this network. Arch is a rolling release, so there is no version floor to
-outlive — and the installer takes its pacman branch, which CI simulates on every push.
+**Omarchy** if somebody uses it and it is also a node. Arch underneath, Hyprland on top, installed from an image by
+answering five questions; its own page says a 2011 ThinkPad X220 with 2 GB of RAM runs it. Arch is a rolling
+release, so there is no version floor to outlive, and the installer takes its `pacman` branch.
 
-Either way the install line is the same one, and `docs/REVIVE_A_LAPTOP.md` walks the whole thing.
+Linux Mint also works, and it is the one of the three that has carried a node. Either way the install line is the
+same, and [Revive a laptop](REVIVE_A_LAPTOP.md) walks the whole route.
 
-## A Mac below the floor is not finished
+## A Mac below the floor
 
-Below the floor no container runtime installs, and for some models upgrading is not a route: a MacBook
-Pro (Retina, 15-inch, Mid 2015) tops out at macOS 12.7.6, while a 2017 model reaches Ventura and clears
-the floor. `data/mac_ceilings.yml` holds what Apple's own compatibility pages establish, and
-`planetai preflight` says which case a machine is in rather than sending anyone to check a list.
+Below the floor no container runtime installs, and on some models upgrading is not a route. A 15-inch MacBook Pro
+of mid 2015 tops out at macOS 12.7.6, while a 2017 model reaches Ventura (13.7.6) and clears the Intel floor of
+13.5, with Colima as its only runtime. `data/mac_ceilings.yml` holds what Apple's compatibility pages establish, and
+the preflight says which case a machine is in.
 
-Two routes work on a Mac that cannot upgrade, and both are printed as commands:
+Two routes work on a Mac that cannot upgrade, and the preflight prints both as commands:
 
-- **Linux in a VM on that Mac.** UTM is free, needs no account, supports macOS 11.3, and on Intel wraps
-  Apple's Hypervisor framework so the guest CPU is near-native. Old UTM builds stay on GitHub Releases,
-  so a Mac below a current build's floor can fetch an earlier one. VMware Fusion **13.0** is the
-  alternative when the VM will outlive a few weeks — bridged networking, open-vm-tools, and
-  `vmrun start <vmx> nogui` for headless autostart; note the *current* Fusion line needs macOS 15.
-- **Linux on the metal**, and the laptop becomes the node: `REVIVE_A_LAPTOP.md`.
+- **Linux in a virtual machine on that Mac.** UTM is free, needs no account, supports macOS 11.3, and on Intel uses
+  Apple's own hypervisor, so the guest runs at close to full speed. Older UTM builds stay on GitHub Releases for a
+  Mac below a current build's floor. VMware Fusion 13.0 (macOS 12 or newer) is the alternative when the VM will run
+  for months: bridged networking, open-vm-tools, and `vmrun start <vmx> nogui` to start it headless. The current
+  Fusion line needs macOS 15.
+- **Linux on the metal**, and the laptop becomes the node: [Revive a laptop](REVIVE_A_LAPTOP.md).
 
-Not Multipass, whatever anything else in this repository says: its floor is macOS 14. Not VirtualBox
-either — its oldest supported host is Ventura.
+Multipass needs macOS 14 and VirtualBox's oldest supported host is Ventura, so neither helps on these Macs.
 
-## Raspberry Pi 4 / 5 — the wall came down on 19 September 2026, and nobody has run one yet
+## Raspberry Pi and other arm64 boards
 
-Both of those are true and they are different sentences. Keep them apart.
+The database image runs on arm64, and no Pi has run a node yet.
 
-**What was true until v0.63.** `postgis/postgis:16-3.4-alpine` publishes one manifest and it is
-`linux/amd64`:
+The node's database is `imresamu/postgis:16-3.4-alpine`, a build of the PostGIS recipe published for both
+`linux/amd64` and `linux/arm64` under one tag, on Alpine. The other images a node pulls are multi-arch too:
+`python:3.12-slim` for the app, `eclipse-mosquitto:2` for the `mqtt` profile, `ipfs/kubo:v0.43.0` for the `ipfs`
+profile and `grafana/grafana-oss:13.0.2` for the `grafana` profile. CI runs the real installer end to end on an arm64 runner, which proves the images resolve and the database
+comes up. It proves nothing about an SD card, or a 4 GB board in a warm cupboard.
 
-```
-$ docker buildx imagetools inspect postgis/postgis:16-3.4-alpine
-Name:      docker.io/postgis/postgis:16-3.4-alpine
-MediaType: application/vnd.docker.distribution.manifest.v2+json
-Digest:    sha256:681931a625df344215e9b8998bf34daf146b6a395ceacee4439eb9c85869239f
-```
+The image stays on Alpine on purpose. Alpine uses musl, which records no collation version, and every existing
+node's data directory was created that way. A Debian (glibc) build opens the same data directory without a warning,
+but its text ordering differs, so every text index is silently out of order and Postgres has nothing to compare
+that would tell it. Keeping the same libc is what lets an existing node switch images safely.
 
-A single `manifest.v2` with no `Manifests:` list means no other architecture exists, and the image config
-says `architecture: amd64`. Re-checked against the registry 19 September 2026: still one manifest, still
-amd64. On a Pi the database container stopped with `exec format error`, measured on a clean Ubuntu 24.04
-arm64 VM on 6 September 2026. That was never wrong. What was wrong was treating an upstream project's CI
-choice as a property of the hardware.
+`docs/ARM64.md` is the test plan for whoever goes first. For a Pi: 64-bit Raspberry Pi OS, 8 GB, and boot from an
+NVMe hat or a USB SSD. Never an SD card: Postgres syncs to disk on every commit, and an SD card dies under that
+within a year.
 
-**What changed.** The node's `db` service is `imresamu/postgis:16-3.4-alpine` — a docker-postgis
-co-maintainer's build of the same recipe, publishing `linux/amd64` and `linux/arm64` for the same tag, on
-the same Alpine base. Measured on arm64 the day it was chosen: PostgreSQL 16.11 `aarch64-unknown-linux-musl`,
-`postgis_version()` = 3.4, `init.sql` applied clean (15 tables, `schema_version` 0.51, the `planetai_ro`
-role, the generated `custody` column). A data directory written by the amd64 image and then opened by the
-arm64 one kept all 16 tables, its geometry, its GiST index answers and its text ordering, and passed
-`bt_index_check`.
+## Which machine to reach for first
 
-The other three images the node can pull were already multi-arch: `python:3.12-slim` (the app's base),
-`eclipse-mosquitto:2` (the `mqtt` profile), `ipfs/kubo:v0.43.0` (the `ipfs` profile).
+**A repurposed x86_64 laptop.** The reference here is a 15-inch MacBook Pro of mid 2015: Core i7-4870HQ, 4 cores
+and 8 threads, 16 GB. Its Geekbench 6 multi-core score is 3,664
+([cpu-monkey](https://www.cpu-monkey.com/en/benchmark-intel_core_i7_4870hq-geekbench_6_multi_core)). Under macOS it
+cannot run a node at all; with Linux on the metal it is a good one. Any x86_64 laptop from about 2015 with 8 GB is
+in the same class.
 
-**Why not a Dockerfile of our own**, which would be better on every other count: `FROM postgres:16` plus
-PGDG's `postgresql-16-postgis-3` builds in two lines and runs — and it is Debian, so glibc, while the image
-we have been shipping is Alpine, so musl. A musl `initdb` records `datcollate='en_US.utf8'` and leaves
-`datcollversion` **blank**, because musl reports no collation version. Postgres therefore has nothing to
-compare and warns about nothing. Opening an existing node's data directory with the PGDG build was measured
-on 19 September 2026: it started, all 16 tables were there, every query answered — and
+**A small always-on x86 mini PC.** For example a Beelink MINI S12 Pro: Intel N100, 4 cores, 16 GB, 500 GB SSD,
+about 6 W idle and almost silent. Its Geekbench 6 multi-core score is 2,595
+([cpu-monkey](https://www.cpu-monkey.com/en/benchmark-intel_processor_n100-geekbench_6_multi_core)).
 
-```
-$ psql -c "SELECT bt_index_check('s_name')"
-ERROR:  item order invariant violated for index "s_name"
-```
+So the ten-year-old laptop is about 40% faster on multi-core than the mini PC you would otherwise buy, and that is
+why we say revive first. The mini PC wins on idle power, silence and having no battery to age, and those are good
+reasons to choose it. Its price moves weekly and by region, so price it where you are.
 
-Every text index silently out of order, on every existing node, with the database's own mismatch detector
-unable to see it. The borrowed image keeps the libc; keeping the libc is what makes "an existing node just
-switches" true. The image we build comes back the day a node's data directory is created on glibc from the
-start, and that day carries a reindex.
+## What the node costs
 
-**What has not happened.** No Raspberry Pi, Jetson, reComputer or Spark has run a node. CI runs the real
-installer end to end on `ubuntu-24.04-arm` against a Debian 13 arm64 userland, which proves the images
-resolve and the database comes up — and proves nothing about an SD card, a 4 GB ceiling or a warm cupboard.
-The table below keeps the list of arm64 machines that have carried one — it is empty — and
-`docs/ARM64.md` is the test plan that would put the first name on it.
-
-| arm64 machine | has run a node | for how long | reported |
-|---|---|---|---|
-| *(none yet)* | — | — | — |
-
-When one is set up: 64-bit Raspberry Pi OS (Trixie, as of 15 September 2026), 8 GB, and boot from an NVMe
-hat or a USB SSD. Not an SD card — Postgres fsyncs on every commit and SD cards die under that within a
-year.
-
-## Two machines to aim at, and which one to reach for first
-
-**Reference A — a repurposed x86_64 laptop.** The machine this section exists because of: a MacBook Pro
-(Retina, 15-inch, Mid 2015), Core i7-4870HQ, 4 cores / 8 threads, 16 GB, 428 GB free. Its Geekbench 6
-multi-core score is **3,664**
-([cpu-monkey](https://www.cpu-monkey.com/en/benchmark-intel_core_i7_4870hq-geekbench_6_multi_core),
-read 9 September 2026). Under macOS it cannot run a node at all; with Linux on the metal it is a good
-one. Any x86_64 laptop from about 2015 with 8 GB is in the same class.
-
-**Reference B — a small always-on x86 mini PC.** A Beelink MINI S12 Pro or equivalent: Intel N100,
-4 cores / 4 threads, 16 GB, 500 GB SSD, roughly 6 W idle, no fan noise to speak of. Its Geekbench 6
-multi-core score is **2,595** across 677 samples
-([cpu-monkey](https://www.cpu-monkey.com/en/benchmark-intel_processor_n100-geekbench_6_multi_core),
-read 9 September 2026).
-
-**So the ten-year-old laptop is about 40 % faster on multicore than the mini PC we would otherwise tell
-someone to buy.** That is the whole argument for reviving what a building already has: revive first, buy
-second. The mini PC wins on idle power, silence and the fact that it has no battery to age — reasons to
-choose it, but not performance ones.
-
-*The mini PC's street price is the one number here that is not verified. It moves weekly and by region,
-so price the named model where you are, on the day, and write the figure and the date in next to it.*
-
-## What the node actually costs, measured on amd64
-
-The tester tarball, unpacked, both containers built and run for `linux/amd64`, no sensor configured — the
-`sensor: none, models only` case, which is how everyone starts:
+Measured from the tarball, both containers built for `linux/amd64` with no sensor configured, which is how
+everyone starts:
 
 | | mean | peak |
 |---|---|---|
@@ -190,34 +141,22 @@ The tester tarball, unpacked, both containers built and run for `linux/amd64`, n
 | app container, CPU | 2.8 % | 23 % (during a poll) |
 | database container, CPU | 4.8 % | 47 % (during a poll) |
 
-Twelve samples over two poll cycles and one generated report, on an amd64 build running emulated on Apple
-Silicon — so the memory figures are honest and the CPU figures are an over-estimate for real amd64 hardware.
-A report generates in 1.5 s. On disk: 192 MB for the app image, 453 MB for the database image, and 114 MB for
-the database volume after the 4,476-row bootstrap (92 days of CAMS plus NASA POWER normals).
+Twelve samples over two poll cycles and one report, on an amd64 build emulated on Apple Silicon, so the memory
+figures hold and the CPU figures overstate real amd64 hardware. A report takes 1.5 s. On disk: 192 MB for the app
+image, 453 MB for the database image, and 114 MB for the database volume after the first-start history of
+4,476 rows (92 days of CAMS plus NASA POWER normals).
 
-**There is no `PROFILE=lite`, because there is nothing to take out.** A quarter of a gigabyte and under 5 % of
-a core is already the lean configuration, and the one heavy thing a node can run — a local language model — is
-opt-in: `planetai agent local` recommends one and downloads nothing, `planetai agent local pull <tag>` fetches
-it, and it lives on the host rather than in a container. Containers on macOS get CPU only, on Intel and on Apple Silicon alike; that matters
-for `planetai agent local` and for nothing else here.
+There is no lighter profile, because there is nothing to take out. The one heavy thing a node can run, a local
+language model, is opt-in: `planetai agent local` recommends one and downloads nothing, `planetai agent local pull
+<tag>` fetches it, and it runs on the host rather than in a container. Containers on macOS get the CPU only, on
+Intel and Apple Silicon alike, and that matters for the local model and nothing else here.
 
-## Any of them
+## On any machine
 
-The node needs about 2 GB of disk for itself; the images add 208 MB of download (162 MB database, 46 MB Python base,
-both compressed, amd64). Node #1, with four local sensors and the public references, adds about 1 MB of readings a
-day: a few hundred MB a year, not 50. Ethernet over WiFi where you can. The machine must boot and log in on its own
-after a power cut, or the node is down until someone types a password. For an always-on mini, read `MAC_MINI.md`.
+The node needs about 2 GB of disk for itself, and the images are a 208 MB download (162 MB database, 46 MB Python
+base, both compressed, amd64). Node #1, with four local sensors and the public references, adds about 1 MB of
+readings a day, a few hundred MB a year. Use ethernet over WiFi where you can. The machine must boot and log in on
+its own after a power cut, or the node is down until someone types a password; for an always-on Mac, see
+[Mac mini](MAC_MINI.md).
 
-macOS 26 quirk: dragging firmware onto a Meshtastic radio's drive fails (FSKit). Serial DFU works; see `MESHTASTIC.md`.
-
-## Check before you install
-
-```bash
-curl -fsSL planetai.fab.city/preflight | bash        # nothing installed yet
-planetai preflight                                    # on a node
-planetai preflight --json                             # to paste into an issue
-```
-
-It prints one table: OS, architecture, memory, free disk, whether the disk can be written to, container
-runtime, python3, egress and ports. Every failing row
-carries the one command that fixes it *on that machine*, and it never asks a question.
+On macOS 26, dragging firmware onto a Meshtastic radio's drive fails; serial DFU works ([Radios](MESHTASTIC.md)).

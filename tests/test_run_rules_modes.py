@@ -14,6 +14,8 @@ code = compile(ast.Module(body=fns, type_ignores=[]), "run_rules", "exec")
 import sys  # noqa: E402
 sys.path.insert(0, str(src.parent))
 import actions  # noqa: E402 — _event_keyboard reads the wire's own button words
+import buttons as buttons_mod  # noqa: E402 — run_rules reads a rule's buttons column through it
+import json  # noqa: E402
 
 # heat/old is replaced by the engine (its pack has a kinded rule); trust/other is not, and keeps sending in events mode
 OLD = {"id": "heat/old", "sql": "OLD_SQL", "message": "old {x}", "level": "act"}
@@ -24,7 +26,7 @@ KINDED = {"id": "heat/kinded", "sql": "KINDED_SQL", "message": "k", "level": "ac
 class Msg:
     def __init__(self, send, level="act"):
         self.send = send
-        self.event = type("E", (), {"level": level, "id": 7})()
+        self.event = type("E", (), {"level": level, "id": 7, "issue": "heat"})()
 
 
 def run(mode, buttons=False):
@@ -50,6 +52,7 @@ def run(mode, buttons=False):
 
     packs, index, events_pg, settings, log = NS(), NS(), NS(), NS(), NS()
     packs.load_rules = lambda: [OLD, OTHER, KINDED]
+    packs.emit = lambda *a: None          # Home Assistant and any other hook: a pack since 22 Oct
     index.run_ro = lambda cur, sql: (sqls.append(sql), [{"sensor_id": "s", "x": 1}])[1]
     events_pg.candidates = lambda rule, rows: ["cand"]
     events_pg.run = lambda cur, cands, m, now: (ran.append((cands, m)),
@@ -59,9 +62,10 @@ def run(mode, buttons=False):
     log.warning = log.info = lambda *a: None
     sent_levels = []
     g = dict(packs=packs, index=index, events_pg=events_pg, settings=settings, log=log, db=db, _act=actions,
-             notify=lambda lvl, text, keyboard=None: (notified.append(text), sent_levels.append(lvl), kbs.append(keyboard)),
-             ha_alert=lambda *a: None,
+             notify=lambda lvl, text, keyboard=None, home="": (notified.append(text), sent_levels.append(lvl), kbs.append(keyboard)),
+             _alert_home=lambda issue: "",
              run_report=lambda cur: None, _quiet=lambda lvl: False, LOCALE=lambda: "en", _local_now=lambda: "now")
+    g.update(buttons=buttons_mod, json=json)
     exec(code, g)
     g["run_rules"]()
     return sqls, notified, ran, kbs

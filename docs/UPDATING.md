@@ -1,102 +1,103 @@
 # Updating
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
+
+One command brings the node to the published release. Your settings, readings, backups, exports and the packs you
+added stay.
 
 ```bash
 planetai update
 ```
 
-In order: back up the database (and refuse to go on if that fails); fetch tags and pull, or download the tarball if the
-node has no repository access, check its checksum **and its signature**, and stop dead if either is wrong; apply
-`init.sql`, which is idempotent, to the live database; merge new keys from
-`.env.example` into `.env` under a dated marker; rebuild the image; restart; run the doctor; report the schema before
-and after.
+## What it does
 
-If the version arriving ships a core pack with the same id as a wild pack on the node (one `planetai packs add`
-fetched), it stops after the backup and before anything moves, names the wild copy and where it came from, and asks
-for it to be deleted (`rm -rf packs/<id>`); run the update again and the core pack takes its place.
+1. **Backs up the database**, and stops if that fails. It also copies `.env` and `config/rules.yml` aside with
+   `.before-update` on the end.
+2. **Gets the new code.** A node installed from the tarball downloads it from `planetai.fab.city/node0/get`, checks
+   its checksum and signature, and unpacks it over the folder. A git checkout fetches tags and pulls. If the new
+   version ships a core pack with the same id as a wild pack on the node (one `planetai packs add` fetched), it
+   stops here and names it; delete the wild copy with `rm -rf packs/<id>` and update again.
+3. **Applies `init.sql`**, which is idempotent.
+4. **Adds new settings** from `.env.example` to `.env` with their defaults, under a dated marker. Nothing you set is
+   overwritten, with one exception: on a node that lists its packs in `PACKS_ENABLED` (in `.env` or in Set up), it
+   adds each pack that took over something the node already did, so nothing is lost: `home-assistant`,
+   `smartcitizen`, `airgradient`, `purpleair`, `air-quality` and `bali-air-dispatch` where their switch is on, the
+   pack of each issue `NODE_ISSUES` names (`water` brings `terrain`), and `things` and `eyes` always. It takes `trust`
+   out, since it is core now, unless it was the only pack listed. An empty list is every pack and is left alone.
+5. **Rebuilds and restarts**, and on a node with the Reticulum bridge on, fetches the bridge at the commit this
+   release pins and rebuilds it; a bridge that does not build keeps running the one it had. Then it checks the database, the app, the readings, the views and the packs, prints the schema
+   before and after, and ends on `updated. Nothing was lost:` with the counts of readings, alerts and actions. On the way it adds, once, the
+crontab line that Install on Set up › Packs needs (`planetai packs cron`).
+6. **Runs `planetai doctor`**, ending with **To finish setting up**. In a terminal it offers to do the first item,
+   and to fetch the map if the node has none; from cron or an agent it only prints. A cross there never fails an
+   update that has succeeded.
 
-`update.sh` runs from a copy of itself, because pulling rewrites the file bash is reading and it would otherwise continue
-from a random offset in the new file.
+If it then says a pack needs libraries the image does not have, run `planetai packs install` and
+`planetai restart`. If it says `config/rules.yml` changed, put any thresholds you had edited into a pack
+([Packs](PACKS.md)).
 
 ## Updates are signed
 
-Since v0.61 the tarball arrives with a signature, and a node checks it before it unpacks anything. If a node refuses an
-update, **that is the node doing its job** — it means the download was not signed by the key the node trusts, and the
-right response is to stop, not to work around it.
+The checksum and the signature prove different things. The SHA256 checksum is served from the same place as the
+tarball, so it only proves the download arrived whole. The signature is made with a key that is not on the web
+server: the node runs `ssh-keygen -Y verify` with signer `fabcity` and namespace `planetai-node`, against a key
+written into the installer and `update.sh`. `planetai version` prints the key this node trusts:
 
 ```
-xx this download is not signed by the PLANETAI release key. Nothing was installed and nothing on this machine changed.
+  updates signed by  fabcity  SHA256:OrUQK/jsjNjpei1U8B5tyuEWY36/gwYWXrgVF+5ycIY
 ```
 
-Nothing on the machine changed when you see that. Try once more, in case you were on a captive-portal wifi that served
-its own page instead of the file. If it says it twice, do not go looking for a way past it — say so. `SECURITY.md` is
-how.
+When a check fails, the install or update stops before touching the node:
 
-The checksum and the signature are not the same check. The checksum is served from the same place as the tarball, so it
-only tells you the download arrived whole; whoever can write one can write the other. The signature is made with a key
-that is not on the web server. `planetai version` prints the fingerprint your node checks against, and `planetai doctor`
-has a row saying whether the last update was verified (on a node installed from the tarball; a git checkout has no such row).
+| it prints | what to do |
+|---|---|
+| `this download is not signed by the PLANETAI release key. Nothing was installed and nothing on this machine changed.` | try once more on a network you trust (a captive-portal WiFi can serve its own page instead of the file); if it says it twice, stop and tell us, as [SECURITY.md](../SECURITY.md) says |
+| `the download does not match its published checksum. Try again; if it repeats, tell us.` | the download was cut or altered on the way |
+| `could not fetch …/planetai-node.tar.gz.sig, so it is not known who built this download.` | that one file is missing, usually a partial deploy; wait and try again |
+| `no ssh-keygen on this machine, so it cannot be checked who built this download.` | `sudo apt-get install -y openssh-client`, or `sudo pacman -S openssh` on Arch; every Mac has it |
 
-Two other things it can say, both with the fix attached:
+A refused update is the node doing its job. Do not look for a way past it.
 
-**`no ssh-keygen on this machine`** — a bare container or a very thin Linux install. `sudo apt-get install -y
-openssh-client`, or `sudo pacman -S openssh` on Arch. Every Mac already has it.
-
-**`could not fetch … planetai-node.tar.gz.sig`** — the site is reachable but that one file is not. Usually a partial
-deploy. Wait, then try again.
-
-There is an escape hatch, `PLANETAI_UNSIGNED=1`, which accepts an unsigned tarball and says in red that it did. It is
-for building and throwing away a test tarball on a dev machine. It is not for a node anybody relies on, and `planetai
-doctor` will show that the node took one.
+Every install and update writes `.planetai-release`, `signed` or `unsigned` with the time, and on a tarball node
+`planetai doctor` has the row `release signature verified on last update`. `PLANETAI_UNSIGNED=1` accepts an
+unsigned tarball and says so in red; it is for a throwaway test tarball, never a node anybody relies on.
 
 ## If it fails
 
-**`git pull failed`**: local changes. The update clears `.DS_Store` itself before it pulls. When it fails, it names
-the offending files (up to ten) and any commits that exist only here but not on origin. If you edited files in the
-node folder, `git stash`, then update again. Operational files a node writes (its update log and its
-before-copies, `.planetai-*` and `.env.before-*`) are in `.gitignore` now — untrack them if they were
-committed, never commit them.
+**The backup failed, so it stopped.** On purpose. `planetai backup` alone shows why, and `planetai storage` where it
+is writing.
 
-**`backup failed — not updating`**: the update refused on purpose. `planetai backup` alone shows why; `planetai storage`
-shows where it is trying to write.
+**`git pull failed`** on a git checkout: local changes. It names the changed files and any commits that exist only
+here. `git stash`, then update again. The node's own files (`.planetai-*`, `.env.before-*`) are in `.gitignore`;
+untrack them if they were ever committed.
 
-**`app answering ✗`**: `docker compose logs app | tail -40`. Paste it.
+**`already at the newest commit`** on a git checkout: nothing moved. If the release channel already serves a commit
+this branch lacks, it says so; try again shortly.
 
-**no-op pull (nothing moved)**: the script asks the channel `/VERSION`. If the commit served there has not landed on
-this branch yet, it says "already at the newest commit on $branch ($here), but the channel serves $latest, which has
-not landed on this branch yet — it is still shipping; try again shortly". Otherwise it confirms you are up to date.
+**`app answering ✗`** or `something is off`: run `docker compose logs app | tail -40` and send it to us.
 
 ## Rollback
 
+On a git checkout:
+
 ```bash
-git checkout v0.76        # or whichever tag you want back
-docker compose build app  # the code is inside the image; a restart alone keeps running the new one
+git checkout v0.82.0      # the tag you want back
+docker compose build app  # the code is inside the image; a restart alone keeps the new one
 planetai restart
 planetai restore backups/<node>-<date>.sql.gz    # only if the schema went forward and you need the old shape
 ```
 
-A node installed from the tarball has no tags to check out. Point it at an earlier release on the mirror (below) and
-update: `PLANETAI_GET=https://github.com/fabcity/planetai-node/releases/download/<tag> planetai update`. The same
-checksum and signature checks apply.
+A tarball node has no tags: point it at an earlier release on the mirror and update.
 
-## Testers without repository access
+## Reading from the mirror
 
-`update` downloads `planetai.fab.city/node0/get/planetai-node.tar.gz`, checks its checksum and its signature, and
-unpacks over the folder keeping `.env`, backups, exports and packs. Publish a new one with `tools/release.sh`, which
-builds it, signs it, commits it in the site repo, deploys, and mirrors the same three files, with `VERSION`, to a
-GitHub Release.
-
-### Reading from the mirror instead
-
-Every release is published twice, from the same bytes with the same signature. `PLANETAI_GET` points a node at the
-other copy — the site serves the files under `/get`, a GitHub Release serves them flat, and the same stub reads either:
+Every release is published twice, on the site and as a GitHub Release, from the same bytes with the same signature.
+`PLANETAI_GET` points an update or an install at the GitHub copy, with the same checks:
 
 ```bash
+PLANETAI_GET=https://github.com/fabcity/planetai-node/releases/download/<tag> planetai update
 PLANETAI_GET=https://github.com/fabcity/planetai-node/releases/download/<tag> \
-  bash -c "$(curl -fsSL planetai.fab.city/install)"
+  bash -c "$(curl -fsSL https://planetai.fab.city/install)"
 ```
 
-`<tag>` is the release you want, `v0.72.1` for example. The first signed release is v0.61; v0.60 never shipped.
-
-Useful when the site is unreachable, and useful when you would rather fetch from somewhere with a history anyone can
-read. The signature is what makes the two copies the same artefact rather than two things that look alike.
+`<tag>` is a release such as `v0.82.0`. Releases from v0.61 on are signed, and the node refuses an older one. Use the
+mirror when the site is unreachable, or when you would rather fetch from a history anyone can read.

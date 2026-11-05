@@ -1,0 +1,53 @@
+name: Copernicus DEM GLO-30 (global 30 m surface elevation)
+url: https://registry.opendata.aws/copernicus-dem/
+description: |
+  Heights of the Earth's land surface every 30 m, buildings and trees included, from the TanDEM-X radar mission.
+  Published by the Copernicus programme as one-degree Cloud-Optimized GeoTIFFs on AWS. A node reads its own square
+  to see where rain runs and where it stands.
+pillar: environmental
+scale: planet
+status: candidate
+license: "Copernicus WorldDEM-30 licence (COP-DEM-GLO-30-F): reproduction, distribution and adaptation, free, worldwide, with a © notice and a no-liability sentence that pass to every later user. An open permission, not a named licence. See notes."
+api: https://copernicus-dem-30m.s3.amazonaws.com/readme.html
+pilot_relevance: []
+places: [bali]
+tags: [elevation, dem, dsm, terrain, hydrology, flooding, copernicus, earth-observation, cog]
+added: 2026-10-23
+assisted_by: Claude Code
+adapter: pack:terrain
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23.
+
+  LICENCE. Read from the licence text, not a portal label: "Licence for Copernicus DEM instance
+  COP-DEM-GLO-30-F Global 30m Full, Free & Open" (PDF dated 29 Oct 2020, linked from the AWS
+  bucket), and the same -F text again in ESA's June 2025 bundle
+  copernicus_contributing_mission_data_access_v2_cop_dem_licenses.pdf. Art. 4 grants reproduction,
+  distribution, communication to the public, and "adaptation, modification and combination with
+  other data". Art. 5: free of charge. Art. 3: worldwide, no time limit. No non-commercial clause.
+  Art. 6 requires the notice "© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018
+  provided under COPERNICUS by the European Union and ESA; all rights reserved" (prefixed "produced
+  using Copernicus WorldDEM-30" on derived data), the sentence "The organisations in charge of the
+  Copernicus programme by law or by delegation do not incur any liability for any use of the
+  Copernicus WorldDEM-30", no implied endorsement, and the same obligations bound on anyone we pass
+  data to. It terminates only on breach. TRAP: the same 2025 bundle licenses GLO-30-R and EEA-10-R
+  "for non-commercial activities" only. Those are the Copernicus Data Space instances. Read the AWS
+  -F files and nothing else.
+
+  ENDPOINT. s3://copernicus-dem-30m (eu-central-1), anonymous HTTPS range requests, no key. Tiles are
+  Copernicus_DSM_COG_10_<S09_00>_<E115_00>_DEM.tif. tileList.txt lists 26,450 tiles at 30 m and 26,475
+  at 90 m (s3://copernicus-dem-90m). The 25 missing at 30 m are N38-N41 E043-E050 (Georgia, Armenia,
+  Azerbaijan). The Data Space says those were released in 2023_1, but they are not on AWS. Bucket
+  objects were last modified 9 May 2022, the 2021 release. Newer releases (to 2024_1) are only on the
+  Data Space.
+
+  READ. The tile S09_00_E115_00 (16.4 MB) for PLANETAI node #1 in Bali. A 10 km window read in 4.9 s:
+  323 x 327 pixels of 30.6 x 30.9 m, land 0.2-219.6 m, 27.8 % sea (stored as 0). Of the 61 Index
+  places, 60 centroids fall on a 30 m tile. Georgia's does not, but it has a 90 m tile. Only Bali was
+  read, so only Bali is in places.
+
+  WHAT IT IS NOT. A surface model: "including buildings, infrastructure and vegetation", so roofs and
+  canopy are in the heights. Heights are above EGM2008. It says where water would run on that surface,
+  not that it did. 30 m is a street block, never a yard.

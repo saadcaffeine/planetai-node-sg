@@ -20,7 +20,7 @@ This page is the whole experiment. If anything here is unclear, that is a bug â€
 ## Install
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 Four questions, two minutes. Then `planetai telegram` for the alerts and `planetai ui` for the dashboard.

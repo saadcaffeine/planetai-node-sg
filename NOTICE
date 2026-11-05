@@ -23,6 +23,7 @@ licence text beside each file:
 
   MapLibre GL JS 5.24.0   BSD 3-Clause, Copyright MapLibre contributors   maplibre-gl.LICENSE.txt
   deck.gl 9.4.0           MIT, Copyright vis.gl contributors              deck.gl.LICENSE
+  qrcode-generator 1.4.4  MIT, Copyright 2009 Kazuhiko Arase              qrcode.LICENSE
 
 The coastlines the doors' Node view draws the world with, in app/static/vendor/:
 

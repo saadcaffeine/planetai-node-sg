@@ -1,8 +1,8 @@
 # PLANETAI. Architecture
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
 
-The whole building, drawn once, so every brick knows where it goes. What exists today is marked. What doesn't is
-drawn anyway, because the contracts between layers are the thing that can't be retrofitted.
+The whole system on one page. What exists today is marked. What does not exist yet is drawn anyway, because the
+contracts between layers cannot be added later.
 
 ## 1. Three layers, one loop
 
@@ -32,16 +32,16 @@ a time, and provenance.
 
 **Observe** stores, aggregates, and publishes. Every instance exposes the same read API. The public surfaces
 (planetai.fab.city observatory, index.fab.city atlas and city pages) are clients of that API. Bali Air Dispatch is
-an observatory instance for one island: a good one, and a source we read: not *the* observatory. PLANETAI's
-observatory is the layer: any node, any aggregator, any region publishes the same shape.
+an observatory for one island, and a source we read. PLANETAI's observatory is the layer itself: any node,
+aggregator or region publishes the same shape.
 
 **Act** turns an observation into a human decision and, when the decision is physical, a fabrication ticket.
 Rules → alerts → acknowledgement → action → outcome. Each step is timestamped. Agents *draft, never dispatch*;
 every dispatch is a human approval written to a ledger.
 
 **Index** is what the other two layers measure themselves against. DIDO and PITO cells from Observe; ρ from Act.
-The Act layer is the only place ρ can be measured, which is why the Index isn't a separate product: it's the
-loop closing on itself.
+The Act layer is the only place ρ can be measured, so the Index is measured inside the loop and is not a separate
+product.
 
 ## 2. One shape at every scale
 
@@ -50,10 +50,10 @@ a node anywhere on earth can sample a global model at its coordinates. Same core
 
 | `sensors.kind` | what it is | cadence | scales it serves | shipped |
 |---|---|---|---|---|
-| `sensor` | a device on your LAN or a nearby public one | minutes | Community, City | Smart Citizen, Meshtastic over MQTT; AirGradient and PurpleAir written, not polled |
-| `portal` | an open-data or statistical API | days–months | City, Region, Bioregion | `ckan` (any CKAN portal) |
+| `sensor` | a device on your LAN or a nearby public one | minutes | Community, City | Meshtastic over MQTT in the core; Smart Citizen, and AirGradient and PurpleAir on the LAN, as packs |
+| `portal` | an open-data or statistical API | days to months | City, Region, Bioregion | `ckan` (any CKAN portal) |
 | `model` | a global model sampled at a point | hours | Planet, Bioregion | `openmeteo` |
-| `survey` | people answering | campaign | Community, City | **not built**: the four empty Social cells |
+| `survey` | people answering | campaign | Community, City | **not built** as a campaign: the four empty Social cells. The one `survey` row is `things:<node>`, the counts of the things a home keeps |
 | `child` | a node below this one | hourly | the scale below | the aggregate push |
 
 Slow sources land in the `observations` view (latest per source per metric); sensors land in `stats` (15m/1h/24h).
@@ -71,35 +71,37 @@ aggregator for a province run the same code with different sources, different ru
 | **Bioregion** | partner-hosted server (BSC, MIT CBA, UC Chile, ITDel) | children + hydrology / biodiversity / boundary data | decision-tier dashboards, knowledge graph | community-council veto; OSH/OKH response library | boundary conditions |
 | **Planet** | federation over Earth models | Aurora, GraphCast, GenCast, AlphaEarth | global summary | none directly: it informs | boundary conditions |
 
-Aggregation of Index cells **stops at Region**. Bioregion and Planet enter as boundary conditions, not roll-ups.
-That's the FCI 3.0 methodology and the architecture honours it: those two tiers publish context downward, they
-don't summarise upward.
+Aggregation of Index cells stops at Region. Bioregion and Planet enter as boundary conditions, following the FCI
+3.0 methodology: those two tiers publish context downward and do not summarise upward.
 
 ## 3. Contracts (the parts that must not change casually)
 
 Every layer speaks three protocols. Compute, apps, and partner systems attach by speaking one of them.
 
-**Every wire document says which document it is.** From v0.63 the ones below carry a top-level `schema`
+**Every wire document says which document it is.** The ones below carry a top-level `schema`
 key, and `tools/check_wire.py` in `make lint` holds their top-level shape against a fixture in
 `tests/data/wire/`, so a key cannot be gained or lost without somebody editing that file on purpose.
 
 | `schema` | the document | built by |
 |---|---|---|
-| `issues-v0` | `GET /issues` — the one document a client draws | `app/issues/engine.py::compute` |
-| `export-v0` | `GET /export?day=` — the nightly open-data file, pinned to IPFS forever | `app/main.py::export` |
+| `issues-v0` | `GET /issues`, the one document a client draws | `app/issues/engine.py::compute` |
+| `export-v0` | `GET /export?day=`, the nightly open-data file, pinned to IPFS | `app/main.py::export` |
 | `report-v0` | `GET /report/latest` | `app/main.py::report_latest` |
 | `aggregates-v0` | the child's hourly push body | `app/main.py::push_aggregates` |
 | `events-v0` | the child's ρ push body | `app/main.py::push_events` |
-| `days-v0` | `GET /issues/days?days=` — the same hourly series over up to 90 days (v0.79) | `app/issues/engine.py::days` |
+| `days-v0` | `GET /issues/days?days=`, the same hourly series over up to 90 days | `app/issues/engine.py::days` |
+| `forecast-v0` | `GET /forecast?hours=`, the forecast pack's next 72 hours, its days and the packs' lines | `packs/forecast/days.py::answer` |
 
-A receiver that sees a `schema` it does not know **logs once and processes what it recognises. It never
-refuses** — a parent one release behind has to keep accepting a child one release ahead. A document with
+A receiver that sees a `schema` it does not know logs once and processes what it recognises. It never refuses,
+because a parent one release behind has to keep accepting a child one release ahead. A document with
 no `schema` is read as `-v0` and logged once as legacy. A version bumps only on a breaking change, and
 the bump is a `docs/decisions/` entry. (`/health`'s `schema` is older and means something else: the
 database schema version. Nothing else should use the name for two things.)
 
 **Readings**: `(ts, sensor_id, metric, value)` + a `sensors` row `(source, name, lat, lon, indoor, local, meta)`.
-Up: children push hourly means (`POST /aggregates`). Down: a sensor or a phone the household trusts posts raw
+Up: children push hourly means of their own sensors, each row saying whether it is indoors (`POST /aggregates`).
+A child's peers and models stay with the child, because the parent counts everything it receives as its children's.
+Down: a sensor or a phone the household trusts posts raw
 (`POST /readings`, with the node's admin token: a posted reading counts as one of the house's own). The instance
 decides what it keeps.
 
@@ -107,11 +109,12 @@ decides what it keeps.
 Exactly the `FCI Observations` row. Every instance exposes `GET /cells`. The Index surface (or the aggregator above)
 pulls them. Provenance `state` travels end to end and is never upgraded on the way.
 
-**Actions**: `{alert_id, stage: acknowledged|decided|acted, ts, note}` via `POST /actions`. This is how ρ is
+**Actions**: `{alert_id, stage: acknowledged|decided|acted, ts, note}` via `POST /actions`, with a `choice` when the
+alert came with a pack's buttons. This is how ρ is
 measured: detect (alert `ts`) → decide (`acknowledged`) → deploy (`acted`) → measure (`measured`, derived by the
 node and never posted). `decided` is a record and enters no ρ. Five FCC-era stages collapse to these four at an
 address; `fabricate` appears between decide and act when the action is a part.
-Since v0.77 an alert *event* (one story per issue per house, `ALERT_ENGINE=events`) is answered the same way with
+An alert *event* (one story per issue per house, `ALERT_ENGINE=events`) is answered the same way with
 `{event_id, stage: acted|acknowledged|dismissed}`: Done, Not now, Doesn't fit. It is a row in `actions` with an
 `event_id` and no `alert_id`, and it enters no ρ.
 
@@ -132,34 +135,37 @@ The point of fixing the contracts is that compute is a *deployment decision*, no
 
 **Downstream: phones and small devices.**
 A mobile app is a client of the nearest node: reads `/stats` and `/alerts`, writes `POST /readings` (phone
-sensors, photos, "burning here" reports; it carries the node's admin token, given once when the phone is paired) and
-`POST /actions` (I shut the windows; open to the household's phones). It needs no server of its own.
+sensors, "burning here" reports; it carries the node's admin token, given once when the phone is paired), `POST /captures`
+(photos, with the act token the phone is unlocked with) and `POST /actions` (I shut the windows; open to the household's phones). It needs no server of its own.
 When on-device models arrive (classify a photo of smoke, run the tiny persistence model), they run against the same
 endpoints. Federated participation, if ever wanted, is a `POST` of model deltas to the same node: the Flower
 Android/iOS SDKs speak to a SuperNode that would sit next to the node's API. Nothing above the node changes.
 
 **Upstream: clusters, data centres, frontier models.**
-Every instance has one optional `UPSTREAM_MODEL_URL` (OpenAI-compatible chat/completions) and one optional
-`UPSTREAM_COMPUTE_URL` (job submission). Point the first at Ollama on the same box, at vLLM on a regional cluster
-(BSC for Barcelona, a partner HPC for Bali), or at a frontier API: the caller is identical. Point the second at
-a district aggregator with a GPU, or at a cloud job runner, for things a node can't do: Earth-model inference,
-federated training rounds, synthetic-control computation for H0-T. The node never *needs* upstream compute; it
-*can use* it. Sovereignty is preserved by what travels (hourly means, cells, model deltas: never raw), not by
-where compute happens.
+A model is two optional settings, both OpenAI-compatible: `AGENT_REMOTE_URL` for a bigger model on a machine of
+yours, and `AGENT_ONLINE_URL` with a key for a frontier API. Point the remote one at Ollama on a laptop, or at vLLM
+on a regional cluster (BSC for Barcelona, a partner HPC for Bali): the caller is identical. The node reads the
+address and decides where the model is. Loopback, a private or tailnet address, or a name only a home network
+knows, stays home. Anything else is online, so a regional cluster joins the tailnet to count as the household's
+own, and at a public address it is used only once somebody here picks `fallback` or `strongest`, the choice an
+online key needs too.
+
+Jobs a node can't do itself, like Earth-model inference, federated training rounds or synthetic-control
+computation for H0-T, need no new setting yet. A pack script that reads only its settings and writes files under
+`out/<pack>/<node>/` can already run on any machine, a district aggregator with a GPU or a cloud runner, and
+its results are read on the next poll once the folder is synced back. The `earth` scripts work this way.
+`UPSTREAM_COMPUTE_URL`, a job submission endpoint, is a named contract with no code yet: it arrives with the
+first job a node cannot run. The node never *needs* upstream compute; it *can use* it. Sovereignty is preserved
+by what travels (hourly means, cells, model deltas: never raw) and by where a model is allowed to be.
 
 **Peer: other observatories.**
 An observatory instance that isn't ours (Bali Air Dispatch today; a city's own portal tomorrow) is a *source*.
 Its readings enter through an adapter, flagged `local=false`, credited. If it exposes something like our read API,
 one generic adapter reads it. This is how the network grows without owning everyone's data.
 
-> These two names are the contract, not settings yet: no code reads them, so they were removed from `.env.example`
-> rather than sit there pretending to do something. The first thing that needs upstream compute adds them back
-> along with the code that reads them.
->
-> The model half shipped in v0.22 under other names: `AGENT_REMOTE_URL` (a model on the household's own network)
-> and `AGENT_ONLINE_URL` (an online one, only when `AGENT_PREFER` allows it), both OpenAI-compatible, read by
-> `app/agent_loop.py` for the Telegram bot and, since v0.75, by `app/ask.py` for the dashboard's ask pane.
-> `UPSTREAM_COMPUTE_URL` still has no code.
+> Both model settings are read by `app/agent_loop.py`, for the Telegram bot, and by `app/ask.py`, for the
+> dashboard's ask pane and the Wall. Earlier drafts of this page named the model setting `UPSTREAM_MODEL_URL`;
+> no code ever read that name.
 
 ## 5. Where the Fab City Index plugs in
 
@@ -185,23 +191,23 @@ with no row can still say whether a source for it is registered and whether an a
 is how a cell with no adapter says so, as a query rather than as a sentence somebody wrote once.
 
 A source entry is upstream's to change. Add one by PR to `awesome-fabcity-data`, wait for the merge,
-then re-pin here with `tools/sync_registry.sh <merge sha>` and commit the diff — `docs/SOURCES.md`.
+then re-pin here with `tools/sync_registry.sh <merge sha>` and commit the diff (`docs/SOURCES.md`).
 Nothing in this repo edits an entry, and `make lint` fails if anything did. The Airtable mirror follows
 upstream, not this snapshot.
 
-**ρ is the brick nobody else has.** Two generations of the Index measured a snapshot with ρ implicit at 1. The node
-measures ρ for real, because it's the thing sending the alert and the thing receiving the acknowledgement. Every
-address running a node is a ρ instrument. That's the H0-A hypothesis reduced to a table with four columns.
+ρ is the brick nobody else has. Two generations of the Index measured a snapshot with ρ implicit at 1. The node
+measures ρ, because it sends the alert and receives the acknowledgement, so every address running a node is a ρ
+instrument. This is the H0-A hypothesis reduced to a table with four columns.
 
-## 6. Staging: the building, one brick at a time
+## 6. Staging, one stage at a time
 
 Not a roadmap. Each stage names what exists, what it proves, and the trigger for the next.
 
-**Stage 0: now.** One node, two containers by default (a broker, a Reticulum bridge, the local model's loop and IPFS
-are optional profiles), Sense: adapters across sensor, portal, model and map classes, in the core and in packs.
-Observe: Postgres, hourly view, read API. Act: two domain-blind core rules plus whatever the loaded packs contribute
-(seventeen core packs ship, eighteen in v0.76 before `xiaomi-air` became wild, and wild packs are added per node), to
-Telegram, the mesh, and Home Assistant; `POST /actions` records what a person did.
+**Stage 0: now.** One node, two containers by default (a broker, a Reticulum bridge built from its own repository,
+the local model's loop, IPFS and Grafana are optional profiles), Sense: adapters across sensor, portal, model and map classes, in the core and in packs.
+Observe: Postgres, hourly view, read API. Act: two domain-blind core rules and the three trust rules, plus whatever the loaded packs contribute
+(twenty-five core packs ship, some serving their own routes, and wild packs are added per node), to
+Telegram, the mesh, and Home Assistant through its pack; `POST /actions` records what a person did.
 Index: `GET /cells` emits `Environmental|Community` live and ρ partial. Compute: one Mac mini. *Proves:* a reading
 becomes a message someone acts on, and the node reports that fact as a cell.
 → Trigger for Stage 1: five nodes alive 30 days, at least one `acted` row per node.
@@ -215,8 +221,8 @@ Bali go partial→live. *Proves:* the same code runs at two scales and ρ is mea
 
 **Stage 2: a second city, the observatory layer proper.** Barcelona node(s) on Smart Citizen's 15-year archive
 + Sentilo + Open Data BCN. The observatory reads two countries through one API. Upstream compute appears for real:
-`UPSTREAM_MODEL_URL` → vLLM at BSC or ITDel; a first federated round if: and only if: there's a model averaging
-can't express. Index: two pilots' Community and City cells live; the phase plot (ΔFCI/Δt) gets its first two points.
+`AGENT_REMOTE_URL` → vLLM at BSC or ITDel, over the tailnet; a first federated round only if there is a model that averaging
+cannot express. Index: two pilots' Community and City cells live; the phase plot (ΔFCI/Δt) gets its first two points.
 → Trigger for Stage 3: 30 nodes across ≥2 bioregions, a paying operator behind most.
 
 **Stage 3: bioregion and planet as boundary conditions.** Partner-hosted bioregion servers publish context down
@@ -229,8 +235,8 @@ No raw readings leave the instance that recorded them. No cell is upgraded from 
 aggregation. No agent dispatches without a human row in `actions`. No layer requires a cloud provider to function.
 No scale is skipped: a city aggregator is built from nodes, not declared from above.
 
-The node's page is `doors.html` (the five doors) or `index.html` (the classic dashboard at `/?layout=classic`) and a fixed list of companion files served by name from `app/static/`, and stays
-so — no framework, no build step, nothing loaded from anywhere else, because a node serves it to a household network
+The node's page is `doors.html` (the five doors), `mobile.html` (the phone page at `/?layout=mobile`) or `index.html` (the classic dashboard at `/?layout=classic`) and a fixed list of companion files served by name from `app/static/`, and stays
+so: no framework, no build step, nothing loaded from anywhere else, because a node serves it to a household network
 that may have no route out.
 `planetai.fab.city` may use a framework; the two never share code, and both read the programme layer, which is
 published as [`docs/site/design.md`](docs/site/design.md).

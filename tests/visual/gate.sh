@@ -256,3 +256,17 @@ JS
 # the screen. This asks the page itself, in all 108 combinations of view, width, mode and register.
 # It is last because it is the slowest thing here by a distance — a browser per combination.
 node tests/visual/measure.mjs overflow
+
+# The phone page, per SPEC_mobile §8.1: the rule, the overflow, the engine's words, the targets,
+# the budget under the written throttle, the locked state — against the committed fixture.
+node tests/visual/measure.mjs mobile
+
+# The doors' Data and Set up, pane by pane: the classic `overflow` above never opens them. Every tab and section at
+# 390 and 1440, paper and dark, locked and unlocked; 44 px tabs; one tab's sections at a time; every anchor Data had
+# lands; and a change that leaves the machine asks first. PAI_DOORS_SHOTS=1 keeps a picture of every pane.
+node tests/visual/measure.mjs doors
+
+# The Wall's walk (16 Oct): each of its four scales is one screen at 1920×1080, nothing under the 28 px floor, every
+# figure dated with one of the five provenance words and no room or sensor named; still under reduced motion, stepping
+# hour by hour and then to the next scale with motion on; a 44 px rail on a touch phone.
+node tests/visual/measure.mjs wallwalk

@@ -14,7 +14,7 @@ pilot_relevance: [global]
 tags: [air-quality, citizen-science, open-hardware, indoor-air]
 added: 2026-05-04
 updated: 2026-09-18
-adapter: core:airgradient
+adapter: pack:airgradient
 feeds_cells: [Environmental|Community, Social|Community]
 upstream_listed_in: []
 notes: |

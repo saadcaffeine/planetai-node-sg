@@ -56,13 +56,13 @@ The checksum and the signature answer different questions. The checksum is serve
 the tarball, so it proves only that the download arrived whole — whoever can write one writes the other.
 The signature is made with a key that is not on the web server and never was.
 
-**The signer.** One key, principal `fabcity`, published in
+**The signer.** One key, principal `fabcity` (issued 17 October 2026; the 19 September key was retired after v0.82.0), published in
 [`tools/allowed_signers`](tools/allowed_signers) and embedded in `install`, `update.sh` and
 `bin/planetai` so that a node can check an update before it has one and can say what it trusts
 afterwards:
 
 ```
-SHA256:1+MvZWJUBWisjY08E1KR77znXLs2lVWgVkh+Z++8IL4   issued 19 September 2026
+SHA256:OrUQK/jsjNjpei1U8B5tyuEWY36/gwYWXrgVF+5ycIY   issued 17 October 2026
 ```
 
 Compare that fingerprint against a node with `planetai version`, from a machine that is not the node.

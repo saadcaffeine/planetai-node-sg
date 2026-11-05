@@ -1,12 +1,14 @@
 'use strict';
 /* The day, large, and the week under it on the same x (R33). One function for Now and the Wall.
-   o: { el: <svg>, issue, big: bool (wall scale), pick: i => void (moves the moment) } */
+   o: { el: <svg>, issue, big: bool (wall scale), pick: i => void (moves the moment), week: false (the day alone: a phone
+   draws the week as rows it can press, doors-now.js weekRows) } */
 function dayWeek(o) {
   const k = o.issue, it = D.issues[k], svg = d3.select(o.el), uid = o.el.id;
   const W = o.el.parentNode.clientWidth, narrow = W < 560, B = o.big ? 1.6 : 1;
   const m = { l: narrow ? 46 : 74 * B, r: narrow ? 52 : 64 * B, t: 40 * B }, H1 = narrow ? 190 : (o.h1 || 220), rowH = narrow ? 13 : 15 * B, gap = 34 * B;
-  const iw = W - m.l - m.r, nD = D.dates.length, H = m.t + H1 + gap + nD * rowH + 26;
+  const iw = W - m.l - m.r, nD = o.week === false ? 0 : D.dates.length, H = m.t + H1 + (nD ? gap + nD * rowH : 0) + 26;
   svg.attr('viewBox', `0 0 ${W} ${H}`).attr('width', W).attr('height', H).selectAll('*').remove();
+  svg.attr('aria-label', `${it.name || k}, hour by hour${nD ? ', and the last seven days' : ''}`);   /* the figure's own name; the sentence describes it */
   const date = dayOf(D.buckets[S.i]);
   const x = d3.scaleLinear([0, 24], [m.l, m.l + iw]);
   const idx = h => D.at[date + '|' + h];
@@ -42,20 +44,35 @@ function dayWeek(o) {
     g.append('path').attr('fill', 'currentColor').attr('opacity', .08)
       .attr('d', d3.area().x((u, h) => x(h + .5)).y0(u => y(Math.max(lo, u[0]))).y1(u => y(Math.min(y.domain()[1], u[1]))).curve(d3.curveStep)(usual));
   }
-  // the line: red, dashed, labelled in ink
+  // the line: red, dashed (.linep), labelled in ink (lineLab: "WHO 15" for the air)
   if (it.line != null) {
-    g.append('line').attr('x1', m.l).attr('x2', m.l + iw).attr('y1', y(it.line)).attr('y2', y(it.line)).attr('stroke', 'var(--signal-worse)').attr('stroke-width', 1.5).attr('stroke-dasharray', '6 4');
-    if (narrow) g.append('text').attr('class', 'lab').attr('x', m.l + 4).attr('y', y(it.line) - 5).text(`line ${fmt(it.line, it.dp)}`);
-    else g.append('text').attr('class', 'lab').attr('x', m.l - 8).attr('y', y(it.line) + 4).attr('text-anchor', 'end').text(`line ${fmt(it.line, it.dp)}`);
+    g.append('line').attr('class', 'linep').attr('x1', m.l).attr('x2', m.l + iw).attr('y1', y(it.line)).attr('y2', y(it.line));
+    if (narrow) g.append('text').attr('class', 'lab').attr('x', m.l + 4).attr('y', y(it.line) - 5).text(lineLab(it));
+    else g.append('text').attr('class', 'lab').attr('x', m.l - 8).attr('y', y(it.line) + 4).attr('text-anchor', 'end').text(lineLab(it));
   }
-  // events: a bar from open to clear across the top, its answer a ring
+  // events: a bar from open to clear across the top, its answer a ring. The labels take lanes: each is
+  // measured, kept inside the frame's right edge, and a label that would land on one already written
+  // steps a row up (two spikes an hour apart used to print through each other). Lanes that fit above
+  // the chart are m.t's own; beyond them the label overlaps as it did before — said, never dropped.
+  const labLane = [], laneMax = Math.max(1, Math.floor((m.t - 14) / 13));
+  const evs = [];
   for (const e of D.events.filter(e => e.issue === k)) {
-    const a = dayOf(e.opened_at) === date ? hourOf(e.opened_at) + (+e.opened_at.slice(14, 16)) / 60 : (dayOf(e.opened_at) < date ? 0 : null);
+    const a = dayOf(e.opened_at) === date ? hourOf(e.opened_at) + (+loc(e.opened_at).slice(14, 16)) / 60 : (dayOf(e.opened_at) < date ? 0 : null);
     if (a == null) continue;
     const zEnd = e.cleared_at ? (dayOf(e.cleared_at) === date ? hourOf(e.cleared_at) + (+e.cleared_at.slice(14, 16)) / 60 : (dayOf(e.cleared_at) > date ? 24 : null)) : nowH;
     if (zEnd == null || zEnd < a) continue;
+    evs.push({ e, a, zEnd });
+  }
+  evs.sort((p, q) => p.a - q.a);
+  for (const { e, a, zEnd } of evs) {
     g.append('rect').attr('x', x(a)).attr('y', m.t - 14).attr('width', Math.max(2, x(zEnd) - x(a))).attr('height', 4).attr('fill', 'currentColor');
-    g.append('text').attr('class', 'lab').attr('x', x(a)).attr('y', m.t - 18).text(`${e.kind} ${hhmm(e.opened_at)}`);
+    const t = g.append('text').attr('class', 'lab').text(`${e.kind} ${hhmm(e.opened_at)}`);
+    const tw = (t.node().getComputedTextLength ? t.node().getComputedTextLength() : 0) || 0;
+    let tx = x(a), lane = 0;
+    if (tx + tw > m.l + iw) tx = Math.max(m.l, m.l + iw - tw);
+    while (lane < labLane.length && labLane[lane] > tx - 6 && lane < laneMax) lane++;
+    t.attr('x', tx).attr('y', m.t - 18 - lane * 13);
+    labLane[lane] = Math.max(labLane[lane] || 0, tx + tw);
     if (e.answer && dayOf(e.answer.ts) === date) {
       const ah = hourOf(e.answer.ts) + (+e.answer.ts.slice(14, 16)) / 60;
       g.append('circle').attr('cx', x(ah)).attr('cy', m.t - 12).attr('r', 5).attr('fill', 'var(--ground)')
@@ -90,27 +107,30 @@ function dayWeek(o) {
 
   // ---- the week: one row a day on the same x, the cursor's day outlined ----
   const y0 = m.t + H1 + gap, shade = d3.scaleLinear([lo, top], [.08, .9]).clamp(true);
-  D.dates.forEach((dt, r) => {
+  if (nD) D.dates.forEach((dt, r) => {
     const yy = y0 + r * rowH, pd = (it.per_day || []).find(p => p.date === dt);
     g.append('text').attr('class', dt === date ? 'lab' : '').attr('x', m.l - 8).attr('y', yy + rowH - 3).attr('text-anchor', 'end').text(narrow ? dt.slice(8) : dLabel(dt).replace(',', ''));
     for (let h = 0; h < 24; h++) {
       const j = D.at[dt + '|' + h]; if (j == null) continue;
       const v = sd[j], over = it.line != null && v != null && v > it.line;
       g.append('rect').attr('x', x(h) + 1).attr('y', yy + 1).attr('width', x(h + 1) - x(h) - 2).attr('height', rowH - 2)
-        .attr('fill', v == null ? `url(#hatch-${uid})` : over ? 'var(--signal-worse)' : 'currentColor').attr('opacity', v == null || over ? 1 : shade(v))
+        .attr('fill', v == null ? `url(#hatch-${uid})` : 'currentColor').attr('opacity', v == null ? 1 : over ? .9 : shade(v))
         .style('cursor', 'pointer').on('click', () => o.pick && o.pick(j));
+      /* over the line: an ink cell with a red tick on top, never a red fill (the layer) */
+      if (over) g.append('rect').attr('x', x(h) + 1).attr('y', yy + 1).attr('width', x(h + 1) - x(h) - 2).attr('height', 2.5).attr('fill', 'var(--signal-worse)').attr('pointer-events', 'none');
     }
     g.append('text').attr('x', m.l + iw + 8).attr('y', yy + rowH - 3).attr('class', pd && pd.over ? 'lab' : '').text(pd ? (pd.over ? `${pd.over} h` : '0') : '');
     if (dt === date) g.append('rect').attr('x', m.l).attr('y', yy).attr('width', iw).attr('height', rowH).attr('fill', 'none').attr('stroke', 'currentColor').attr('stroke-width', 1.5);
   });
-  g.append('text').attr('x', m.l + iw + 8).attr('y', y0 - 6).text('over');
+  if (nD) g.append('text').attr('x', m.l + iw + 8).attr('y', y0 - 6).text('over');
   // ---- the cursor: one hour, through the day and the week ----
   const ch = hourOf(D.buckets[S.i]) + .5, cv = val(k, it.hero_distance, S.i);
-  g.append('line').attr('x1', x(ch)).attr('x2', x(ch)).attr('y1', m.t - 4).attr('y2', y0 + nD * rowH + 4).attr('stroke', 'var(--cells)').attr('stroke-width', 1.5);
+  g.append('line').attr('x1', x(ch)).attr('x2', x(ch)).attr('y1', m.t - 4).attr('y2', nD ? y0 + nD * rowH + 4 : m.t + H1).attr('stroke', 'var(--cells)').attr('stroke-width', 1.5);
   if (cv != null) g.append('circle').attr('cx', x(ch)).attr('cy', y(Math.min(cv, y.domain()[1]))).attr('r', 5).attr('fill', 'var(--ground)').attr('stroke', 'var(--cells)').attr('stroke-width', 2);
   g.append('circle').attr('cx', x(ch)).attr('cy', m.t + H1 + 4).attr('r', 7).attr('fill', 'var(--cells)');
-  o.head && (o.head.innerHTML = `${said(it.name)} · ${dLabel(date)} · every distance · and the week below`);
-  o.scale && (o.scale.innerHTML = it.line != null ? `scale to ${fmt(y.domain()[1], 0)} ${said(it.unit)}` : '');
+  /* said in sentence case under the drawing: the day, what is drawn, how to move through it */
+  o.head && (o.head.innerHTML = `${esc(dLabel(date))}: the house heavy, the street and the ring dashed${nD ? ', the week below' : ''}. Drag across the day, or focus it and use the arrow keys.`);
+  o.scale && (o.scale.innerHTML = it.line != null ? `Scale to <span class="mono">${fmt(y.domain()[1], 0)}</span> ${said(it.unit)}.` : '');
   svg.selectAll('text').style('font-size', o.big ? '17px' : null);
   if (!o.pick) return;
   // scrub: press and drag inside the day; it moves the moment, never only a tooltip

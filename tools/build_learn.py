@@ -103,7 +103,7 @@ MARKS = [
      "Your own instruments are drawn in ink on this page, the borrowed ones faint, and what only "
      "the satellite knows in orange."),
     ("share", "Reach, not publishing", "sharing.md", "`SHARE_LEVEL`",
-     "`SHARE_LEVEL` is reach, not publishing", "it is live within 20\nseconds.",
+     "`SHARE_LEVEL` says who on your network", "it is live within 20\nseconds.",
      "The request ledger below is this page confessing what it asked of the world while you looked "
      "at it. The offline plan asks nothing; Telegram is reached by the node, never by this page."),
     ("raw", "Raw readings stay", "how-it-works.md", "What leaves the machine, and what never does",
@@ -119,7 +119,7 @@ MARKS = [
      "A heat alert is a condition that holds for hours; a cooking spike is an event with a "
      "cooldown. The schema does not yet know an alert can clear, so the page says which it is."),
     ("rho", "ρ: the loop closed", "rho.md", None,
-     "ρ (rho) is the share", "rather than an app feature.",
+     "ρ (rho) is the share", "a row in the `actions` table.",
      "The page draws it as the alerts answered over the alerts raised, with the median minutes to the "
      "first answer, and counts the rings rather than sizing them."),
     ("refusals", "Refusals that hold at every stage", "how-it-works.md",
@@ -130,7 +130,7 @@ MARKS = [
 
     # --- Now: the sections that had no mark ------------------------------------------------------
     ("counted", "Yours, here, and counted", "sensors.md", None,
-     "Once one is", "`local` and `custody`.",
+     "Once a sensor of yours", "`local` and `custody`.",
      "`planetai sensors` prints these stations one line each, with `yours` or `reference` beside the "
      "id, and GET /sensors is the route a script reads them from. Only the ones in this node's "
      "custody can make a cell say live."),
@@ -142,8 +142,8 @@ MARKS = [
     ("forecast", "Context, not a prediction", "packs-reference.md", "forecast",
      "Official and model weather for this point", "it never sends an alert.",
      "The card is drawn from GET /forecast: the wind and the rain for the hours ahead, and a "
-     "forecast point more than 10 km from the node is said to be another place. Nothing on this "
-     "card can raise an alert."),
+     "forecast point more than 10 km from the node is said to be another place. Next days on Now draws "
+     "its 72 hours. Nothing on this card can raise an alert."),
     ("events", "What an alert event is", "dashboard.md", "The sections",
      "An event is the bot's own unit", "the message it sent.",
      "Decide is the first section under the lead. The numeral is red only when the peak is past the "
@@ -152,8 +152,8 @@ MARKS = [
     ("buttons", "Done, Not now and Doesn't fit", "dashboard.md", "The sections",
      "**Done**, **Not now** and **Doesn't fit** each write", "keeps the answer as the note.",
      "The first press asks for a name, and this browser keeps it for the next. The labels come "
-     "from the node, and an answer needs the act token from another device. ρ does not count "
-     "events yet, so none of the three moves it."),
+     "from the node, and an answer needs the act token from another device. Done and Not now "
+     "answer the ask, so they count in ρ when the event was sent at act level; Doesn't fit does not."),
     ("claims", "One number, over how much ground", "dashboard.md", "The sections",
      "\"Whose word, over how much ground\" covers", "that one number has to cover.",
      "The line above the fold names the widest and the narrowest footprint; the fold holds all six. "
@@ -164,11 +164,11 @@ MARKS = [
      "where the pack is on: the lab, how far, and the dated archive it came from. With MAKE_ENABLED off, the row is "
      "the node's own help text for that setting instead."),
     ("note", "The note is the record", "cli.md", "Reading the node",
-     "`planetai act` is the terminal's way", "record of what was\ndone.",
+     "`planetai act` is the terminal's way", "record of what was done.",
      "Each row here is one of those records, newest first: who, which stage, how long ago, and "
      "decided first where a decision came before the act."),
     ("bot", "An answer in the household's words", "bot.md", None,
-     "Somebody in the house asks", "in\ntheir words, as an act.",
+     "Somebody in the house asks", "as an act.",
      "An act recorded through the bot lands in this ledger like one pressed on this page, with the "
      "person's own words as its note."),
     ("actions", "The table ρ is counted from", "schema.md", "Tables",
@@ -209,8 +209,8 @@ MARKS = [
      "Each row is one kind of source, with the oldest and newest hourly mean this node holds for it, "
      "from GET /reach. The climate normals the node pulled at install are dated years before it was "
      "switched on; its own sensors start on the day they were first polled."),
-    ("trust", "Whether its own sensors tell the truth", "packs-reference.md", "trust",
-     "Whether the node's own sensors are telling it the truth", "all three\nwere wrong.",
+    ("trust", "Whether its own sensors tell the truth", "alerts.md", "Trust",
+     "Whether the node's own sensors are telling it the truth", "disagree about the level.",
      "The figures here are GET /trust, one row per local sensor: its coverage over seven days, the "
      "channels that stopped moving, and how old the sensor is, which explains a low coverage without "
      "a fault."),
@@ -264,10 +264,190 @@ MARKS = [
      "The version at the foot is the one GET /health reports. Open it from the foot to read what "
      "every screen here asks first: the node, its version, its cell at resolution 8, its last poll."),
     ("mcp", "The surface an agent holds", "mcp.md", None,
-     "This is the surface an agent holds.", "that somebody\nacted.",
+     "This is the surface an agent holds.", "a reading off the machine.",
      "The foot names POST /mcp for an agent handed this node's address: streamable HTTP, with "
      "Authorization: Bearer and the admin token on every call. `planetai agent` prints the snippet "
      "to paste into a client."),
+    # --- the doors (`/`, doors.html and doors-*.js): one mark per part, in the order a person sees it ------
+    # Quoted from the docs section that describes that part on the doors (dashboard.md has one per door, wall.md
+    # the Wall). The classic marks above stay for ?layout=classic; a doors part reuses one only where its quote
+    # describes that part (figure, earth, settings). learnList() in doors-core.js lists them.
+    ("bar", "The bar at the top", "dashboard.md", "The bar and the foot",
+     "The bar runs along the top", "on a\nscreen without a token)",
+     "It says which node this is, which door you are on and how fresh the readings are. Locked means "
+     "this screen holds no token: Set up › This screen unlocks it."),
+    ("foot", "The foot of the page", "dashboard.md", "The bar and the foot",
+     "The foot closes every door but the Wall", "Fab City and the source.",
+     "The links here go to the documentation, to Set up and to today's open file, which anyone on "
+     "your network can download at every sharing level."),
+    ("now-sentence", "Right now", "dashboard.md", "Now",
+     "**Right now.** A kicker", "with the week under it.",
+     "The sentence is the node's own, in the house's language, and the pill beside the time says where "
+     "its number comes from. The cell at the right of the kicker opens Place."),
+    ("now-distances", "House, street, ring and region", "dashboard.md", "Now",
+     "The four distances follow as one quiet line", "**Back to now** returns.",
+     "Each distance carries its own provenance word, so you can see which number was measured in this "
+     "house and which came from a public station or a model."),
+    ("now-todo", "What to do", "dashboard.md", "Now",
+     "**What to do.** While the node is asking", "**Doesn't fit**.",
+     "Press the one that is true: Done when you did it, Not now to be asked again in three hours, "
+     "Doesn't fit when it does not apply here. Your answer is the first row in Data › Ledger."),
+    ("now-worked", "Did it work, and yesterday", "dashboard.md", "Now",
+     "**Did it work** and **Yesterday**", "\"Too early to say.\")",
+     "This part shows only with the admin token, because it is the house's own record. The whole diary "
+     "and every case are on Node, under What it remembers."),
+    ("now-rows", "Every issue, a row each", "dashboard.md", "Now",
+     "**Around the house.** A row for each issue", "moves the page to that issue.",
+     "Each row carries the node's state word, the value now and today's hours over the line. Press one "
+     "and the whole door moves to that issue."),
+    ("now-bands", "A pack's own band", "dashboard.md", "Now",
+     "**A pack's own band.** A pack can declare a band", "`measure` under Did it work.",
+     "Each row is one reading the node holds. Its source, how it was got and how old it is are said once under the "
+     "band's title, and again on a row only where they change. The pack's own note is folded under How this is read."),
+    ("now-next", "The next three days", "dashboard.md", "Now",
+     "Each thing gets a row in the order", "how many hours go over it.",
+     "The rows are drawn from GET /forecast, asked when Now is drawn and kept for 30 minutes. Press a row for its 72 hours "
+     "against the line. These are models: nothing on this part asks you to act or sends a message."),
+    ("now-around", "The stations around the house", "dashboard.md", "Now",
+     "Under them, the map of the stations", "for a screen with the token.",
+     "Press a station to open its readings in Data. Without WebGL the map is drawn as a rose of "
+     "bearings and distances instead."),
+    ("now-things", "What this home keeps", "dashboard.md", "Now",
+     "With the admin token one line counts", "and opens Data › Home.",
+     "The line counts the things, how many sit idle and how many need repair, and opens the list in "
+     "Data › Home. Only a thing you mark to lend or give is ever published."),
+    ("place-head", "The ground around the house", "dashboard.md", "Place",
+     "The ground around the house.", "removes it)",
+     "The cell id is printed whole. Type a question in the line under it and the Ask pane opens with "
+     "it; press / to get there from anywhere on this door. With UI_ASK off the line is not there."),
+    ("place-image", "Add an image", "dashboard.md", "Place",
+     "**+ Add an image** (token only)", "describes it.",
+     "The picture stays on this node, cleaned of EXIF and GPS, and lands on the map where its own GPS "
+     "says it was taken, else in the node's cell."),
+    ("place-layers", "The layers", "dashboard.md", "Place",
+     "**What the place is made of.**", "the ground at the bottom.",
+     "What this place is made of, with the sky at the top and the ground at the bottom, and what the node does not hold yet. A filled "
+     "dot is on, a hollow one off, and a dotted one is a layer the node cannot draw yet, named by its source."),
+    ("place-map", "The screen", "dashboard.md", "Place",
+     "**The screen.**", "and on the dark one.",
+     "Every distance on this door is measured by the node from its own point. Without the token the "
+     "house's marks say withheld, because together they would place the house."),
+    ("place-tools", "The tools", "dashboard.md", "Place",
+     "**The tools.**", "sits in a pill while it is on.",
+     "The tools that run on this node today, and the ones still to come, marked not yet. Rings and "
+     "distance draws the 2, 5 and 15 km rings from the node's own point. Without a token they stay quiet."),
+    ("place-orbit", "From orbit", "dashboard.md", "Place",
+     "the node's Sentinel-2 annual medians", "by its AlphaEarth record",
+     "Two of the node's own Sentinel-2 years side by side, from files it already holds. Nothing is "
+     "fetched while you look."),
+    ("place-species", "Species confirmed here", "dashboard.md", "Place",
+     "**Species confirmed here**", "token only.",
+     "Only what a person here confirmed in an image is counted. Where a picture was taken places the "
+     "house, so the table needs the token."),
+    ("place-changing", "What is changing", "dashboard.md", "Place",
+     "**The place in figures**", "and the forecast).",
+     "Land and coast change yearly, so they are here and not on Now. What the node cannot read yet is "
+     "named here as missing."),
+    ("node-verdict", "Working, or needs a look", "dashboard.md", "Node",
+     "A\npoll older than 15 minutes", "to finish setting up.",
+     "The verdict is the node's own check of its last poll, its loop and its sensors. Under it, the "
+     "version, how long it has run and the cell it stands in."),
+    ("node-flow", "What comes in, what goes out", "dashboard.md", "Node",
+     "the node as a hexagon", "Drawn vertically under 700 px",
+     "Your sources come in on one side and what leaves goes out on the other, at their real rate. Raw "
+     "readings stay here; a dashed line is one nobody turned on."),
+    ("node-cells", "Fab City Index cells", "dashboard.md", "Node",
+     "the Index cells this node computes", "provenance word",
+     "A cell is live only when it was measured here in the last day. A model or a neighbour's numbers "
+     "never make one live."),
+    ("node-remember", "What it remembers", "dashboard.md", "Node",
+     "admin token only, and never leaves the machine", "the week against the three before)",
+     "Under the diary and what is usual sit What worked and Who lives here. All of it needs the admin "
+     "token and none of it leaves this machine."),
+    ("node-around", "The nodes around it", "federation.md", "The node directory",
+     "Every node reads the file", "draw the nodes from it.",
+     "The count says how many nodes are listed and how many this node's radio heard. A node joins the "
+     "list with planetai hello and a merged pull request."),
+    ("node-globe", "The globe", "dashboard.md", "Node",
+     "the nodes listed and heard by radio", "third of the screen high",
+     "Each listed node lights its own coarse cell on the planet's grid, with a line from this node to "
+     "every other node that has a point."),
+    ("node-running", "Running", "dashboard.md", "Node",
+     "the version and schema, how long since the restart", "and the mesh in the house",
+     "The version, the uptime and the readings since the last restart, then the processor, memory and "
+     "disk, which need the token. Set up › Machine has the full view."),
+    ("node-refusals", "What this node will not do", "how-it-works.md", "Refusals that hold at every stage",
+     "No raw readings leave the instance", "not declared from above.",
+     "Each refusal on this door links to where you can check it yourself: the flow, the cells, the "
+     "ledger, the machine and the nodes around."),
+    ("data-head", "Everything the node holds", "dashboard.md", "Data",
+     "Every reading the node holds, one tab at a time", "44 px targets.",
+     "The head counts what the tabs draw, the hourly values, the model and satellite values and the "
+     "decisions, and links to today's open file."),
+    ("data-readings", "Every kind of reading", "dashboard.md", "Data",
+     "every kind of reading as a tile", "15-minute means now.",
+     "Each tile is one kind of reading with the median of its sources now. With the token a small trace "
+     "shows its last 24 hours."),
+    ("data-sources", "Every source, a row each", "dashboard.md", "Data",
+     "Press one to draw every source", "(the hourly table needs the token).",
+     "All the sources share one scale so you can compare them, and a spike above it is printed with "
+     "its number, so one spike cannot flatten the rest."),
+    ("data-week", "Seven days at every distance", "dashboard.md", "Data",
+     "Then every issue at every distance", "the hours over the line per day",
+     "One drawing per issue and distance over the last seven days, each against the issue's own line."),
+    ("data-perday", "Hours over the line, per day", "dashboard.md", "The strips",
+     "The figure at the end of each row", "`GET /issues/days`.",
+     "Here those counts are a table, a row a day, with the hours over the line out of the hours read, "
+     "for each issue drawn by the hour."),
+    ("data-models", "Models and satellite", "dashboard.md", "Data",
+     "one table: a row per value", "its unit",
+     "A model is partial whatever its quality, so these values sit apart from what the house measures."),
+    ("data-images", "Images", "dashboard.md", "Data",
+     "**Images**, newest first", "to edit, confirm or delete.",
+     "The pictures stay on this node, cleaned of EXIF and GPS. What the image model saw counts only once "
+     "a person here confirms it."),
+    ("data-things", "Things", "dashboard.md", "Data",
+     "**Things**, what this home keeps", "(admin token)",
+     "Only a thing you mark to lend or give is ever published, and nothing else about your things "
+     "leaves this machine."),
+    ("data-ledger", "The ledger", "dashboard.md", "Data",
+     "every decision, newest first", "only the time and the stage",
+     "An answer from this page, Telegram, the radio or an agent lands here as one row. The newest is "
+     "at the top."),
+    ("data-api", "The API", "api.md", None,
+     "Every node exposes the same API on port 8080.", "has a private path in.",
+     "This tab lists every route on this node, one line each, with a search. The doors read the same "
+     "routes a script or a spreadsheet can."),
+    ("wall-never", "What the Wall never shows", "wall.md", "What the Wall never shows",
+     "Anyone in the room reads the Wall", "or a button to answer.",
+     "That is why this screen holds no token and no button. An answer belongs on Telegram, the radio or "
+     "the other doors."),
+    ("wall-sentence", "The time and the sentence", "wall.md", "What it shows",
+     "**The time and the sentence**", "\"Nothing is\n  asked now.\"",
+     "When the node's last poll is more than 15 minutes old, the time says the readings are old."),
+    ("wall-map", "The map", "wall.md", "What it shows",
+     "**The map**: the stations around the house", "red when it is over the line.",
+     "The caption under the map says in words what the red discs mean against the house, at the hour "
+     "they show."),
+    ("wall-walk", "The walk, a scale at a time", "wall.md", "The walk",
+     "Each scale holds while its day is replayed", "lets\nthe walk go on.",
+     "House, street, ring and region, each framed on its own cell. With reduced motion on, the Wall "
+     "holds the street at the last hour."),
+    ("wall-page", "The page for each scale", "wall.md", "The walk",
+     "Every figure says when it is from", "a sensor's name never appears.",
+     "At the house it draws each issue and the day inside, at the street what is usual outside, at the "
+     "ring the land within 1 km, and at the region what the satellites see."),
+    ("wall-narration", "The node, thinking aloud", "wall.md", "The node, thinking aloud",
+     "The node tells it to speak", "that anything is safe.",
+     "A new text comes every ten minutes from the model chosen in Set up › Model, and the box says it "
+     "is a model's words, written from the node's figures."),
+    ("setup-sections", "The sections", "dashboard.md", "Set up",
+     "The gear opens Set up", "(System, Machine, Updates).",
+     "A section with something set here says how many. This screen says locked or unlocked."),
+    ("setup-save", "Saving a change", "dashboard.md", "Set up",
+     "A save sends only the fields you edited.", "the actor `dashboard`",
+     "A change that sends something beyond this machine, or runs code that is not the node's, waits "
+     "for Save anyway, after a panel says what it does."),
 ]
 
 
@@ -410,6 +590,142 @@ QUESTIONS = {
     'mcp': {"en": ['What can an agent do through MCP here?', 'Which tools are read, act and admin?'],
         "id": ['Apa yang bisa dilakukan agen lewat MCP di sini?', 'Alat mana yang read, act dan admin?'],
         "es": ['¿Qué puede hacer un agente por MCP aquí?', '¿Qué herramientas son read, act y admin?']},
+    # the doors' parts (the id strings want a native reader before release)
+    'bar': {"en": ['Why does the bar say locked?', 'How fresh are the readings on this page?'],
+        "id": ['Mengapa di bagian atas tertulis locked?', 'Seberapa baru bacaan di halaman ini?'],
+        "es": ['¿Por qué arriba dice locked?', '¿De cuándo son las lecturas de esta página?']},
+    'foot': {"en": ["What is in today's open data file?", 'Where can I read how this node works?'],
+        "id": ['Apa isi berkas data terbuka hari ini?', 'Di mana saya bisa membaca cara kerja node ini?'],
+        "es": ['¿Qué hay en el archivo de datos abiertos de hoy?', '¿Dónde puedo leer cómo funciona este nodo?']},
+    'now-sentence': {"en": ['What does the node want me to know right now?', 'Is this number measured in our house?'],
+        "id": ['Apa yang ingin disampaikan node kepada saya sekarang?', 'Apakah angka ini diukur di rumah kami?'],
+        "es": ['¿Qué quiere decirme el nodo ahora mismo?', '¿Esta cifra se mide en nuestra casa?']},
+    'now-distances': {"en": ['Is it worse inside or outside right now?', 'What was it like at this hour yesterday?'],
+        "id": ['Sekarang lebih buruk di dalam atau di luar rumah?', 'Bagaimana keadaannya pada jam yang sama kemarin?'],
+        "es": ['¿Ahora está peor dentro o fuera de casa?', '¿Cómo estaba ayer a esta misma hora?']},
+    'now-todo': {"en": ['What should I do about this now?', 'What happens if I leave it for later?'],
+        "id": ['Apa yang sebaiknya saya lakukan sekarang?', 'Apa yang terjadi kalau saya menundanya?'],
+        "es": ['¿Qué debería hacer ahora?', '¿Qué pasa si lo dejo para más tarde?']},
+    'now-worked': {"en": ['Did what we did last time help?', 'How was yesterday in the house?'],
+        "id": ['Apakah yang kami lakukan terakhir kali membantu?', 'Bagaimana keadaan rumah kemarin?'],
+        "es": ['¿Sirvió lo que hicimos la última vez?', '¿Cómo estuvo ayer la casa?']},
+    'now-rows': {"en": ['Which of these needs a look today?', 'Was it too hot or the air too dirty at any hour today?'],
+        "id": ['Mana di antara ini yang perlu diperhatikan hari ini?', 'Apakah hari ini ada jam yang terlalu panas atau udaranya terlalu kotor?'],
+        "es": ['¿Cuál de estos hay que mirar hoy?', '¿Hubo alguna hora hoy con demasiado calor o el aire muy sucio?']},
+    'now-bands': {"en": ['Where does this band come from?', 'Why have some of these readings not arrived?'],
+        "id": ['Dari mana bagian ini berasal?', 'Mengapa sebagian bacaan ini belum datang?'],
+        "es": ['¿De dónde viene este bloque?', '¿Por qué no han llegado algunas de estas lecturas?']},
+    'now-next': {"en": ['Will the air be over the line tomorrow?', 'How sure is a forecast three days out?'],
+        "id": ['Apakah udara besok akan di atas garis?', 'Seberapa pasti prakiraan tiga hari ke depan?'],
+        "es": ['¿Mañana el aire estará sobre la línea?', '¿Qué tan seguro es un pronóstico a tres días?']},
+    'now-around': {"en": ['Is the air outside worse than in our house?', 'Which station near us has the dirtiest air?'],
+        "id": ['Apakah udara di luar lebih buruk daripada di rumah kami?', 'Stasiun mana di dekat kami yang udaranya paling kotor?'],
+        "es": ['¿El aire de fuera está peor que el de casa?', '¿Qué estación cercana tiene el aire más sucio?']},
+    'now-things': {"en": ['Which of our things need repair?', 'What could we lend to a neighbour?'],
+        "id": ['Barang kami mana yang perlu diperbaiki?', 'Apa yang bisa kami pinjamkan ke tetangga?'],
+        "es": ['¿Qué cosas nuestras necesitan arreglo?', '¿Qué podríamos prestarle a un vecino?']},
+    'place-head': {"en": ['How big is the area this node covers?', 'What does the satellite show changed here?'],
+        "id": ['Seberapa luas area yang dicakup node ini?', 'Menurut satelit, apa yang berubah di sini?'],
+        "es": ['¿Qué tamaño tiene la zona que cubre este nodo?', '¿Qué cambió aquí según el satélite?']},
+    'place-image': {"en": ['What happens to a photo I add here?', 'Can the node tell me what plant this is?'],
+        "id": ['Apa yang terjadi pada foto yang saya tambahkan di sini?', 'Bisakah node memberi tahu saya tanaman apa ini?'],
+        "es": ['¿Qué pasa con una foto que subo aquí?', '¿Puede el nodo decirme qué planta es esta?']},
+    'place-layers': {"en": ['Which layer shows the public air stations?', 'Where does the street map come from?'],
+        "id": ['Lapisan mana yang menampilkan stasiun udara publik?', 'Dari mana peta jalan ini berasal?'],
+        "es": ['¿Qué capa muestra las estaciones públicas de aire?', '¿De dónde sale el mapa de calles?']},
+    'place-map': {"en": ['How far is the nearest station from our house?', 'Why are some marks hidden?'],
+        "id": ['Seberapa jauh stasiun terdekat dari rumah kami?', 'Mengapa beberapa tanda disembunyikan?'],
+        "es": ['¿A qué distancia de casa está la estación más cercana?', '¿Por qué algunas marcas están ocultas?']},
+    'place-tools': {"en": ['How far is that point from the house?', 'What cell is this, and how big is it?'],
+        "id": ['Seberapa jauh titik itu dari rumah?', 'Sel apa ini, dan seberapa besar?'],
+        "es": ['¿A qué distancia de la casa está ese punto?', '¿Qué celda es esta y qué tamaño tiene?']},
+    'place-orbit': {"en": ['What did this place look like a few years ago?', 'Has there been more building around us?'],
+        "id": ['Seperti apa tempat ini beberapa tahun lalu?', 'Apakah bangunan di sekitar kami bertambah?'],
+        "es": ['¿Cómo era este lugar hace unos años?', '¿Se ha construido más a nuestro alrededor?']},
+    'place-species': {"en": ['Which plants and animals have we found here?', "What else lives around here, by other people's records?"],
+        "id": ['Tumbuhan dan hewan apa saja yang sudah kami temukan di sini?', 'Menurut catatan orang lain, makhluk apa lagi yang hidup di sekitar sini?'],
+        "es": ['¿Qué plantas y animales hemos encontrado aquí?', '¿Qué más vive por aquí, según lo que otros han registrado?']},
+    'place-changing': {"en": ['Is the coast near us changing?', 'What can this node not measure yet?'],
+        "id": ['Apakah pantai di dekat kami berubah?', 'Apa yang belum bisa diukur node ini?'],
+        "es": ['¿Está cambiando la costa cerca de nosotros?', '¿Qué no puede medir todavía este nodo?']},
+    'node-verdict': {"en": ['Is the node working properly?', 'Which sensor has gone quiet?'],
+        "id": ['Apakah node bekerja dengan baik?', 'Sensor mana yang berhenti mengirim data?'],
+        "es": ['¿Está funcionando bien el nodo?', '¿Qué sensor ha dejado de enviar datos?']},
+    'node-flow': {"en": ['What does this node send out, and to whom?', 'Where do our readings come from?'],
+        "id": ['Apa yang dikirim node ini keluar, dan kepada siapa?', 'Dari mana bacaan kami berasal?'],
+        "es": ['¿Qué envía este nodo hacia fuera, y a quién?', '¿De dónde vienen nuestras lecturas?']},
+    'node-cells': {"en": ['What is the Fab City Index?', 'Why are some cells only partial?'],
+        "id": ['Apa itu Fab City Index?', 'Mengapa beberapa sel hanya sebagian?'],
+        "es": ['¿Qué es el Índice Fab City?', '¿Por qué algunas celdas aparecen como parciales?']},
+    'node-remember': {"en": ['What has the node learned about our house?', 'What happened in the house last week?'],
+        "id": ['Apa yang sudah dipelajari node tentang rumah kami?', 'Apa yang terjadi di rumah minggu lalu?'],
+        "es": ['¿Qué ha aprendido el nodo sobre nuestra casa?', '¿Qué pasó en casa la semana pasada?']},
+    'node-around': {"en": ['Which other nodes are near us?', 'How does our node join the list?'],
+        "id": ['Node lain mana yang dekat dengan kami?', 'Bagaimana node kami bisa masuk daftar?'],
+        "es": ['¿Qué otros nodos hay cerca?', '¿Cómo entra nuestro nodo en la lista?']},
+    'node-globe': {"en": ['Where are the other nodes in the world?', 'Why is our place shown as such a big cell?'],
+        "id": ['Di mana saja node lain di dunia?', 'Mengapa tempat kami ditampilkan sebagai sel yang begitu besar?'],
+        "es": ['¿Dónde están los otros nodos en el mundo?', '¿Por qué nuestro lugar aparece como una celda tan grande?']},
+    'node-running': {"en": ['How long will the disk last?', 'Is the machine working too hard?'],
+        "id": ['Berapa lama lagi ruang disk-nya cukup?', 'Apakah mesinnya bekerja terlalu berat?'],
+        "es": ['¿Cuánto le queda al disco?', '¿La máquina está trabajando al límite?']},
+    'node-refusals': {"en": ['Can anyone see our raw readings?', 'Could an agent act for us without asking?'],
+        "id": ['Bisakah orang lain melihat bacaan mentah kami?', 'Bisakah agen bertindak atas nama kami tanpa bertanya?'],
+        "es": ['¿Alguien puede ver nuestras lecturas en bruto?', '¿Podría un agente actuar por nosotros sin preguntar?']},
+    'data-head': {"en": ['How much has this node recorded in the last day?', 'Can I download our data?'],
+        "id": ['Berapa banyak yang dicatat node ini dalam sehari terakhir?', 'Bisakah saya mengunduh data kami?'],
+        "es": ['¿Cuánto ha registrado este nodo en el último día?', '¿Puedo descargar nuestros datos?']},
+    'data-readings': {"en": ['What does this house measure?', 'What does each of these readings mean?'],
+        "id": ['Apa saja yang diukur di rumah ini?', 'Apa arti masing-masing bacaan ini?'],
+        "es": ['¿Qué mide esta casa?', '¿Qué significa cada una de estas lecturas?']},
+    'data-sources': {"en": ['Do our sensors agree with the public stations?', 'Which source reads the highest today?'],
+        "id": ['Apakah sensor kami sejalan dengan stasiun publik?', 'Sumber mana yang bacaannya paling tinggi hari ini?'],
+        "es": ['¿Coinciden nuestros sensores con las estaciones públicas?', '¿Qué fuente marca más alto hoy?']},
+    'data-week': {"en": ['Was this week better or worse than usual?', 'Which day was the worst this week?'],
+        "id": ['Apakah minggu ini lebih baik atau lebih buruk dari biasanya?', 'Hari apa yang paling buruk minggu ini?'],
+        "es": ['¿Esta semana fue mejor o peor de lo normal?', '¿Qué día fue el peor de la semana?']},
+    'data-perday': {"en": ['Which days had the most bad hours?', 'Are the bad hours getting fewer?'],
+        "id": ['Hari apa yang paling banyak jam buruknya?', 'Apakah jam-jam buruk makin berkurang?'],
+        "es": ['¿Qué días tuvieron más horas malas?', '¿Hay cada vez menos horas malas?']},
+    'data-models': {"en": ['What does the forecast say for here?', 'How is a model different from a sensor?'],
+        "id": ['Apa kata prakiraan untuk tempat ini?', 'Apa bedanya model dengan sensor?'],
+        "es": ['¿Qué dice el pronóstico para aquí?', '¿En qué se diferencia un modelo de un sensor?']},
+    'data-images': {"en": ['What did the image model see in our photos?', 'How do I confirm what a photo shows?'],
+        "id": ['Apa yang dilihat model gambar di foto-foto kami?', 'Bagaimana cara memastikan isi sebuah foto?'],
+        "es": ['¿Qué vio el modelo de imágenes en nuestras fotos?', '¿Cómo confirmo lo que muestra una foto?']},
+    'data-things': {"en": ['Which of our things are rarely used?', 'How do I offer something to lend?'],
+        "id": ['Barang kami mana yang jarang dipakai?', 'Bagaimana cara menawarkan barang untuk dipinjamkan?'],
+        "es": ['¿Qué cosas nuestras casi no usamos?', '¿Cómo ofrezco algo para prestar?']},
+    'data-ledger': {"en": ['Who answered the last alert?', 'What have we done this week?'],
+        "id": ['Siapa yang menjawab peringatan terakhir?', 'Apa saja yang sudah kami lakukan minggu ini?'],
+        "es": ['¿Quién respondió la última alerta?', '¿Qué hemos hecho esta semana?']},
+    'data-api': {"en": ['How can I read this data from my own tools?', 'Which routes need a token?'],
+        "id": ['Bagaimana saya bisa membaca data ini dari alat saya sendiri?', 'Rute mana yang memerlukan token?'],
+        "es": ['¿Cómo leo estos datos desde mis propias herramientas?', '¿Qué rutas necesitan token?']},
+    'wall-never': {"en": ['Why does this screen not name the rooms?', 'Can a guest see anything private here?'],
+        "id": ['Mengapa layar ini tidak menyebut nama ruangan?', 'Bisakah tamu melihat sesuatu yang pribadi di sini?'],
+        "es": ['¿Por qué esta pantalla no nombra las habitaciones?', '¿Puede un invitado ver algo privado aquí?']},
+    'wall-sentence': {"en": ['Is anything being asked of us right now?', 'Are these readings fresh?'],
+        "id": ['Apakah ada yang diminta dari kami sekarang?', 'Apakah bacaan ini masih baru?'],
+        "es": ['¿Se nos está pidiendo algo ahora?', '¿Son recientes estas lecturas?']},
+    'wall-map': {"en": ['Which way is the wind blowing?', 'What do the red circles mean?'],
+        "id": ['Ke arah mana angin bertiup?', 'Apa arti lingkaran merah itu?'],
+        "es": ['¿Hacia dónde sopla el viento?', '¿Qué significan los círculos rojos?']},
+    'wall-walk': {"en": ['Why does the map keep moving out?', 'How do I keep it on our street?'],
+        "id": ['Mengapa peta terus bergerak menjauh?', 'Bagaimana agar peta tetap di jalan kami?'],
+        "es": ['¿Por qué el mapa se va alejando?', '¿Cómo lo dejo quieto en nuestra calle?']},
+    'wall-page': {"en": ['What is the land around us made of?', 'Are there fires nearby?'],
+        "id": ['Tanah di sekitar kami terdiri dari apa saja?', 'Apakah ada kebakaran di dekat sini?'],
+        "es": ['¿De qué está hecho el terreno de alrededor?', '¿Hay incendios cerca?']},
+    'wall-narration': {"en": ['What does the node suggest for today?', 'Which model writes this text?'],
+        "id": ['Apa saran node untuk hari ini?', 'Model mana yang menulis teks ini?'],
+        "es": ['¿Qué sugiere el nodo para hoy?', '¿Qué modelo escribe este texto?']},
+    'setup-sections': {"en": ['Where do I change when the reports arrive?', 'How do I let every screen in the house read the node?'],
+        "id": ['Di mana saya mengubah jam laporan dikirim?', 'Bagaimana agar semua layar di rumah bisa membaca node?'],
+        "es": ['¿Dónde cambio la hora de los informes?', '¿Cómo dejo que todas las pantallas de casa lean el nodo?']},
+    'setup-save': {"en": ['What happens when I save a setting?', 'How do I undo a change?'],
+        "id": ['Apa yang terjadi saat saya menyimpan pengaturan?', 'Bagaimana cara membatalkan perubahan?'],
+        "es": ['¿Qué pasa cuando guardo un ajuste?', '¿Cómo deshago un cambio?']},
 }
 
 def slugify(value):

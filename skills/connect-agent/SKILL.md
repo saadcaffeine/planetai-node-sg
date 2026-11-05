@@ -1,6 +1,6 @@
 ---
 name: connect-agent
-description: Give a person's own agent the node's twenty MCP tools, over their tailnet, without opening a port to the internet.
+description: Give a person's own agent the node's twenty-one MCP tools, over their tailnet, without opening a port to the internet.
 ---
 
 # Connecting an agent to a node
@@ -19,7 +19,7 @@ the node's own name in it. Those three facts are the whole configuration. Never 
 one into a file you will commit.
 
 Read `AGENTS.md` before the first call. It is the operating manual for whatever you connect, and it lists
-the twenty tools.
+the twenty-one tools.
 
 ## The answer is Tailscale, not a port forward
 
@@ -69,9 +69,13 @@ Pick a name a person would recognise a month from now.
 
 ## Call health_check first
 
-`health_check` before anything else, every session. Every failing check names its own fix, and it tells
-you what this node can honestly answer before you ask it something it cannot. Then `status`, then the
+`health_check` before anything else, every session. Every failing check names its own fix, its `sources`
+says which of the node's fundamental sources is not running yet, and it tells you what this node can
+honestly answer before you ask it something it cannot. Then `status`, then the
 tool you came for.
+
+What the tools never hand you: a reading a pack declared `private`, and, unless every model this node may
+use runs on the house's own machines, what the house learned (`learned` says why instead).
 
 `act` and `settings_set` write. Read the invariants in `AGENTS.md` before either, and read
 `troubleshoot-node` before you change a threshold.

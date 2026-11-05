@@ -1,6 +1,6 @@
 """A node says when a newer PLANETAI is out, once, and never installs it (Tomas, 30 Sep 2026).
 
-check_release() asks planetai.fab.city/node0/get/VERSION once a day, puts what it found in /health (the header
+check_release() asks planetai.fab.city/node0/get/VERSION every hour, puts what it found in /health (the header
 and `planetai doctor` read it there), and sends Telegram one message per version. UPDATE_CHECK=off asks nothing.
 
     PYTHONPATH=app python3 tests/test_release_check.py
@@ -78,7 +78,7 @@ def fresh():
     ASKED.clear(); TOLD.clear(); ROWS.clear()
     main.state.get("errors", {}).pop("check_release", None)
 
-# Newer: said in state, told once, and asked once a day however often the hourly loop runs.
+# Newer: said in state, told once, and asked once in RELEASE_EVERY however often the loop runs.
 fresh()
 main.check_release(); main.check_release(); main.check_release()
 rel = main.state.get("release") or {}
@@ -150,5 +150,5 @@ check("function releaseBar(h)" in js and "${releaseBar(health)}</header>" in js,
 check("is out (this node runs" in open("bin/planetai").read(), "planetai doctor does not say a release is out")
 check("CREATE TABLE IF NOT EXISTS release_notices" in open("init.sql").read(), "init.sql has no release_notices table")
 
-print("\n".join(f"  x {f}" for f in fails) or "  release: asked once a day, told once per version, off asks nothing")
+print("\n".join(f"  x {f}" for f in fails) or "  release: asked every hour, told once per version, off asks nothing")
 raise SystemExit(1 if fails else 0)

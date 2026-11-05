@@ -1,16 +1,19 @@
 # Packs
 
 A pack is a folder in `packs/`. It carries rules, Index cells, or an adapter for a new source. The core knows nothing
-about air, water or heat; the packs do. Eighteen ship in `packs/`.
+about air, water or heat; the packs do. Twenty-five ship in `packs/`.
 
 ```
 packs/<id>/
   pack.yaml     id, name, description, kind (data | code), version, requires:, domain:, sources:, needs:, pip:, env:,
-                secrets:, agent_scripts:, readouts:, sections:, (read by people only) author:, attribution:,
+                secrets:, switch:, stations:, footprint:, share:, agent_scripts:, readouts:, sections:, ahead:, (read by people only) author:, attribution:,
                 metrics:, scales:, thresholds:
   rules.yml     alerts: SQL that returns rows, one message per row
   cells.yml     Index cells: SQL that returns one `value`
+  issue.yml     the issue this pack watches, its `key:`, name, metric, line, `alert:`, sentences (air-quality, heat, coast, earth)
   adapter.py    a new source; code packs only
+  hooks.py      on_readings, on_alert: what the pack does with what the node stores and sends; code packs only
+  routes.py     a FastAPI `router`: the pack's own HTTP routes (GET /forecast, /nearby, /earth); official packs only
   channels.yml  what a pack's own metrics ARE — ambient, enclosure, index, etc.
   README.md     where the thresholds come from, what the pack assumes
 ```
@@ -38,7 +41,10 @@ planetai restart
 It always pins: a branch or tag is resolved to the commit it names, and that commit is written to `packs/<id>/.wild`
 with where the pack came from. It refuses an id that is already a folder here and did not come from `packs add` (a
 core pack, or one you put there by hand), an id that is not the folder shape, a pack with symbolic links, and, for a
-pack from the list, an id the list and the pack disagree on. It runs `planetai packs install` afterwards. Running it
+pack from the list, an id the list and the pack disagree on. It runs `planetai packs install` afterwards, with the new
+pack's `pip:` and `env:` lines included although the running node cannot list it until it restarts. On a node whose
+`PACKS_ENABLED` was saved in Set up, it adds the id to that list, the same way `planetai update` adds a pack, or says
+the pack stays off and prints `planetai config set PACKS_ENABLED …` when it cannot write it. Running it
 again on the same pack replaces it with the new commit. `planetai packs` lists core and wild apart and says where
 each wild pack came from. To remove one, delete `packs/<id>` and restart. If a later release ships a core pack with
 the same id (a wild pack promoted into the release), `planetai update` stops before it changes anything, names the
@@ -98,6 +104,11 @@ Every message carries `en`, `id` and `es` with the same placeholders; `make test
 Every column the message uses must come from the SQL. `make lint` checks that, plus unknown columns, cells without a
 `value`, and cooldowns over a fortnight (add `long_cooldown_ok: true` if that is deliberate).
 
+A message that asks for an answer can carry `{act}`. The node fills it with the alert's own number, as the household
+answers it: `/act 812` where the Telegram bot runs, `planetai act 812` where it does not. The SQL does not return it.
+A question with a few fixed answers can use [buttons](#buttons) instead, and `{act}` still works beside them for an
+answer typed in words.
+
 A rule can compute something for the report instead of interrupting anyone:
 
 ```yaml
@@ -123,6 +134,59 @@ A cell:
 `state` is provenance, not confidence. `live` means measured here; `partial` means derived or a model; never claim `live`
 for a model.
 
+### Buttons
+
+A rule can ask its question with buttons. Add a `buttons` column to its SQL, as JSON text or as a JSON value. The node
+takes the column out of the row before it fills the message, so a message cannot use it. This rule has two rows, an
+acknowledged button and one that asks something:
+
+```yaml
+- id: smoke_in_the_house
+  level: act
+  cooldown_minutes: 180
+  sql: |
+    SELECT sensor_id, name, mean_15m,
+           '[[{"text": {"en": "Not now", "es": "Ahora no"}, "value": "later", "stage": "acknowledged"}],
+             [{"text": {"en": "Windows shut", "es": "Ventanas cerradas"}, "value": "shut",
+               "ask": {"en": "Did you do anything else?", "es": "¿Hiciste algo más?"}}]]' AS buttons
+    FROM stats WHERE local AND indoor AND metric='pm25' AND mean_15m > 35
+  message:
+    en: "Indoor PM2.5 at {name} is {mean_15m:.0f} µg/m³."
+    id: "PM2.5 dalam ruangan di {name} {mean_15m:.0f} µg/m³."
+    es: "PM2.5 en interiores en {name}: {mean_15m:.0f} µg/m³."
+```
+
+The column is a list of rows and each row is a list of buttons. A button has:
+
+| key | |
+|---|---|
+| `text` | required. A string, which is English, or a map by locale. The node shows the one for `ALERT_LOCALE`, then `en`, then the first the pack wrote, so a button never shows a map |
+| `value` | required. 1 to 40 characters of `a-z`, `0-9`, `:`, `_` and `-`. It is stored as the answer's `choice`, and Telegram's callback is `al:<alert id>:<value>` |
+| `stage` | `acted` (the default) or `acknowledged`. The button sets the stage. An acknowledged answer takes the whole keyboard away on Telegram and takes the question off Now |
+| `ask` | optional, written like `text`. After the press the bot asks it, and the next message in that chat within ten minutes from the person who pressed is kept as the note on that answer |
+
+A keyboard has at most 8 rows of 4 buttons.
+
+The alert and its buttons are stored together, and `/alerts` returns them. With `TELEGRAM_BUTTONS=1` (the bot sets it
+when it starts) the alert goes to Telegram with the buttons as a keyboard. Now lists the ones nobody has answered under
+What to do, on a screen that holds the token. Telegram lifts the row somebody pressed and says what was recorded and by
+whom. An acknowledged button takes the whole keyboard away.
+
+If the column does not validate (it is not JSON, a value or stage is wrong, a button has no text, there are too many
+rows or buttons), the alert is stored and sent with no buttons, and the log has one warning that says why. One bad
+button costs all of them.
+
+An answer is `POST /actions` with `alert_id`, `choice`, `actor` and an optional `note`. A `stage` sent with it is
+ignored. The node refuses a `choice` the alert did not offer (400), an alert that is not there (404), and any answer
+once the alert is more than 72 hours old (409, "this question has closed"). On a node with `DECISION_REQUIRED` an
+`acted` button needs a decision first, as any act does. An alert, an actor and a choice make one row: the same person
+pressing again writes nothing, a later note is written on that row and replaces an earlier one, and somebody else's
+press is a row of their own. From off the machine the request needs `Authorization: Bearer <ACT_TOKEN>` (or the admin
+token), and without it the node answers 401, or 403 when no token is set.
+
+Buttons and `{act}` are separate ways to answer. `/act 812 closed the windows` still records an answer in words, with
+no choice.
+
 ### Channel roles
 
 A pack that adds a metric says what it IS in `channels.yml`, keyed on `(source, metric)`:
@@ -131,11 +195,11 @@ A pack that adds a metric says what it IS in `channels.yml`, keyed on `(source, 
 - { source: my-sensor, metric: co2, role: ambient, comparable: true, unit: "ppm" }
 ```
 
-Five roles: `ambient` (the air, water or land at a place — comparable between sensors there), `enclosure` (the
+Six roles: `ambient` (the air, water or land at a place — comparable between sensors there), `enclosure` (the
 inside of the instrument's own box — a BME680 sealed inside a radio reports the box, not the street, so this is
 never averaged as ambient), `device_health` (the instrument talking about itself, e.g. battery), `derived`
-(computed by us from other readings), and `index` (a vendor's own composite number, never pooled with anyone
-else's). `config/channels.yml` has the core declarations; `make lint` checks every metric against `app/sources.py`.
+(computed by us from other readings), `index` (a vendor's own composite number, never pooled with anyone
+else's), and `private` (the house's own: used by readouts, sections, rules and cells like any other, and left out of the daily export, the aggregates a parent receives, the report bundle, every read an agent makes, and `/readings`, `/history`, `/series` and `/sparks` without the admin token, and from a readout such as `/stats` for anyone without the household's admin or act token who is not this machine; Home Assistant discovery, the household's own automation, still gets it). `config/channels.yml` has the core declarations; `make lint` checks every metric against `app/sources.py`.
 A role is keyed per source and metric, not per device: every sensor an adapter drives shares it, so a node whose
 hardware differs from that adapter's usual shape (an external probe on a Meshtastic pod) cannot override it yet.
 
@@ -174,6 +238,61 @@ asks for a node newer than the latest release.
 
 `adapter.py` with `fetch(hc) -> (sensors, readings)`, the same contract as `app/sources.py`. Off unless
 `PACKS_ALLOW_CODE=1`: a pack runs with the node's privileges, so read it first.
+
+**Code in official packs.** A pack shipped in this repository (signed with the release, so it has no `.wild`) that
+names its own on-switch runs its `adapter.py` when that switch is `1`, without `PACKS_ALLOW_CODE`:
+
+```yaml
+switch: BAD_ENABLED        # the pack's own key, declared under env:, off by default
+```
+
+A switch can also be a list of keys, on when any of them is set and not `0`. `packs/smartcitizen` runs whenever a
+kit is configured, as it did in the core:
+
+```yaml
+switch: [SC_USER, SC_DEVICES]
+```
+
+This is the first step of decision A in the sensors spec (PR #262: "official packs run code by default"), taken only for
+packs that can switch themselves off. An official pack without a `switch:` still waits for `PACKS_ALLOW_CODE=1`,
+because forecast, place, surface-heat and coast have no switch of their own and would start on every node. A wild
+pack never runs code without the flag, whatever it declares.
+
+**Hooks.** A code pack can also hear the node, in `hooks.py`: `on_readings(sensors, readings)` after every batch the
+node stores (a poll, an MQTT message), and `on_alert(level, text, alert_id)` with every alert it records. A pack that
+reads its own devices off the node's broker names their topics in `MQTT_TOPICS = [(topic, qos)]`; the node subscribes
+to them when it connects and hands each message to `on_mqtt(topic, payload)`, which returns `(sensors, readings)` to
+store, or `None` when the message is not its own. `status()` returns keys the node merges into `/health`. They are
+gated like `adapter.py` (an official pack's own switch, or `PACKS_ALLOW_CODE=1`), each pack's module is loaded once so
+what it keeps lasts, and a hook that fails is logged and never stops the node's own work. `packs/home-assistant` was
+the first, and `packs/smartcitizen` reads `device/sck/#` this way; both were core code until 22 October 2026. A pack
+switched on while the node runs is subscribed to at its next reconnect or restart.
+
+**Routes.** An official pack can serve its own HTTP routes from a `routes.py` that defines `router = APIRouter()`.
+The node mounts every official pack's router when it starts, and each route answers 404 while the node does not load
+its pack, so switching a pack off in Set up takes its routes with it, no restart. Read the database with
+`from db import q`, never by importing main. A path the pack lists under `share: {open: [/its/path]}` joins what a
+household on `SHARE_LEVEL=open` shares with its own WiFi, and one under `share: {"off": [...]}` (quoted: YAML reads a
+bare off as false) is answered at every level, as `/offers` is; a wild pack can neither mount routes nor widen that list.
+`forecast` (GET /forecast), `nearby` (GET /nearby), `earth` (GET /earth, /earth/change.png, /earth/year.png) and
+`earth-engine` (GET /earth/frame.png) serve theirs, core routes until 23 October 2026. `/ground/*` stays in the core:
+it serves three packs' files (place's map, earth-engine's imagery, forecast's wind), and place is becoming core.
+
+**Public stations.** A pack that reads a network of other people's stations around the node says so, and the node's
+"Air stations nearby" source, `GET /nearby` and the ring's footprint read it instead of naming a network:
+
+```yaml
+stations:
+  source: baliairdispatch          # the `source` its sensors carry
+  prefix: bad-                     # its sensor ids start with this, for the station's link and attribution
+  radius: BAD_RADIUS_KM            # the key that sets how far the ring reaches
+  box: [-9.2, -8.0, 114.4, 115.8]  # south, north, west, east: where the network has stations
+  url: https://baliairdispatch.com/
+  attribution: ["Bali Air Dispatch, baliairdispatch.com"]
+```
+
+A node inside `box` with the pack off is told to turn it on; a node outside every box is told nothing.
+`packs/bali-air-dispatch` is the first.
 
 Dependencies and settings are declared in `pack.yaml`; `planetai packs` lists what is loaded and what is missing, and
 `planetai packs install` installs the libraries into the image once and
@@ -300,12 +419,41 @@ sections:
 
 The node reads each readout's latest row, as it does an issue's, and serves the section in `/issues` as `sections`,
 with the numbers already in it and each one's age. The page turns it into a band in its stage, on Now, with the
-pack's name beside the title and `GET /issues` as its route. A reading the node has no row for is not drawn, and the
-band says how many have not arrived. Its note, at the foot of the page, says which pack declared it and that the pack
+pack's name beside the title and `GET /issues` as its route. On the doors (the default page) the band sits next to
+Now's own part of that stage: `observe` under the issue rows, `decide` and `act` under What to do, `measure` under
+Did it work (`tests/test_doors_sections.py`). The phone page draws the same band in its one column: `decide` and
+`act` under the Decide card, `observe` under the other issues, `measure` last (`tests/test_mobile_sections.py`). A reading the node has no row for is not drawn, and the
+band says how many have not arrived. A core pack's section is the exception: a core pack is on every node whether or
+not its keeper turned it on, so its section stays out of `/issues` until the node holds at least one of its rows. Its note, at the foot of the page (on the doors, under the band), says which pack declared it and that the pack
 ships no code for this page. A declared section draws readout cards only: a stack, a series or a row needs the
 shell's own code. One that is not well formed, or whose id another pack already took, is left out with a line in the
 log; one whose id the page already has is listed under "Registration problems". `tests/test_pack_sections.py` holds
 this, on both sides.
+
+### A line in Next days
+
+A pack can add one line to Next days, the three-day view on Now, with `ahead:` in its `pack.yaml`. Surf is the shape
+it was made for: one short sentence for tomorrow and one for the day after.
+
+```yaml
+ahead:
+  id: surf                              # lowercase letters, digits and hyphens
+  title: { en: Surf, es: Olas, id: Ombak }
+  sensor: surf                          # the sensor whose meta holds the text
+  days: [ahead_d1, ahead_d2]            # meta keys for tomorrow and the day after, written without a locale
+```
+
+The node puts the locale in itself: `ahead_d1` is read as `ahead_en_d1`, `ahead_es_d1` and `ahead_id_d1`, so your
+adapter writes six keys into that sensor's meta (`ahead_en_d1`, `ahead_en_d2`, and the same for `es` and `id`) next
+to its `fetched`. A locale you leave out is left out of the line. Each text is cut at 160 characters, and the page
+escapes it, so write plain text with no markup: "Uluwatu 16:00–18:00 · Impossibles 16:00–18:00", or "nothing looks good".
+
+The node serves the line in `GET /forecast` as `lines`, only while the pack is on and the sensor's `fetched` is
+today in the node's own timezone. `fetched` can be a time with its zone or a plain date (`2026-11-03`). A plain date
+is taken as the date where the node is, and a time with no zone is read as UTC. That is what keeps `_d1` meaning tomorrow: a fetch from yesterday would have it
+meaning today, so the line goes quiet until the pack fetches again. One that is not well formed (an id with capitals,
+a title missing a locale, `days` with anything but two keys) is left out with one line in the log, and the rest of
+the pack loads as before. `tests/test_forecast_days.py` holds this, on both sides.
 
 ## The hero
 
@@ -340,34 +488,39 @@ pictogram is not in `signs.svg`, whose numeral is neither a distance the issue f
 readouts, whose rule dots name a distance the issue does not have, or whose rule draws a line the
 issue does not declare.
 
-A pack that brings an issue of its own will declare its hero the same way, in the `issue.yml` beside
-its `pack.yaml`. The node does not load an issue from a pack yet; until it does, a new issue is a new
-file in `app/issues/`.
+A pack that brings an issue of its own declares it in the `issue.yml` beside its `pack.yaml`, with a `key:` (the
+issue's id, as `NODE_ISSUES` names it), and its hero the same way. The node reads it while the pack is on, so a node
+that does not watch the coast has no coast issue. Since 23 October 2026 the four that shipped in `app/issues/` live
+in their packs: air in `air-quality`, heat in `heat`, coast in `coast`, land in `earth`. A new issue is a pack with an
+`issue.yml`, and `app/issues/` keeps only the engine.
 
 ## What ships
 
 The `issue` column is which band of the dashboard a pack feeds. It comes from the pack's `domain:`,
-except for a cross-domain pack, whose rules are claimed one by one in `app/issues/*.yml`. A pack that
+except for a cross-domain pack, whose rules are claimed one by one in an `issue.yml`. A pack that
 reaches no issue and is not named as deliberately outside them fails `tests/test_issues.py` — see
 [`DOMAINS.md`](DOMAINS.md).
 
 | pack | kind | issue | what |
 |---|---|---|---|
-| air-quality | data | air | PM2.5 rules (inside/outside, spikes), cells |
+| air-quality | code | air | PM2.5 rules (inside/outside, spikes), cells; the CAMS model at the node's point, and the EPA 2021 correction AirGradient and PurpleAir borrow |
 | heat | data | heat | apparent temperature, heat stress, nights over 28 °C, a Social cell |
 | insight | data | air (`agreement`, `rhythm`) | the air three ways, contributed to every report; daily agreement between indoor, street and model |
-| nearby | data | air | the ring of other people's stations: is this address worse than everywhere, or is everywhere worse — no cell, by design |
+| bali-air-dispatch | code | air | the island's public stations as this node's ring, from Bali Air Dispatch (eight networks, key-free) — Bali only, off until `BAD_ENABLED=1`, which `presets/bali.env` sets; no alert, no cell |
+| nearby | data | air | the ring of other people's stations: is this address worse than everywhere, or is everywhere worse — no cell, by design; reads what `bali-air-dispatch` stores |
 | season | data | air | the same ring across time: is this week worse than its own preceding two months, paired per station — no cell, same reason as `nearby` |
 | forecast | code | — feeds air and heat | wind and rain for the next day, from BMKG and Open-Meteo — context for the report, no alerts, no cell |
-| trust | data | — the instruments | coverage, frozen channels, collocated disagreement — needs a week of a sensor before it names it; all three `info`, no cell, by design |
 | cold-start | data | air (`modelled_air_today`, `sensor_vs_model`), heat (`hotter_than_normal`) | day one with no hardware: modelled air, normals |
 | open-data-health | data | — the loop and the Index | a CKAN portal's maintenance state → Governance\|City |
 | coast | code | coast | waves, swell, sea temperature (Open-Meteo Marine, key-free) |
+| surface-heat | code | heat | the ground in this node's own cell against the land 1–3 km around, from Landsat at 30 m, and the ground at night from MODIS (Planetary Computer, key-free) — readouts and a report line, no alert, no cell |
 | earth-engine | code | — Dynamic World, Sentinel-2, VIIRS | tree cover, built-up, NDVI, night lights (Google Earth Engine) |
 | earth | code | land | this node's own copy of the AlphaEarth embeddings: the land change computed here, and a picture of the place for every year |
+| terrain | code | water | this node's own square of Copernicus elevation, filled and routed: how much ground drains through the node's point, and the next day's rain on it — readouts, no alert, no cell |
 | place | code | — the ground, its own band | what is around the node from OpenStreetMap, in PostGIS: buildings, shops, schools, clinics, roads, green, walking distances |
 | thingdata | code | — repair knowledge, its own catalogue | a ThingData server's things, guides and stories, and how much of the catalogue anyone has written down how to fix |
 | make | code | — places, not numbers | the nearest active fab labs and what each can do, from the Fab Lab Network directory — display-only, no metrics, no cell and no alert, by design |
+| fire | code | air | fires near the node from NASA FIRMS, and whether they are upwind; acts only when the air outside rises too — off until `FIRE_ENABLED=1` |
 | example-cooking-hours | data | air | a worked example |
 
 `make` is the only pack that stores no number at all. Its rows are `kind='facility'`: a place with

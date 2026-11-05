@@ -1,0 +1,54 @@
+<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 474">
+<style>
+.dg{--dg-ground:var(--ground,#F9F5F2);--dg-ink:var(--ink,#171717);--dg-mute:var(--mute,#5F5A54);--dg-cell:var(--cells,#20388D);--dg-ring:var(--rings,#00A057)}
+@media (prefers-color-scheme:dark){.dg{--dg-ground:var(--ground,#171717);--dg-ink:var(--ink,#F9F5F2);--dg-mute:var(--mute,#A3A19F);--dg-cell:var(--cells,#7FA5E8);--dg-ring:var(--rings,#00A057)}}
+.dg text{font-family:var(--fc-font-body,Figtree,system-ui,sans-serif);font-size:15px;fill:var(--dg-ink)}
+.dg .dg-h{font-family:var(--fc-font-display,"Funnel Sans",Figtree,system-ui,sans-serif);font-size:18px;font-weight:700}
+.dg .dg-m{font-family:var(--mono,ui-monospace,monospace)}
+.dg .dg-b{font-weight:600}
+.dg .dg-s{fill:var(--dg-mute)}
+.dg .dg-ct{fill:var(--dg-cell)}
+.dg-ln{fill:none;stroke:var(--dg-ink);stroke-width:1.5}
+.dg-off{stroke-dasharray:5 4}
+.dg-dot{stroke-dasharray:0.1 5;stroke-linecap:round;stroke-width:2.5}
+.dg-hv{stroke-width:2.5}
+.dg-hd{fill:var(--dg-ink)}
+.dg-g{stroke:var(--dg-ring)}
+.dg-gf{fill:var(--dg-ring)}
+.dg-c{stroke:var(--dg-cell)}
+.dg-cf{fill:var(--dg-cell);fill-opacity:.13}
+.dg-gc{fill:var(--dg-ring);fill-opacity:.13}
+.dg-gr{fill:var(--dg-ground)}
+</style>
+<rect x="20" y="20" width="170" height="62" class="dg-ln"/>
+<text x="34" y="46" class="dg-h">A home node</text>
+<text x="34" y="69" class="dg-s">raw readings stay</text>
+<polyline points="105,82 105,112" class="dg-ln"/>
+<rect x="235" y="20" width="170" height="62" class="dg-ln"/>
+<text x="249" y="46" class="dg-h">A home node</text>
+<text x="249" y="69" class="dg-s">raw readings stay</text>
+<polyline points="320,82 320,112" class="dg-ln"/>
+<rect x="450" y="20" width="170" height="62" class="dg-ln"/>
+<text x="464" y="46" class="dg-h">A home node</text>
+<text x="464" y="69" class="dg-s">raw readings stay</text>
+<polyline points="535,82 535,112" class="dg-ln"/>
+<polyline points="105,112 535,112" class="dg-ln"/>
+<polyline points="300,112 300.0,212.0" class="dg-ln"/><path d="M300.0 220.0L295.0 210.0L305.0 210.0Z" class="dg-hd"/>
+<polyline points="340,112 340.0,212.0" class="dg-ln"/><path d="M340.0 220.0L335.0 210.0L345.0 210.0Z" class="dg-hd"/>
+<text x="286" y="146" text-anchor="end"><tspan class="dg-m">POST /aggregates</tspan></text>
+<text x="286" y="168" class="dg-s" text-anchor="end">hourly means, last 2 h</text>
+<text x="286" y="190" class="dg-s" text-anchor="end">every hour</text>
+<text x="354" y="146"><tspan class="dg-m">POST /events</tspan></text>
+<text x="354" y="168" class="dg-s">alert times, last 36 h</text>
+<text x="354" y="190" class="dg-s">no text, no ratio</text>
+<rect x="120" y="220" width="400" height="70" class="dg-ln dg-hv"/>
+<text x="136" y="248" class="dg-h">A parent node, a district</text>
+<text x="136" y="272" class="dg-s">files the means as <tspan class="dg-m">kind=child</tspan>, pools ρ</text>
+<polyline points="320,290 320.0,384.0" class="dg-ln dg-off"/><path d="M320.0 392.0L315.0 382.0L325.0 382.0Z" class="dg-hd"/>
+<text x="336" y="326" class="dg-b">only a pilot's city node</text>
+<text x="336" y="348" class="dg-s"><tspan class="dg-m">cells-ingest</tspan>, a token</text>
+<text x="336" y="370" class="dg-s">issued by hand</text>
+<rect x="120" y="392" width="400" height="62" class="dg-ln dg-off"/>
+<text x="136" y="420" class="dg-h">The Fab City Index</text>
+<text x="136" y="443" class="dg-s">a home node never writes here</text>
+</svg>

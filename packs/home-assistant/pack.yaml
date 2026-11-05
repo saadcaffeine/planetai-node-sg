@@ -1,0 +1,21 @@
+id: home-assistant
+name: Home Assistant
+description: >-
+  This house's own sensors as Home Assistant entities, and the latest alert as one text sensor, over MQTT
+  discovery. The node publishes; Home Assistant automates. It never addresses a device.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.83.0" }
+kind: code
+metrics: []
+scales: [community]
+# The pack's own on-switch, which runs its hooks.py without PACKS_ALLOW_CODE (docs/PACKS.md, "Code in official packs").
+# HA_DISCOVERY is still declared by the core (app/settings.py), so Set up keeps marking it as a setting that changes
+# what leaves the machine; a pack cannot declare that of a key yet.
+switch: HA_DISCOVERY
+needs:
+  - the MQTT broker (MQTT_HOST), which `planetai meshtastic` or `planetai ha` sets up
+thresholds: >-
+  None. It raises no alert and stores nothing: it passes on what the node stores and the alerts it sends.
+attribution: >-
+  Home Assistant's MQTT discovery protocol (home-assistant.io/integrations/mqtt).

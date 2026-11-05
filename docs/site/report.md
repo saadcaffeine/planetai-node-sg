@@ -1,129 +1,145 @@
 # The report
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
 
-The report is the node telling the household what the ground is doing, in their language, on a schedule. The
-repo's own sentence for a node ends there: "It tells the people there in plain sentences, on Telegram, and passes
-upward what the models of a bioregion and a planet cannot see from above: what the ground is doing." The node
-writes it itself, from SQL against its own tables, so a node with no model reachable anywhere still gets it. With
-the `make` pack on, it can also end on a place: the nearest workshop that can make or fix something, the first
-thread from a reading to somewhere nearby where a person can do something about it.
+The report is the node telling the household what the ground is doing, in their language, on a schedule. The node
+writes it itself, with SQL against its own tables, so a node with no model reachable anywhere still gets it. With
+the `make` pack on, it can also name the nearest workshop where somebody could make or fix something.
 
 `app/report.py` holds both halves: `bundle()`, every number the node has about the window, and `sheet()`, the
-report.
+report written from it.
 
 ## When
 
-`REPORT_EVERY` takes 3, 4, 6, 8, 12 or 24: each divides 24, so the rhythm does not walk round the clock, and
-anything else falls back to 6. `REPORT_ANCHOR` is the local hour it counts from (0–23). The defaults are 6 and
-6: 06:00, 12:00, 18:00 and 00:00 where the node is. `planetai report every 12` and `planetai report at 7`
-change it without a restart; so does the dashboard's Set up view.
+`REPORT_EVERY` takes 3, 4, 6, 8, 12 or 24. Each divides 24, so the rhythm does not walk round the clock, and
+anything else falls back to 6. `REPORT_ANCHOR` is the local hour it counts from (0 to 23). The defaults are 6 and
+6: 06:00, 12:00, 18:00 and 00:00 where the node is. `planetai report every 12` and `planetai report at 7` change
+it without a restart, and so does the dashboard's Set up view.
 
 The rules loop checks once a minute. In the first twenty minutes of a due hour it writes the report, and the
-`reports` row for that local hour is the lock: a container that restarts inside the window does not send
-twice. A report due inside quiet hours is written and stored with `held_quiet` and not sent; the next report to go out folds every held hour in and opens with "Overnight and
-this morning." A node that was off for a week reports two days (the cap is 48 hours), not a hundred and
-sixty-eight.
+`reports` row for that local hour is the lock, so a container that restarts inside the window does not send twice.
+A report due inside quiet hours is written and stored with `held_quiet` and not sent; the next report to go out
+folds every held hour in and opens with "Overnight and this morning." A node that was off for a week reports the
+last two days (the window is capped at 48 hours).
 
 ## Read one now
 
-1. **Run `planetai report`.** The node writes a report at once and sends it. The terminal prints the text,
-   then `  written by node, sent.`, and Telegram, when it is connected, receives the same text after `ℹ️`.
-   `written by node` means the node wrote every sentence itself, from its own tables, with no model. With no
-   admin token in `.env` it stops at `no ADMIN_TOKEN in .env; run planetai ui`.
-2. **Run `planetai report last`.** It prints the last report's text and one line under it,
-   `<date> <time> · <hours> hours · written by node`, with `· HELD for quiet hours, folded into the next
-   one` added when quiet hours kept it back. Before any report it prints `no report yet; the first one lands
-   at the next due hour`. The report you just asked for is the last one, and the scheduled ones still come
-   at their hours.
+1. **Run `planetai report`.** The node writes a report at once and sends it. The terminal prints the text, then
+   `  written by node, sent.`, and Telegram, when it is connected, receives the same text. `written by node` means
+   the node wrote every sentence itself, from its own tables, with no model. With no admin token in `.env` it stops
+   at `no ADMIN_TOKEN in .env; run planetai ui`.
+2. **Run `planetai report last`.** It prints the last report's text and one line under it, `<date> <time> · <hours>
+   hours · written by node`, with `· HELD for quiet hours, folded into the next one` when quiet hours kept it back.
+   Before any report it prints `no report yet; the first one lands at the next due hour`. A report you ask for does
+   not move the scheduled ones.
 
-## The six parts
+## The four parts
 
-Deterministic, plain text, in `ALERT_LOCALE` (English, Bahasa Indonesia or Spanish), each part a sentence or
-two, an empty part left out:
+Plain text in `ALERT_LOCALE` (English, Bahasa Indonesia or Spanish), each part a sentence or two, an empty part left
+out, and written to stay under a hundred words. There is one sign, the headline's, and a line is always named with
+its owner and its unit, never as a bare number.
 
-1. **Where the place stands.** Heat first if an open act-level alert comes from the `heat` pack: "dangerously hot"
-   only when it is `heat_danger` (feels like 40 °C or more), otherwise "It is hot inside: it feels like 35 °C or more." (35 °C is an
-   ordinary afternoon in Kuta Selatan, not a danger); else the worst
-   indoor PM2.5 against 35 (unhealthy) and 15 (the clean line); or that there is no sensor inside yet, so what
-   follows is the district and not the rooms.
-2. **What changed.** Up to two of the node's own sensors whose window was unusual: "{place}: the air ran
-   higher than usual".
-3. **What only the models know.** One clause if its rule is loaded and crossed: a heavy swell, or the satellite
-   model reading the district over 35.
-4. **What happened after this window's act alerts.** For each rule with a threshold: "{place} is back under {n}"
-   or "is still above {n}", at most two. Then, when the node knows one, **the nearest place to make or fix
-   something** (below).
-5. **The one thing to do before the next report.** A room still over the line; a sensor gone quiet; the first
-   failing health check's own fix; or "👉 Nothing needs doing before the next report."
-6. **The invitation.** "Ask me anything about the air, the heat, the sea or what is around here."
-
-Parts 2 and 3 share a paragraph; 4 and 5 share another. The sheet is written to stay under a hundred words; the
-make line, when it is there, adds to that.
+1. **The headline, in words.** Heat first, if an open act-level alert comes from the `heat` pack or the event
+   engine has sent a heat event that is still open: "dangerously hot" only at `heat_danger` or a danger event
+   (feels like 40 °C or more), otherwise "🌡️ It is hot inside." Else the worst indoor PM2.5 against 35 (unhealthy)
+   and 15 (the clean line), said as unhealthy, middling or clean. Else that there is no sensor inside yet, so what
+   follows is the district and not the rooms. No number in it.
+2. **What happened, per room, with the local time.** Heat, at most two rooms: "In Kids and Living Room it has felt
+   past this house's heat line, 35 °C feels-like, since 14:47." (an `unusual` event is "hotter than usual", never
+   past the line). Then each act alert with a threshold, one sentence per room, at most two: "Kitchen went past the
+   US EPA's unhealthy level, 35.5 µg/m³, at 15:00; it is back under now." or "…, and is still past it." The lines
+   are the rules' own: the US EPA's unhealthy level (35.5), its level unhealthy for everyone (55.5), the WHO line
+   (15). Then up to two rooms whose window was unusual: "Studio was more humid than usual.", "The air in Kitchen was
+   dirtier than usual." Then one clause only the models know, if its rule is loaded and crossed: a heavy swell, or
+   the European air model (CAMS) putting the district past the US EPA's unhealthy level.
+3. **The one thing to do.** When the node knows one, [the nearest place to make or
+   fix](#the-nearest-place-to-make-or-fix) comes first. Then a room still over its line, a sensor gone quiet, or the
+   first failing health check, in the household's words ("A sensor has gone quiet: Kitchen."), never the admin's
+   fix and never a source refusing (the dashboard's Running section names those). Or "Nothing needs doing before
+   the next report."
+4. **The invitation.** "Ask me anything about the air, the heat or the sea." Always last: the morning memory goes
+   above it.
 
 ## The nearest place to make or fix
 
-When the bundle holds a `facility` row, the fourth paragraph gains one line after the outcomes and before the
-to-do, so a person reads what happened first and only then where somebody could act on it. Its shape is:
+When the bundle holds a `facility` row, the third part opens with one line before the to-do, so a person reads
+what happened first and only then where somebody could act on it:
 
 ```
 Nearest place to make or fix something: {lab}, {distance} km ({up to three capabilities}).
 ```
 
 The distance reads `<0.1` for a node inside a lab, and the capabilities are in the report's language. The row
-comes from the `make` pack, which is off unless both `MAKE_ENABLED=1` and `PACKS_ALLOW_CODE=1` are set, and
-which stores only the labs within `MAKE_RADIUS_KM` (50) that publish coordinates. The same line is offered on the
-alerts in `GET /issues`, as `asks.where`. From v0.65 to v0.69 the line was silently absent on every node, because
-the report looked for the pack in the wrong folder; it appears from v0.70.
+comes from the `make` pack, which is off unless both `MAKE_ENABLED=1` and `PACKS_ALLOW_CODE=1` are set, and which
+stores only the labs within `MAKE_RADIUS_KM` (50) that publish coordinates. The same line is offered on the alerts
+in `GET /issues`, as `asks.where`. The line adds to the hundred words.
 
-> **Careful.** The pack's README states the licence this way: the Fab Lab Network directory "is **not openly
-> licensed**. Each lab retains copyright in its own record (fablabs.io Terms of Use §8.1) and no data licence is
-> published". Fab City Foundation decided on 2026-09-20 that PLANETAI may read it and accepted responsibility,
-> pending a Terms of Use clause, and "**That decision covers the Foundation, not each node's operator**". Read
-> [packs/make/README.md](../../packs/make/README.md) before turning it on; if that matters to you, leave it off.
+> **Careful.** The Fab Lab Network directory the pack reads is not openly licensed: each lab keeps copyright in its
+> own record, and no data licence is published. Fab City Foundation's permission to read it covers the Foundation,
+> not each node's operator. Read [packs/make/README.md](../../packs/make/README.md) before turning it on, and leave
+> it off if that matters to you.
 
 ## Two numbers behind it
 
-**Notability** is the window's mean for a sensor and metric against the mean of the same local hours on
-each of the previous seven days, in standard deviations of that baseline. It is null until three days
-exist, so a node in its first three days claims nothing. It decides which two places get a sentence in part 2,
-which is how the report can say "Kitchen: the air ran higher than usual" without anyone reading a chart.
+**Notability** is the window's mean for a sensor and metric against the mean of the same local hours on each of
+the previous seven days, in standard deviations of that baseline. It is null until three days exist, so a node in
+its first three days claims nothing. It decides which two places get a sentence in part 2, which is how the report
+can say "The air in Kitchen was dirtier than usual." without anyone reading a chart.
 
-**Trend** is the `insight` digest's ±3 rule read across to each metric's own units (3 µg/m³ for PM2.5, half a
-degree for a room's temperature, 5% of the window's range for a metric with no line of its own), comparing the
-second half of the window with the first.
+**Trend** compares the second half of the window with the first, against a step per metric: 3 µg/m³ for PM2.5,
+half a degree for temperature, and 5% of the window's range for a metric with no step of its own.
 
 ## The bundle
 
-Everything the sheet was written from, as one JSON document, SQL only, most of it run as the read-only role: `meta`
-(node, locale, local time, window, held hours), `series` per sensor and metric (min, max, mean, n, trend,
-notability, the usual value and how many baseline days), `observations` (sea, weather, satellite air, place,
-land, with yesterday's value), `now` (the `stats` view), `alerts` in the window, `open_act` (unanswered act
-alerts in 24 hours, at most five), `sensors_quiet`, `rho` now and a week ago, `previous` (the last sent
-report), `cells` with what changed, `rules`, `health`, `facility` (the nearest lab, or null), and the first
-row of every pack's `contributes: report` rule under its own id. A contributor may not use one of the names the
-bundle owns (`RESERVED` in `app/report.py`); one that tries is skipped and logged. The bundle is trimmed to
-64 kB by dropping the least notable series first.
+Everything the sheet was written from, as one JSON document, SQL only, most of it run as the read-only role:
 
-`GET /report/bundle?hours=` returns it behind the read-only or admin token; the MCP tool `report_bundle`
-reads it too. Numbers in any sentence about the node must come from here.
+| key | what it holds |
+|---|---|
+| `meta` | node, locale, local time, window, held hours |
+| `series` | per sensor and metric: min, max, mean, n, trend, notability, the usual value and how many baseline days |
+| `observations` | sea, weather, satellite air, place, land, with yesterday's value |
+| `now` | the `stats` view |
+| `alerts` | the alerts in the window |
+| `open_act` | unanswered act alerts of the last 24 hours, at most five |
+| `open_events` | the event engine's open act events that were sent, with their rooms (on `ALERT_ENGINE=events` only) |
+| `sensors_quiet` | the house's own sensors that have gone quiet, never a survey such as the things it keeps |
+| `rho` | ρ now and a week ago |
+| `previous` | the last sent report |
+| `cells` | the Index cells, with what changed |
+| `rules`, `health` | the loaded rules, the health checks |
+| `facility` | the nearest lab, or null |
+| `<pack>/<rule>` | the first row of every pack's `contributes: report` rule |
 
-The bundle carries ρ now and a week ago, and no sentence of the report says it. A ρ sentence is proposed in
-`docs/SPEC_rho.md`, whose status line reads "Phase 1. Nothing here is built."
+On `ALERT_ENGINE=events`, `alerts` and `open_act` leave out the rows the replaced packs record without sending, so
+the report tells what reached the household. A contributor may not use a name the bundle owns (`RESERVED` in
+`app/report.py`); one that tries is skipped and logged. The bundle is trimmed to 64 kB by dropping the least
+notable series first.
+
+`GET /report/bundle?hours=` returns it behind the read-only or admin token, and the MCP tool `report_bundle` reads
+it too. Any number in a sentence about the node must come from here. No sentence of the report says ρ; a ρ
+sentence is proposed in `docs/SPEC_rho.md` and not built.
 
 ## A model in the path
 
-The schema is ready for one and this version ships without it. Every report row carries `sheet` (always the
-node's own text) and `text` (equal to `sheet` until a model rewrites it), `depth` (`sheet` today; `brief`,
-`standard`, `deep` reserved), `rung` (`node` today; `local`, `remote`, `online` reserved) and
-`fallback_reason`, for the day a model's text is refused because it invented a number, timed out, or there was
-no agent. `REPORT_DEPTH` takes `auto`, `brief`, `standard` or `deep`, and changes nothing yet. The rule when a
-model comes: it is handed the bundle and the sheet, and anything it writes is checked against the numbers in
-them before it is allowed out. The sheet is what the node falls back to.
+This version ships without one, and the schema is ready for it. Every report row carries `sheet` (always the node's
+own text), `text` (equal to `sheet` until a model rewrites it), `depth` (`sheet` today; `brief`, `standard` and
+`deep` reserved), `rung` (`node` today; `local`, `remote` and `online` reserved) and `fallback_reason`, for a model's
+text that is refused because it invented a number, timed out, or had no agent. `REPORT_DEPTH` takes `auto`,
+`brief`, `standard` or `deep`, and changes nothing yet. When a model comes it is handed the bundle and the sheet,
+anything it writes is checked against the numbers in them before it goes out, and the sheet is what the node falls
+back to.
 
-## Delivery and endpoints
+## Delivery
 
-The report goes to Telegram, prefixed `ℹ️` like any info message, and to Home Assistant's *latest alert*
-entity. The mesh and Reticulum do not carry it.
+The report goes to Telegram with its own sign and no other, and to Home Assistant's *latest alert* entity. The
+mesh and Reticulum do not carry it.
+
+The first report sent each day that finds yesterday's diary entry written carries, in Telegram only, the house's
+memory, between the to-do and the invitation: yesterday's entry, last week's on a Monday, last month's on the 1st
+and last year's on 1 January, then each learning whose status changed that day (now holding, weakening or gone),
+in its own sentence. `LEARN_PUSH` sets it: `all` (the default), `week` (only the week, month and year) or `off`.
+The memory is never in the stored report, `/report/latest`, the bundle, Home Assistant or the mesh, which other
+people and machines can read. `reports.memory` says which report carried it, so a restart does not send it twice,
+and whatever does not fit in one Telegram message is left for `/learned`.
 
 | | |
 |---|---|
@@ -135,35 +151,34 @@ entity. The mesh and Reticulum do not carry it.
 
 ## The digest on the page
 
-A second summary lives in `GET /issues`, not in the report: `digest`, four sentences, one per stage (observe,
-decide, act, measure), in English, Bahasa Indonesia and Spanish. Since v0.74 it also carries `simple`, the
-paragraph simple mode draws on Now (the house's own stations and the nearest others, the oldest open alert,
-how the last 30 days of asking went), and `prompts`, the ask pane's questions, the first three of which it opens with. Every figure in the four is one the page already draws further down, and the node writes them, not
-the browser. The open alerts they count are the issues' open asks, so on a node whose alert engine is `shadow` or `events` they leave out the heat and air alerts, which an
-event stands for. The measure sentence has the form "Of the {acts} alerts here that asked for something, {answered}
-have been answered, and the usual wait was {median} minutes."
+`GET /issues` carries a second summary, separate from the report: `digest`, four sentences, one per stage
+(observe, decide, act, measure), in English, Bahasa Indonesia and Spanish. It also carries `simple`, the paragraph
+simple mode draws on Now (the house's own stations and the nearest others, the oldest open alert, how the last 30
+days of asking went), and `prompts`, the ask pane's questions, the first three of which it opens with. Every figure
+in them is one the page already draws further down, and the node writes them. On a node whose alert engine is
+`shadow` or `events` the open alerts they count leave out the heat and air alerts, because an event stands for
+them.
 
-That sentence does not say ρ. ρ has its own window and its own query in `app/index.py`, which the
-issues engine cannot make, and, in the code's words, "A second rho computed from a different window would be a
-second rho, and two of them disagreeing on one page is worse than one of them being absent." The measure
-sentence counts the Act stage's ledger instead: an alert counts as answered once it has an `acted` or `measured`
-row.
+The measure sentence reads "Of the {acts} alerts here that asked for something, {answered} have been answered, and
+the usual wait was {median} minutes." It is not ρ: it counts the Act stage's ledger, where an alert is answered
+once it has an `acted` or `measured` row, and ρ has its own window and its own query in `app/index.py`.
 
 ## Contributing to it from a pack
 
-A rule with `contributes: report` and no message is never sent; its first row lands in the bundle under the
-rule's id, where the sheet may read it and a model may quote from it. Four ship:
+A rule with `contributes: report` and no message is never sent. Its first row lands in the bundle under the rule's
+id, where the sheet may read it and a model may quote from it. Five ship:
 
 | contributor | what it puts in the bundle |
 |---|---|
 | `insight/digest` | inside, outside, modelled, the day's mean and peak, the trend |
 | `nearby/alone` | a ring of fewer than two stations, or none within 10 km |
 | `forecast/ahead` | wind and rain for the next day |
+| `surface-heat/ground` | the ground's temperature in the node's cell at the newest clear Landsat pass, against the land around it, beside the house's own outdoor air at the same half hour (else the weather model's) |
 | `season/record` | this week's PM2.5 around the node against the usual: each Bali Air Dispatch station's last 7 days against its own preceding 60, the median of the differences, and the station count, whether or not it crossed a line |
 
-See [Packs](packs.md).
+How to write one is on [Packs](packs.md).
 
 ## Where this leads
 
-The report says what the ground did. Between reports the node speaks only when a reading crosses a line:
-[alerts](alerts.md) is how it asks, and [channels](channels.md) is where the asking reaches people.
+Between reports the node speaks only when a reading crosses a line: [alerts](alerts.md) is how it asks, and
+[channels](channels.md) is where the asking reaches people.

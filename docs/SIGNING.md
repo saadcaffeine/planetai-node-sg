@@ -100,7 +100,7 @@ that instead with one variable:
 
 ```bash
 PLANETAI_GET=https://github.com/fabcity/planetai-node/releases/download/v0.60 \
-  bash -c "$(curl -fsSL planetai.fab.city/install)"
+  bash -c "$(curl -fsSL https://planetai.fab.city/install)"
 ```
 
 So a compromised bucket is now a detectable event rather than a silent one, and there is somewhere else

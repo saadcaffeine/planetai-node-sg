@@ -4,7 +4,7 @@
 #                [--sc 19880] [--airgradient host,host] [--purpleair ip] [--indoor] [--no-bad] [--no-bootstrap]
 #   A node needs coordinates. Sensors are optional: with none, it still bootstraps 92 days of CAMS air quality
 #   and NASA POWER climatology for its location — free, no key, anywhere on earth.
-#   pick at least one sensor flag. --indoor marks LAN sensors as indoor. --no-bad disables the Bali Air Dispatch reference (outside Bali).
+#   pick at least one sensor flag. --indoor marks LAN sensors as indoor. --no-bad keeps the bali-air-dispatch pack off (it is off unless --preset bali turns it on).
 # Targets: macOS (Apple Silicon/Intel; OrbStack or Docker Desktop), Debian/Ubuntu/Raspberry Pi OS 64-bit, Arch, Fedora, Windows via WSL2 (Ubuntu).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -439,7 +439,7 @@ grep -qE '^NODE_LAT=-?[0-9]' .env || die "this node needs coordinates: pass --la
 if ! grep -qE '^(SC_DEVICES|SC_USER|AIRGRADIENT_HOSTS|PURPLEAIR_HOSTS)=.+' .env; then
   warn "no sensor configured — that is fine. On first start this node will pull 92 days of CAMS air quality"
   warn "and NASA POWER climatology for its coordinates, so it has something true to say before hardware arrives."
-  warn "Add a sensor later with --sc / --airgradient / --purpleair, or edit .env."
+  warn "Add a sensor later with --sc (a Smart Citizen kit), or edit .env."
 fi
 [[ -n "$LAT"  ]] && setenv NODE_LAT "$LAT"
 [[ -n "$LON"  ]] && setenv NODE_LON "$LON"
@@ -526,16 +526,16 @@ chk "all modules in image" "[ \"\$(ls app/*.py | wc -l)\" -eq \"\$(docker compos
 chk "db healthy"      "docker compose exec -T db pg_isready -U planetai"
 PORT="$(grep '^APP_PORT=' .env | cut -d= -f2 | sed 's/[[:space:]]*#.*$//' | tr -d ' ')"; PORT="${PORT:-8080}"
 chk "app answering"   "curl -sf localhost:${PORT}/health"
-chk "telegram set"    "grep -qE '^TELEGRAM_BOT_TOKEN=.+' .env"
 [[ -x backup.sh ]] || { chmod +x backup.sh; echo "  ✓ backup.sh made executable"; }
 step_ok
 [[ $ok -eq 1 ]] || warn "something's off: docker compose logs -f app"
-grep -qE '^TELEGRAM_BOT_TOKEN=.+' .env || warn "alerts go to the log only until TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_IDS are set in .env (then: docker compose up -d)"
 
 # ---- backup cron (best effort; skip silently if no crontab)
 if need crontab && ! grep -q planetai-backup <<< "$(crontab -l 2>/dev/null)"; then
   ( crontab -l 2>/dev/null; echo "17 3 * * * cd $(pwd) && ./backup.sh >/dev/null 2>&1 # planetai-backup" ) | crontab - 2>/dev/null && say "nightly backup scheduled (03:17)"
 fi
+# ---- the line that lets Install on Set up › Packs reach this machine (best effort, as above)
+bin/planetai packs cron 2>/dev/null || true
 
 echo
 if grep -qE 'api\.telegram\.org/bot[0-9]+:' <<< "$(docker compose logs app 2>/dev/null)"; then
@@ -545,7 +545,7 @@ if grep -qE 'api\.telegram\.org/bot[0-9]+:' <<< "$(docker compose logs app 2>/de
 fi
 echo
 if grep -q '^BOOTSTRAP=1' .env; then
-  say "first start pulls ~2,200 rows of history for your location (CAMS 92 days + NASA POWER normals)."
+  say "first start pulls ~4,400 rows of history for your location (CAMS 92 days + NASA POWER normals)."
   echo "   watch it:  docker compose logs -f app | grep bootstrap"
 fi
 # One line, pasteable without editing, success or failure.
@@ -556,3 +556,13 @@ say "First reading lands within $(grep '^POLL_SECONDS' .env | cut -d= -f2 || ech
 echo "   make health     (or: curl -s localhost:${PORT}/health | python3 -m json.tool)"
 echo "   make stats"
 echo "   docker compose logs -f app"
+
+# The doctor, last, so the final thing on the screen is what is still to do: every check with its fix, then the
+# node's data sources and "To finish setting up", most important first (GET /health/sources). In a terminal it
+# offers to do the first one; with --yes or no terminal it only prints. `planetai setup` runs the doctor itself once
+# the node has restarted with its answers, and says so with PLANETAI_FROM_SETUP, so it is not printed twice.
+if [[ -z "${PLANETAI_FROM_SETUP:-}" ]]; then
+  echo; echo "doctor:"
+  sleep 3
+  ./bin/planetai doctor "$([[ $YES -eq 1 ]] && echo quiet || echo --guide)" || true
+fi

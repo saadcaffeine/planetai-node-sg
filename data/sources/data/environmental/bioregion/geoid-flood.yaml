@@ -1,0 +1,54 @@
+name: GEOID-Flood (flood segmentation benchmark from Copernicus EMS Rapid Mapping)
+url: https://huggingface.co/datasets/links-ads/geoid-flood
+description: |
+  Mapped flood extents for 219 Copernicus EMS Rapid Mapping flood activations in 65 countries, 2016-2026, as
+  10 m tiles with Sentinel-1, Sentinel-2 and DEM layers and validated labels. Built by Fondazione LINKS (Turin) to train
+  flood-mapping models.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: CC-BY-4.0
+api: https://huggingface.co/datasets/links-ads/geoid-flood/tree/main
+pilot_relevance: []
+places: [paris, rennes, montpellier, bergisches, ljubljana, augsburg, zagreb]
+tags: [flooding, natural-hazards, earth-observation, sentinel-1, sentinel-2, sar, machine-learning, benchmark, copernicus, cems]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, not yet read for a real territory.
+
+  LICENCE. The dataset card reads "The GEOID-Flood compilation, splits and labels: CC BY 4.0", and
+  asks that three notices be carried forward: modified Copernicus Sentinel-1 and -2 data
+  (2016-2026), "Copernicus Emergency Management Service Rapid Mapping products, © European Union",
+  and the `dem` layer under the Copernicus WorldDEM-30 licence. I read both upstream terms. CEMS
+  (mapping.emergency.copernicus.eu/terms-and-conditions, modified 07/06/2023): "users shall have a
+  free, full and open access to Copernicus Service Information", with the source credited when
+  redistributing. The WorldDEM-30 licence grants reproduction, distribution and modification free of
+  charge, worldwide, if its © DLR / Airbus notice and a no-liability sentence travel with the
+  data. The code at github.com/links-ads/geoid-flood is MIT, which covers the code only.
+
+  ENDPOINT. Hugging Face, not gated (2,760 downloads at the time of reading). Tar shards of
+  Cloud-Optimized GeoTIFFs by split and layer, 584 GB in all; the `label` layer alone is 0.1 GB.
+  A sample label raster (EMSR712-10-0_label.tif) downloaded key-free, 9,464 bytes. Labels: 0
+  background, 1 permanent water, 2 flooded water, 255 not mapped. The two tile_catalog.parquet files
+  (633 KB and 93 KB) list 15,477 tiles over 221 activation ids with polygon, event date and
+  country.
+
+  PLACES. Tile centres within 20 km of each place's centroid in fci-index
+  public/data/coordinates.json: paris 25 tiles (EMSR165, May-June 2016; EMSR265, Jan 2018), rennes
+  12 (EMSR788, Jan 2025), montpellier 11 (EMSR188, Oct 2016), ljubljana 9 (EMSR680, Aug 2023),
+  bergisches 8 (EMSR497, Feb 2021; EMSR517, Jul 2021), augsburg 4 (EMSR728, May 2024), zagreb 1
+  (EMSR275, Mar 2018, 16 km out).
+
+  WHY NO CELL. Environmental|Bioregion carries natural hazards, but its notes keep flood out of
+  the rows on purpose. This dataset is a sample: only floods CEMS was activated for, only the areas
+  it mapped, cut to what a benchmark needed. It cannot count floods or say a place did not flood.
+  Its use for a node is a model trained on it, mapping water from Sentinel-1 over its own cell,
+  and the past extents for the seven places above.
+
+  WHAT IT DOES NOT CLAIM. Not a flood record and not a risk map. A flooded pixel is water seen by
+  radar on one post-event pass, so peak extent may be missed. The upstream itself, CEMS Rapid
+  Mapping vector delineations for every public activation, is not filed here yet.

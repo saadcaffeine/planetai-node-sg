@@ -1,0 +1,53 @@
+name: Copernicus EMS Rapid Mapping, flood delineations
+url: https://mapping.emergency.copernicus.eu/activations/
+description: |
+  Mapped flood extents from Copernicus Emergency Management Service activations: observed flood, maximum
+  extent and depth as GeoJSON and shapefiles per area of interest, with affected-area tables. Run by the
+  European Commission's Joint Research Centre.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: 'Copernicus, Regulation (EU) 2021/696: "free, full and open access"; credit "Copernicus Emergency Management Service (© European Union, 2012-<year>)"'
+api: https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations/?code=<EMSR code>
+pilot_relevance: []
+places: [ljubljana, rennes]
+tags: [flooding, natural-hazards, earth-observation, emergency-mapping, copernicus, cems, geojson, europe, global]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, not yet read for a real territory.
+
+  LICENCE. The portal's terms (mapping.emergency.copernicus.eu/terms-and-conditions, modified
+  07/06/2023): "users shall have a free, full and open access to Copernicus Service Information
+  without any express or implied warranty", under Regulation (EU) 2021/696. They add "Some data as
+  produced by the CEMS On-Demand Mapping are restricted according to article 53". The citation
+  guidelines require "Copernicus Emergency Management Service (© European Union, 2012-present_year)"
+  whenever the data is distributed. One conflict: the ISO metadata inside a product
+  (EMSR788_AOI01_DEL_MONIT02_observedEventA_v1.xml) says "conditions to access and use unknown". This
+  entry reads the data under the terms page.
+
+  ENDPOINT. GET /activations/api/activations/?limit=2000 on mapping.emergency.copernicus.eu lists
+  every activation, key-free: 1,068, of which 350 are floods, from 2012-07-09 to EMSR935 (Valencia,
+  19 Oct 2026). The detail record with areas of interest and products comes from the backend URL in
+  `api`. I fetched it for all 350 floods: 90 answered 200 (23 from 2023, 30 from 2024, 21 from 2025,
+  16 from 2026). 260 answered 403 "Authentication credentials were not provided". That covers every
+  flood from 2012 to 2022 and 24 since; the portal asks those for a per-activation username and
+  password. The 90 open ones hold 590 areas and 1,216 products (933 delineation, 250 grading). For
+  EMSR788 (Ille-et-Vilaine, Jan 2025), observedEventA came as a 5.4 MB GeoJSON of polygons tagged
+  "Riverine flood", and the product zip (24 MB, via a signed S3 redirect) held the same layers as
+  shapefiles plus floodDepthA, maximumFloodExtentA, a summary table and a PDF map.
+
+  PLACES. Places whose centroid in fci-index public/data/coordinates.json falls inside an open
+  activation's area: ljubljana (EMSR680, Aug 2023) and rennes (EMSR788, two areas). Floods near
+  Paris, Montpellier and Bergisches (2016-2021, seen in geoid-flood) sit in the 403 part.
+
+  WHY NO CELL. Environmental|Bioregion keeps flood out of its rows because its only flood source
+  forecast. This one records what was mapped after a flood, so a maintainer could revisit that
+  note. I did not change the cell.
+
+  WHAT IT DOES NOT CLAIM. Only floods someone activated the service for, and only the areas
+  mapped, so a place with no activation may still have flooded. The extent is what one image saw
+  on its date.

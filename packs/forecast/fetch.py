@@ -7,8 +7,10 @@ import psycopg
 
 sys.path.insert(0, os.path.dirname(__file__))
 import adapter as A  # noqa: E402
+sys.path.insert(0, "/app")
+import store  # noqa: E402
 
-sensors, readings = A.fetch(httpx.Client(timeout=60))
+sensors, readings = A.fetch(httpx.Client(timeout=60), force=True)
 if not sensors:
     sys.exit("forecast: nothing fetched. Is FORECAST_BMKG_ADM4 set, or FORECAST_OPENMETEO=1?")
 with psycopg.connect(os.environ["DATABASE_URL"]) as con, con.cursor() as cur:
@@ -18,8 +20,7 @@ with psycopg.connect(os.environ["DATABASE_URL"]) as con, con.cursor() as cur:
                        ON CONFLICT (sensor_id) DO UPDATE SET name=EXCLUDED.name, lat=EXCLUDED.lat, lon=EXCLUDED.lon,
                          meta=EXCLUDED.meta, cadence=EXCLUDED.cadence""",
                     {**s, "meta": psycopg.types.json.Json(s.get("meta") or {})})
-    cur.executemany("INSERT INTO readings (ts, sensor_id, metric, value) VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-                    readings)
+    store.insert_readings(cur, readings)
     con.commit()
 print(f"forecast: {len(sensors)} source(s), {len(readings)} readings for the next {A.HOURS} hours.")
 print("planetai run forecast status")

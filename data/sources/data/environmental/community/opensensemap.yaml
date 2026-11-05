@@ -1,0 +1,46 @@
+name: openSenseMap
+url: https://opensensemap.org/
+description: |
+  Citizen sensor stations worldwide, mostly senseBox and Sensor.Community kits, reporting temperature,
+  humidity, pressure and PM2.5/PM10 every few minutes. Run by the senseBox team in Münster, key-free API.
+pillar: environmental
+scale: community
+status: candidate
+license: PDDL-1.0
+api: https://api.opensensemap.org/
+pilot_relevance: [global]
+places: [hamburg, amsterdam, augsburg, paris, bergisches]
+tags: [weather, air-quality, pm25, temperature, citizen-science, open-hardware, sensebox, global]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: [Environmental|City]
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, not yet read for a real territory.
+
+  LICENCE. The API documentation (docs.opensensemap.org, "Source code and Licenses") reads "The data
+  obtainable through the openSenseMap API at https://api.opensensemap.org/ is licensed under the Public
+  Domain Dedication and License 1.0". sensebox.de/en/opensensemap says the same of "All published
+  measurements". The API code is MIT; that covers the software, not the data.
+
+  ENDPOINT. Key-free JSON, no rate-limit headers seen, cache-control max-age=300. GET /stats read
+  [17165, 10388123910, 6129]: stations, measurements, measurements in the last minute.
+  GET /boxes?exposure=outdoor&date=<7 days ago> returned 2,756 outdoor stations with a reading in the
+  last week. Sensor titles are free text, mostly German: 2,368 carry "PM2.5", 2,331 "Temperatur",
+  2,118 "rel. Luftfeuchte", 1,352 "Luftdruck" (in Pa; 259 more in hPa). Wind and rain are rare (43
+  "Windrichtung", 16 "Regenrate"). A reader has to map each title and unit to a metric.
+
+  PLACES. Counted from that list within 15 km of each place's centroid in fci-index
+  public/data/coordinates.json, keeping places with three or more outdoor PM2.5 stations: hamburg 20,
+  amsterdam 7, augsburg 6, paris 5, bergisches 3. One or two stations also sit near barcelona,
+  ljubljana, toulouse, zagreb, sao-paulo, detroit, linz, rennes, velsen; none within 15 km of bali.
+
+  WHY THIS CELL. Environmental|City's air-quality row (PM2.5, days over the WHO 24h guideline), as for
+  sensor-community. It is other people's kit, so a node reads it as a ring around itself, never as its
+  own custody, and it cannot fill Environmental|Community.
+
+  WHAT IT DOES NOT CLAIM. 2,055 of the 2,756 are "luftdaten_*" models: Sensor.Community kits whose
+  owners also post to openSenseMap. Counting both registries double-counts
+  one device. Low-cost PM sensors are not reference instruments, and "outdoor" is what the owner
+  declared.

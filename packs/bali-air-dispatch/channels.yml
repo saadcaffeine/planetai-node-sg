@@ -1,0 +1,8 @@
+# What each metric IS (roles: config/channels.yml). Moved here from the core's file with the adapter; unchanged.
+- { source: baliairdispatch, metric: pm25,     role: ambient, comparable: true, unit: "µg/m³" }
+- { source: baliairdispatch, metric: pm25_raw, role: ambient, comparable: false, unit: "µg/m³" }
+- { source: baliairdispatch, metric: pm10,     role: ambient, comparable: true, unit: "µg/m³" }
+- { source: baliairdispatch, metric: pm1,      role: ambient, comparable: true, unit: "µg/m³" }
+- { source: baliairdispatch, metric: temp,     role: ambient, comparable: true, unit: "°C" }
+- { source: baliairdispatch, metric: humidity, role: ambient, comparable: true, unit: "%" }
+- { source: baliairdispatch, metric: aqi,      role: index,   comparable: false }

@@ -1,0 +1,29 @@
+name: OECD Trade in Value Added (TiVA) 2025, SDMX
+url: https://www.oecd.org/en/data/datasets/trade-in-value-added.html
+description: |
+  OECD trade in value added indicators from its inter-country input-output
+  tables, 1995-2022, about 80 economies. FD_VA_SH with the country as its
+  own counterpart is the share of what the country buys that was made at
+  home, by industry.
+pillar: economic
+scale: bioregion
+status: candidate
+license: "OECD Terms and Conditions, Data, Permitted Use: any purpose including commercial, credit the OECD, same acknowledgment carried into sub-licences"
+api: https://sdmx.oecd.org/sti-public/rest/data/OECD.STI.PIE,DSD_TIVA_MAINSH@DF_MAINSH,1.1/
+pilot_relevance: [global]
+tags: [oecd, sdmx, trade-in-value-added, input-output, self-supply, domestic-share, final-demand, imports, exports]
+added: 2026-10-13
+assisted_by: Claude Code
+auth: key-free-rate-limited
+feeds_cells: []
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-13 by fabcity/fci-index compute/goods.py: two calls for the 26 countries behind the Index's 61 places; 22 answered, and Ghana, Tanzania, Bhutan and Georgia have no rows. Spain 2022, FD_VA_SH with ESP as counterpart: all activities 71.976, manufacturing 38.083, C26 computers and electronics 5.668, C10T12 food 69.4 (percent). Direction checked: for a reporting country the shares over all origins sum to 100 per industry (counterpart W reads 100), so REF_AREA is the buyer and COUNTERPART_AREA the maker.
+
+  LICENCE, read on oecd.org/en/about/terms-conditions.html (last updated 1 July 2024), section 3 Data, Permitted Use: "you can extract from, download, copy, adapt, print, distribute, share and embed Data for any purpose, even for commercial use. You must give appropriate credit to the OECD ... When sharing or licensing work created using the Data, you agree to include the same acknowledgment requirement in any sub-licenses". And: the OECD does not warrant it owns all rights in all Data. Not CC-BY, whatever earlier OECD entries say.
+
+  ENDPOINT. The dataflow lives on the sti-public host, not public (the public catalogue lists it as an external reference, and data calls there return 500). Key order MEASURE.REF_AREA.ACTIVITY.COUNTERPART_AREA.UNIT_MEASURE.FREQ, e.g. FD_VA_SH.ESP._T.ESP..A?startPeriod=2022&format=csvfilewithlabels. 429 after a few calls, for about ten minutes; lastNObservations answers 403, so bound the year. Activities are ISIC rev. 4 codes with labels.
+
+  WHY NO CELL. National only, and no cell is a country: the Index serves it beside each place as country_bracket.goods, next to the Atlas (trade) and FAOSTAT (food) halves.
+
+  WHAT IT DOES NOT CLAIM. Value added, not products or tonnes: a car assembled at home from imported parts counts for the assembly. Re-exports sit inside a trading hub's figures. A country's share says nothing about any of its cities.

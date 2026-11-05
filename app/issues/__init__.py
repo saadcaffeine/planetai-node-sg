@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from pathlib import Path
 
 import yaml
@@ -49,6 +50,11 @@ STATE_SENTENCES = ("context", "none")
 # and `event` the clause for the day it crossed and came back — both empty when there is nothing
 # true to say, so the sentence never asserts what the reading denies.
 PLACEHOLDERS = ("verb", "n", "unit", "where", "cmp", "span", "since", "line", "event")
+# A sensed issue's `day` templates (one per live relation, under and near) say the day behind the hour: the part of
+# the day that was over the line, until when, for how long. They may ask for these three besides the ones above.
+# The parts start at these local hours; `day.parts` names each in the issue's own words.
+DAY_PLACEHOLDERS = ("part", "until", "hours")
+DAY_PARTS = ((0, "night"), (6, "morning"), (12, "afternoon"), (18, "evening"))
 
 WHERE_FROM = ("stats", "observations", "earth")
 AGGREGATES = ("mean", "median", "fenced_median")
@@ -256,21 +262,33 @@ SIMPLE_WORDS = {
            "today": "las {t}", "date": "el {d} de {month}"},
 }
 # The ask pane's questions, `digest.prompts`: written from tonight's bundle so the first thing a person
-# does in the pane is press rather than face a blank box. A question, never an answer. The first three are
-# the ones the pane opens with; the rest are the pool it rotates through (Tomas, 28 Sep 2026). Every one is
-# about this node's own issues and alerts, which is all the model is there to answer. `now` is new on
-# 28 Sep and its id and es wording has not yet been read by a native speaker.
+# does in the pane is press rather than face a blank box. A question, never an answer, in the words a household
+# would use, never an alert number. The first three are the ones the pane opens with; the rest are the pool it
+# rotates through. The Bahasa Indonesia wording has not yet been read by a native speaker.
 PROMPT_WORDS = {
-    "en": {"lead": "Why is {issue} what the node leads with?", "ask": "What should I do about alert #{id}?",
-           "quiet": "Is anything here asking for attention?", "line": "What does the line for {issue} mean?",
-           "model": "Where does the {issue} number come from?", "now": "What is {issue} like right now?"},
-    "id": {"lead": "Mengapa {issue} yang ditampilkan paling depan?", "ask": "Apa yang harus saya lakukan dengan peringatan #{id}?",
-           "quiet": "Apakah ada yang perlu diperhatikan di sini?", "line": "Apa arti batas untuk {issue}?",
-           "model": "Dari mana angka {issue} berasal?", "now": "Bagaimana {issue} saat ini?"},
-    "es": {"lead": "\u00bfPor qu\u00e9 el nodo empieza por {issue}?", "ask": "\u00bfQu\u00e9 hago con la alerta #{id}?",
-           "quiet": "\u00bfHay algo aqu\u00ed que pida atenci\u00f3n?", "line": "\u00bfQu\u00e9 significa el l\u00edmite de {issue}?",
-           "model": "\u00bfDe d\u00f3nde sale la cifra de {issue}?", "now": "\u00bfQu\u00e9 dicen ahora mismo los datos de {issue}?"},
+    "en": {"lead": "What should I know about the {issue} today?", "act": "What can I do about the {issue} right now?",
+           "quiet": "Is there anything I should do today?", "line": "Where does the line for the {issue} come from?",
+           "model": "Is the {issue} number measured here, or estimated?", "now": "How is the {issue} right now?",
+           "usual": "Is the {issue} worse than usual for this hour?"},
+    "id": {"lead": "Apa yang perlu saya ketahui tentang {issue} hari ini?", "act": "Apa yang bisa saya lakukan soal {issue} sekarang?",
+           "quiet": "Ada yang perlu saya lakukan hari ini?", "line": "Dari mana batas untuk {issue} berasal?",
+           "model": "Angka {issue} ini diukur di sini, atau perkiraan?", "now": "Bagaimana {issue} sekarang?",
+           "usual": "Apakah {issue} lebih buruk dari biasanya untuk jam ini?"},
+    # {issue} carries its article in Spanish: "el aire", "la costa" (prompt_issue below).
+    "es": {"lead": "\u00bfQu\u00e9 deber\u00eda saber hoy sobre {issue}?", "act": "\u00bfQu\u00e9 puedo hacer ahora con {issue}?",
+           "quiet": "\u00bfHay algo que deba hacer hoy?", "line": "\u00bfDe d\u00f3nde sale el l\u00edmite para {issue}?",
+           "model": "\u00bfLa cifra de {issue} se mide aqu\u00ed o es una estimaci\u00f3n?", "now": "\u00bfC\u00f3mo est\u00e1 {issue} ahora mismo?",
+           "usual": "\u00bfEst\u00e1 {issue} peor de lo habitual para esta hora?"},
 }
+
+
+def prompt_issue(name: str, loc: str) -> str:
+    """An issue's name as a question says it: lower case, with its article in Spanish (aire, calor, suelo are el;
+    costa is la). English and Bahasa ask with the bare noun."""
+    n = (name or "").lower()
+    if loc == "es" and n:
+        return ("la " if n.endswith("a") else "el ") + n
+    return n
 # The hero's plain line: the other distances and the line in the household's words, under the
 # sentence. Approved by Tomas 25 September 2026. The place words are WHERE_WORDS and NOUN_WORDS, so
 # "on the street" means the same thing here as in the sentence above it.
@@ -470,6 +488,16 @@ def _problems(key: str, d: dict) -> list[str]:
                 if not (s.get("verbs") or {}).get(t):
                     p.append(f"{key}: sentences.{loc} uses {{verb}}, so sentences.{loc}.verbs.{t} "
                              f"is needed")
+        day = s.get("day")
+        if day is not None:
+            for rel in ("under", "near"):
+                for ph in re.findall(r"\{(\w+)\}", str(day.get(rel) or "")):
+                    if ph not in PLACEHOLDERS + DAY_PLACEHOLDERS:
+                        p.append(f"{key}: sentences.{loc}.day.{rel} asks for {{{ph}}}, which the engine does not fill")
+            if not all((day.get("parts") or {}).get(n) for _, n in DAY_PARTS):
+                p.append(f"{key}: sentences.{loc}.day.parts needs {', '.join(n for _, n in DAY_PARTS)}")
+            if not (isinstance(day.get("hours"), list) and len(day["hours"]) == 2):
+                p.append(f"{key}: sentences.{loc}.day.hours is two forms, one hour and many: [\"{{n}} hour\", \"{{n}} hours\"]")
         for w in (d.get("where") or {}).get(loc, {}):
             if w not in DISTANCES:
                 p.append(f"{key}: where.{loc}.{w} is not one of {', '.join(DISTANCES)}")
@@ -521,7 +549,7 @@ def pack_readouts(decl: dict[str, dict], manifests: list[dict]) -> dict[str, dic
             continue
         for key, rows in ro.items():
             if key not in decl:
-                _warn_once("pack %s: readouts for %r, which no app/issues/*.yml declares; ignoring them", pid, key)
+                _warn_once("pack %s: readouts for %r, which no issue on this node declares; ignoring them", pid, key)
                 continue
             if not isinstance(rows, list):
                 _warn_once("pack %s: readouts.%s must be a list; ignoring it", pid, key)
@@ -600,7 +628,10 @@ def pack_sections(manifests: list[dict]) -> list[dict]:
                 _warn_once("pack %s: section %s is already declared by another pack; leaving it out", pid, sec["id"])
                 continue
             seen.add(sec["id"])
-            out.append({**sec, "pack": pid})
+            # A core pack is on every node, switched on or not; a wild one was added on purpose (`.wild`, from
+            # `planetai packs add`). engine._sections leaves a core pack's section out until a row of it exists.
+            core = bool(m.get("path")) and not (Path(m["path"]) / ".wild").is_file()
+            out.append({**sec, "pack": pid, **({"core": True} if core else {})})
     return out
 
 
@@ -701,35 +732,65 @@ def _distance_problems(where: str, spec) -> list[str]:
     return p
 
 
-def load(path: Path | str | None = None) -> dict[str, dict]:
-    """Every issue declared in `path` (this directory by default), keyed by file stem. With the default, the
-    readouts the enabled packs add are merged in (`pack_readouts`).
+def _read(f: Path, key: str, out: dict, pack: str | None = None) -> None:
+    """One issue file into `out` under `key`. A file that does not parse or does not validate is logged and dropped:
+    one bad issue must not cost the household the other three."""
+    try:
+        import packs              # noqa: PLC0415 — the one cached reader (packs.read_yaml)
+        d = packs.read_yaml(f) or {}
+    except Exception as e:  # noqa: BLE001
+        log.warning("issue %s: does not parse (%s)", f, e)
+        return
+    key = d.get("key") or key
+    if key in out:
+        log.warning("issue %s: %r is already declared; keeping the first", f, key)
+        return
+    bad = _problems(key, d)
+    if bad:
+        for b in bad:
+            log.warning("issue %s: %s", f, b)
+        return
+    d["key"] = key
+    if pack:
+        d["pack"] = pack                  # the pack that ships it: owners() reads this
+    out[key] = d
 
-    A file that does not parse or does not validate is logged and dropped: one bad issue must not
-    cost the household the other three.
+
+_OWNERS: dict = {"at": 0.0, "map": {}}
+
+
+def owners() -> dict[str, dict]:
+    """{pack id: the declaration of the issue it ships}, for the packs this node loads. What the core used to hard-code
+    as PACK_ISSUE, ISSUE_PACK and PACK_METRIC (events_pg, events_wire, learn): which pack an issue's alerts are, and
+    what they are judged on, is the issue's own file. Read again every minute, because run_rules asks for every kinded
+    rule and learn for every row it names."""
+    if time.time() - _OWNERS["at"] > 60:
+        _OWNERS.update(at=time.time(), map={d["pack"]: d for d in load().values() if d.get("pack")})
+    return _OWNERS["map"]
+
+
+def load(path: Path | str | None = None) -> dict[str, dict]:
+    """Every issue this node declares, keyed by its `key:` (a file's stem, when it has none).
+
+    An issue belongs to the pack that watches it: `packs/<id>/issue.yml`, read while that pack is loaded, so a node
+    that does not watch the coast has no coast issue (docs/decisions/2026-10-21-core-and-packs.md, point 2). The four
+    that shipped in this directory until 23 Oct 2026 are there now: air in air-quality, heat in heat, coast in coast,
+    land in earth. A file in this directory is still read first, as the core's own. With the default path the readouts
+    the enabled packs add are merged in (`pack_readouts`). A validator or a test that names a directory gets the files
+    in it alone.
     """
     out: dict[str, dict] = {}
     for f in sorted(Path(path or HERE).glob("*.yml")):
-        try:
-            d = yaml.safe_load(f.read_text()) or {}
-        except Exception as e:  # noqa: BLE001
-            log.warning("issue %s: does not parse (%s)", f.name, e)
-            continue
-        bad = _problems(f.stem, d)
-        if bad:
-            for b in bad:
-                log.warning("issue %s: %s", f.name, b)
-            continue
-        d["key"] = f.stem
-        out[f.stem] = d
+        _read(f, f.stem, out)
     if path is None:
-        # The node's own issues are what the files say plus what its enabled packs add. A validator or a test that
-        # names a directory gets the files alone.
         try:
             import packs  # app/packs.py: the one place that knows which packs are on
+            for d in packs._enabled():
+                if (d / "issue.yml").is_file():
+                    _read(d / "issue.yml", d.name, out, pack=d.name)
             out = pack_readouts(out, packs.manifests())
-        except Exception as e:  # noqa: BLE001 — the packs are an addition; without them the issues still stand
-            log.warning("issues: could not read the packs' readouts (%s)", e)
+        except Exception as e:  # noqa: BLE001 — the packs are an addition; without them the core's issues still stand
+            log.warning("issues: could not read the packs' issues and readouts (%s)", e)
     return out
 
 
@@ -744,7 +805,7 @@ def order(declared: str, available: dict[str, dict]) -> tuple[list[str], list[st
     keep = [n for n in names if n in available]
     dropped = [n for n in names if n not in available]
     for n in dropped:
-        log.warning("NODE_ISSUES names %r, which no app/issues/*.yml declares — dropping it", n)
+        log.warning("NODE_ISSUES names %r, which no issue on this node declares (is its pack on?) — dropping it", n)
     seen, uniq = set(), []
     for n in keep:
         if n not in seen:

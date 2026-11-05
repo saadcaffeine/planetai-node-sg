@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Everything the node needs from a machine, checked before it asks anybody anything.
 #
-#   curl -fsSL planetai.fab.city/preflight | bash     # nothing installed yet
+#   curl -fsSL https://planetai.fab.city/preflight | bash     # nothing installed yet
 #   planetai preflight [--json]                        # on a node
 #
 # Self-contained on purpose: it is fetched and run on its own, before the code is downloaded, so it may not
@@ -532,5 +532,5 @@ if [[ $fails -eq 0 ]]; then
   exit 0
 fi
 printf '  %s%d check%s failed.%s Each line above carries the fix. Nothing was installed.\n' "$Y" "$fails" "$([[ $fails -eq 1 ]] || echo s)" "$N"
-printf '  Paste this into an issue:  %splanetai preflight --json%s   (or: curl -fsSL planetai.fab.city/preflight | bash -s -- --json)\n\n' "$D" "$N"
+printf '  Paste this into an issue:  %splanetai preflight --json%s   (or: curl -fsSL https://planetai.fab.city/preflight | bash -s -- --json)\n\n' "$D" "$N"
 exit 1

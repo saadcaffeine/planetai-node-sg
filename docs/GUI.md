@@ -1,6 +1,9 @@
 # The dashboard
 
-One page the node serves at `/`. No build step, no framework, no account, and no connection to
+This page describes the classic dashboard, `/?layout=classic`. Since v0.80 `/` opens the five doors
+(Now, Place, Node, Data, Wall): [docs/site/dashboard.md](site/dashboard.md) describes them.
+
+One page the node serves. No build step, no framework, no account, and no connection to
 anywhere else — a node hands this page to the machine you are reading it on, and if the house has no
 route to the internet it still works.
 
@@ -37,7 +40,7 @@ house takes one, and so does everything in between. That is the whole argument f
 table.
 
 **Then the thing that matters.** The issue with most to say, as a sentence in your language, with its
-number beside it at the size of a headline — *"The heat is holding in the house, under the line."*
+number beside it at the size of a headline — *"The house is keeping the heat out."*
 Under it, one plain sentence carries the figures — *"In the house it is 33.9, and on the street 30.7.
 The line is 35, and nothing here is over it."* — and why that issue and not another. Then one rule between the issue's own two
 ends, a dot on it for each distance (the house, the street, the ring, the region) and the line in red

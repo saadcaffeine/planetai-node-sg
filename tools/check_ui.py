@@ -5,6 +5,7 @@
   · every field it reads off /stats rows is a column of the stats view
   · anything the script hides with .hidden is not un-hidden by a display rule
 Run: python3 tools/check_ui.py"""
+import glob
 import json
 import pathlib
 import re
@@ -31,6 +32,9 @@ for i in sorted(used - have):
 
 main = open("app/main.py").read()
 routes = set(re.findall(r'@app\.(?:get|post|put)\("(/[a-z_./{}-]*)"', main))   # paths may nest: /place/geojson
+# a pack's own routes (packs/<id>/routes.py, mounted by packs.routers() with no prefix): /forecast, /nearby
+for _f in glob.glob("packs/*/routes.py") + [f for f in glob.glob("app/*.py") if "APIRouter()" in open(f).read()]:   # and every core router with no prefix
+    routes |= set(re.findall(r'@router\.(?:get|post|put)\("(/[a-z_./{}-]*)"', open(_f).read()))
 # app/issues/api.py is an APIRouter mounted with include_router, and this FastAPI version defers
 # that — app.routes holds an _IncludedRouter with no .path, so nothing here can see /issues by
 # importing. Read its decorators and put the router's own prefix back on the front.
@@ -530,6 +534,13 @@ if _learn.exists():
     for _arr in re.findall(r"\blearn:\s*\[([^\]]*)\]", js):
         _drawn |= set(re.findall(r"'([a-z]+)'", _arr))
     _drawn |= set(re.findall(r"\bmark\('([a-z]+)'", js))
+    # The doors (`/`) mark their parts in the markup, `data-learn="<key>"`, and Place names the frame it reuses
+    # for two views with `dataset.learn = ...`. learnList() lists each one, so a key there must exist too.
+    _doors = "".join(p.read_text() for p in sorted(pathlib.Path("app/static").glob("doors*.*")))
+    _dk = set(re.findall(r'data-learn="([a-z-]+)"', _doors))
+    for _expr in re.findall(r"dataset\.learn\s*=\s*([^;]+);", _doors):
+        _dk |= set(re.findall(r"(?:^|[?:])\s*'([a-z-]+)'", _expr.strip()))   # the values, not what they are chosen by
+    _drawn |= _dk
     for _k in sorted(_drawn - _have):
         errs.append(f"the page draws a learn mark '{_k}' that app/static/learn.json does not have. "
                     f"Add it to MARKS in tools/build_learn.py, or stop drawing it.")

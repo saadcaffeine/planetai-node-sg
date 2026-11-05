@@ -1,0 +1,324 @@
+# Heat. Apparent temperature, and the same formula on both sides of every comparison.
+#
+# The id and es strings below are ASSISTANT-WRITTEN and have not been read by a native speaker.
+
+# This pack's issue (app/issues/__init__.py::load reads it while the pack is on). Until 23 Oct 2026, app/issues/heat.yml.
+key: heat
+
+alert: a heat alert           # what its alerts are called in a learning (learn.alert_name), English only
+
+name:
+  en: Heat
+  id: Panas
+  es: Calor
+
+kind: sensed
+metric: apparent          # not a stored metric: computed from temp + humidity by the `apparent` function
+unit: °C
+dp: 1
+
+# Degrees compare by difference, not by ratio: 30 °C against 20 °C is ten degrees, not half again
+# as hot. 2 °C is the margin below which two distances are called level with each other.
+compare:
+  mode: difference
+  margin: 2
+
+# Not a global standard, and the file says so out loud. 35 is this place's stress line, measured at
+# node #1 over 2-7 September 2026: the heat-index "extreme caution" 32 the pack shipped with is Kuta
+# Selatan's year-round baseline, not an event. `sql:` names the rule carrying the same number and
+# tests/test_issues.py holds the two together.
+#
+# The place prompt's baselines release replaces this with the place's own p90 per hour once there
+# are fourteen days of them, keeping 41 as the medical floor. Until that table exists the pack's
+# measured line stands and heat speaks in degrees rather than in ranks.
+line:
+  value: 35
+  unit: °C
+  source: "apparent temperature 35 °C: calibrated indoors at a Bali node, kept for Singapore until this node has its own data (NEA WBGT is the local heat-stress line)"
+  sql: heat/heat_stress_now
+
+packs:
+  domains: [heat]
+  rules:
+    - cold-start/hotter_than_normal
+
+# Apparent temperature everywhere, from the same two channels by the same formula. A room median
+# against a model's Steadman would be two different quantities on one scale, which is the mistake
+# this issue exists to not make: `function: apparent` appears on all four columns or on none.
+distances:
+  room:
+    from: stats
+    place: room
+    metrics: [temp, humidity]
+    field: mean_15m
+    aggregate: median
+    function: apparent
+  yard:
+    from: stats
+    place: yard
+    metrics: [temp, humidity]
+    field: mean_15m
+    aggregate: median
+    function: apparent
+  ring:
+    from: stats
+    place: ring
+    metrics: [temp, humidity]
+    field: mean_15m
+    aggregate: fenced_median
+    function: apparent
+  region:
+    from: observations
+    sensor_id: om-point
+    metrics: [temp_model, humidity_model]
+    function: apparent
+
+sentences:
+  # Its own skeletons, not air's with the noun swapped (docs/SPEC_language.md): {line} names this
+  # house's own line, {event} the day it crossed and came back, and the comparisons are heat's.
+  en:
+    verbs:
+      rising:  "warming up"
+      steady:  "steady"
+      falling: "cooling down"
+    line:
+      over:  "past this house's own heat line"
+      near:  "close to this house's own heat line"
+      under: "under this house's own heat line"
+    event:
+      earlier: "The house crossed the line earlier today."
+    # day: said instead of the attribution when the reading is back under the line, or close to it, after hours over
+    # it today (engine `_day`, the count the Now door prints beside the title). No number in the title.
+    day:
+      under: "The heat is bearable now, after a hot {part} | {where} it was past this house's own heat line until {until}, {hours} today."
+      near:  "The heat is easing now, after a hot {part} | {where} it was past this house's own heat line until {until}, {hours} today."
+      parts: {night: night, morning: morning, afternoon: afternoon, evening: evening}
+      hours: ["{n} hour", "{n} hours"]
+      at: "{t}"
+      recent: "a few minutes ago"
+    cmp_words:
+      over:  "hotter than {noun}"
+      under: "cooler than {noun}"
+      level: "about as hot as {noun}"
+    # past: one hour the page scrubs back to. The title is what it was doing, in words; the tagline
+    # is the reading and whose line ({line} reuses the words above). The page writes none of it.
+    past:
+      verbs:
+        rising:  "was warming up"
+        steady:  "was steady"
+        falling: "was cooling down"
+      title:   "The heat {verb} {where}"
+      tagline: "At {hour} it felt like {n} {unit}, {line}."
+      none:    "Nothing was recorded {where} at {hour}."
+      # what that hour meant, by the same six stories as the live title
+      attribution:
+        clear:         "The heat was bearable, inside and out"
+        inside:        "The house was the hottest place around"
+        everywhere:    "It was this hot everywhere, the house too"
+        outside_worse: "The house was keeping the heat out"
+        mixed:         "The heat {verb} {where}"
+        unknown:       "The heat {where} {verb}"
+    attribution:
+      clear:         "The heat is bearable, inside and out | In the house it is {verb}, {line}. {event}"
+      inside:        "The house is the hottest place around | Inside it is {line}, and the street is cooler. {event}"
+      everywhere:    "It is this hot everywhere, the house too | Inside and out it is {line}. {event}"
+      outside_worse: "The house is keeping the heat out | Inside it is {line}, and the street is past it. {event}"
+      mixed:         "The heat in the house is {verb} | Inside it is {line}. {event}"
+      unknown:       "The heat {where} is {verb} | It is {line}. {event}"
+    state:
+      none: "Nothing here reports both temperature and humidity, so there is no apparent temperature to give."
+  id:
+    verbs:
+      rising:  "memanas"
+      steady:  "stabil"
+      falling: "mendingin"
+    line:
+      over:  "di atas batas panas rumah ini"
+      near:  "mendekati batas panas rumah ini"
+      under: "di bawah batas panas rumah ini"
+    event:
+      earlier: "Rumah sempat melewati batas tadi."
+    # day: ASSISTANT-WRITTEN, waiting for a native reader like the rest of this locale
+    day:
+      under: "Panasnya sudah wajar, setelah {part} yang panas | {where} panasnya sempat di atas batas panas rumah ini sampai {until}, {hours} hari ini."
+      near:  "Panasnya mulai reda, setelah {part} yang panas | {where} panasnya sempat di atas batas panas rumah ini sampai {until}, {hours} hari ini."
+      parts: {night: dini hari, morning: pagi, afternoon: siang, evening: malam}
+      hours: ["{n} jam", "{n} jam"]
+      at: "pukul {t}"
+      recent: "beberapa menit lalu"
+    cmp_words:
+      over:  "lebih panas daripada {noun}"
+      under: "lebih sejuk daripada {noun}"
+      level: "kurang lebih sama dengan {noun}"
+    past:
+      verbs:
+        rising:  "memanas"
+        steady:  "bertahan"
+        falling: "mereda"
+      title:   "Panas {verb} {where}"
+      tagline: "Pukul {hour} terasa {n} {unit}, {line}."
+      none:    "Tidak ada yang tercatat {where} pukul {hour}."
+      # what that hour meant, by the same six stories as the live title
+      attribution:
+        clear:         "Panasnya masih wajar, di dalam dan di luar"
+        inside:        "Rumah ini tempat terpanas di sekitarnya"
+        everywhere:    "Panasnya sama di mana-mana, di rumah juga"
+        outside_worse: "Rumah menahan panas dari luar"
+        mixed:         "Panas {verb} {where}"
+        unknown:       "Panas {where} {verb}"
+    attribution:
+      clear:         "Panasnya masih wajar, di dalam dan di luar | Di dalam rumah panasnya {verb}, {line}. {event}"
+      inside:        "Rumah ini tempat terpanas di sekitarnya | Di dalam rumah panasnya {line}, dan jalan lebih sejuk. {event}"
+      everywhere:    "Panasnya sama di mana-mana, di rumah juga | Di dalam dan di luar, panasnya {line}. {event}"
+      outside_worse: "Rumah menahan panas dari luar | Di dalam rumah panasnya {line}, sementara jalan melewatinya. {event}"
+      mixed:         "Panas di dalam rumah {verb} | Di dalam rumah panasnya {line}. {event}"
+      unknown:       "Panas {where} {verb} | Panasnya {line}. {event}"
+    state:
+      none: "Tidak ada di sini yang melaporkan suhu dan kelembapan sekaligus, jadi suhu terasa tidak bisa dihitung."
+  es:
+    verbs:
+      rising:  "subiendo"
+      steady:  "estable"
+      falling: "bajando"
+    line:
+      over:  "por encima del límite de calor de esta casa"
+      near:  "cerca del límite de calor de esta casa"
+      under: "por debajo del límite de calor de esta casa"
+    event:
+      earlier: "La casa cruzó el límite hoy más temprano."
+    # day: ASSISTANT-WRITTEN, waiting for a native reader like the rest of this locale
+    day:
+      under: "El calor ya se aguanta, tras una {part} calurosa | {where} estuvo por encima del límite de calor de esta casa hasta {until}, {hours} hoy."
+      near:  "El calor está bajando, tras una {part} calurosa | {where} estuvo por encima del límite de calor de esta casa hasta {until}, {hours} hoy."
+      parts: {night: madrugada, morning: mañana, afternoon: tarde, evening: noche}
+      hours: ["{n} hora", "{n} horas"]
+      at: "las {t}"
+      recent: "hace unos minutos"
+    cmp_words:
+      over:  "más calor que {noun}"
+      under: "más fresco que {noun}"
+      level: "igual que {noun}"
+    past:
+      verbs:
+        rising:  "estaba subiendo"
+        steady:  "se mantenía"
+        falling: "estaba cediendo"
+      title:   "El calor {verb} {where}"
+      tagline: "A las {hour} la sensación era de {n} {unit}, {line}."
+      none:    "No se registró nada {where} a las {hour}."
+      # what that hour meant, by the same six stories as the live title
+      attribution:
+        clear:         "El calor se aguantaba, dentro y fuera"
+        inside:        "La casa era el sitio más caliente de la zona"
+        everywhere:    "Hacía este calor en todas partes, también en casa"
+        outside_worse: "La casa estaba frenando el calor"
+        mixed:         "El calor {verb} {where}"
+        unknown:       "El calor {where} {verb}"
+    attribution:
+      clear:         "El calor se aguanta, dentro y fuera | En casa está {verb}, {line}. {event}"
+      inside:        "La casa es el sitio más caliente de la zona | Dentro está {line}, y la calle está más fresca. {event}"
+      everywhere:    "Hace este calor en todas partes, también en casa | Dentro y fuera está {line}. {event}"
+      outside_worse: "La casa está frenando el calor | Dentro está {line}, y la calle lo supera. {event}"
+      mixed:         "El calor en casa está {verb} | Dentro está {line}. {event}"
+      unknown:       "El calor {where} está {verb} | Está {line}. {event}"
+    state:
+      none: "Nada de aquí informa temperatura y humedad a la vez, así que no hay temperatura aparente que dar."
+
+# The supporting layer (docs/SPEC_language.md): what apparent temperature is and whose line this is.
+about:
+  en: "'Feels like' counts humidity with the temperature, because wet air slows the sweat that cools you. The line — 35 °C — is this place's own, measured here, not a global one."
+  id: "'Terasa seperti' menghitung kelembapan bersama suhu, karena udara lembap memperlambat keringat yang mendinginkan tubuh. Batasnya — 35 °C — adalah milik tempat ini, diukur di sini, bukan global."
+  es: "La 'sensación' cuenta la humedad junto con la temperatura, porque el aire húmedo frena el sudor que te enfría. El límite — 35 °C — es propio de este lugar, medido aquí, no uno global."
+
+hero:
+  sign: sign-heat
+  pictogram: pix-heat
+  unit: °C
+  dp: 1
+  rule:
+    min: 20
+    max: 45
+    ends: { en: [cool, dangerous], id: [sejuk, berbahaya], es: [fresco, peligroso] }
+    dots: [room, yard, ring]
+    line: true
+  clock: time
+
+empty:
+  en: Heat needs temperature and humidity from the same sensor. Add one indoors and the house fills in.
+  id: Panas memerlukan suhu dan kelembapan dari sensor yang sama. Tambahkan satu di dalam ruangan.
+  es: El calor necesita temperatura y humedad del mismo sensor. Añade uno dentro y la casa se rellena.
+
+# Singapore: what NEA measures near here, beside the apparent temperature above. Shown in Figures.
+readouts:
+  - metric: wbgt
+    sensor_id: nea-wbgt
+    unit: °C
+    dp: 1
+    label: { en: heat stress (WBGT), id: tekanan panas (WBGT), es: estrés térmico (WBGT) }
+  - metric: temp
+    sensor_id: nea-temp
+    unit: °C
+    dp: 1
+    label: { en: NEA air temperature, id: suhu udara NEA, es: temperatura NEA }
+  - metric: humidity
+    sensor_id: nea-humidity
+    unit: "%"
+    dp: 0
+    label: { en: NEA humidity, id: kelembapan NEA, es: humedad NEA }
+  - metric: uv
+    sensor_id: nea-uv
+    unit: UV
+    dp: 0
+    label: { en: UV index, id: indeks UV, es: índice UV }
+
+# Events (docs/SPEC_alerts.md §4–§5). One message per heat event at this house, whichever rooms it spans; one
+# action, the first below whose `when:` holds. The id and es strings are ASSISTANT-WRITTEN. As air's: words first,
+# one reading, and when the line is said it is this house's heat line with its unit ("35 °C feels-like"); one sign.
+events:
+  unusual:
+    en: "🌡️ Hotter than usual for this hour in {rooms}: it feels like {peak}."
+    id: "🌡️ Lebih panas dari biasanya untuk jam ini di {rooms}: terasa seperti {peak}."
+    es: "🌡️ Más calor de lo habitual a esta hora en {rooms}: la sensación es de {peak}."
+  sustained:
+    en: "🥵 Hot for hours in {rooms}, longer than usual: it feels like {peak}; this house's heat line is {line} feels-like."
+    id: "🥵 Panas berjam-jam di {rooms}, lebih lama dari biasanya: terasa seperti {peak}; batas panas rumah ini {line} terasa."
+    es: "🥵 Horas de calor en {rooms}, más de lo habitual: la sensación es de {peak}; el límite de calor de esta casa es {line} de sensación."
+  danger:
+    en: "🚨 DANGER in {rooms}: it feels like {peak}, past this house's heat line, {line} feels-like. The body cannot shed heat at this level."
+    id: "🚨 BAHAYA di {rooms}: terasa seperti {peak}, melewati batas panas rumah ini, {line} terasa. Tubuh tidak bisa membuang panas di tingkat ini."
+    es: "🚨 PELIGRO en {rooms}: la sensación es de {peak}, por encima del límite de calor de esta casa, {line} de sensación. A este nivel el cuerpo no consigue soltar calor."
+  clear:
+    en: "✅ Cooler again in {rooms}, back to the usual."
+    id: "✅ Sudah sejuk lagi di {rooms}, kembali seperti biasa."
+    es: "✅ Vuelve a estar fresco en {rooms}, como de costumbre."
+actions:
+  - id: heat/leave_or_cool
+    when: {kind: [danger]}
+    say:
+      en: "Cool the room or leave it: wet skin, a fan, shade, water. Do not leave anyone alone in it."
+      id: "Dinginkan ruangan atau keluar: basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian."
+      es: "Enfría la habitación o sal de ella: piel mojada, ventilador, sombra, agua. No dejes a nadie solo ahí."
+  - id: heat/open_up
+    when: {outside_cooler_by: 2, outside_pm25_below: 35}
+    say:
+      en: "Open up now: {outside_source} is {outside_temp} and inside is {inside_temp}."
+      id: "Buka sekarang: {outside_source} {outside_temp}, di dalam {inside_temp}."
+      es: "Abre ahora: {outside_source} está a {outside_temp} y dentro hay {inside_temp}."
+  - id: heat/keep_shut_shaded
+    when: {outside_hotter: true}
+    say:
+      en: "Keep it shut and shaded: outside ({outside_temp}) is hotter than inside for now."
+      id: "Tutup dan beri peneduh: di luar ({outside_temp}) masih lebih panas dari dalam."
+      es: "Mantén cerrado y a la sombra: fuera ({outside_temp}) hace más calor que dentro por ahora."
+  - id: heat/cool_sleeping_room
+    when: {kind: [sustained], home_has: ac, hour_from: 17, hour_to: 23}
+    say:
+      en: "Cool the room you sleep in before 22:00."
+      id: "Dinginkan kamar tidur sebelum pukul 22:00."
+      es: "Enfría la habitación donde duermes antes de las 22:00."
+  - id: heat/water_and_rest
+    when: {}
+    say:
+      en: "Drink water, move air, and ease off hard work until it drops."
+      id: "Minum air, gerakkan udara, dan kurangi kerja berat sampai turun."
+      es: "Bebe agua, mueve el aire y afloja el trabajo duro hasta que baje."

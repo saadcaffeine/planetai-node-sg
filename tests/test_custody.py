@@ -72,12 +72,17 @@ def _ddl() -> str:
     """The tables and views a cell or rho can read. `observations` is here because several packs read it;
     it returns nothing under these fixtures, which is still an assertion worth making on both sides."""
     sql, out = _schema(), []
-    for t in ("sensors", "readings", "channel_roles", "alerts", "actions", "events"):
+    for t in ("sensors", "readings", "channel_roles", "alerts", "actions", "events", "readings_1h_done"):
         ddl = (re.search(rf"CREATE TABLE IF NOT EXISTS {t} \(.*?\n\);", sql, re.S).group(0)
                .replace("JSONB", "JSON").replace("BIGSERIAL PRIMARY KEY", "BIGINT PRIMARY KEY"))
         for col in _generated(sql, t):
             ddl = ddl.replace("\n);", f",\n  {col}\n);")
         out.append(ddl)
+    # rho also reads the event engine's tables (what was sent, and answers by event_id): empty here, which is the
+    # rules node this gate is about, so only their shape matters.
+    out.append("CREATE TABLE alert_events (id BIGINT, level TEXT);\n"
+               "CREATE TABLE event_messages (ts TIMESTAMPTZ, event_id BIGINT, reason TEXT, sent BOOLEAN, mode TEXT);\n"
+               "ALTER TABLE actions ADD COLUMN event_id BIGINT;")
     out.append(re.search(r"CREATE VIEW readings_1h AS.*?;", sql, re.S).group(0))
     # DuckDB merges a USING column, so the view's own r.sensor_id will not bind. An explicit ON is the same join.
     out.append(re.search(r"CREATE VIEW observations AS.*?;", sql, re.S).group(0)
@@ -181,6 +186,7 @@ def rho_at(alerts, actions, events):
     import index
     sql = re.search(r'cur\.execute\(\s*"""(.*?)"""', inspect.getsource(index.rho), re.S).group(1)
     sql = (sql.replace("%(back)s", "0").replace("make_interval(days => 0)", "interval '0 days'")
+              .replace("split_part(rule_id, '/', 1) = ANY(%(rep)s::text[])", "FALSE")   # no pack replaced: a rules node
               .replace("now()", f"TIMESTAMPTZ '{NOW.isoformat()}'"))
     cur = con.execute(sql)
     return dict(zip([d[0] for d in cur.description], cur.fetchone()))
@@ -213,3 +219,80 @@ for forbidden in ("text", "note", "actor", "sensor_id"):
 
 print(f"rho: {both['acted']}/{both['alerts_act']} answered once a child pushes, {alone['acted']}/{alone['alerts_act']} alone")
 assert not failures, "\n".join(failures)
+
+
+# ---- 5. no peer and no model is pushed to a parent (AGENTS.md: "Peers never roll up").
+#
+# The parent stores every row it receives as kind='child', and kind='child' IS custody, so the push is the last
+# place a peer can be stopped. Until 21 Oct 2026 it filtered only `private`, and node #1 would have pushed 178
+# rows of other people's stations and Open-Meteo beside its own 94. The statement is read out of
+# app/main.py::push_aggregates, never retyped, and run on the same two databases as above.
+def push_sql() -> str:
+    import ast
+    import packs
+    tree = ast.parse(open(os.path.join(ROOT, "app/main.py")).read())
+    fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == "push_aggregates")
+    call = next(n for n in ast.walk(fn) if isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "execute")
+    return eval(compile(ast.Expression(call.args[0]), "push_aggregates", "eval"), {"packs": packs})
+
+
+PUSH = push_sql()
+ROWS_SQL = f"SELECT CAST(bucket AS TEXT), sensor_id, metric, mean FROM ({_pg(PUSH)}) p"   # no tz objects: no pytz
+pushed_clean = sorted(clean.execute(ROWS_SQL).fetchall(), key=str)
+pushed_peer = sorted(peered.execute(ROWS_SQL).fetchall(), key=str)
+if pushed_clean != pushed_peer:
+    failures.append(f"the push to a parent changes when a peer is added: {len(pushed_clean)} -> {len(pushed_peer)} rows")
+if any(r[1] == "peer-1" for r in pushed_peer):
+    failures.append("the peer's hourly means are pushed to the parent, which would count them as its own children's")
+if not pushed_clean:
+    failures.append("the push sends nothing from a database holding node #1's own kits")
+if "indoor" not in PUSH:
+    failures.append("the push no longer carries `indoor`: a parent would average the kitchen into outdoor air")
+print(f"push: {len(pushed_clean)} rows clean, {len(pushed_peer)} with one peer, none of them the peer's")
+assert not failures, "\n".join(failures)
+
+
+# ---- 6. readings_1h is the same answer however far the hourly table has got (init.sql, main.refresh_hourly).
+#
+# The view reads finished hours from readings_1h_done and groups the rest live from where that table ends. An empty
+# table, a full one, and a stale one refreshed for the last 26 hours must all give the hours a plain grouping of every
+# reading gives. A view that went short when the table lagged would leave every cell and chart missing its history
+# with no error anywhere. The two statements are read out of app/main.py, never retyped.
+def hourly_sql() -> dict:
+    import ast
+    tree = ast.parse(open(os.path.join(ROOT, "app/main.py")).read())
+    got = {}
+    for n in tree.body:
+        if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") in ("HOURLY_DELETE", "HOURLY_INSERT"):
+            got[n.targets[0].id] = ast.literal_eval(n.value)
+    return got
+
+
+def hourly(con, since: str) -> None:
+    for k in ("HOURLY_DELETE", "HOURLY_INSERT"):
+        con.execute(_pg(HOURLY[k].replace("%(since)s::timestamptz", f"TIMESTAMPTZ '{since}'")))
+
+
+HOURLY = hourly_sql()
+PLAIN = ("SELECT CAST(date_trunc('hour', ts) AS TEXT), sensor_id, metric, round(avg(value), 9), min(value), max(value), "
+         "count(*) FROM readings GROUP BY 1, 2, 3")
+VIEW = "SELECT CAST(bucket AS TEXT), sensor_id, metric, round(mean, 9), min, max, n FROM readings_1h"
+want = sorted(clean.execute(_pg(PLAIN)).fetchall(), key=str)
+cases = {"empty": sorted(clean.execute(_pg(VIEW)).fetchall(), key=str)}
+hourly(clean, "-infinity")
+cases["full"] = sorted(clean.execute(_pg(VIEW)).fetchall(), key=str)
+late = (NOW - dt.timedelta(hours=2)).replace(minute=7, second=0, microsecond=0)   # an hour the table already holds
+clean.execute("INSERT INTO readings (ts, sensor_id, metric, value) VALUES (?, ?, 'pm25', 500.0)", [late, trustdb.sensors()[0][0]])
+want_late = sorted(clean.execute(_pg(PLAIN)).fetchall(), key=str)
+stale = sorted(clean.execute(_pg(VIEW)).fetchall(), key=str)
+# mid-hour, where there are readings: a refresh that cut at the minute instead of the hour fails here
+hourly(clean, (NOW - dt.timedelta(hours=3, minutes=17)).isoformat())
+cases["refreshed"] = sorted(clean.execute(_pg(VIEW)).fetchall(), key=str)
+for name, got in cases.items():
+    if got != (want_late if name == "refreshed" else want):
+        failures.append(f"readings_1h with the hourly table {name} is not a plain grouping of the readings")
+if not stale or stale == want_late:
+    failures.append("a late reading reached readings_1h before any refresh, so the table is not what the view reads")
+print(f"readings_1h: {len(want)} hours, the same with the hourly table empty, full and refreshed after a late reading")
+assert not failures, "\n".join(failures)
+

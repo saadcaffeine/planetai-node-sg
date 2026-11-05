@@ -1,0 +1,47 @@
+name: Overture Maps Places
+url: https://docs.overturemaps.org/guides/places/
+description: |
+  88 million points of interest worldwide (shops, workshops, repair, services), merged by the Overture Maps
+  Foundation from Meta, Microsoft, Foursquare, BrightQuery, AllThePlaces and others. Monthly GeoParquet release.
+pillar: economic
+scale: community
+status: candidate
+license: "CDLA-Permissive-2.0 AND Apache-2.0 AND CC0-1.0, per source; see notes"
+api: s3://overturemaps-us-west-2/release/2026-10-21.0/theme=places/type=place/
+pilot_relevance: [global]
+places: [barcelona, bali]
+tags: [places, poi, businesses, premises, repair, amenities, geoparquet, overture, gers]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: [Economic|Community]
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, release 2026-10-21.0 (schema v2.0.0).
+
+  LICENCE. Places only. Overture's other themes (buildings, transportation, base, divisions) are ODbL and are not
+  this entry. Read on Overture's attribution page: Places has no theme-wide licence, it is licensed per source.
+  Meta, Microsoft, BrightQuery, Uberall, PinMeTo, DAC, OpenTravel and others: "Available under CDLA Permissive 2.0."
+  Foursquare: "Copyright 2024 Foursquare Labs, Inc. All rights reserved. Available under Apache 2.0", with a
+  NOTICE.txt. AllThePlaces: "Available under CC0 1.0." All three are open, with no share-alike. Records carry
+  sources[].dataset and sources[].license, and every source row in both boxes read had both. The schema makes
+  sources[].license optional, so where it is absent go by the attribution page or ask the provider.
+
+  ENDPOINT. Anonymous S3, us-west-2, no key. Read with DuckDB 1.5.5 over httpfs, filtering on the bbox column.
+  The release notes give 88,418,121 places, up 8.55 % on September.
+
+  READ. Barcelona, a 2 x 2 km box round Plaça de Catalunya (2.158-2.182 E, 41.378-41.396 N): 25,821 places,
+  11,905 with confidence >= 0.7. operating_status: 16,488 open, 1,204 permanently_closed, 2 temporarily_closed,
+  8,127 not stated. Making and repair, by taxonomy.primary: 91 IT and computer repair, 36 automotive repair, 36
+  hardware stores, 33 manufacturers, 20 industrial equipment makers, 19 furniture makers, 19 phone repair.
+  Denpasar, a 2.5 x 2.3 km box round Puputan square (115.205-115.228 E, 8.646-8.667 S): 3,775 places, 1,142 with
+  confidence >= 0.7. 19 textile makers, 18 motorcycle repair, 14 industrial equipment makers, 9 IT repair,
+  1 metal fabricator. Only these two places were read.
+
+  THE TRAP. Status is near-empty outside the sources that carry it: in Denpasar 3,768 of 3,775 places have no
+  operating_status, so a count there is a count of listings, open or not. In Barcelona 31,203 source rows are
+  BrightQuery's, which the release notes say reached Spain this month, so its coverage may move again. Read confidence and status before counting anything as a door.
+
+  WHY THIS CELL. "Businesses per km2 within the radius" and repair access for Economic|Community, with permissive
+  licences where OSM's ODbL would bind what a node publishes. WHAT IT DOES NOT CLAIM. A listing is not an open
+  door, and no fab lab is identified as one: there is no makerspace category in either box.

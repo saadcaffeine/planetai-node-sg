@@ -74,7 +74,10 @@ else:
         step("Open-Meteo answers", False, f"{type(e).__name__}: {str(e)[:140]}")
 
 try:
-    s, rd = A.fetch(hc)
+    # force: without it `_due(source)` answers for the node's poll clocks. Right after a fetch that is "not due", so this
+    # check failed for FORECAST_POLL_HOURS with the forecast stored; at a due moment it touched the stamp and stored
+    # nothing, so the node then skipped its own poll for six hours. Forced, verify reads now and leaves the clock alone.
+    s, rd = A.fetch(hc, force=True)
     step("the adapter returns", bool(s),
          f"{len(s)} source(s), {len(rd)} readings; metrics {sorted({m for _, _, m, _ in rd})}")
     step("nothing claims to be local", all(not x["local"] and x["kind"] == "model" for x in s),

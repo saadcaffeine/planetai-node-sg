@@ -8,9 +8,9 @@
     SELECT 'cams-point' AS sensor_id, round(value)::int AS pm
     FROM observations WHERE sensor_id = 'cams-point' AND metric = 'pm25_model'
   message:
-    en: "🛰️ What the satellites think your air is like today.\n\nThis comes from a European atmosphere model, not from a sensor at your address, and it sees your whole district as one square. A sensor at your window will disagree with it, sometimes a lot.\n\nThat disagreement is exactly the reason to put one up."
-    id: "🛰️ Perkiraan satelit tentang udara Anda hari ini.\n\nIni dari model atmosfer Eropa, bukan sensor di alamat Anda, dan model melihat seluruh kecamatan sebagai satu kotak. Sensor di jendela Anda akan berbeda, kadang jauh.\n\nPerbedaan itulah alasan memasang sensor."
-    es: "🛰️ Lo que los satélites creen de tu aire hoy.\n\nEsto viene de un modelo atmosférico europeo, no de un sensor en tu dirección, y ve todo tu distrito como un solo cuadro. Un sensor en tu ventana le llevará la contraria, a veces mucho.\n\nEsa diferencia es justo la razón para poner uno."
+    en: "🛰️ What a European air model thinks your air is like today.\n\nIt is a model, not a sensor at your address, and it sees your whole district as one square. A sensor at your window will disagree with it, sometimes a lot."
+    id: "🛰️ Perkiraan model udara Eropa tentang udara Anda hari ini.\n\nIni model, bukan sensor di alamat Anda, dan model melihat seluruh kecamatan sebagai satu kotak. Sensor di jendela Anda akan berbeda, kadang jauh."
+    es: "🛰️ Lo que un modelo europeo del aire cree de tu aire hoy.\n\nEs un modelo, no un sensor en tu dirección, y ve todo tu distrito como un solo cuadro. Un sensor en tu ventana le llevará la contraria, a veces mucho."
 
 - id: hotter_than_normal
   level: info
@@ -37,6 +37,6 @@
            round((mine.v - model.v)::numeric) AS delta
     FROM mine, model WHERE mine.v IS NOT NULL AND abs(mine.v - model.v) > 15
   message:
-    en: "📏 Your sensor and the satellites disagree about your air.\n\nThe model sees a whole district; your sensor sees your street. When they differ by this much, the model is missing something local: burning, traffic, a kitchen.\n\nThat gap is what a sensor at your address is for."
-    id: "📏 Sensor Anda dan satelit tidak sepakat soal udara Anda.\n\nModel melihat satu kecamatan; sensor Anda melihat jalan Anda. Kalau bedanya sebesar ini, model melewatkan sesuatu yang lokal: pembakaran, lalu lintas, dapur.\n\nSelisih itulah gunanya sensor di alamat Anda."
-    es: "📏 Tu sensor y los satélites no se ponen de acuerdo sobre tu aire.\n\nEl modelo ve un distrito entero; tu sensor ve tu calle. Cuando difieren tanto, al modelo se le escapa algo local: quemas, tráfico, una cocina.\n\nPara eso sirve un sensor en tu dirección: para esa diferencia."
+    en: "📏 Your sensor and a European air model disagree about your air.\n\nThe model sees a whole district; your sensor sees your street. When they differ by this much, the model is missing something local: burning, traffic, a kitchen.\n\nThat gap is what a sensor at your address is for."
+    id: "📏 Sensor Anda dan model udara Eropa tidak sepakat soal udara Anda.\n\nModel melihat satu kecamatan; sensor Anda melihat jalan Anda. Kalau bedanya sebesar ini, model melewatkan sesuatu yang lokal: pembakaran, lalu lintas, dapur.\n\nSelisih itulah gunanya sensor di alamat Anda."
+    es: "📏 Tu sensor y un modelo europeo del aire no se ponen de acuerdo sobre tu aire.\n\nEl modelo ve un distrito entero; tu sensor ve tu calle. Cuando difieren tanto, al modelo se le escapa algo local: quemas, tráfico, una cocina.\n\nPara eso sirve un sensor en tu dirección: para esa diferencia."

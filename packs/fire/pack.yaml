@@ -1,0 +1,64 @@
+id: fire
+name: Fire and smoke
+description: >-
+  Fires that satellites saw in the last day near this node, from NASA FIRMS: how many, how far, in which
+  direction, and whether they lie where the wind is coming from. It says when a fire is near, when one is
+  upwind, and, only when the air outside is rising too, that smoke is probably arriving.
+author: PLANETAI core (official, prototype); the upwind idea is from saadcaffeine's wild fire-smoke pack
+version: 0.1.0
+requires: { node: ">=0.81.0" }
+kind: code
+domain: air
+metrics: [fires_local_24h, fires_region_24h, frp_local_mw, frp_region_mw, fires_nearest_km, fires_nearest_bearing,
+          fires_local_upwind, fires_region_upwind, fires_upwind_km, fires_upwind_bearing, fire_wind_from_deg]
+scales: [bioregion]
+sources: [environmental/bioregion/nasa-firms]
+env:
+  - "# fire: OFF by default. With no FIRMS account it downloads the regional file, 1 to 2 MB a satellite for South"
+  - "# East Asia, whenever the file changed. Read packs/fire/README.md, then set this to 1."
+  - "FIRE_ENABLED=0"
+  - "# fire: the local ring, in km: burning near enough to smell"
+  - "FIRE_LOCAL_KM=25"
+  - "# fire: the regional ring, in km: smoke that travels. Singapore may want 500, for Sumatra and Kalimantan"
+  - "FIRE_REGION_KM=150"
+  - "# fire: how often to ask, in hours. A file that has not changed costs one HEAD request"
+  - "FIRE_POLL_HOURS=3"
+  - "# fire: which VIIRS satellites, comma-separated: noaa-20, noaa-21, suomi-npp. Each is one file"
+  - "FIRE_SATELLITES=noaa-20,noaa-21"
+  - "# fire: optional, a free NASA FIRMS key (firms.modaps.eosdis.nasa.gov/api/map_key). With it the pack asks"
+  - "# for the regional ring's box only, kilobytes instead of megabytes. Blank reads the public files"
+  - "FIRMS_MAP_KEY="
+secrets: [FIRMS_MAP_KEY]
+needs:
+  - firms.modaps.eosdis.nasa.gov
+# One band on Now and a column each on the Wall, public numbers only: the house's coordinates are never here. Left out
+# of /issues until the node holds a row of it, so a node that never turned fires on shows nothing.
+sections:
+  - id: fire
+    stage: observe
+    title: { en: "Fires near here, from NASA FIRMS", id: "Kebakaran di sekitar sini, dari NASA FIRMS", es: "Fuegos cerca de aquí, según NASA FIRMS" }
+    order: 45
+    wall: true
+    note:
+      en: Satellite detections (VIIRS 375 m) of the last 24 hours, counted as burning places. Upwind means within 45° of where the wind comes from. A fire too small or under cloud is not seen.
+      id: Deteksi satelit (VIIRS 375 m) dalam 24 jam terakhir, dihitung sebagai tempat yang terbakar. Searah angin berarti dalam 45° dari arah datangnya angin. Api yang terlalu kecil atau tertutup awan tidak terlihat.
+      es: Detecciones de satélite (VIIRS 375 m) de las últimas 24 horas, contadas como lugares que arden. A barlovento quiere decir a menos de 45° de donde viene el viento. Un fuego demasiado pequeño o bajo las nubes no se ve.
+    readouts:
+      - { metric: fires_local_24h, sensor_id: firms-fires, unit: fires, dp: 0,
+          label: { en: fires nearby, id: titik api di dekat sini, es: fuegos cerca } }
+      - { metric: fires_region_24h, sensor_id: firms-fires, unit: fires, dp: 0,
+          label: { en: fires in the region, id: titik api di wilayah ini, es: fuegos en la región } }
+      - { metric: fires_region_upwind, sensor_id: firms-fires, unit: fires, dp: 0,
+          label: { en: fires upwind, id: titik api searah angin, es: fuegos a barlovento } }
+      - { metric: fires_nearest_km, sensor_id: firms-fires, unit: km, dp: 0,
+          label: { en: nearest fire, id: api terdekat, es: fuego más cercano } }
+      - { metric: fires_nearest_bearing, sensor_id: firms-fires, unit: "° from north", dp: 0,
+          label: { en: direction of the nearest fire, id: arah api terdekat, es: dirección del fuego más cercano } }
+thresholds: >-
+  Written for Kuta Selatan, Bali, from one day of FIRMS (14 Oct 2026). Any fire within the local ring is an info;
+  any local fire upwind (within 45° of where the wind comes from) is a warn; 25 or more burning places upwind in the
+  regional ring AND outdoor PM2.5 past the WHO line, 15 µg/m³, and half again its level of the 6 hours before, is
+  an act. 25 is about half of all the 150 km ring held that day. A first guess, not a calibration; see README.md.
+attribution: >-
+  NASA FIRMS (Fire Information for Resource Management System), VIIRS 375 m active fire detections from NOAA-20,
+  NOAA-21 and Suomi NPP, distributed by LANCE. NASA data are CC0; FIRMS asks to be cited as "NASA FIRMS".

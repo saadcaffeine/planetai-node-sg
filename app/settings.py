@@ -38,7 +38,7 @@ TTL = 20
 RUNTIME = {
     # basics — what this place is, what it watches, and how its page opens. What matters here is decided by the people who live here.
     "NODE_ISSUES":        ("basics", "What this place watches, in order", False, False,
-                           "The issues this node reports, most important first: air, heat, land, coast. The first "
+                           "The issues this node reports, most important first: air, heat, land, coast, water. The first "
                            "one is where the page starts, and the one with something to say takes the top of it. A "
                            "name nothing declares is ignored with a line in the log; blank means every issue there "
                            "is, in the packs' own order. Your preset guessed for this place \u2014 change it: what "
@@ -60,9 +60,6 @@ RUNTIME = {
     "PURPLEAIR_HOSTS":    ("sources", "PurpleAir hosts", False, False, "IP addresses on your WiFi."),
     "SENSOR_INDOOR":      ("sources", "LAN sensors are indoors", False, False, "1 if the AirGradient/PurpleAir units are inside."),
     "MESH_INDOOR_NODES":  ("sources", "Indoor mesh radios", False, False, "Meshtastic node ids that are inside, e.g. !8f491db0,!64e0bfd1."),
-    "BAD_ENABLED":        ("sources", "Bali Air Dispatch", False, False, "Bali only: the island's public stations as outdoor reference. 1 or 0."),
-    "BAD_EXCLUDE":        ("sources", "Stations to leave out", False, False, "Comma-separated station ids that are ours and the identity and distance rules missed."),
-    "BAD_INCLUDE_INDOOR": ("sources", "Keep indoor stations", False, False, "1 to keep stations the archive suspects are indoors. Off by default: they are not the ring."),
     "OPENMETEO_ENABLED":  ("sources", "Global models (Open-Meteo, CAMS)", False, False, "Free, key-free, anywhere. 1 or 0."),
     "CKAN_PORTALS":       ("sources", "Open-data portals", False, False, "slug=url pairs, comma-separated. Feeds Governance|City."),
     # alerts — alerts and reports: when the node speaks, what interrupts, and how a loop is closed.
@@ -70,6 +67,7 @@ RUNTIME = {
     "TELEGRAM_BUTTONS":   ("alerts", "Event buttons in Telegram", False, False, "1 = event messages carry Done / Not now / Doesn't fit. The bot sets this on startup so the buttons ride only while somebody answers them; leave it alone."),
     "REPORT_EVERY":       ("alerts", "Report every", False, False, "Hours between reports: 3, 4, 6, 8, 12 or 24. Default 6, which is four a day."),
     "REPORT_ANCHOR":      ("alerts", "First report of the day", False, False, "The local hour the rhythm starts from, 0-23. Default 6: with a 6-hour interval that is 06, 12, 18 and 00."),
+    "LEARN_PUSH":         ("alerts", "Morning memory", False, False, "all = the first report each day also carries yesterday's diary entry, last week's on Mondays, last month's on the 1st and last year's on 1 January, and what the node's learnings changed (default). week = only the week, month and year. off = never; /learned still answers. Telegram only."),
     "REPORT_DEPTH":       ("alerts", "How much the report says", False, False, "auto, brief, standard or deep. auto lets the strongest model the node can reach decide. Until a model is in the path every report is the node's own, and this changes nothing."),
     "ALERT_LEVEL":        ("alerts", "Interrupt me for", False, False, "act = only when something needs doing (default) · warn = also when something changed · info = everything. Everything is recorded, on the dashboard, and in the next report."),
     "QUIET_HOURS":        ("alerts", "Quiet hours", False, False, "1 = between the hours below, only act-level alerts are sent; the rest wait for the morning report."),
@@ -79,7 +77,7 @@ RUNTIME = {
                            "rules = every rule sends on its own, as before (default). shadow = the event engine "
                            "(docs/SPEC_alerts.md) decides what it would send and records it, and sends nothing; "
                            "the rules keep sending. events = the event engine sends the heat and air messages, one "
-                           "per event (no buttons yet), and the old heat and air rules are recorded but not sent; "
+                           "per event, and the old heat and air rules are recorded but not sent; "
                            "every other alert and the reports are unchanged."),
     "ALERT_MAX_PER_DAY":  ("alerts", "Most messages a day", False, False,
                            "With the event engine: pushes a day outside danger, default 4. Beyond it an event "
@@ -110,10 +108,15 @@ RUNTIME = {
                            "pane alike. With fallback or strongest, what somebody asks, and the page's own "
                            "sentences and numbers (never a position, a sensor's name or its id), go to the online "
                            "model's provider, and that is a choice to give up this house's sovereignty over them."),
-    "AGENT_REMOTE_URL":   ("model", "Remote model URL", False, True, "A bigger model on another machine of yours, on this network or your tailnet, OpenAI-compatible. Ollama on a laptop: http://<laptop>.local:11434/v1, with Ollama listening beyond the laptop (OLLAMA_HOST=0.0.0.0). exo: http://<host>:8082/v1. Nothing leaves your network."),
+    "AGENT_REMOTE_URL":   ("model", "Remote model URL", False, True, "A bigger model on another machine of yours, on this network or your tailnet, OpenAI-compatible. Ollama on a laptop: http://<laptop>.local:11434/v1, with Ollama listening beyond the laptop (OLLAMA_HOST=0.0.0.0). exo: http://<host>:8082/v1. Nothing leaves your network: an address outside it is not used while Model preference is private."),
     "AGENT_REMOTE_MODEL": ("model", "Remote model", False, True, "e.g. gpt-oss-120b or qwen3:8b"),
     "AGENT_ONLINE_URL":   ("model", "Online model URL", False, True, "https://api.anthropic.com/v1 or https://api.openai.com/v1"),
     "AGENT_ONLINE_MODEL": ("model", "Online model", False, True, "e.g. claude-sonnet-4-6"),
+    "EYES_MODEL":         ("model", "Image model", False, False,
+                           "A vision model in this machine's Ollama that describes each image and lists what it "
+                           "finds: species, trees, sites, urban inventory, issues such as litter or pollution. The "
+                           "picture never leaves this machine. Blank = off. On 16 GB: qwen2.5vl:7b (`ollama pull "
+                           "qwen2.5vl:7b`). It is never asked about people."),
     "UI_ASK":             ("model", "Ask the node, on the dashboard", False, False,
                            "on (default) = a toggle on the dashboard opens a pane that asks this node's own model, on "
                            "this machine, about what the page shows. It reads and never changes anything; a change "
@@ -121,7 +124,7 @@ RUNTIME = {
                            "and no pane."),
     # packs — which load, and each pack's own settings, which describe() adds after these from every pack.yaml.
     "PACKS_ENABLED":      ("packs", "Enabled packs", False, False, "Empty = every pack in packs/. Or a comma-separated list of ids."),
-    "PACKS_ALLOW_CODE":   ("packs", "Allow code packs", False, False, "1 lets packs with adapter.py run. Read them first."),
+    "PACKS_ALLOW_CODE":   ("packs", "Allow code packs", False, False, "1 lets packs with adapter.py run: a pack's own Python, on this machine, with the node's privileges and everything it holds. Read them first."),
     "EE_PROJECT":         ("packs", "Earth Engine project", False, False, "Project id, not the service account number. Blank reads it from the key file."),
     "EE_KEY_FILE":        ("packs", "Earth Engine key file", False, False, "Path inside the container; the file goes in config/."),
     "COAST_MAX_KM":       ("packs", "Coast: max distance to sea, km", False, False, ""),
@@ -142,11 +145,20 @@ RUNTIME = {
                            "This never changes what a request carrying a token may read, from anywhere \u2014 the NAS, Home Assistant and the agent are unaffected at every level."),
     "MAP_TILES":          ("sharing", "Live map tiles", False, False, "Satellite and street view tiles from the internet. Each tile request tells a tile server which square of the planet this house is looking at. off (default) = tiles from the node's local copy of OpenStreetMap; on = live tiles. A keeper turns this on in Set up."),
     "UPDATE_CHECK":       ("sharing", "Tell me when a new version is out", False, False,
-                           "on (default) = once a day the node asks planetai.fab.city which version is current, with a plain "
+                           "on (default) = every hour the node asks planetai.fab.city which version is current, with a plain "
                            "request that carries nothing about this house. It does show Fab City's host this house's internet "
                            "address and that a PLANETAI node lives there. When a newer version is out, the page's header says so, "
                            "`planetai doctor` says so, and Telegram says so once per version. Nothing is installed: "
                            "`planetai update` stays yours to run. off = the node never asks."),
+    "SPECIES_MATCH":      ("sharing", "Name species with GBIF", False, False,
+                           "off (default) = a plant or animal found in an image keeps the scientific name as somebody "
+                           "here typed it, with no key. on = the node asks api.gbif.org which taxon that name is, so the "
+                           "same palm is the same species on every node. It sends the name and nothing else, never the "
+                           "picture and never where it was taken, but GBIF's server sees this house's internet address "
+                           "and the names it asks about. Once a week it also reads this country's list of introduced and invasive species "
+                           "(GRIIS, on GBIF), which tells GBIF the country, found from the time zone, and nothing else. And once a week it counts "
+                           "the open records others made in this node's seven cells, which tells GBIF the area "
+                           "this house is in, about 2 km across."),
     # Presence: the node saying "I am here" on Reticulum, and nothing else. Off by default, because
     # SHARE_LEVEL governs what this node ANSWERS when asked and this is the node speaking unprompted.
     "RETICULUM_PRESENCE":  ("sharing", "Announce this node on Reticulum", False, False,
@@ -169,14 +181,12 @@ RUNTIME = {
     "PARENT_API_URL":     ("sharing", "Parent node", False, False, "http://<district>:8080 — hourly means go here. Empty = none."),
     # system — tuning numbers, and the layout Arrange mode writes. Not "advanced": that is a page mode, and the header has its switch.
     "LOCAL_RADIUS_M":     ("system", "Local radius, m", False, False, "how far from the node a sensor can be and still count as this node's own, in metres"),
-    "BAD_RADIUS_KM":      ("system", "Bali Air Dispatch radius, km", False, False, "How far out the ring of other people's stations reaches."),
-    "BAD_MIN_SEPARATION_M": ("system", "Nearest a station may be, m", False, False, "A station closer than this to the node is assumed to be our own hardware, not a neighbour."),
     "STATIONS_SHOWN":     ("system", "Other people's stations listed", False, False,
                            "How many of the neighbourhood's stations the dashboard lists, nearest first. Default 3; "
                            "0 lists every one. This node's own hardware is always listed and is never counted here \u2014 "
                            "a house hiding its own sensors behind a press would be absurd. Nothing is discarded or "
                            "stopped: the page says how many it is not listing and one press lists them all. To collect "
-                           "fewer stations in the first place, turn the Bali Air Dispatch radius down instead."),
+                           "fewer stations in the first place, turn the stations pack's radius down instead."),
     "UI_GROUND":          ("system", "How the ground is drawn", False, False,
                            "svg (default) = the drawing this page has always made. map = MapLibre and deck.gl draw it "
                            "in this browser, so it pans and zooms; it needs WebGL2 and falls back to svg, saying why, "
@@ -186,10 +196,9 @@ RUNTIME = {
 # What an anonymous reader on the LAN may see the value of. Everything else shows as "•••• set" until the admin token is
 # presented (the dashboard's Set up view sends it once unlocked). Chat ids, sensor hosts, account names and remote URLs
 # are not secrets, but they are the household's, and GET /settings answers anyone on the WiFi (found 6 Sep 2026).
-PUBLIC = {"REPORT_EVERY", "REPORT_ANCHOR", "REPORT_DEPTH", "ALERT_LEVEL", "QUIET_HOURS", "QUIET_FROM", "QUIET_TO", "ALERT_LOCALE",
-          "MESH_ALERTS", "HA_DISCOVERY", "PACKS_ENABLED", "PACKS_ALLOW_CODE", "OPENMETEO_ENABLED", "BAD_ENABLED", "BAD_RADIUS_KM",
-          "BAD_MIN_SEPARATION_M", "BAD_EXCLUDE", "BAD_INCLUDE_INDOOR",
-          "LOCAL_RADIUS_M", "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "UI_GROUND", "MAP_TILES", "UPDATE_CHECK", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
+PUBLIC = {"REPORT_EVERY", "REPORT_ANCHOR", "REPORT_DEPTH", "LEARN_PUSH", "ALERT_LEVEL", "QUIET_HOURS", "QUIET_FROM", "QUIET_TO", "ALERT_LOCALE",
+          "MESH_ALERTS", "HA_DISCOVERY", "PACKS_ENABLED", "PACKS_ALLOW_CODE", "OPENMETEO_ENABLED",
+          "LOCAL_RADIUS_M", "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "EYES_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "UI_GROUND", "MAP_TILES", "UPDATE_CHECK", "SPECIES_MATCH", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
           "RETICULUM_PRESENCE", "RETICULUM_PRESENCE_RES"}
 # Which Set up tab shows each bootstrap key, read-only. The place itself is Basics; the machinery is System.
 BOOTSTRAP_GROUP = {k: "basics" for k in ("NODE_NAME", "NODE_CITY", "NODE_LAT", "NODE_LON", "NODE_TZ", "NODE_SCALE")}
@@ -197,8 +206,13 @@ BOOTSTRAP_GROUP = {k: "basics" for k in ("NODE_NAME", "NODE_CITY", "NODE_LAT", "
 BOOTSTRAP = {
     "NODE_NAME": "Name", "NODE_CITY": "City key", "NODE_LAT": "Latitude", "NODE_LON": "Longitude", "NODE_TZ": "Time zone",
     "NODE_SCALE": "Scale", "APP_PORT": "Port", "COMPOSE_PROFILES": "Extra containers", "MQTT_HOST": "Broker",
-    "BACKUP_DIR": "Backups", "BACKUP_REMOTE": "Off-machine copy", "BACKUP_KEEP": "Days of backups kept", "DATA_DIR": "Database location", "EXPORT_ENABLED": "Daily export", "IPFS_PUBLISH": "IPFS", "POLL_SECONDS": "Poll interval",
+    "BACKUP_DIR": "Backups", "BACKUP_REMOTE": "Off-machine copy", "BACKUP_KEEP": "Days of backups kept", "DATA_DIR": "Database location", "CAPTURES_DIR": "Pictures folder", "EXPORT_ENABLED": "Daily export", "IPFS_PUBLISH": "IPFS", "POLL_SECONDS": "Poll interval",
+    # Grafana (docs/site/grafana.md): on when COMPOSE_PROFILES names it, which `planetai grafana` does. Set up draws
+    # these as one block, with whether it is on and how to open it (Tomas, 24 Oct 2026: it was nowhere on the page).
+    "GRAFANA_BIND": "Grafana address", "GRAFANA_PORT": "Grafana port", "GRAFANA_ADMIN_PASSWORD": "Grafana password",
 }
+# Read at start and never shown: Set up says only whether it is set. Every other bootstrap value is printed as it is.
+BOOTSTRAP_SECRET = {"GRAFANA_ADMIN_PASSWORD"}
 
 # Values a key refuses. Most settings are free text on purpose — a node has to keep running through a typo — but a
 # report interval the scheduler cannot honour would make the node silent instead of wrong, which is worse. The help
@@ -207,6 +221,7 @@ CHOICES = {
     "REPORT_EVERY":  ("3", "4", "6", "8", "12", "24"),      # each divides 24, so the rhythm does not walk round the clock
     "REPORT_ANCHOR": tuple(str(h) for h in range(24)),
     "REPORT_DEPTH":  ("auto", "brief", "standard", "deep"),
+    "LEARN_PUSH":    ("all", "week", "off"),
     "ALERT_ENGINE":  ("rules", "shadow", "events"),
     "UI_MODE":       ("simple", "advanced", "learn"),
     # private first because it is the default and because the order is what every surface offers: `describe()`
@@ -216,7 +231,8 @@ CHOICES = {
     "UI_ASK":        ("on", "off"),
     "UI_GROUND":     ("svg", "map"),
     "MAP_TILES":     ("off", "on"),                          # live tiles leave the house; off by default, a keeper turns them on in Set up
-    "UPDATE_CHECK":  ("on", "off"),                          # a daily request to planetai.fab.city; on by default (Tomas, 30 Sep 2026)
+    "UPDATE_CHECK":  ("on", "off"),
+    "SPECIES_MATCH": ("on", "off"),                          # a plant or animal name asked of api.gbif.org; off by default (SPEC_species §2)                          # a daily request to planetai.fab.city; on by default (Tomas, 30 Sep 2026)
 }
 
 # Keys that change what leaves this machine, as opposed to what it does with what it keeps.
@@ -239,8 +255,14 @@ OUTWARD = {
     "AGENT_ONLINE_URL", "AGENT_ONLINE_MODEL", "AGENT_ONLINE_KEY",  # the one path off the network
     "AGENT_PREFER",         # which decides whether the online path is used at all
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_IDS",  # where the node speaks
-    "UPDATE_CHECK",         # a daily request to planetai.fab.city for the current version
+    "UPDATE_CHECK",         # an hourly request to planetai.fab.city for the current version
+    "SPECIES_MATCH",        # a finding's scientific name asked of api.gbif.org
+    "MAP_TILES",            # each live tile request names the square of the planet this house is looking at
 }
+
+# Keys that run code on this machine that is not the node's own. Set up asks before saving one of these, as it does
+# before an OUTWARD key, and quotes the key's own help to say what will run.
+RUNS_CODE = {"PACKS_ALLOW_CODE"}
 
 # Keys the reports release retired. Rows for them are left in `settings` and in .env, and nothing reads them: a
 # household that updates does not have a value it chose deleted out from under it. BRIEF_HOUR was the agent
@@ -321,30 +343,6 @@ def num(key: str, default: int) -> int:
     that an updating node keeps the rhythm it had instead of silently taking the new default."""
     v = (get(key, "") or "").strip()
     return int(v) if v.isdigit() else default
-
-
-def brief_migration(current: dict) -> dict:
-    """What a node on the old two-briefings schedule should be set to when it updates: the REPORT_* rows to write,
-    or nothing at all. Pure, so the test can run this function rather than a copy of its rule.
-
-    A node with BRIEF_MORNING=7 keeps seven o'clock and keeps speaking twice a day; it does not start speaking four
-    times a day because someone ran an update. A fresh install has none of the old keys, gets nothing written here,
-    and takes 6 and 6 from the defaults."""
-    if any((current.get(k) or "").strip() in CHOICES[k] for k in ("REPORT_EVERY", "REPORT_ANCHOR")):
-        return {}
-    if not any((current.get(k) or "").strip() for k in RETIRED[:3]):
-        return {}
-    anchor = (current.get("BRIEF_MORNING") or "").strip()
-    return {"REPORT_EVERY": "12", "REPORT_ANCHOR": anchor if anchor in CHOICES["REPORT_ANCHOR"] else "6"}
-
-
-def migrate_briefings() -> dict:
-    """Run brief_migration against this node and write what it says. Returns what was written, for the log."""
-    current = {k: get(k, "") for k in (*RETIRED, "REPORT_EVERY", "REPORT_ANCHOR")}
-    writes = brief_migration(current)
-    for k, v in writes.items():
-        set(k, v)
-    return writes
 
 
 def _mask(v: str) -> str:
@@ -471,7 +469,7 @@ def describe(unlocked: bool = False, public: frozenset | set = PUBLIC) -> dict:
                                "choices": list(CHOICES[k]) if k in CHOICES else None,
                                # None when the image has no defaults file, never a guess.
                                "default": (defaults().get(k) or {}).get("default"),
-                               "outward": k in OUTWARD})
+                               "outward": k in OUTWARD, "runs_code": k in RUNS_CODE})
     # The packs' own keys, after the node's. They carry a `default` because pack.yaml states one
     # beside every key; the node's own rows do not, which is the other half of this gap and needs
     # somewhere in the image to read them from — `.env.example` is at the repo root and the app
@@ -499,9 +497,10 @@ def describe(unlocked: bool = False, public: frozenset | set = PUBLIC) -> dict:
             "key": k, "group": "packs", "label": k, "secret": secret, "restart": False,
             "help": r["help"], "value": _mask(v) if hide else v, "set": bool(v),
             "source": "gui" if k in db else ("env" if os.getenv(k) else "default"),
-            "choices": None, "outward": k in OUTWARD,
+            "choices": None, "outward": k in OUTWARD, "runs_code": k in RUNS_CODE,
             "default": r["default"], "pack": r["pack"]})
     for k, label in BOOTSTRAP.items():
-        out["bootstrap"].append({"key": k, "label": label, "value": os.getenv(k, ""),
-                                 "group": BOOTSTRAP_GROUP.get(k, "system")})
+        v = os.getenv(k, "")
+        out["bootstrap"].append({"key": k, "label": label, "value": ("set" if v else "") if k in BOOTSTRAP_SECRET else v,
+                                 "group": BOOTSTRAP_GROUP.get(k, "system"), "secret": k in BOOTSTRAP_SECRET})
     return out

@@ -1,0 +1,18 @@
+# This node's database, as planetai_grafana (config/grafana/role.sh). Not editable from the UI: a keeper who wants
+# another source adds one beside it.
+apiVersion: 1
+datasources:
+  - name: node
+    uid: planetai-node
+    type: grafana-postgresql-datasource
+    url: db:5432
+    user: planetai_grafana
+    secureJsonData:
+      password: $__file{/secret/db_password}
+    jsonData:
+      database: planetai
+      sslmode: disable
+      postgresVersion: 1600
+      maxOpenConns: 4
+    isDefault: true
+    editable: false

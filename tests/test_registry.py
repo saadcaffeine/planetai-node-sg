@@ -68,6 +68,29 @@ try:
                        capture_output=True, text=True)
     assert r.returncode == 1 and "hand-edited" in r.stdout, f"a hand edit passed:\n{r.stdout}"
     print("  a hand-edited index.json fails the gate")
+
+    # adapter, both directions (review item 21: the registry's wired.py, read against the pin and this tree)
+    shutil.copy(SOURCES / "index.json", bad)
+    (fixture / "app").mkdir()
+    for m in ("sources.py", "bootstrap.py"):
+        shutil.copy(ROOT / "app" / m, fixture / "app" / m)
+    for p in ROOT.glob("packs/*/pack.yaml"):
+        (fixture / "packs" / p.parent.name).mkdir(exist_ok=True)
+        shutil.copy(p, fixture / "packs" / p.parent.name / "pack.yaml")
+    shutil.rmtree(fixture / "packs" / "bad")
+    r = subprocess.run([sys.executable, "tools/check_registry.py"], cwd=fixture, capture_output=True, text=True)
+    assert r.returncode == 0 and "adapters name something here" in r.stdout, f"the real tree fails:\n{r.stdout}"
+    gone = next(e for e in index if (e.get("adapter") or "").startswith("pack:"))
+    shutil.rmtree(fixture / "packs" / gone["adapter"][5:])
+    r = subprocess.run([sys.executable, "tools/check_registry.py"], cwd=fixture, capture_output=True, text=True)
+    assert r.returncode == 1 and f"adapter `{gone['adapter']}` names nothing here" in r.stdout, r.stdout
+    print(f"  an adapter naming a pack that is not here ({gone['adapter']}) fails the gate, by name")
+    unread = next(e for e in index if not e.get("adapter"))
+    (fixture / "packs" / "reader").mkdir()
+    (fixture / "packs" / "reader" / "pack.yaml").write_text(f"id: reader\nsources: [{unread['slug']}]\n")
+    r = subprocess.run([sys.executable, "tools/check_registry.py"], cwd=fixture, capture_output=True, text=True)
+    assert r.returncode == 1 and f"`{unread['slug']}` is read by a pack and its entry names no `adapter`" in r.stdout, r.stdout
+    print("  a pack reading an entry that names no adapter fails the gate, by name")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 

@@ -1,4 +1,4 @@
-"""When the node writes a report, and what an updating node inherits.
+"""When the node writes a report.
 
 The bug this file exists for: three schedules sending messages from two containers, none of them aware of the
 others. Node #1's household got the 06:00 report from the app, nothing at all from the agent's 07:00 attempt
@@ -12,28 +12,6 @@ sys.path.insert(0, "app")
 
 import report
 import settings as st
-
-# ---------------------------------------------------------------- what an updating node inherits
-# A fresh install: nothing to move, and the defaults are 6 and 6.
-assert st.brief_migration({}) == {}
-assert st.brief_migration({"ALERT_LEVEL": "act"}) == {}
-
-# Node #2 and #3 shipped with BRIEFINGS=1 in .env and never touched the hours: twice a day, from 6.
-assert st.brief_migration({"BRIEFINGS": "1"}) == {"REPORT_EVERY": "12", "REPORT_ANCHOR": "6"}
-# A household that moved its morning report to seven keeps seven, and keeps twice a day.
-assert st.brief_migration({"BRIEFINGS": "1", "BRIEF_MORNING": "7"}) == {"REPORT_EVERY": "12", "REPORT_ANCHOR": "7"}
-assert st.brief_migration({"BRIEF_EVENING": "20"}) == {"REPORT_EVERY": "12", "REPORT_ANCHOR": "6"}
-# Someone who has already chosen a rhythm is not overruled.
-assert st.brief_migration({"BRIEFINGS": "1", "BRIEF_MORNING": "7", "REPORT_EVERY": "4"}) == {}
-assert st.brief_migration({"BRIEFINGS": "1", "REPORT_ANCHOR": "9"}) == {}
-# ...but a value that is not one of the accepted ones is not a choice. `update.sh` copies a key from
-# .env.example with its whole line; if a comment ever comes along for the ride, the migration must still run.
-assert st.brief_migration({"BRIEFINGS": "1", "REPORT_EVERY": "# 3 | 4 | 6"}) == {"REPORT_EVERY": "12", "REPORT_ANCHOR": "6"}
-assert st.brief_migration({"BRIEFINGS": "1", "BRIEF_MORNING": "99"})["REPORT_ANCHOR"] == "6", "an hour that is not an hour"
-# Idempotent: the second start finds REPORT_EVERY set and writes nothing.
-_first = st.brief_migration({"BRIEFINGS": "1", "BRIEF_MORNING": "7"})
-assert st.brief_migration({"BRIEFINGS": "1", "BRIEF_MORNING": "7", **_first}) == {}
-print("an updating node keeps the rhythm it had; a fresh one gets 6 and 6")
 
 # ---------------------------------------------------------------- the settings themselves
 for k in ("REPORT_EVERY", "REPORT_ANCHOR", "REPORT_DEPTH"):

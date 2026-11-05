@@ -14,7 +14,7 @@ env = open(".env.example").read()
 # wrong one.
 gui = "".join(open("app/static/" + f).read()
                 for f in ("index.html", "dashboard.js", "dashboard.css"))
-main = open("app/main.py").read()
+main = open("app/main.py").read() + open("app/auth.py").read()   # auth.py: tokens and allowlists, since 22 Oct
 
 # v0.17 storage
 assert "${DATA_DIR:-db}" in open("docker-compose.yml").read(), "compose: DATA_DIR volume var"
@@ -104,7 +104,7 @@ assert not re.search(r"^BRIEF", env, re.M), ".env.example: the briefing keys are
 assert "BRIEF_HOUR" not in open("docker-compose.yml").read(), "compose: the agent's own report hour is gone"
 assert "def run_report" in main and "def briefing(" not in main and "def run_briefings(" not in main, "main.py: one scheduler"
 assert "def report_latest" in main and "def report_bundle" in main and "def report_now" in main, "main.py: the report endpoints"
-assert 'RedirectResponse("/report/latest", status_code=301)' in main, "main.py: /briefing must not 404 a dashboard left open"
+assert '"/briefing"' not in main, "main.py: the v0.38 redirect for a dashboard left open through that update is gone (23 Oct 2026)"
 assert "reports_due" in open("init.sql").read() and "held_quiet" in open("init.sql").read(), "init.sql: the reports table"
 assert "def bundle(" in open("app/report.py").read() and "def sheet(" in open("app/report.py").read(), "app/report.py"
 assert "FROM reports ORDER BY ts DESC LIMIT 1" in main, "main.py: /report/latest orders by ts — a report written on request has no due hour"
@@ -150,8 +150,9 @@ assert "a household would ignore" in open("packs/earth/README.md").read(), \
 for _n in ("0.0414", "0.0404", "0.0164", "0.0151"):
     assert _n in open("packs/earth/README.md").read(), f"the README must carry the {_n} measurement"
 # v0.33.1 — every comparison is reachable, so a NAS can archive the ones that cannot be recomputed cheaply
-assert 'def _earth_changes' in main and '"changes": changes' in main
-assert 'pattern=r"^(\\d{4}_\\d{4})?$"' in main, "main.py: the pair must be a pattern, not a path"
+_er = open("packs/earth/routes.py").read()          # the earth routes are the pack's since 23 Oct 2026
+assert 'pack.changes()' in _er and '"changes": changes' in _er
+assert 'pattern=r"^(\\d{4}_\\d{4})?$"' in _er, "packs/earth/routes.py: the pair must be a pattern, not a path"
 assert 'def earth(ddir)' in open("tools/nas/pull.py").read(), "tools/nas/pull.py: archive the earth results"
 print("one land-change number, its alert, and the results a NAS can archive")
 # v0.33.3 — `planetai update` ships a pack's code, not its libraries. Node #1 got ModuleNotFoundError nine
@@ -160,6 +161,22 @@ assert "def require(" in open("packs/earth/adapter.py").read(), "packs/earth/ada
 for _s in ("fetch", "change", "similar"):
     assert "A.require(" in open(f"packs/earth/{_s}.py").read(), f"packs/earth/{_s}.py must preflight its libraries"
 assert "planetai packs install" in open("update.sh").read(), "update.sh must say when a pack needs installing"
+# `packs install` built `pip:` and added `env:` for every pack folder, enabled or not (review 21 Oct, loader fixes).
+# It reads the packs the node loads, from GET /packs; with the node down, every folder.
+import subprocess as _sp2, tempfile as _tf2
+_cli = open("bin/planetai").read()
+_fns = _cli[_cli.index("pack_yamls() {"):_cli.index("cmd_packs() {")]
+with _tf2.TemporaryDirectory() as _t:
+    for _id, _y in (("earth", "pip: [rasterio, numpy]\nenv:\n  - EARTH_X=1\n"), ("place", "pip: [earthengine-api]\n"),
+                    ("heat", "id: heat\n")):
+        _os.makedirs(f"{_t}/packs/{_id}"); open(f"{_t}/packs/{_id}/pack.yaml", "w").write(_y)
+    def _run(api_out):
+        sh = f'api() {{ printf %s {api_out!r}; }}\n' + _fns + "\npack_pips; echo ---; pack_envs\n"
+        return _sp2.run(["bash", "-c", sh], cwd=_t, capture_output=True, text=True, check=True).stdout
+    assert _run('[{"id": "heat"}, {"id": "place"}]') == "earthengine-api\n---\n", "only the loaded packs' pip: and env:"
+    assert _run('[{"id": "earth"}]') == "numpy\nrasterio\n---\nEARTH_X=1\n"
+    assert _run("") == "earthengine-api\nnumpy\nrasterio\n---\nEARTH_X=1\n", "node down: every folder on disk"
+print("packs install builds and adds only for the packs the node loads")
 assert 'grep -q "planetai packs install" <<<' in open("update.sh").read(), "under pipefail, not a pipe into grep -q"
 print("a pack that lacks its libraries says which command installs them")
 # v0.33.8 — `planetai run earth change --all` is documented. Its behaviour, and the refusal of an argument
@@ -171,9 +188,10 @@ print("change --all is documented; tests/test_earth.py runs it")
 assert _os.path.exists("packs/earth/frames.py"), "packs/earth/frames.py"
 assert "def fit_view" in open("packs/earth/adapter.py").read(), "the projection must be fittable once"
 assert '"view"' in open("packs/earth/frames.py").read(), "the projection must be kept, not refitted per year"
-assert '@app.get("/earth/year.png")' in main and 'f"year_{year}.png"' in main, \
-    "main.py: a frame is addressed by an integer year, never by a name from the request"
-assert '"frames": frames' in main and '"dir": str(d)' in main
+_er = open("packs/earth/routes.py").read()          # the earth routes are the pack's since 23 Oct 2026
+assert '@router.get("/earth/year.png")' in _er and 'f"year_{year}.png"' in _er, \
+    "packs/earth/routes.py: a frame is addressed by an integer year, never by a name from the request"
+assert '"frames": frames' in _er and '"dir": str(d)' in _er
 # The satellite card's controls are hooked by data-sat= rather than by ids: the same component is
 # drawn more than once on a page (the node's own record and the imagery), and an id cannot be.
 #
@@ -197,8 +215,8 @@ assert "not a photograph" in gui.lower() or "Not a photograph" in gui, \
     "gui: a rendering of a model must not be presented as a photograph"
 print("the years render, animate, and are not called photographs")
 assert 'libexpat1' in open("app/Dockerfile").read(), "app/Dockerfile: rasterio cannot import without libexpat1"
-assert '@app.get("/earth")' in main and '@app.get("/earth/change.png")' in main
-assert 'Path(str((want or {}).get("png", ""))).name' in main, "main.py: the png name must be stripped of path components"
+assert '@router.get("/earth")' in _er and '@router.get("/earth/change.png")' in _er
+assert 'Path(str((want or {}).get("png", ""))).name' in _er, "the png name must be stripped of path components"
 # The earth card became the `satellite` component, drawn twice on the Land band — the node's own
 # AlphaEarth record and the Earth Engine imagery — which is why it is a component and not an id.
 assert 'data-component="satellite"' in gui, "gui: the satellite card"
@@ -251,9 +269,9 @@ assert "DELETE FROM channel_roles" in _load
 
 # v0.35 — the trust pack. Node #1 held a kit at 3% coverage reporting a timestamp four minutes old, and three
 # collocated indoor kits where one read 1.5x the other two. Nothing said so.
-_trust = {r["id"]: r for r in yaml.safe_load(open("packs/trust/rules.yml"))}
+_trust = {r["id"].split("/", 1)[1]: r for r in yaml.safe_load(open("config/rules.yml")) if r["id"].startswith("trust/")}
 assert set(_trust) == {"channel_dead", "coverage_low", "peer_disagreement"}, "three rules, no more"
-assert not _os.path.exists("packs/trust/cells.yml"), "a trust score is never an Index cell"
+assert not _os.path.exists("packs/trust"), "trust is core since 22 Oct 2026, and a trust score is never an Index cell"
 assert "60" in _trust["coverage_low"]["sql"], "coverage_low's floor is 60% of the last 7 days"
 assert "50" in _trust["peer_disagreement"]["sql"], "collocation is 50 m"
 assert "0.85" in _trust["peer_disagreement"]["sql"] and "1.15" in _trust["peer_disagreement"]["sql"]
@@ -271,7 +289,31 @@ assert "last_flat_bucket" not in _trust["channel_dead"]["sql"], "the 'frozen rig
 for _r in _trust.values():
     assert set(_r["message"]) >= {"en", "id"}, "every alert speaks English and Indonesian"
     assert "µg" not in _r["message"]["en"], "statistics stay out of alert messages"
-print("the trust pack ships three rules and no cells")
+print("trust ships three core rules and no cells")
+
+# update.sh step 5c: trust leaves a node's pack lists, since its rules are the core's now, and a list that named only
+# trust stays, because an emptied list means every pack. Run the step as update.sh runs it, under set -euo pipefail.
+import subprocess as _sp, tempfile as _tf
+_u = open("update.sh").read()
+_step = _u[_u.index("# 5c."):_u.index("# 5d.")]
+_STUB = r"""
+pq() {   # the settings table, as a key=value file
+  if [[ "$1" == SELECT* ]]; then k="$(sed -E "s/.*key = '([A-Z_]+)'.*/\1/" <<< "$1")"; sed -n "s/^${k}=//p" "$DB"
+  else v="$(sed -E "s/.*SET value = '([^']*)'.*/\1/" <<< "$1")"; sed -i.bak "s/^PACKS_ENABLED=.*/PACKS_ENABLED=${v}/" "$DB"; rm -f "$DB.bak"; fi
+}
+"""
+def _5c(db, env):
+    with _tf.TemporaryDirectory() as t:
+        open(f"{t}/db", "w").write(db); open(f"{t}/.env", "w").write(env)
+        _sp.run(["bash", "-c", "set -euo pipefail\n" + _STUB + _step], cwd=t, env={**_os.environ, "DB": f"{t}/db"},
+                capture_output=True, text=True, check=True)
+        return open(f"{t}/db").read(), open(f"{t}/.env").read()
+assert _5c("PACKS_ENABLED=air-quality,trust,heat\n", "PACKS_ENABLED=trust,heat # mine\n") == \
+    ("PACKS_ENABLED=air-quality,heat\n", "PACKS_ENABLED=heat\n")
+assert _5c("PACKS_ENABLED=trust\n", "PACKS_ENABLED=\n") == ("PACKS_ENABLED=trust\n", "PACKS_ENABLED=\n"), "trust alone stays"
+assert _5c("PACKS_ENABLED=heat\n", "OTHER=1\n") == ("PACKS_ENABLED=heat\n", "OTHER=1\n"), "nothing to do, nothing done"
+assert _5c("", "") == ("", ""), "a node with no list at all"
+print("update.sh 5c: trust leaves the pack lists, and a list of only trust stays")
 
 # v0.35 — the rhythm rule told households the evening PM peak was "the burning and the traffic". The noise channel
 # we already store says otherwise: r(pm25, noise) = -0.24 at node #1, and the loud hours are the clean ones.
@@ -296,21 +338,26 @@ print("the trust card and its health check are wired")
 # readings in the last 2 hours). Without it, a sensor gone fully dark that happened to be flat before it died
 # reads as "1 channel frozen" on the card, and the health check's fix text calls it a kit that "still reports" —
 # both false for a sensor that is simply offline.
-assert "alive AS (\n          SELECT sensor_id, max(ts) AS kit_ts FROM readings\n          WHERE ts > now() - interval '2 hours'" in main, \
-    "/trust must join the same 'alive' CTE channel_dead uses (2-hour freshness gate), or a dead kit reads as a merely frozen channel"
-assert "JOIN alive a USING (sensor_id)" in main, "frozen_channels must be gated by the kit still being alive, not just by the flat hours"
+# 22 Oct 2026: it had drifted again, still counting six flat hours out of 24 after channel_dead moved to a full day.
+# /trust now runs channel_dead's own SQL, so the alive gate and every other condition are the rule's, by construction.
+assert 'if r["id"] == "trust/channel_dead")' in main and "AS channel_dead GROUP BY 1" in main, \
+    "/trust counts frozen channels with trust/channel_dead's own SQL, never a copy of it"
+assert "JOIN alive a USING (sensor_id)" in _trust["channel_dead"]["sql"], "frozen_channels must be gated by the kit still being alive"
 # v0.33.8 — the heat rule fired on Kuta Selatan's ordinary weather: node #1's hot room was over 32 °C apparent for
 # 86% of every reading, so 32 was its baseline, not an event. The line is 35 for the rule and 32 for the cell (a
 # count of exposure is not an interruption), and the alert texts must not move without Tomas. 9 October: they
 # moved WITH him — release D of the language split names whose line in every threshold alert (rule 10 of
-# docs/SPEC_language.md), and heat_stress_now drops "dangerously" (danger is a register, not a volume).
+# docs/SPEC_language.md), and heat_stress_now drops "dangerously" (danger is a register, not a volume). 14 October:
+# moved with him again — one line per issue, named with its unit: "this house's heat line, 35 °C feels-like".
 _heat = {r["id"]: r for r in yaml.safe_load(open("packs/heat/rules.yml"))}
 assert ">= 35" in _heat["heat_stress_now"]["sql"], "heat_stress_now: 32 is node #1's baseline; the line is 35"
 assert ">= 40" in _heat["heat_danger"]["sql"], "heat_danger stays at the heat-index danger line"
 assert ">= 32" in open("packs/heat/cells.yml").read(), "the Social cell counts hours over 32, unchanged"
-assert _heat["heat_stress_now"]["cooldown_minutes"] == 240, "at 35 the cooldown stops mattering; it stays 240"
-for _r, _lang, _words in (("heat_stress_now", "en", "It is too hot at {name}: it feels like {at} °C — this house's own line is {line} °C, measured here."),
-                          ("heat_danger", "en", "DANGER at {name}: it feels like {at} °C — the danger line here is {line} °C.")):
+assert _heat["heat_stress_now"]["cooldown_minutes"] == 1440, \
+    "once a room a day: in Oct 2026 the hot room was over 35 for 44% of hours and 240 repeated it 5.7 times a day (README)"
+assert _heat["heat_danger"]["cooldown_minutes"] == 120, "danger keeps interrupting as often as it must"
+for _r, _lang, _words in (("heat_stress_now", "en", "It is too hot at {name}: it feels like {at} °C — past this house's heat line, {line} °C feels-like, measured here."),
+                          ("heat_danger", "en", "Dangerous heat at {name}: it feels like {at} °C, past the danger line here, {line} °C.")):
     assert _words in _heat[_r]["message"][_lang], f"{_r} [{_lang}]: the message template needs Tomas's sign-off to change"
 assert "Kuta Selatan" in open("packs/heat/README.md").read(), "docs/PACKS.md: say which place you wrote for"
 print("the heat line is this place's, and every threshold alert names whose line it is")
@@ -347,7 +394,7 @@ print("the ground is drawn from the node's own coordinates and the caption is on
 # they sent node #1's household three warnings on Telegram, all wrong, and would have sent them again every
 # evening. The fault under all three: a statement about an instrument needs a week. Every rule now joins
 # `seasoned`, so a sensor with under seven days of readings on this node is never named.
-_trust = {r["id"]: r for r in yaml.safe_load(open("packs/trust/rules.yml"))}
+_trust = {r["id"].split("/", 1)[1]: r for r in yaml.safe_load(open("config/rules.yml")) if r["id"].startswith("trust/")}
 for _id in ("channel_dead", "coverage_low", "peer_disagreement"):
     assert "HAVING min(ts) < now() - interval '7 days'" in _trust[_id]["sql"], \
         f"{_id}: a sensor with under a week of readings here is never named"
@@ -374,7 +421,7 @@ else:
     # that never runs the SQL.
     assert trustdb.Node(trustdb.week(_real, _at)).run(_trust["peer_disagreement"], _at), \
         "given a week, the rules must still be able to speak — otherwise this test proves nothing"
-    print("the trust pack says nothing about a sensor younger than a week")
+    print("trust says nothing about a sensor younger than a week")
 
     # channel_dead, over Ungasan Kit's real light series (5-7 September): 0 from dusk to dawn, eleven flat hours
     # ending in the latest bucket, then 4 -> 1259 lux through the day. The v0.35 rule matched it at 21:14 with
@@ -430,11 +477,11 @@ import os as _os  # noqa: E402
 # both packs exist and are what they say they are
 _np = yaml.safe_load(open("packs/nearby/pack.yaml"))
 _fp = yaml.safe_load(open("packs/forecast/pack.yaml"))
-assert _np["kind"] == "data" and _np["scales"] == ["community"], "nearby: a data pack about this address"
+assert _np["kind"] == "code" and _np["scales"] == ["community"], "nearby: rules that are data, scripts that are code, about this address"
 assert _fp["kind"] == "code" and _fp["scales"] == ["community"], "forecast: a code pack about this address"
 assert not _os.path.exists("packs/nearby/adapter.py"), \
-    "nearby has no adapter: the Bali Air Dispatch fetch lives in app/sources.py, and a second one would store " \
-    "every station twice — the same duplicate the pack exists to refuse, one layer up"
+    "nearby has no adapter: the Bali Air Dispatch fetch lives in packs/bali-air-dispatch, and a second one would " \
+    "store every station twice — the same duplicate the pack exists to refuse, one layer up"
 
 # neither pack may grow an Index cell. `live` means measured here; the ring is other people's and a forecast is
 # nobody's measurement of this place. Environmental|City already exists in air-quality over the same stations.
@@ -459,16 +506,17 @@ for _id, _r in _nr.items():
     if "message" in _r:
         assert set(_r["message"]) == {"en", "id", "es"}, f"nearby/{_id}: three languages"
 
-# the four exclusions, and the audit that proves them
-_src = open("app/sources.py").read()
-assert "def bad_verdicts(" in _src, "app/sources.py: one pure function decides the ring, so the audit cannot drift"
+# the four exclusions, and the audit that proves them (in packs/bali-air-dispatch since the release after v0.82.3)
+_src = open("packs/bali-air-dispatch/adapter.py").read()
+assert "def verdicts(" in _src, "bali-air-dispatch: one pure function decides the ring, so the audit cannot drift"
 for _w in ("identity", "proximity", "by hand", "same device"):
-    assert _w in _src, f"app/sources.py: the `{_w}` exclusion"
-assert "BAD_MIRROR_PREFIXES" in _src
+    assert _w in _src, f"bali-air-dispatch: the `{_w}` exclusion"
+assert "MIRROR_PREFIXES" in _src
+_benv = "\n".join(yaml.safe_load(open("packs/bali-air-dispatch/pack.yaml"))["env"])
 for _k in ("BAD_MIN_SEPARATION_M", "BAD_EXCLUDE", "BAD_INCLUDE_INDOOR"):
-    assert re.search(rf"^{_k}=", env, re.M) and f'"{_k}"' in settings, f".env.example and settings.py: {_k}"
-assert re.search(r"^BAD_RADIUS_KM=15$", env, re.M), \
-    ".env.example: 15 km, which is 6 real neighbours at node #1 against 3 at 10 km and 1 at 5"
+    assert re.search(rf"^{_k}=", _benv, re.M), f"bali-air-dispatch pack.yaml: {_k}"
+assert re.search(r"^BAD_RADIUS_KM=15$", _benv, re.M), \
+    "bali-air-dispatch: 15 km, which is 6 real neighbours at node #1 against 3 at 10 km and 1 at 5"
 
 # both endpoints, and the two surfaces they reach
 #
@@ -477,7 +525,8 @@ assert re.search(r"^BAD_RADIUS_KM=15$", env, re.M), \
 # coordinate, grouped by the cell it falls in, with its own distance and its own 15-minute mean. Two
 # station lists on one page would be the design error, so each assertion below is the finding the old
 # card carried, read off the section that carries it now. Each still goes red if the capability goes.
-assert "def nearby(" in main and "def forecast(" in main, "main.py: /nearby and /forecast"
+assert "def nearby(" in open("packs/nearby/routes.py").read() and "def forecast(" in open("packs/forecast/routes.py").read(), \
+    "/nearby and /forecast, served by their packs since 23 Oct 2026"
 assert 'data-card="forecast"' in gui, "the dashboard: the forecast card"
 assert re.search(r"^function drawForecast\(", gui, re.M), \
     "drawForecast must be top level: defined inside another body it still parses, and check_ui.py cannot see it"
@@ -507,41 +556,44 @@ assert 'esc(s.url)}" target="_blank" rel="noopener"' in gui, \
 
 # v0.48 — presence. A node announcing "I am here" on Reticulum is the node speaking unprompted, so it is
 # its own setting and it is off until somebody turns it on; SHARE_LEVEL governs what a node ANSWERS.
-_bridge = open("app/reticulum_bridge.py").read()
 assert '"RETICULUM_PRESENCE":' in settings and '"RETICULUM_PRESENCE_RES":' in settings, \
     "app/settings.py: presence is a runtime setting, so a household can turn it off from the dashboard"
-assert re.search(r'PRESENCE_RES_FLOOR\s*=\s*[0-6]\b', main), \
-    "main.py: a floor on how exact the announced cell may be. Without it a settings box publishes a street."
-assert "min(r, PRESENCE_RES_FLOOR)" in main, "the floor has to be applied, not merely declared"
+_presm = open("app/presence.py").read()           # presence has a module of its own since 24 Oct 2026
+assert re.search(r'PRESENCE_RES_FLOOR\s*=\s*[0-6]\b', _presm), \
+    "app/presence.py: a floor on how exact the announced cell may be. Without it a settings box publishes a street."
+assert "min(r, PRESENCE_RES_FLOOR)" in _presm, "the floor has to be applied, not merely declared"
 assert '"/presence"' in main[main.index("_SHARE_OFF = "):main.index("_SHARE = {")], \
     ("/presence must answer at SHARE_LEVEL=off: the reticulum bridge is another container with no token, "
      "and on the `open` list only it would be refused on a default node and never announce")
-assert '"enabled": False' in main, "/presence says nothing at all until presence is on"
+assert '"enabled": False' in _presm, "/presence says nothing at all until presence is on"
 # scoped to /presence's own body: cell_to_parent also appears in the distance helper, so a bare
 # substring check passed even with the coarsening taken out of the thing that announces
-_pres = main[main.index('@app.get("/presence")'):main.index("def _cell(")]
+_pres = _presm[_presm.index('@router.get("/presence")'):_presm.index("def _node_cell(")]
 
 # The Network view printed "It announces; it does not yet listen. Nothing here collects the announces
 # other Reticulum nodes make" on every node whose bridge was up — directly beneath the card listing the
 # nodes it had just heard, with a name and a distance in it. The bridge registers PresenceHandler at
 # import and unconditionally, so a node has always listened; RETICULUM_PRESENCE governs whether it
 # SPEAKS. The copy predated the handler and shipped in three languages. Seen on node #1, v0.53-2.
-_bridge = open("app/reticulum_bridge.py").read()
-assert "register_announce_handler" in _bridge, (
-    "the bridge no longer collects other nodes' announces — if that is deliberate, the dashboard has "
-    "to say so again, and this assertion is what stops it being said while the handler still runs")
+# The bridge is fabcity/planetai-reticulum since 23 Oct 2026; its tests/test_peers.py holds the handler there.
 for _claim in ("does not yet listen", "belum mendengarkan", "todavía no escucha"):
     assert _claim not in gui, (
-        f"dashboard.js still tells the household {_claim!r} while reticulum_bridge.py registers an "
+        f"dashboard.js still tells the household {_claim!r} while the bridge registers an "
         "announce handler and the Network view lists heard peers above it")
 assert "cell_to_parent" in _pres and "_presence_res()" in _pres, \
     "the announced cell is a COARSE parent of this node's own cell, never the cell itself"
-assert "register_announce_handler" in _bridge, \
-    "the bridge has to listen as well as announce, or no node ever hears another"
-assert 'aspect_filter = "planetai.presence"' in _bridge, "on its own aspect, not on LXMF delivery"
-assert "/peers" in _bridge, "and hand what it heard to the node"
-assert "if h == RNS.hexrep(PRESENCE.hash" in _bridge, "a node must not list its own announce as a peer"
-print("presence: off by default, coarse by construction, and the bridge listens as well as announces")
+print("presence: off by default, and coarse by construction")
+
+# Decision 2 of docs/decisions/2026-10-23-reticulum-licence.md: the AGPL core never imports RNS or LXMF. The bridge
+# is fabcity/planetai-reticulum, fetched at one pinned commit and built on the node; the core talks to it over HTTP.
+import glob as _glob  # noqa: E402
+_rns = [f for f in _glob.glob("**/*.py", recursive=True) if not f.startswith(("reticulum/", "docs/"))
+        and re.search(r"^\s*(import|from)\s+(RNS|LXMF)\b", open(f, encoding="utf-8").read(), re.M)]
+assert not _rns, f"these import RNS or LXMF, which belong in fabcity/planetai-reticulum: {_rns}"
+assert compose["services"]["reticulum"]["build"] == {"context": "./reticulum"}, \
+    "the bridge is built from the copy planetai reticulum fetches, not from anything in this repository"
+assert re.search(r'^RETICULUM_REF="[0-9a-f]{40}"$', cli, re.M), "the bridge is pinned to one full commit, never a branch"
+print("the core imports neither RNS nor LXMF; the bridge comes from its own repository at a pinned commit")
 
 # the scripts each pack promises in its README
 for _p, _s in (("nearby", ("stations", "status", "verify", "backfill")),
@@ -559,6 +611,9 @@ agent = open("app/agent_loop.py").read()
 assert "async def node_session(" in agent, "agent_loop.py: the node_session helper"
 assert agent.count("streamable_http_client(") == 1, \
     "agent_loop.py: only node_session may open an MCP session — a second one is a session outliving a question"
+# a second person in the house messaging the bot heard nothing (audit, 15 Oct): an unknown chat is told once, with its id
+assert "told_unknown.add(chat)" in agent and "This node answers its household only" in agent, \
+    "agent_loop.py: an unknown chat must be told once why the node is quiet, and how to be added"
 assert re.search(r"^    offset, history, pins, pending = ", agent, re.M), \
     "agent_loop.py: main's poll loop must sit at the top of main, outside any MCP session — indented deeper it is " \
     "nested in one again, and that session outlives the question (refresh_ladder has a `while True` of its own, so " \

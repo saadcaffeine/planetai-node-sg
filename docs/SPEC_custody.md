@@ -281,7 +281,7 @@ sensors.
 
 **Pack SQL that would have changed under the alternative** (teach each pack about `_1h`): both
 `packs/air-quality/cells.yml` cells, `packs/heat/cells.yml`, `packs/insight/rules.yml` ×4,
-`packs/air-quality/rules.yml` ×6, `packs/trust/rules.yml` ×3 — and every pack anyone writes afterwards.
+`packs/air-quality/rules.yml` ×6, trust's three in `config/rules.yml` — and every pack anyone writes afterwards.
 Rejected on that count alone.
 
 One consequence to state plainly: after this, `readings` at a parent holds hourly means and raw readings under

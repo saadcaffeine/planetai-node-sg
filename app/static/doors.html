@@ -1,6 +1,31 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script>
+/* A phone goes to the phone page, decided once, before anything else loads (SPEC_mobile §4):
+   a coarse pointer and a short screen side under 600 px. Never on resize — a narrow desk window
+   and a tablet stay here. An explicit ?layout=doors|mobile is remembered in this browser; a hash
+   the phone page has no section for (#setup, #data, #wall, …) keeps the doors. The redirect keeps
+   the rest of the query string (?fixture= must survive it) and the hash. */
+(function () {
+  var q = new URLSearchParams(location.search), layout = q.get('layout'), hash = location.hash || '';
+  var PHONE = matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+  if (PHONE) document.documentElement.dataset.phone = '1';   /* reveals the "Phone view" link */
+  var mem = null;
+  try { mem = localStorage.getItem('planetai_layout'); } catch (e) { /* a private window remembers nothing; the rule decides every time */ }
+  if (layout === 'doors' || layout === 'mobile') {            /* classic is never remembered: it is reached on purpose */
+    try { localStorage.setItem('planetai_layout', layout); } catch (e) {}
+    mem = layout;
+  }
+  if (layout === 'mobile') return;                            /* ui() serves the phone page; nothing to do here */
+  var mobileHash = (hash === '' || hash === '#now' || hash === '#place' || hash === '#node');
+  if (!mobileHash) return;                                    /* docs and the bot link to sections the phone page has not */
+  if (!layout && (mem === 'mobile' || (PHONE && mem !== 'doors'))) {
+    q.set('layout', 'mobile');
+    location.replace('/?' + q.toString() + hash);
+  }
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PLANETAI node</title>
@@ -15,11 +40,12 @@
    --ground --ink --cells --rings --signal-worse --satellite-only --prov --mono --num-face --sign-floor and the motion
    tokens. The four below are the node's dashboard.css :root, copied by value with its measurements. */
 :root{
-  --mute:#5F5A54;--dim:#7C766F;--hair:var(--fc-grid-line);--raise:rgba(23,23,23,.035);
+  --mute:#5F5A54;--dim:#6F6963;--hair:var(--fc-grid-line);--raise:rgba(23,23,23,.035);
+  --doc:var(--fc-neutral-200);--doc-line:var(--fc-neutral-400);   /* the ask pane's ground, not the data's (dashboard.css) */
   --body:var(--fc-font-body);--display:var(--fc-font-display);
   --t-cap:11px;--t-small:13px;--t-body:15px;--t-read:20px;--t-head:clamp(26px,3.1vw,44px);
 }
-:root[data-theme="dark"]{--mute:#A3A19F;--dim:#8A8886;--hair:rgba(249,245,242,.14);--raise:rgba(249,245,242,.05)}
+:root[data-theme="dark"]{--mute:#A3A19F;--dim:#8A8886;--hair:rgba(249,245,242,.14);--raise:rgba(249,245,242,.05);--doc:var(--fc-neutral-800);--doc-line:var(--fc-neutral-600)}
 /* the node's words are never shouted (check_ui.py: µ uppercases to M) */
 .said{text-transform:none!important;letter-spacing:normal}
 /* provenance: ink only, square, glyph then word (dashboard.css .pill) */
@@ -28,15 +54,12 @@
 svg.sg{width:1em;height:1em;flex:none;vertical-align:-.12em;fill:currentColor}
 .gap{display:inline-block;border:1px dashed var(--mute);color:var(--mute);padding:1px 7px;font:500 11px/1.3 var(--mono)}
 .state{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-left:8px}.state.act{color:var(--ink);font-weight:700}
+[aria-pressed="true"] .state,.on .state{color:var(--ground)}   /* a state on a selected (ink) row reads in paper */
+.skip{position:absolute;left:8px;top:-60px;z-index:100;background:var(--ink);color:var(--ground);padding:10px 14px;font:600 14px var(--body)}.skip:focus{top:8px}
 .numf{font-family:var(--num-face);font-weight:800;font-size:1.18em;letter-spacing:-.04em;line-height:1}
 .pix{width:1.5em;height:1.1em;vertical-align:-.05em;margin-right:.3em;fill:currentColor}
 .signs{display:flex;flex-wrap:wrap;gap:3px;align-items:center}.signs svg.sg{width:var(--sign-floor);height:var(--sign-floor)}
 svg.sg.sat{color:var(--satellite-only)}svg.sg.off{opacity:.22}svg.sg.closed{color:var(--rings)}
-/* the ladder, compact: the node's rung rule — may leave dotted, finer than published struck through */
-.rail{display:flex;align-items:center;gap:0;border:1px solid var(--ink);width:max-content;max-width:100%;overflow-x:auto}
-.rail .rung{font:600 var(--t-cap) var(--mono);padding:3px 8px;border-right:1px solid var(--hair)}
-.rail .rung.leave{text-decoration:underline dotted;text-underline-offset:3px}.rail .rung.finer{text-decoration:line-through;color:var(--mute)}
-.rail .rung.on{background:var(--ink);color:var(--ground)}.rail a{font-size:var(--t-cap);padding:3px 10px;text-decoration:none}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--ground);color:var(--ink)}
 body{font:var(--t-body)/1.5 var(--body);-webkit-font-smoothing:antialiased}
@@ -58,7 +81,16 @@ a{color:inherit}
 .bar .sp{flex:1}
 .reg{display:flex;border:1px solid var(--ink)}.reg button{background:none;border:0;padding:4px 10px;font:500 var(--t-cap) var(--mono);letter-spacing:.1em;cursor:pointer}
 .reg button.on{background:var(--ink);color:var(--ground)}
+/* Node › What it remembers: the scale switch is the register's, the search a plain field, wide tables scroll inside themselves */
+#remember h3{font:600 var(--t-body) var(--body);margin:26px 0 8px}.rbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.rseg{display:flex;border:1px solid var(--ink)}.rseg button{background:none;border:0;padding:4px 10px;min-height:32px;font:500 var(--t-cap) var(--mono);letter-spacing:.1em;color:var(--ink);cursor:pointer}.rseg button+button{border-left:1px solid var(--ink)}.rseg button.on{background:var(--ink);color:var(--ground)}
+.rfind{display:flex;gap:6px}.rfind input,.rfind button{min-height:32px;border:1px solid var(--ink);border-radius:0;background:none;color:var(--ink);padding:0 10px;font:var(--t-small) var(--body)}.rfind input{width:min(240px,48vw)}
+.tscroll{overflow-x:auto}.tbl td button.link{text-align:left}.tbl.diary td.done{max-width:28ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.household .tick{display:inline-flex;gap:6px;align-items:center;margin:4px 14px 4px 0;font-size:var(--t-small)}
 .proto{font:500 var(--t-cap) var(--mono);letter-spacing:.08em;color:var(--mute);border:1px dashed var(--mute);padding:3px 8px}
+.relnote{color:var(--ink);border:1px solid var(--ink);text-decoration:none}
+/* "Phone view" only exists for a hand that would use it (SPEC_mobile §4.2): the head script sets data-phone */
+#layout-switch{display:none;font:500 var(--t-cap) var(--mono);letter-spacing:.08em;color:var(--mute);text-decoration:none;padding:3px 8px}
+html[data-phone="1"] #layout-switch{display:inline}
 /* the two icons at the bar's end: square, 1 px ink, like every control on the page; the label is the accessible name and the tooltip */
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--ink);background:none;color:var(--ink);cursor:pointer;padding:0;text-decoration:none}
 .iconbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:square}.iconbtn svg .dot{stroke-width:2.2;stroke-linecap:round}
@@ -72,17 +104,42 @@ body[data-view="wall"] .bar,body[data-view="wall"] .foot{display:none}
 @media (max-width:760px){.foot{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 
 /* ---- Ask the node, and Learn inside it ---- */
-.askpane{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--ground);border-left:1px solid var(--ink);padding:18px 20px;overflow:auto;z-index:20}
+/* Everything the node says sits on its own grey, so the page's paper is only ever the data (v0.75.8). */
+.askpane{position:fixed;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--doc);border-left:1px solid var(--ink);padding:18px 20px 14px;z-index:20;display:flex;flex-direction:column;gap:8px}
+.askpane[hidden]{display:none}
+/* as in every chat: the conversation scrolls in the middle, the box stays at the bottom */
+.askpane .ascroll{flex:1 1 auto;min-height:0;overflow:auto;margin:0 -20px;padding:0 20px;border-top:1px solid var(--doc-line)}
+.askpane .abottom{flex:none;border-top:1px solid var(--doc-line);padding-top:6px}
+.askpane .thread{display:flex;flex-direction:column;gap:10px;padding:12px 0}
+.askpane .msg.me{align-self:flex-end;max-width:85%;background:var(--ink);color:var(--ground);padding:8px 12px;white-space:pre-wrap}
+.askpane .msg.node{align-self:stretch}
+.askpane .msg.node>p:not(.fine):not(.amode){white-space:pre-wrap;margin:0}
 .askpane .ah{display:flex;justify-content:space-between;align-items:center;font:700 var(--t-read) var(--display)}
 .askpane .ah button{background:none;border:1px solid var(--ink);width:28px;height:28px;cursor:pointer;font-size:18px;line-height:1}
-.askpane textarea{width:100%;margin-top:14px;background:var(--ground);color:var(--ink);border:1px solid var(--ink);padding:10px;font:var(--t-body) var(--body);resize:vertical}
-.try{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.try button{background:none;border:1px solid var(--hair);padding:4px 8px;font-size:var(--t-small);cursor:pointer;text-align:left}
-.learnsw{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--ink);margin-top:18px;padding-top:14px;font-size:var(--t-small);cursor:pointer}
+/* a label for a screen reader only */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* the composer: the box and its send button are one thing, the way a chat box is; the questions sit above it */
+.askpane .amode{margin:0;font:500 var(--t-cap) var(--mono);letter-spacing:.04em;color:var(--mute)}
+.askpane .compose{position:relative;margin-top:8px;background:var(--ground);border:1px solid var(--ink)}
+.askpane .compose:focus-within{outline:2px solid var(--ink);outline-offset:1px}
+.askpane textarea{display:block;width:100%;min-height:64px;max-height:40vh;background:none;color:var(--ink);border:0;outline:0;padding:10px 52px 10px 10px;font:var(--t-body) var(--body);resize:none}
+.askpane #qsend{position:absolute;right:8px;bottom:8px;width:34px;height:34px;display:grid;place-items:center;background:var(--ink);color:var(--ground);border:0;cursor:pointer}
+.askpane #qsend:disabled{opacity:.4;cursor:default}
+.askpane .hint{margin:6px 0 0;font:400 var(--t-cap) var(--mono);color:var(--mute)}
+.askpane .hits{list-style:none;padding:0;margin:4px 0 0}.askpane .hits li{padding:8px 0;border-top:1px solid var(--doc-line)}
+.askpane .hits a{font-weight:600}.askpane .hits p{margin:3px 0 0;font-size:var(--t-small);color:var(--mute)}
+.try{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.try button{background:var(--ground);color:var(--ink);border:1px solid var(--doc-line);padding:4px 8px;font-size:var(--t-small);cursor:pointer;text-align:left}
+.learnsw{display:flex;gap:10px;align-items:flex-start;font-size:var(--t-small);cursor:pointer}
 .learnsw input{margin-top:3px;accent-color:var(--ink)}
 .learnlist{padding-left:0;list-style:none;margin:12px 0 0;font-size:var(--t-small)}
-.learnlist .reads{display:block;margin-top:4px;font:500 var(--t-cap) var(--mono);color:var(--mute)}.learnlist code{font:inherit;border:1px solid var(--hair);padding:0 4px}
-.learnlist li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:8px 0;border-top:1px solid var(--hair)}
+.learnlist .reads{display:block;margin-top:4px;font:500 var(--t-cap) var(--mono);color:var(--mute)}.learnlist code{font:inherit;border:1px solid var(--doc-line);padding:0 4px}
+.learnlist li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;padding:8px 0;border-top:1px solid var(--doc-line)}
 .learnlist li i{font:700 var(--t-cap) var(--mono);font-style:normal;border:1px solid var(--ink);text-align:center;height:20px;line-height:18px}
+/* each part: its name and stage, then what the docs say (the quote, the main text), then the page's own line */
+.learnlist p{margin:0}.learnlist .lm{margin-top:6px;color:var(--mute)}
+.learnlist blockquote{margin:6px 0 0;padding-left:10px;border-left:2px solid var(--ink);font:var(--t-small)/1.5 var(--body);overflow-wrap:anywhere}
+.learnlist blockquote code{border:0;padding:0;font:500 .92em var(--mono)}
+body.learn .bar[data-learn]::before{top:2px;left:2px}
 body.learn [data-learn]{position:relative;outline:1px dashed var(--mute);outline-offset:4px}
 /* learn marks float, named after their datum: learn mode is on (--motion-mark-float, 3.2 s, 4 px); still under reduced motion */
 @keyframes markfloat{to{transform:translateY(-4px)}}
@@ -107,6 +164,12 @@ body.learn [data-learn]::before{animation:markfloat var(--motion-mark-float) eas
 .tbl th.n{text-align:right}
 .tbl td{padding:7px 8px 7px 0;border-bottom:1px solid var(--hair);vertical-align:baseline}
 .tbl td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* a left-aligned cell after a right-aligned number would touch it ("HOW MANY USED"): the gap goes on its left */
+.tbl th.n+th:not(.n),.tbl td.n+td:not(.n){padding-left:16px}.tbl th.n+th.n,.tbl td.n+td.n{padding-left:28px}
+.tbl td.thumb{width:56px;padding-right:10px}.tbl td.thumb img{width:48px;height:48px;object-fit:cover;display:block;background:var(--hair)}
+.tbl button.link,.cardlg .dhead button{border:0;background:none;color:var(--ink);padding:0;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:0}
+.tbl button.link:focus-visible,.cardlg .dhead button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.tbl.imgs td,.tbl.things td{vertical-align:middle}
 details{border-top:1px solid var(--hair)}
 summary{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) auto;gap:16px;padding:12px 0;cursor:pointer;list-style:none;align-items:baseline}
 summary::-webkit-details-marker{display:none}
@@ -114,136 +177,218 @@ summary .t{font-weight:600}summary .s{color:var(--mute);font-size:var(--t-small)
 details .in{padding:0 0 16px;color:var(--mute);font-size:var(--t-small);max-width:70ch}
 
 /* ================= NOW ================= */
-.face{max-width:1240px;margin:0 auto;padding:22px clamp(16px,3vw,40px) 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:12px 48px;grid-template-areas:"kick kick" "k2 k2" "l r"}
-.lcol{grid-area:l;min-width:0}.rcol{grid-area:r;min-width:0;display:grid;gap:22px;align-content:start}
-.kick{grid-area:kick;display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
-.kick2{grid-area:k2;margin-top:4px}
-.kick .now{background:none;border:1px solid var(--ink);padding:2px 9px;font:500 var(--t-cap) var(--mono);letter-spacing:.1em;cursor:pointer}
+/* one bold block (the sentence and its day), then quiet parts under sentence-case heads; mono only for units, times, values */
+.face{max-width:1240px;margin:0 auto;padding:18px clamp(16px,3vw,40px) 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:0 48px;grid-template-areas:"kick kick" "l r" "al al"}
+.lcol{grid-area:l;min-width:0}.rcol{grid-area:r;min-width:0;align-content:start}
+.kick{grid-area:kick;display:flex;justify-content:space-between;gap:6px 16px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+.kick .kr{display:flex;gap:12px;align-items:baseline}.kick .kr a{font-size:var(--t-cap);color:var(--mute)}
+.kick .now{background:none;border:1px solid var(--ink);padding:2px 9px;font:600 var(--t-small) var(--body);cursor:pointer}
+.nk{font:500 var(--t-small)/1.45 var(--body);color:var(--mute);margin:0}.nk .mono{font-size:.95em}
+.nh{font:600 var(--t-body)/1.3 var(--body);margin:0 0 8px;padding-top:12px;border-top:1px solid var(--ink)}
 .sentence{font:700 var(--t-head)/1.08 var(--display);letter-spacing:-.025em;margin:0;text-wrap:balance;min-height:2.2em}
 .sentence b{font:800 1.18em/1 var(--mono);letter-spacing:-.04em}
 .sentence .gone{color:var(--mute);font-weight:600}
 /* the title says what it meant; the tagline says what it measured — smaller, not bold, muted */
-.sentence .ntag{display:block;font:500 clamp(13px,.95vw,17px)/1.35 var(--body);letter-spacing:0;color:var(--mute);margin-top:.5em;text-wrap:pretty}
-.ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px;border-top:1px solid var(--hair)}
-.ladder > div{padding:8px 10px 0 0}
-.ladder .v{font:600 var(--t-read)/1.2 var(--mono);font-variant-numeric:tabular-nums}
-.ladder .v small{font-size:var(--t-cap);color:var(--mute);font-weight:500;margin-left:3px}
-.ladder .w{margin-top:4px}.ladder .none .v{color:var(--dim)}
-.decide{margin-top:18px;border:1px solid var(--ink);padding:14px 16px}
-.decide .dq{font:600 var(--t-read)/1.3 var(--body);margin:6px 0 10px;max-width:46ch}
-.decide .dm{font:500 var(--t-small) var(--mono);color:var(--mute);margin:10px 0 0}
-.ans{display:flex;gap:0;border:1px solid var(--ink);width:max-content}
-.ans button{background:none;border:0;border-right:1px solid var(--ink);padding:6px 14px;font:600 var(--t-small) var(--body);cursor:not-allowed}
+.sentence .ntag{display:block;font:500 clamp(14px,1.05vw,18px)/1.4 var(--body);letter-spacing:0;color:var(--mute);margin-top:.5em;text-wrap:pretty;max-width:62ch}
+/* the four distances: one quiet line under the drawing, which already draws them */
+.ladder{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center;margin:10px 0 0;padding-top:8px;border-top:1px solid var(--hair);font-size:var(--t-small)}
+.ladder .d{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}.ladder .d>.x{color:var(--mute)}
+.ladder .v{font:600 var(--t-small) var(--mono);font-variant-numeric:tabular-nums}.ladder .v small{font-weight:500;color:var(--mute);margin-left:2px}
+.ladder .none .v{color:var(--dim)}.ladder .pill{padding:0 5px 0 4px;font-size:12px}
+/* What to do: framed, the buttons in it, only while something is asked; otherwise a plain line */
+.todo{margin-top:28px}
+.todo .nothing{margin:0;font:600 var(--t-read)/1.3 var(--body)}.todo .nothing .x{font:400 var(--t-body) var(--body)}
+.decide{border:2px solid var(--ink);padding:14px 16px}
+.decide .dq{font:600 var(--t-read)/1.3 var(--body);margin:2px 0 12px;max-width:46ch}
+.dm{font:500 var(--t-small)/1.45 var(--body);color:var(--mute);margin:8px 0 0}.dm .mono{font-size:.95em}
+/* Did it work, then Yesterday: quiet, sentence-case heads, never framed (the frame is What to do's) */
+.nrem{margin-top:28px}.nrem h3{font:600 var(--t-body)/1.3 var(--body);margin:20px 0 6px}.nrem h3:first-child{margin-top:0;padding-top:12px;border-top:1px solid var(--ink)}
+.nrem p{margin:0 0 6px;max-width:64ch;font-size:var(--t-small)}.nrem .x{color:var(--mute)}
+.ans{display:flex;gap:0;border:1px solid var(--ink);width:max-content;max-width:100%}
+.ans button{background:none;border:0;border-right:1px solid var(--ink);padding:0 16px;min-height:44px;font:600 var(--t-small) var(--body);cursor:pointer}
 .ans button:last-child{border-right:0}.ans button.on{background:var(--ink);color:var(--ground)}
-.fig{margin-top:20px}
-.fig .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.fig svg{display:block;width:100%;height:auto;overflow:visible;touch-action:none;cursor:ew-resize}
+/* what a pack asks (#asks), under What to do: each alert framed as the Decide card, its rows of buttons one under another */
+#asks .decide{margin-top:12px}#asks .ans{margin-top:8px}#asks p.said{margin:6px 0 0;max-width:64ch}
+.ans input{border:0;border-right:1px solid var(--ink);background:none;color:var(--ink);padding:0 12px;min-height:44px;min-width:0;width:min(320px,52vw);font:var(--t-small) var(--body)}
+.fig{margin-top:14px}
+.fig svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y;cursor:ew-resize}
+.figfoot{margin-top:8px;font-size:var(--t-cap)}
 svg text{font:500 var(--t-cap) var(--mono);fill:var(--mute)}
 svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.mute{fill:var(--mute)}
-.howto{font-size:var(--t-small);color:var(--mute);margin-top:4px}
-.rows{border-top:1px solid var(--ink)}
-.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 10px 10px 8px;border-bottom:1px solid var(--hair);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;cursor:pointer}
+/* the week on a phone: one row a day, the whole row the target, its hours a strip and its count of hours over */
+.week{border-top:1px solid var(--ink);margin-top:4px}
+.week button{display:grid;grid-template-columns:4.6em minmax(0,1fr) 3.4em;gap:10px;align-items:center;width:100%;min-height:44px;background:none;border:0;border-bottom:1px solid var(--hair);padding:0 4px;font:500 var(--t-small) var(--mono);color:var(--ink);text-align:left;cursor:pointer}
+.week button[aria-pressed="true"]{outline:1.5px solid var(--ink);outline-offset:-1.5px;font-weight:700}
+.week svg{display:block;width:100%;height:14px}.week .o{text-align:right}
+.rows{border-top:1px solid var(--hair)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 10px 10px 8px;min-height:44px;border-bottom:1px solid var(--hair);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0;cursor:pointer;color:var(--ink)}
 .row[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
 .row[aria-pressed="true"] .sub,.row[aria-pressed="true"] .st{color:var(--ground);opacity:.75}
-.row[disabled]{cursor:default}
 .row .n{font:600 var(--t-body) var(--body)}
 .row .st{font:500 var(--t-cap) var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-left:8px}
 .row .v{font:600 var(--t-read)/1.2 var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .row .v small{font-size:var(--t-cap);font-weight:500;margin-left:3px}
 .row .sub{grid-column:1 / -1;font:500 var(--t-cap) var(--mono);color:var(--mute)}
+section.decl{margin-top:22px}.row.decl{cursor:default}   /* a pack's declared band: its rows read, they do not switch the issue */
+.around{margin:18px 0 0}
 .over{display:inline-block;width:8px;height:8px;background:var(--signal-worse);margin-right:6px}
 #rose svg{display:block;overflow:visible}
+/* Next days (SPEC_next_days §5): a part of Now under What to do, one row card a thing over three day columns (the rest
+   of today, tomorrow, the day after), the row's 72 h a series card under it */
+.nxpart{margin-top:36px}#next{min-width:0}
+.nxhead,.nrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px}
+.nxhead{font:500 var(--t-cap)/1.4 var(--mono);color:var(--mute);padding:0 10px 6px 8px;border-bottom:1px solid var(--ink)}
+.nxhead b{font:600 var(--t-small) var(--body);color:var(--ink)}.nxhead>span:first-child,.nrow .n{grid-column:1 / -1}.nxhead>span:first-child{display:none}
+.nrow .n small{display:block;font-weight:500}.nxc{min-width:0;font:500 var(--t-small)/1.4 var(--body);overflow-wrap:anywhere}
+.nxc .state{margin-left:4px;display:inline-block}.nxc .sub{display:block;margin-top:4px}
+.nrow[aria-pressed="true"] .nk,.nrow[aria-pressed="true"] .x{color:var(--ground);opacity:.75}
+.nxs{margin:0;padding:10px 0;border-bottom:1px solid var(--hair)}.nxs svg{display:block;width:100%;height:auto;overflow:visible}.nxs .fine{margin-top:4px}
+.nxsrc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+#next .fine a,.nxempty a{display:inline-flex;align-items:center;min-height:44px}
+.nxempty{font:600 var(--t-read)/1.3 var(--body);margin:0;max-width:64ch}
+@media (min-width:761px){.nxhead,.nrow{grid-template-columns:8.5em repeat(3,minmax(0,1fr))}.nxhead>span:first-child{display:block}.nrow .n,.nxhead>span:first-child{grid-column:auto}}
+/* what the packs read here, under both columns: each band's source said once under its head, its note folded */
+.alsoread{grid-area:al;margin-top:40px;min-width:0}.alsog{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 40px;align-items:start}
+.decl .src{margin:-4px 0 6px}.decl .how{border:0;margin-top:4px}
+.decl .how summary{display:flex;align-items:center;min-height:44px;padding:0;font:500 var(--t-small) var(--body);color:var(--mute);text-decoration:underline;text-underline-offset:3px}
 .aroundmap{position:relative;border:1px solid var(--rule,currentColor);border-color:color-mix(in srgb,currentColor 18%,transparent)}
-.aroundmap .maplibregl-ctrl-scale{background:transparent;border-color:currentColor;color:inherit;font:10px/1.4 "JetBrains Mono",monospace}
+.aroundmap .maplibregl-ctrl-scale{background:transparent;border-color:currentColor;color:inherit;font:12px/1.4 "JetBrains Mono",monospace}
 .lt{display:grid;grid-template-columns:16px 72px minmax(0,1fr);align-items:baseline;gap:8px;font-size:var(--t-small);padding:7px 0;border-top:1px solid var(--hair)}
 .lt .t{font:500 var(--t-cap)/1.9 var(--mono)}
 
-/* ================= PLACE: the workbench ================= */
-.bench{display:grid;grid-template-columns:268px minmax(0,1fr) 288px;gap:0;border:1px solid var(--ink);margin-top:14px}
-.bench[data-pview="map"] .altc,.bench[data-pview="map"] #altfacts{display:none}
-.bench:not([data-pview="map"]) #layers,.bench:not([data-pview="map"]) .mapc,.bench:not([data-pview="map"]) #facts{display:none}
-.altc{grid-column:1 / 3;border-right:1px solid var(--ink);min-width:0}#altfacts{padding:14px}
-#altbar{display:flex;gap:8px;align-items:center;justify-content:center;padding:8px;border-bottom:1px solid var(--hair)}#altbar:empty{display:none}
-#altbar button{background:none;border:1px solid var(--ink);width:28px;height:26px;cursor:pointer}#altbar .cmp{font-size:var(--t-small);margin-left:14px;display:flex;gap:6px;align-items:center}
-#mapalt{aspect-ratio:16/10;width:100%;overflow:hidden}#mapalt .photo{width:100%;height:100%;object-fit:contain;display:block;background:var(--ink)}
-/* views of the place: three, as a segmented strip under the lede */
-.pviews{display:flex;border:1px solid var(--ink);width:max-content;max-width:100%;margin-top:14px;overflow-x:auto}
-.pviews button{background:none;border:0;border-right:1px solid var(--ink);padding:6px 14px;text-align:left;cursor:pointer}.pviews button:last-child{border-right:0}
-.pviews b{display:block;font:600 var(--t-small) var(--body)}.pviews span{display:block;font:500 var(--t-cap) var(--mono);color:var(--mute)}
-.pviews button.on{background:var(--ink);color:var(--ground)}.pviews button.on span{color:var(--ground);opacity:.7}
-/* the map: neutral ground, data the only colour (R36). Square chrome on the map, 1 px ink, mono labels. */
-.mapc #map{aspect-ratio:auto;height:clamp(420px,68vh,760px);position:relative}
-.mapc #mapbar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:3;padding:0;border:0;display:block;max-width:calc(100% - 96px)}
-.scales{display:flex;background:var(--ground);border:1px solid var(--ink);overflow-x:auto}
-.scales button,#mapbar .scales button{background:none;border:0;border-right:1px solid var(--hair);padding:5px 10px 4px;cursor:pointer;width:auto;height:auto;text-align:center;line-height:1.15}
-.scales button:last-child{border-right:0}.scales b{display:block;font:600 var(--t-cap) var(--body);letter-spacing:.02em}
-.scales span{display:block;font:500 10px var(--mono);color:var(--mute)}.scales button.leave span{text-decoration:underline dotted;text-underline-offset:2px}
-.scales button.on,#mapbar .scales button.on{background:var(--ink);color:var(--ground)}.scales button.on span{color:var(--ground);opacity:.75}
-.tools{position:absolute;top:12px;right:12px;z-index:3;display:flex;flex-direction:column;border:1px solid var(--ink);background:var(--ground)}
-.tools button{width:32px;height:32px;background:none;border:0;border-bottom:1px solid var(--hair);font:400 17px/1 var(--mono);cursor:pointer;color:var(--ink)}
-.tools button:last-child{border-bottom:0}.tools button[data-t="fit"]{border-bottom:1px solid var(--ink)}.tools button[data-t="measure"]+button{border-top:1px solid var(--ink)}
-.tools button.on{background:var(--ink);color:var(--ground)}.tools button:hover:not(.on){background:var(--raise)}
-#mapstatus{display:flex;gap:16px;align-items:center;border-top:1px solid var(--ink);padding:6px 12px;font:500 var(--t-cap) var(--mono);color:var(--mute);white-space:nowrap;overflow:hidden}
-#mapstatus span:first-child{min-width:150px;color:var(--ink)}#mapstatus .cid{margin-left:auto;color:var(--ink)}#mapstatus .leave{text-decoration:underline dotted;text-underline-offset:3px}
-.mapc .maplibregl-ctrl-scale{background:var(--ground);border:1px solid var(--ink);border-top:0;color:var(--ink);font:500 10px var(--mono);padding:1px 6px;border-radius:0}
+/* ================= PLACE: a small GIS (SPEC_place_microgis §4, the v2 drawing of 4 Nov 2026) =================
+   Teenage Engineering's light type and flat surfaces, mono's hairlines, OP-XY's black screen and dot switches, OneSoil's
+   plain layer list. The page keeps the node's register. The screen is black in both, so inside it the frozen layer's
+   names take the screen's values, and whatever is drawn there (the still map, popups, notes, the satellite) follows. */
+.page[data-view="place"]{max-width:1440px}
+.phead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:12px 40px;align-items:end}.phead>div{min-width:0}
+.phead h1{font-weight:300;letter-spacing:-.02em;margin-bottom:4px}
+.prow{display:flex;gap:12px;align-items:center}
+.pask{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:44px;border-bottom:1px solid var(--ink)}
+.pask[hidden]{display:none}
+.pask svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--ink);stroke-width:1.4}
+.pask input{flex:1;min-width:0;height:100%;border:0;background:none;color:var(--ink);font:300 var(--t-body) var(--body);outline-offset:4px}
+.pask input::placeholder{color:var(--mute)}
+.pask kbd{font:400 10.5px/17px var(--mono);color:var(--mute);border:1px solid var(--hair);border-radius:4px;padding:0 5px}
+.addimg{background:none;border:1px solid var(--ink);border-radius:999px;padding:0 16px;font:400 var(--t-small) var(--body);color:var(--ink);cursor:pointer;min-height:44px;white-space:nowrap}
+.pmh,#cake .ck>h2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:12px 0 2px;font:400 var(--t-cap) var(--body);letter-spacing:.02em;color:var(--mute)}
+.pmh b,#cake .ck>h2 b{font:400 10.5px var(--mono)}
+/* three columns: the cake, the screen, the tools */
+.bench{display:grid;grid-template-columns:216px minmax(0,1fr) 286px;margin-top:16px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+#cake{padding:0 16px 16px 0;border-right:1px solid var(--hair);min-width:0}
+#ptools{padding:0 0 16px 16px;border-left:1px solid var(--hair);min-width:0}
+/* the screen's column sets the bench's height; the cake and the tools fill it and scroll inside it */
+#cake,#ptools{height:0;min-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.bench>#spd,.psbar{display:none}
+/* a layer: the OP-XY dot (filled with a ring on, hollow off, dotted not yet), its name, and under it its source */
+.lyr{padding:0}#facts code{font:inherit;border:1px solid var(--hair);padding:0 3px}
+.ly{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:26px;margin:0;padding:0 8px;border:0;border-radius:6px;background:none;color:var(--ink);font:400 var(--t-small)/1.25 var(--body);text-align:left;cursor:pointer}
+.ly:hover{background:var(--raise)}.ly[aria-disabled="true"]{cursor:help}
+.ly span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ly small{font:400 10.5px var(--mono);color:var(--mute);white-space:nowrap}
+.ly.held small{color:var(--ink)}.ly small .wh{width:10px;height:10px;margin-right:3px;vertical-align:-1px}
+.ly i{width:8px;height:8px;border-radius:50%;margin-left:3px;background:var(--ink);box-shadow:0 0 0 2px var(--ground),0 0 0 3px var(--ink)}
+.ly.off{color:var(--mute)}.ly.off i{background:none;box-shadow:inset 0 0 0 1px var(--mute)}
+.ly.soon{color:var(--mute)}.ly.soon i{width:6px;height:6px;margin-left:4px;background:none;box-shadow:none;border:1px dotted var(--mute)}
+.lyr .op{display:none;width:calc(100% - 22px);margin:6px 0 2px 22px;accent-color:var(--ink);height:14px}
+.lyr:has(.ly.on):hover .op,.lyr:has(.ly.on):focus-within .op{display:block}
+.lyr .whr{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center;margin:6px 0 2px 22px;font:400 10.5px var(--mono);color:var(--mute)}
+.lyr .whr input{accent-color:var(--ink);width:100%}.lyr .whr b{font-weight:500;color:var(--ink);text-align:right}
+/* the species confirmed here open under their row */
+.spd{margin:4px 0 0 22px;border:0}.spd summary{display:flex;align-items:center;min-height:28px;padding:0;font:400 var(--t-cap) var(--body);color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.pspecies h2{font:500 var(--t-small) var(--body);margin:4px 0}.pspecies .tbl{font-size:var(--t-cap)}.pspecies .tbl .hide{display:none}
+/* a tool: a plain row with its command id; the chosen one a filled pill; one that does not run yet, a dotted "not yet" */
+.tl{display:flex;align-items:center;gap:8px;width:100%;min-height:28px;margin:0;padding:0 8px;border:0;border-radius:999px;background:none;color:var(--ink);font:400 var(--t-small) var(--body);text-align:left}
+button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(--raise)}button.tl:disabled{color:var(--mute);cursor:default}
+.tl code{margin-left:auto;font:400 10px var(--mono);color:var(--mute)}
+.tl.on{background:var(--ink);color:var(--ground)}.tl.on code{color:var(--ground);opacity:.6}
+.tl.soon{color:var(--mute)}.tl.soon code{border:1px dotted var(--mute);border-radius:999px;padding:0 6px;font:400 10.5px var(--body)}
+#ptools .fine{margin-top:12px}
+/* the screen: black glass in a bezel, its controls on it as chips */
+.pmid{min-width:0;padding:12px 12px 0}
+.mapc{--ink:#F9F5F2;--ground:#17191D;--mute:#A3A19F;--hair:#3A3F47;--raise:#2B2E34;--cells:#7FA5E8;--chip:rgba(28,31,35,.92);   /* doors-placemap.js PAL.dark */
+ 
+  position:relative;margin:6px;border-radius:10px;overflow:hidden;background:var(--ground);color:var(--ink);box-shadow:0 0 0 1px #000,0 0 0 5px #1b1b1b,0 0 0 6px #000}
+.mapw{position:relative;min-width:0}.mapc #map{aspect-ratio:auto;height:560px;width:100%;position:relative;background:var(--ground)}
+.mapc .tools,.mapc .zoom,.mapc .scales,.phour,.altc{background:var(--chip);border:1px solid var(--hair);border-radius:10px}
+.tools{position:absolute;top:12px;right:12px;z-index:3;display:flex;flex-direction:column}
+.zoom{position:absolute;right:12px;bottom:12px;z-index:3;display:flex;flex-direction:column}
+/* 44 px targets (Tomas, 15 Oct); the active tool says its word beside it, and measuring ends on Done */
+.tools button,.zoom button{width:44px;height:44px;position:relative;display:grid;place-items:center;padding:0;border:0;background:none;color:var(--ink);font:300 18px/1 var(--mono);cursor:pointer}
+.tools button+button,.zoom button+button{border-top:1px solid var(--hair)}.tools button[data-t="fit"]{border-top-width:4px}
+.tools button:first-child,.zoom button:first-child{border-radius:9px 9px 0 0}.tools button[data-t="png"],.zoom button:last-child{border-radius:0 0 9px 9px}
+.tools button.on{background:var(--ink);color:var(--ground)}.tools button:hover:not(.on),.zoom button:hover{background:var(--raise)}
+.tools .w{display:none;position:absolute;right:calc(100% + 6px);top:50%;transform:translateY(-50%);padding:5px 10px;border:1px solid var(--hair);border-radius:999px;background:var(--chip);color:var(--ink);font:400 var(--t-cap)/1 var(--body);white-space:nowrap}
+.tools button.on .w{display:block}
+.tools button.done{position:absolute;top:calc(100% + 6px);right:-1px;width:auto;padding:0 16px;border:0;border-radius:999px;background:var(--ink);color:var(--ground);font:500 var(--t-small)/1 var(--body)}.tools button.done[hidden]{display:none}
+.mapc #mapbar{position:absolute;left:12px;bottom:12px;z-index:3;padding:0;border:0;display:block;max-width:calc(100% - 210px)}
+.scales{display:flex;gap:2px;padding:3px;border-radius:999px!important;overflow-x:auto;scrollbar-width:none}
+#mapbar .scales button{display:flex;gap:5px;align-items:center;width:auto;height:auto;min-height:44px;padding:0 12px;border:0;border-radius:999px;background:none;color:var(--mute);cursor:pointer;font:400 11px var(--body);white-space:nowrap}
+.scales b{font-weight:400}.scales span{font:400 10px var(--mono);opacity:.75}.scales button.leave span{text-decoration:underline dotted;text-underline-offset:2px}
+#mapbar .scales button.on{background:var(--ink);color:var(--ground)}
+.phour{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:0;min-height:44px;padding:0 6px;border-radius:999px;font:400 11.5px var(--mono);color:var(--ink);white-space:nowrap}
+.phour:empty{display:none}.phour b{font-weight:400;padding:0 8px}
+.phour button{width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--mute);cursor:pointer;font:400 14px var(--body)}.phour button:disabled{opacity:.35;cursor:default}
+.mapc .maplibregl-ctrl-scale{background:none;border:1px solid var(--mute);border-top:0;color:var(--mute);font:400 10px var(--mono);padding:0 5px;border-radius:0}
+.mapc .maplibregl-ctrl-bottom-left{left:12px;bottom:50px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin:0}
+#mapcredit{position:absolute;right:68px;bottom:12px;z-index:3;margin:0;max-width:40%;font:400 10px/1.3 var(--body);color:var(--mute);text-align:right;pointer-events:none}
+/* the satellite's then and now, on the screen while its row is on: photographs beside the map, never on it */
+.altc{position:absolute;left:12px;top:12px;z-index:4;width:min(380px,calc(100% - 140px));max-height:calc(100% - 80px);overflow:auto;color:var(--ink)}.altc[hidden]{display:none}
+#altbar{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--hair);font:400 var(--t-cap) var(--body)}
+#altbar button{background:none;border:1px solid var(--hair);border-radius:999px;color:var(--ink);width:44px;height:44px;cursor:pointer}#altbar .cmp{margin-left:auto;display:flex;gap:6px;align-items:center;min-height:44px}
+#mapalt .photo{width:100%;display:block}
+.mapc .flatnote{top:54px}.mapc .nonode{right:68px;bottom:56px}   /* under the hour; above the rungs, clear of the zoom */
+/* under the screen: the status line (the inspector), then the marks around the house, nearest first */
+#facts.inspect{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;padding:12px 6px 8px;font:400 10.5px/1.5 var(--mono);color:var(--mute)}
+#facts b{font-weight:500;color:var(--ink)}#facts .fi small{color:var(--mute);font:inherit;margin-right:6px}#facts .hint{margin-left:auto}#facts .said{font-family:var(--body)}
+#pmargin{padding:0 6px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));column-gap:24px}
+#pmargin .pmh,#pmargin .fine{grid-column:1/-1}#pmargin .fine{margin:10px 0 0}
+#pmargin .mr{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:32px;width:100%;padding:0;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);text-align:left;font:400 var(--t-small)/1.25 var(--body)}
+#pmargin button.mr{cursor:pointer}#pmargin button.mr:hover span{text-decoration:underline;text-underline-offset:3px}#pmargin .mr b{font:400 var(--t-cap) var(--mono);white-space:nowrap}
+#pmargin .mr>i,#pmargin .mr>.sg{justify-self:center}
+/* the lower band: what is selected or returned, and the place in figures */
+.plow{display:grid;grid-template-columns:minmax(0,1fr) 340px;border-bottom:1px solid var(--hair)}
+.plow>section{padding:0 20px 18px 0;min-width:0}.plow>section+section{padding:0 0 18px 20px;border-left:1px solid var(--hair)}.plow .fr b{white-space:nowrap}
+#pedges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
+#pedges text{font:500 11px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--ground);stroke-width:3px}#pedges .pub{fill:var(--ground);stroke:var(--ink);stroke-width:1.4}#pedges path{fill:none;stroke:var(--ink);stroke-width:1.5}
+.wh{flex:none;vertical-align:-2px;margin-right:6px}.wh rect,.wh path{fill:none;stroke:var(--signal-worse);stroke-width:1.5}
+.maplibregl-ctrl-bottom-right{right:12px;bottom:12px}.maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0}
 .maplibregl-ctrl-bottom-left{left:8px;bottom:8px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin:0}
-/* the layer list is the legend: a swatch per row, the pack that drew it, its opacity */
-#layers{display:block;overflow-y:auto;max-height:calc(clamp(420px,68vh,760px) + 30px)}
-#layers .lyh{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--ink)}
-#layers .lyg>.k{padding:12px 12px 4px;font-size:10px}
-#layers .ly{padding:6px 12px 6px;border-bottom:1px solid var(--hair)}
-#layers .ly label{display:grid;grid-template-columns:14px 18px minmax(0,1fr) auto;gap:8px;align-items:start;cursor:pointer}
-#layers .ly input[type=checkbox]{appearance:none;width:13px;height:13px;border:1px solid var(--ink);margin:2px 0 0;background:var(--ground);cursor:pointer}
-#layers .ly input[type=checkbox]:checked{background:var(--ink);box-shadow:inset 0 0 0 2px var(--ground)}
-#layers .ly .nm{font:500 var(--t-small)/1.3 var(--body)}#layers .ly .nm small{display:block;font:500 10.5px/1.35 var(--mono);color:var(--mute);margin-top:2px}
-#layers .ly .pk{font:500 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);border:1px solid var(--hair);padding:0 4px;margin-top:2px}
-#layers .ly:not(.on) .nm{color:var(--mute)}#layers .ly.empty .nm small{font-style:normal}#layers .ly.empty .sw{opacity:.3}
-#layers .ly.empty input{border-style:dashed;cursor:not-allowed}
-#layers .op{display:none;width:calc(100% - 40px);margin:6px 0 2px 40px;accent-color:var(--ink);height:14px}
-#layers .ly.on:hover .op,#layers .ly.on:focus-within .op{display:block}
-#layers .cost{margin:4px 0 0 40px;font:500 10.5px/1.35 var(--mono);color:var(--ink);border-left:2px solid var(--satellite-only);padding-left:6px}
+.sw.pt-sp::before{content:'◆';font:14px/12px var(--mono)}
+.flatmap .house{fill:none;stroke:var(--cells);stroke-width:2}.flatmap .gl{font:14px var(--mono);fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.flatmap .rl{font:500 12px var(--mono);fill:var(--mute)}
+.flatnote{position:absolute;left:12px;right:12px;top:12px;z-index:3;margin:0;background:var(--ground);border:1px dashed var(--ink);padding:8px 10px;font:500 var(--t-cap)/1.45 var(--mono)}
 .sw{width:18px;height:14px;display:block;margin-top:1px;border:1px solid transparent}
-.sw.fill-land{background:#F1EFEB;border-color:#B9B4AC}.sw.fill-bldg{background:#CFCBC4}.sw.fill-photo{background:linear-gradient(135deg,#59614a,#8a8f7b 50%,#3f4a52)}
-.sw.fill-cell{background:color-mix(in srgb,var(--cells) 14%,transparent);border:2px solid var(--cells)}.sw.fill-sat{background:var(--satellite-only);opacity:.8}
-.sw.line-grid{border:1px solid var(--ink);opacity:.35}.sw.line-dot{border:1.5px dotted var(--ink)}.sw.line-ring{border:1px dashed var(--ink);border-radius:50%;width:14px;margin-left:2px}
 .sw.pt-own,.sw.pt-pub{width:10px;height:10px;border-radius:50%;margin:3px 4px;border:1.5px solid var(--ink)}.sw.pt-own{background:var(--ink)}
-.sw.pt-model::before{content:'◇';font:16px/12px var(--mono)}.sw.pt-lab::before{content:'△';font:14px/12px var(--mono)}.sw.pt-wind::before{content:'≈';font:600 16px/12px var(--body)}
-:root[data-theme="dark"] .sw.fill-land{background:#17191D;border-color:#3A3F47}:root[data-theme="dark"] .sw.fill-bldg{background:#2B2E34}
-#mapcredit{margin:0;padding:3px 12px 5px;font:500 10px/1.4 var(--mono);color:var(--mute);border-top:1px solid var(--hair)}
+.sw.pt-model::before{content:'◇';font:16px/12px var(--mono)}
 .pmpop .maplibregl-popup-content{background:var(--ground);color:var(--ink);border:1px solid var(--ink);border-radius:0;box-shadow:none;padding:10px 26px 10px 12px;display:flex;flex-direction:column;gap:4px;font:var(--t-small)/1.35 var(--body)}
 .pmpop .maplibregl-popup-content b{font:600 var(--t-body)/1.25 var(--body)}.pmpop .maplibregl-popup-content .mono{font-size:var(--t-cap);color:var(--mute)}
 .pmpop .maplibregl-popup-content a{font:600 var(--t-small) var(--body);color:var(--ink);margin-top:4px;text-underline-offset:3px}
-.pmpop .maplibregl-popup-close-button{font:400 18px/1 var(--mono);color:var(--ink);width:24px;height:24px;border-radius:0}
+.pmpop .maplibregl-popup-close-button{font:400 18px/1 var(--mono);color:var(--ink);width:44px;height:44px;border-radius:0}
 .pmpop .maplibregl-popup-tip{border-top-color:var(--ink);border-bottom-color:var(--ink)}
 .sw.txt::before{content:'Aa';font:600 11px/14px var(--body)}
-#layers .ly code{font:inherit;border:1px solid var(--hair);padding:0 3px}
+.sw.pt-img::before{content:'■';font:14px/12px var(--mono)}.pmimg{width:100%;max-height:160px;object-fit:cover;background:var(--hair)}
+.imgdlg{border:1px solid var(--ink);border-radius:0;background:var(--ground);color:var(--ink);padding:18px;width:min(420px,calc(100vw - 32px))}
+.imgdlg::backdrop{background:rgba(0,0,0,.35)}.cardlg{width:min(1000px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto}.cardlg:not(:has(img)){width:min(560px,calc(100vw - 32px))}#d-images>.acts,#d-things>.acts{margin:0 0 12px}#d-images>.acts button,#d-things>.acts button{min-height:44px;border:1px solid var(--ink);border-radius:0;background:none;color:var(--ink);padding:0 14px;font:600 var(--t-small) var(--body);cursor:pointer}#d-images>.acts button:focus-visible,#d-things>.acts button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}#d-images h3{margin-top:24px}.cardlg .icard input,.cardlg .icard textarea{font:var(--t-small) var(--body)}@media (min-width:760px){.cardlg .icards.one .icard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 20px;align-items:start}.cardlg .icards.one .icard>img{grid-row:1/span 30;position:sticky;top:0}}.cardlg .dhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 12px}.cardlg .dhead h3{margin:0}.cardlg .icards.one{grid-template-columns:minmax(0,1fr)}.imgdlg form{display:flex;flex-direction:column;gap:10px}.imgdlg label{display:flex;flex-direction:column;gap:4px;font:var(--t-small) var(--body)}
+.imgdlg .drop{border:1px dashed var(--ink);padding:14px;cursor:pointer}.imgdlg .drop input{font:inherit}.imgdlg form.over .drop{background:color-mix(in srgb,var(--cells) 8%,transparent)}
+.imgdlg select,.imgdlg input:not([type=file]),.imgdlg button{min-height:44px;border:1px solid var(--ink);background:none;color:var(--ink);padding:0 12px;border-radius:0;font:inherit}
+.imgdlg .acts{display:flex;gap:10px;justify-content:flex-end}.imgdlg button[type=submit]{background:var(--ink);color:var(--ground);font-weight:600}
+.icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:14px}.icard{border:1px solid var(--hair);padding:10px;display:flex;flex-direction:column;gap:6px}
+.icard img{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--hair)}.icard .fine{margin:0}.icard label{display:flex;flex-direction:column;gap:3px;font:var(--t-cap) var(--mono);color:var(--mute)}
+.icard select,.icard input,.icard textarea{min-height:44px;border:1px solid var(--ink);background:none;color:var(--ink);padding:6px 10px;border-radius:0;font:var(--t-small) var(--body)}
+.icard .acts{display:flex;gap:8px;flex-wrap:wrap}.icard .seen{border-left:2px solid var(--hair);padding-left:8px}.icard .seen p{margin:0 0 3px}.frow{display:grid;grid-template-columns:minmax(0,1fr) 3.6em auto 32px;gap:4px;align-items:center;margin:0 0 4px}.icard .frow select,.icard .frow input{min-height:36px;padding:2px 6px;min-width:0}.frow label{flex-direction:row;align-items:center;gap:2px}.icard .frow button,.icard .seen [data-g=add]{min-height:36px;padding:0 8px}.frow [data-g=name],.frow [data-g=sci],.frow>span{grid-column:1/-1}.frow [hidden]{display:none}.imgdlg label.tick{flex-direction:row}.imgdlg label.tick input{min-height:0;margin:0 8px 0 0;vertical-align:middle}.icard button{min-height:44px;border:1px solid var(--ink);background:none;color:var(--ink);padding:0 12px;font:600 var(--t-small) var(--body);cursor:pointer}
 .srow.focus,section.focus{outline:2px solid var(--cells);outline-offset:4px}
 .windcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 #wfield{position:relative}.wallmap{position:relative}.wallmap .windcv{z-index:1}
-.wallmap .maplibregl-ctrl-scale{background:transparent;border-color:var(--ink);color:var(--ink);font:11px/1.4 var(--mono)}
-.wclock{position:absolute;top:14px;left:16px;z-index:3;display:flex;flex-direction:column;gap:2px;pointer-events:none;font:500 11px var(--mono);color:var(--mute);text-shadow:0 0 6px var(--ground)}
-.wclock b{font:600 44px/1 var(--mono);color:var(--ink);letter-spacing:-.02em}
-#layers .whr{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center;margin:6px 0 2px 40px;font:500 10.5px var(--mono);color:var(--mute)}
-#layers .whr input{accent-color:var(--ink);width:100%}#layers .whr b{font-weight:600;color:var(--ink);text-align:right}
-#mapstatus .wind{color:var(--ink)}
 .nonode{position:absolute;left:12px;right:56px;bottom:40px;z-index:3;margin:0;background:var(--ground);border:1px dashed var(--ink);padding:8px 10px;font:500 var(--t-cap)/1.45 var(--mono)}
-#facts .big{font:600 var(--t-read)/1.2 var(--mono);margin:6px 0 10px;word-break:break-all}#facts h3{font:700 var(--t-read)/1.2 var(--display);margin:6px 0 10px}
-#layers{display:flex;flex-direction:column;border-right:1px solid var(--ink)}
-#layers button{text-align:left;background:none;border:0;border-bottom:1px solid var(--hair);padding:10px 12px;cursor:pointer}
-#layers button b{display:block;font:600 var(--t-small) var(--body)}#layers button span{display:block;font-size:var(--t-cap);color:var(--mute)}
-#layers button.on{background:var(--ink);color:var(--ground)}#layers button.on span{color:var(--ground);opacity:.7}
-.mapc{min-width:0;position:relative;border-right:1px solid var(--ink)}
 #mapbar{display:flex;gap:8px;align-items:center;justify-content:center;padding:8px;border-bottom:1px solid var(--hair)}
 #mapbar:empty{display:none}
 #mapbar button{background:none;border:1px solid var(--ink);width:28px;height:26px;cursor:pointer}
-#mapbar .cmp{font-size:var(--t-small);margin-left:14px;display:flex;gap:6px;align-items:center}
 #map{aspect-ratio:1;width:100%;overflow:hidden}
 #map .photo{width:100%;height:100%;object-fit:cover;display:block}
 .pair{display:grid;grid-template-columns:1fr 1fr;height:100%}.pair figure{margin:0;position:relative}.pair img{width:100%;height:100%;object-fit:contain;display:block;background:var(--ink)}
 #mapalt:has(.pair){aspect-ratio:auto;display:flex;flex-direction:column}#mapalt .pair{height:auto}#mapalt .pair figure{aspect-ratio:1}.pairnote{padding:8px 12px;border-top:1px solid var(--ink);font-size:var(--t-small);background:var(--ground)}
 .pair figcaption{position:absolute;left:8px;top:8px;background:var(--ground);border:1px solid var(--ink);font:600 var(--t-cap) var(--mono);padding:1px 6px}
-.chg{padding:16px}.chg .lrow{grid-template-columns:120px minmax(0,1fr) auto}.chg .span{border-top:1px solid var(--ink)}
-#facts{padding:14px}
+.yearly{max-width:760px;margin:6px 0 4px}
 .fr{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:var(--t-small);align-items:baseline}
 .fr small{display:block;font:500 var(--t-cap) var(--mono);color:var(--mute)}.fr b{font:600 var(--t-small) var(--mono);text-align:right}
 .fr.rung{padding:4px 0}.fr.rung.on{background:var(--ink);color:var(--ground);padding:4px 6px}.fr.rung.on small{color:var(--ground)}.fr.fine-r{opacity:.55}
@@ -268,7 +413,9 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .dgrid{margin-top:22px;border-top:1px solid var(--ink)}
 .dpane{padding:6px 0 60px 32px;min-width:0}
 .dsec{padding:26px 0 8px;border-bottom:1px solid var(--hair);scroll-margin-top:12px}.dsec:last-child{border-bottom:0}
+#d-workbench iframe{display:block;width:100%;height:900px;border:0}
 .dsec > h2,.dsh h2{margin:0 0 6px}.dsh .blurb{max-width:72ch;color:var(--mute);margin:0 0 14px}.dsh .blurb a{color:var(--ink)}
+#metrics .mdate{margin:6px 0}
 #metrics{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--ink);margin-bottom:26px}
 #metrics .fam{display:grid;grid-template-columns:120px minmax(0,1fr);border-bottom:1px solid var(--ink)}
 #metrics .fh{padding:12px 12px 12px 0;border-right:1px solid var(--ink);display:flex;flex-direction:column;justify-content:space-between;letter-spacing:.12em}
@@ -282,80 +429,153 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .mt .ms{font:500 var(--t-cap) var(--mono);color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
 .mt:hover{background:var(--raise)}.mt:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
 .mt.on{background:var(--ink);color:var(--ground)}.mt.on .mn,.mt.on .ms{color:var(--ground);opacity:.75}
-#metrics.enter .mt{animation:tilein .42s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 28ms)}
-@keyframes tilein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){#metrics.enter .mt{animation:none}}
 .afind{display:flex;align-items:center;gap:12px;border:1px solid var(--ink);padding:0 12px;margin:4px 0 18px;max-width:560px}
 .afind input{flex:1;border:0;background:none;color:var(--ink);font:500 var(--t-small) var(--mono);padding:10px 0;outline:none}
 .afind:focus-within{outline:2px solid var(--ink);outline-offset:2px}
 .ag{margin-bottom:18px}.agh{display:flex;justify-content:space-between;border-bottom:1px solid var(--ink);padding-bottom:5px;letter-spacing:.12em}
-.ar{border-bottom:1px solid var(--hair)}.ar summary{display:grid;grid-template-columns:56px minmax(0,1fr) auto 150px;gap:14px;align-items:center;padding:9px 0;cursor:pointer;list-style:none}
+.ar{border-bottom:1px solid var(--hair)}.ar summary{display:grid;grid-template-columns:4.2em minmax(0,1fr) auto auto;gap:14px;align-items:center;min-height:44px;padding:4px 0;cursor:pointer;list-style:none}
 .ar summary::-webkit-details-marker{display:none}.ar summary:hover .ap{text-decoration:underline}
-.am{font:700 var(--t-cap) var(--mono);letter-spacing:.08em;border:1px solid var(--ink);text-align:center;padding:2px 0}
+.am{font:700 var(--t-cap) var(--mono);letter-spacing:.08em}
 .ar summary .ap{font-size:var(--t-small);word-break:break-all}
-.aa{font:600 var(--t-cap) var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px dashed var(--ink)}
-.aa.public,.aa.open{border-style:solid}
+.aa{font:500 var(--t-cap) var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.aa.public,.aa.open{color:var(--ink)}
 .ay{font:500 var(--t-cap) var(--mono);color:var(--mute);text-align:right}.ay.yes{color:var(--ink)}.ay.yes::before{content:'● '}
 .ar[open] summary{border-bottom:1px dashed var(--hair)}.as{margin:10px 0 8px;max-width:76ch;font-size:var(--t-small);color:var(--mute)}
 .ac{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.ac code{flex:1;min-width:0;font:500 var(--t-cap) var(--mono);background:var(--raise);padding:7px 10px;overflow-x:auto;white-space:nowrap}
-.ac .sbtn{height:28px;display:inline-flex;align-items:center;text-decoration:none}
+.ac .sbtn{height:44px;display:inline-flex;align-items:center;text-decoration:none}
+/* the models, one table: a row per source, set as a ruled head in the body's own face, then its values */
+.mtab tr.grp th{padding:20px 8px 6px 0;font:500 var(--t-small) var(--body);letter-spacing:0;text-transform:none;color:var(--ink)}
+.mtab tr.grp th b{font:600 var(--t-read) var(--body)}.mtab tr.grp th > span{font:500 var(--t-cap) var(--mono);color:var(--mute);letter-spacing:.04em;margin:0 6px}
+.mtab td.u{font:500 var(--t-cap) var(--mono);color:var(--mute);padding-left:10px}
+/* the ledger: a stage filter of 44 px targets; a run of one answer says ×n; a time stays on one line */
+.lfilt{display:flex;flex-wrap:wrap;margin:6px 0 14px;border-left:1px solid var(--ink);border-top:1px solid var(--ink)}
+.lfilt button{min-height:44px;padding:0 14px;border:0;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);background:none;color:var(--ink);font:600 var(--t-cap) var(--mono);letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.lfilt button span{color:var(--mute);font-weight:500;margin-left:4px}.lfilt button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}.lfilt button[aria-pressed="true"] span{color:var(--ground)}
+.lfilt button:focus-visible{outline:2px solid var(--ink);outline-offset:-4px}
+.tbl.ledger td.tw,.tbl.ledger td.ts{white-space:nowrap}.tbl .x2{font:600 var(--t-cap) var(--mono);margin-left:4px}
+/* the gear, while Set up is open */
+.iconbtn[aria-current="page"]{background:var(--ink);color:var(--ground)}
+/* Set up: what is read at start, one table; and the consequences step over the save bar */
+.spane .tbl.ro td{vertical-align:baseline}
+.sconfirm{position:fixed;left:0;right:0;bottom:0;z-index:16;max-height:min(70vh,640px);overflow:auto;background:var(--ground);border-top:2px solid var(--ink);padding:18px clamp(16px,3vw,40px) 16px}
+.sconfirm h3{margin:0 0 4px;font:700 var(--t-read) var(--display)}.sconfirm > p{margin:0 0 10px;color:var(--mute);font-size:var(--t-small);max-width:72ch}
+.sconfirm ul{list-style:none;margin:0 0 14px;padding:0;max-width:860px}.sconfirm li{border-top:1px solid var(--hair);padding:10px 0}
+.sconfirm li b{font:600 var(--t-small) var(--body)}.sconfirm li .to{font:500 var(--t-cap) var(--mono);margin:0 8px}
+.sconfirm li .why{display:inline-block;border:1px solid var(--ink);padding:0 5px;font:600 var(--t-cap) var(--mono);letter-spacing:.04em}
+.sconfirm li p{margin:6px 0 0;font-size:var(--t-small);color:var(--mute);max-width:72ch}
+.sconfirm .acts{display:flex;gap:10px;flex-wrap:wrap}
 @media (max-width:760px){.dpane{padding-left:0}#metrics .fam{grid-template-columns:minmax(0,1fr)}#metrics .fh{border-right:0;border-bottom:1px solid var(--hair);flex-direction:row}
-  #metrics .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ar summary{grid-template-columns:48px minmax(0,1fr)}.ar summary .aa,.ar summary .ay{grid-column:2}.ay{text-align:left}}
+  #metrics .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.ar summary{grid-template-columns:3.6em minmax(0,1fr) auto;gap:10px}.ar summary .ay{display:none}
+  /* the tab bar on a phone: every tab on screen, wrapping into a second row of 44 px targets, and held under the top as the tab scrolls */
+  .dgrid .snav{position:sticky;top:0;z-index:5;background:var(--ground);flex-wrap:wrap;overflow:visible;border-top:1px solid var(--ink)}
+  .dgrid .snav a{flex:1 0 auto;justify-content:center;border-bottom:1px solid var(--hair)}
+  /* the ledger on a phone: the time and the stage on one line, what it answered under them at full width */
+  .tbl.ledger tr{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;border-bottom:1px solid var(--hair)}.tbl.ledger tr:first-child{display:none}
+  .tbl.ledger td{border-bottom:0}.tbl.ledger td:nth-child(4){grid-column:1 / -1;padding-top:0}}
 .dh{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}.dh h2{margin-bottom:4px}
 .gh{margin:16px 0 4px;padding-bottom:4px;border-bottom:1px solid var(--ink)}
 .srow{display:grid;grid-template-columns:minmax(0,1fr) 300px 80px;gap:16px;align-items:center;padding:4px 0;border-bottom:1px solid var(--hair)}
 .srow .t{font-size:var(--t-small);font-weight:600}.srow .t small{display:block;font:500 var(--t-cap) var(--mono);color:var(--mute);font-weight:500}
 .srow .c{font:600 var(--t-body) var(--mono);text-align:right}
 .sp .bandp{fill:var(--ink);fill-opacity:.12}.sp .lnp,.sms .lnp{fill:none;stroke:var(--ink);stroke-width:1.4}
-.linep{stroke:var(--signal-worse);stroke-dasharray:5 4;stroke-width:1.2}
+.linep{stroke:var(--signal-worse);stroke-dasharray:6 4;stroke-width:1.5}
 .axis{display:grid;grid-template-columns:minmax(0,1fr) 300px 80px;gap:16px;padding-top:4px}
 .sms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .sm{margin:0}.sm figcaption{font-size:var(--t-small);margin-bottom:2px}.sm svg{width:100%;height:auto;display:block}
 .sm .grid{stroke:var(--hair)}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:48px}
 
-/* ================= WALL: the node's wall anatomy (docs/site/wall.md), one viewport, always dark ================= */
-#wallv{min-height:100vh;height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;padding:2vh 2.4vw;gap:1.4vh;overflow:hidden}
-.wtop{display:flex;gap:1.6vw;align-items:center;flex-wrap:wrap;padding-bottom:1.4vh;border-bottom:1px solid var(--hair)}.wtop .wid{margin-left:auto}
-.wback{background:none;border:1px solid var(--ink);padding:4px 12px;font:600 var(--t-small) var(--mono);cursor:pointer}
-.wchips{display:flex;border:1px solid var(--ink)}.wchips button{background:none;border:0;border-right:1px solid var(--ink);padding:4px 10px;font:500 var(--t-small) var(--mono);cursor:pointer}
-.wchips button.on{background:var(--ink);color:var(--ground)}.wchips a{padding:4px 10px;font:500 var(--t-small) var(--mono);text-decoration:none}
-.wgrid{display:grid;grid-template-columns:var(--ws,46%) minmax(0,1fr);column-gap:0;min-height:0;padding-top:.6vh}
-.wl{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;min-width:0;min-height:0}
-.wl #wfield{border:0}.wl .flowtime{width:100%}
-.wflow .fwords{display:grid;grid-template-columns:1fr 1fr;column-gap:2vw}.wflow .fwords > .k{grid-column:1 / -1;margin-bottom:2px}.wflow .fine{display:none}
-.wflow .fc{padding:5px 0}.wflow .fc span{font-size:clamp(12px,.82vw,16px)}.wflow .fc b{font-size:clamp(18px,1.5vw,30px)}.wflow .fc small{display:none}
-.wr{min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:1.6vh;border-left:1px solid var(--hair);padding:0 0 0 2.4vw;margin-left:2.4vw}
-.whead{display:flex;flex-direction:column;gap:1.3vh}.whead .wask{margin-top:1.2vh}.wcount{display:flex;flex-direction:column;gap:1.4vh}
-.wsent{font:700 clamp(28px,3vw,62px)/1.04 var(--display);letter-spacing:-.03em;margin:0;text-wrap:balance}
-/* the title says what is happening; the tagline explains it — the line, the comparison, the day's event — smaller and muted */
-.wsent .wtag{display:block;font:500 clamp(14px,1.05vw,21px)/1.35 var(--body);letter-spacing:0;color:var(--mute);margin-top:1vh;max-width:44ch}
-.wwhy{font:500 clamp(14px,1.05vw,21px)/1.35 var(--body);color:var(--mute);margin:0;max-width:56ch}
+/* ================= WALL: a public screen read from 3 m (docs/site/dashboard.md, the Wall), one viewport, always dark =================
+   THE TYPE FLOOR: every size here is --wf or a multiple of it, never less. --wf is 28 px at 1920×1080 and scales with the
+   viewport, whichever of its width or height is shorter for it; tests/test_doors.py holds this block to that.
+   What did not survive the floor was cut from the Wall, not shrunk. */
+#wallv{--wf:min(1.4584vw,2.5926vh);position:relative;height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:2.4vh;padding:3.4vh 2.4vw;overflow:hidden;font-size:var(--wf)}
+/* chrome: a wall is not operated. The back button, the chips, the hour strip and the model's note are there for a pointer
+   or the keyboard and invisible otherwise; the back button is first in keyboard order. On a touch screen there is no
+   hover, so there it is always shown, and every control is a 44 px target. It appears at once: nothing fades. */
+#wallv .wchrome{opacity:0}
+#wallv .wchrome:hover,#wallv .wchrome:focus-within{opacity:1}
+@media (hover:none) and (pointer:coarse){#wallv .wchrome{opacity:1}#wallv{grid-template-rows:auto auto minmax(0,1fr)}#wallv .wtop{position:relative;margin:-3.4vh -2.4vw 0}}
+@media (pointer:coarse){#wallv .wback,#wallv .wchips button,#wallv .wrail button{min-height:44px;min-width:44px}}
+.wtop{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;gap:1.2vw;align-items:center;flex-wrap:wrap;padding:1.2vh 2.4vw;background:var(--ground);border-bottom:1px solid var(--hair)}
+.wback,.wchips button{background:none;border:1px solid var(--ink);padding:.1em .5em;font:600 var(--wf) var(--mono);cursor:pointer}
+.wchips{display:flex}.wchips button+button{border-left:0}.wchips button.on{background:var(--ink);color:var(--ground)}
+.wnote{font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
+/* the walk: the map on the left, framed on one scale's cell; the scale's page on the right */
+.wgrid{display:grid;grid-template-columns:58% minmax(0,1fr);min-height:0;font-size:var(--wf)}
+.wl{position:relative;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:1.2vh;min-width:0;min-height:0}
+#wfield{position:relative;min-height:0;font-size:var(--wf)}#wfield .wallmap{position:absolute!important;inset:0;width:100%;height:100%}.wallmap .windcv{z-index:1}
+/* the rail says which scale is drawn (not chrome: always shown); each scale is a button that holds it */
+.wrail{position:absolute;left:0;top:0;z-index:5;display:flex;background:var(--ground)}
+.wrail button{background:none;border:0;border-bottom:3px solid transparent;padding:.25em .5em;font:500 var(--wf)/1.2 var(--mono);color:var(--mute);cursor:pointer}
+.wrail button.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}.wrail button[aria-pressed="true"]::after{content:" ·held"}
+.wclock{position:absolute;bottom:.5em;left:.6em;z-index:3;display:flex;flex-direction:column;gap:.15em;pointer-events:none;font:500 var(--wf)/1.2 var(--mono);color:var(--ink);text-shadow:0 0 6px var(--ground),0 0 2px var(--ground)}
+.wclock b{font:600 calc(var(--wf) * 2)/1 var(--mono);letter-spacing:-.02em}.wclock:empty{display:none}
+.wcap{margin:0;font:500 var(--wf)/1.3 var(--body);text-wrap:pretty}
+.wr{min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:1.6vh;border-left:1px solid var(--hair);padding-left:2.4vw;margin-left:2.4vw}
+/* the head runs across the top: the time and the sentence, and what is asked now beside them */
+.whead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,30%);gap:.6vh 2.4vw;align-items:end}.whead .wkick{grid-column:1/-1}.whead .wask{align-self:end}
+.wkick{font:600 calc(var(--wf) * 1.2)/1.2 var(--mono);color:var(--mute)}.wkick time,.wkick b{color:var(--ink)}
+/* the hero: what is happening, in the household's words; the tagline explains it, at the floor and muted */
+.wsent{font:700 calc(var(--wf) * 2.1)/1.04 var(--display);letter-spacing:-.03em;margin:0;text-wrap:balance}
+.wsent .wtag{display:block;font:500 var(--wf)/1.3 var(--body);letter-spacing:0;color:var(--mute);margin-top:1.4vh;max-width:40ch;text-wrap:pretty}
+/* what the node suggests: one line, ending on a word (wallAsk), never a button that answers */
+.wask{display:flex;flex-direction:column;gap:.3em;border-left:3px solid var(--ink);padding-left:1vw}
+.wask .wsay{font:600 calc(var(--wf) * 1.15)/1.25 var(--body)}.wask .wtel{font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
 /* the node, thinking aloud: a voice, set apart from the node's figures. Figtree Italic, light and large, is speech against
-   the upright facts around it; a framed caption, a hairline header, a dot that breathes while it writes, words that
-   surface where they land. No new font: the node's own three, self-hosted. */
-.wnarr{flex:1 1 20vh;min-height:19vh;display:flex;flex-direction:column;border:1px solid var(--ink);margin-top:.4vh;overflow:hidden}
-.wnarr .nh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:.9vh 1.1vw;border-bottom:1px solid var(--hair);font:500 clamp(10px,.68vw,13px) var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.wnarr .nl{display:flex;align-items:center;gap:8px;color:var(--ink)}.wnarr .nm{text-align:right}
-.wnarr .dot{width:7px;height:7px;border-radius:50%;background:var(--ink);opacity:.35}
-.wnarr.busy .dot{opacity:1;animation:breathe 1.6s ease-in-out infinite}
+   the upright facts around it. Collapsed ([hidden]) until there is text; the last text stays while the next is written. */
+/* the scale's page: its figures, each with its source, when and its word; its day; its land; what is around */
+.wscale{margin:0;font:600 calc(var(--wf) * 1.2)/1.2 var(--mono);color:var(--mute)}
+/* the page keeps its height; the narration under it is what gives way, showing its last lines (node #1, 16 Oct: the
+   page was let shrink, and the region's table ran on under the narration's box) */
+.wpage{flex:0 0 auto;display:flex;flex-direction:column;gap:1.2vh}
+.wnarr.wnoroom{display:none}
+.wpage h3{margin:1.2vh 0 0;font:700 calc(var(--wf) * 1.2)/1.1 var(--display);letter-spacing:-.02em}
+.wfacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10em),1fr));gap:1.4vh 2vw}
+.wfig{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:0 .35em}.wfig .wn{grid-column:1/-1;font:600 var(--wf)/1.2 var(--body)}
+.wfig b{font-size:calc(var(--wf) * 2.2);line-height:1;letter-spacing:-.03em}.wfig .wsrc{grid-column:1/-1}
+.wu{font:500 var(--wf) var(--mono)}
+.wsrc{display:block;margin:0;font:500 var(--wf)/1.3 var(--body);color:var(--mute);text-wrap:pretty}
+.wpw{display:inline-block;margin-left:.25em;padding:.05em .3em;border:1px solid currentColor;font:500 var(--wf)/1 var(--mono)}
+.wat{margin:0;font:700 calc(var(--wf) * 1.5)/1.15 var(--display);letter-spacing:-.02em}.wat b{font-family:var(--mono)}
+.wday{display:block;width:100%;height:calc(var(--wf) * 5)}
+/* the land as a hundred squares: the kind by fill, never by hue; stroked orange, what only the satellite knows */
+.whund{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;max-width:calc(var(--wf) * 18)}
+.whund i,.wkey i{display:block;aspect-ratio:1;border:2px solid var(--satellite-only)}
+.wkey{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2em 1em;margin:0;font:500 var(--wf)/1.3 var(--body)}.wkey .wsrc{display:inline}.wkey b{font-family:var(--mono)}
+.wkey i{display:inline-block;width:.8em;margin-right:.3em;vertical-align:-.05em}
+.q-built{background:var(--ink)}.q-trees{background:repeating-linear-gradient(45deg,var(--ink) 0 3px,transparent 3px 7px)}
+.q-crops{background:repeating-linear-gradient(0deg,var(--ink) 0 2px,transparent 2px 6px)}.whund .q-rest,.wkey .q-rest{border-style:dashed}
+.wplaces{display:flex;flex-direction:column;gap:.4vh}.wplaces div{display:grid;grid-template-columns:5em minmax(0,1fr) 2em;align-items:center;gap:.6em;font:500 var(--wf)/1.2 var(--body)}
+.wplaces b{font:600 var(--wf) var(--mono);text-align:right}.wsq{display:flex;flex-wrap:wrap;gap:3px}.wsq i{width:.65em;height:.65em;background:var(--ink)}
+.wexp{border-collapse:collapse;width:100%;font:500 var(--wf)/1.25 var(--body)}
+.wexp th{text-align:left;vertical-align:top;padding:.5vh 1em .5vh 0;white-space:nowrap;font-weight:700}.wexp td{padding:.5vh 0;border-bottom:1px solid var(--hair)}
+.wexp td b{font-family:var(--mono)}.wexp .wbysat td b{color:var(--satellite-only)}.wexp .wnone td{color:var(--mute)}
+.wnarr{margin-top:auto;flex:0 1 auto;min-height:calc(var(--wf) * 5);display:flex;flex-direction:column;border:1px solid var(--ink);overflow:hidden}
+.wnarr .nh{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0 1em;padding:.8vh 1.1vw;border-bottom:1px solid var(--hair);font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
+.wnarr .nl{display:flex;align-items:center;gap:.4em;color:var(--ink);font-weight:600}
+.wnarr .dot{width:.3em;height:.3em;border-radius:50%;background:var(--ink);opacity:.35}
+/* the only two motions in the box, each a datum's cadence, stepped: the model is asked (the dot), a letter is typed (the caret) */
+#wallv{--motion-model-asking:1.6s;--motion-caret-typing:1s}
+.wnarr.busy .dot{opacity:1;animation:breathe var(--motion-model-asking) steps(1) infinite}
 @keyframes breathe{50%{opacity:.25;transform:scale(.7)}}
-.wnarr .nw{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:1.4vh 1.4vw 1.2vh;mask-image:linear-gradient(to bottom,transparent 0,#000 2.4em)}
-.wnarr .nt{font:italic 300 clamp(18px,1.48vw,31px)/1.34 Figtree,var(--body);letter-spacing:-.005em;margin:0;max-width:40ch;text-wrap:pretty}
-.wnarr .ncount{white-space:nowrap;color:var(--ink);letter-spacing:.08em;text-transform:uppercase}.wnarr .ncount b{font:600 clamp(13px,.95vw,18px) var(--mono);letter-spacing:0;margin-left:4px}.wnarr .nt.old{opacity:.32}
-@keyframes surface{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
-.wnarr .nf{display:flex;justify-content:space-between;gap:16px;padding:.8vh 1.1vw;border-top:1px solid var(--hair);font:500 clamp(10px,.66vw,12px) var(--mono);color:var(--mute);letter-spacing:.02em}
-.wnarr .caret{display:inline-block;width:.42em;height:.95em;margin-left:3px;vertical-align:-.1em;background:var(--ink);animation:blink 1s steps(1) infinite}
+.wnarr .nw{flex:0 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:1.2vh 1.4vw;mask-image:linear-gradient(to bottom,transparent 0,#000 1.2vh)}
+.wnarr .nt{font:italic 300 calc(var(--wf) * 1.1)/1.34 Figtree,var(--body);letter-spacing:-.005em;margin:0;max-width:44ch;text-wrap:pretty}
+.wnarr .caret{display:inline-block;width:.42em;height:.95em;margin-left:3px;vertical-align:-.1em;background:var(--ink);animation:blink var(--motion-caret-typing) steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-@media (prefers-reduced-motion: reduce){.wnarr .caret,.wnarr.busy .dot,.wnarr .nt .w{animation:none}}
-.wask{font:600 clamp(15px,1.15vw,23px)/1.3 var(--body);border-left:3px solid var(--ink);padding-left:1vw}
-.wask > .said{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}   /* the whole alert is on Now */
-.wask small{display:block;font:500 clamp(12px,.8vw,16px) var(--body);color:var(--mute);margin-top:2px}.wask b{display:block;font:600 clamp(12px,.8vw,15px) var(--mono);margin-top:6px}
-.wrho .rings{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}.wrho svg.sg{width:16px;height:16px}.wrho small{font:500 12px var(--mono);color:var(--mute)}
-.wfrag{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:1.4vw;border-top:1px solid var(--hair);padding-top:1.4vh;align-items:end}
-.wfrag span{display:block;font:600 clamp(11px,.8vw,16px) var(--body)}.wfrag b{font:600 clamp(18px,1.7vw,34px)/1.1 var(--num-face)}
-.wfrag small{display:block;font:500 clamp(10px,.6vw,13px) var(--mono);color:var(--mute)}.wfrag .more{font:600 var(--t-small) var(--mono);text-decoration:none}
-.wfoot{text-transform:none;letter-spacing:.04em}
+.wnarr .nw.roll{justify-content:flex-start;mask-image:linear-gradient(to bottom,transparent 0,#000 1.2vh,#000 calc(100% - 1.2vh),transparent 100%)}
+.wnarr .nw.roll .nt{flex:none;margin-bottom:calc(var(--wf) * 1.6);animation:wroll var(--roll-s) linear 4s infinite}
+@keyframes wroll{to{transform:translateY(calc(-1 * var(--roll-h)))}}
+@media (prefers-reduced-motion: reduce){.wnarr .caret,.wnarr.busy .dot,.wnarr .nw.roll .nt{animation:none}}
+/* A phone, a small screen or a portrait one: the columns stack, the map first, and the page scrolls. The floor never
+   drops under 12 px, the layer's floor for type and controls (at 390 px wide --wf alone would be 5.7 px). */
+@media (max-width:999px),(max-height:499px),(orientation:portrait){
+  #wallv{--wf:max(12px,min(1.4584vw,2.5926vh));height:auto;min-height:100vh;overflow:visible;grid-template-rows:auto;padding:16px}
+  #wallv .whead{grid-template-columns:minmax(0,1fr)}#wallv .wl{grid-template-rows:auto auto}#wallv #wfield{height:min(calc(100vw - 32px),70vh)}
+  #wallv .wgrid{grid-template-columns:minmax(0,1fr);gap:3vh}
+  #wallv .wr{border-left:0;padding-left:0;margin-left:0;border-top:1px solid var(--hair);padding-top:3vh;overflow:visible}
+  @media (hover:none) and (pointer:coarse){#wallv .wtop{margin:-16px -16px 16px}}
+}
 
 
 /* ================= FLOW: the node by scale (R37) ================= */
@@ -379,7 +599,10 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .flowtime .h .b{position:absolute;right:3px;bottom:3px;width:7px;height:7px;border:1.5px solid var(--rings);border-radius:50%}
 
 /* ================= NODE ================= */
-#flow{border:1px solid var(--hair);margin-top:18px;overflow-x:auto}   /* on a phone the drawing keeps its size and scrolls sideways */
+#flow{border:1px solid var(--hair);margin-top:18px}   /* on a phone the drawing turns vertical at the screen's width (flowLayout) */
+.verdict{margin-bottom:6px}.vline{font:500 var(--t-read)/1.4 var(--body);margin:0 0 10px;max-width:60ch}
+#rdiary .more{min-height:44px;margin:8px 0 0;padding:0 14px;background:none;border:1px solid var(--ink);color:var(--ink);font:600 var(--t-small) var(--body);cursor:pointer}
+.refuse .lrow{grid-template-columns:minmax(0,1fr) auto;gap:16px}.refuse .lrow .t{font-weight:400}.refuse .lrow a.c{font:600 var(--t-small) var(--body);color:var(--ink);text-underline-offset:3px;white-space:nowrap}
 #flow svg{display:block;width:100%;height:auto}
 .fl{fill:none;stroke:var(--ink);stroke-opacity:.45;stroke-width:1.2}.fl.empty{stroke-dasharray:4 5;stroke-opacity:.35}
 .fd{fill:var(--ink)}.fd.hollow{fill:var(--ground);stroke:var(--ink);stroke-dasharray:2 2}
@@ -389,53 +612,97 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .ft{font:600 var(--t-small) var(--body)!important;fill:var(--ink)!important}.fn{font:500 var(--t-cap) var(--mono)}
 .fname{font:700 17px var(--display)!important;fill:var(--ink)!important}
 .fdot{fill:var(--ink)}
-#world svg{display:block;width:100%;height:auto}
+#world svg{display:block;width:auto;max-width:100%;height:auto;max-height:33vh}   /* a third of the screen at most: the list above says it */
 #world .land{fill:var(--ink);fill-opacity:.12}   /* as the landing: land carries weight under the grid */
 .h3grid{fill:none;stroke:var(--ink);stroke-width:.4;opacity:.5}.h3lit{fill:var(--cells);fill-opacity:.13;stroke:var(--cells);stroke-width:1.5}
 
 @media (max-width:1080px){
-  .face{grid-template-columns:minmax(0,1fr);grid-template-areas:"kick" "k2" "l" "r"}
-  .bench{grid-template-columns:minmax(0,1fr)}.mapc{order:-1;border-right:0;border-bottom:1px solid var(--ink)}.altc{grid-column:1 / -1;border-right:0;border-bottom:1px solid var(--ink)}
-  #layers{border-right:0;border-bottom:1px solid var(--ink);max-height:340px}.mapc #map{height:min(78vh,620px)}
-  .mapc #mapbar{left:12px;transform:none;max-width:calc(100% - 68px)}#mapstatus .cid,#mapstatus span:nth-child(2){display:none}
+  .face{grid-template-columns:minmax(0,1fr);grid-template-areas:"kick" "l" "r" "al"}.rcol{margin-top:28px}
+  .bench{grid-template-columns:216px minmax(0,1fr)}#ptools{grid-column:1 / -1;height:auto;min-height:0;border-left:0;border-top:1px solid var(--hair);padding:0 0 16px;columns:2;column-gap:32px}
   .sms{grid-template-columns:repeat(2,minmax(0,1fr))}.cols2{grid-template-columns:1fr}
 }
+/* a phone (SPEC_place_microgis §4): one column, the screen first, then the cake and the tools as two disclosures, then the
+   rest; every target 44 px */
+@media (max-width:760px){
+  .phead{grid-template-columns:minmax(0,1fr)}
+  .bench{grid-template-columns:minmax(0,1fr);border-bottom:0}.pmid{display:contents}
+  .mapc{order:1;margin:6px 6px 14px}.mapc #map{height:440px}
+  .psbar{order:2;display:flex;gap:8px;margin-bottom:4px}
+  .psbar button{flex:1;min-height:44px;border:1px solid var(--ink);border-radius:999px;background:none;color:var(--ink);font:400 var(--t-small) var(--body);cursor:pointer}
+  .psbar button[aria-expanded="true"]{background:var(--ink);color:var(--ground)}
+  #cake,#ptools{display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;height:60vh;min-height:0;grid-column:auto;columns:auto;
+    padding:4px 16px 24px;border:0;border-top:1px solid var(--ink);background:var(--ground)}
+  .bench[data-sheet="cake"] #cake,.bench[data-sheet="tools"] #ptools{display:block}
+  .bench[data-sheet="cake"] .psbar,.bench[data-sheet="tools"] .psbar{position:fixed;left:0;right:0;bottom:60vh;z-index:51;margin:0;padding:8px 16px;background:var(--ground)}
+  #facts.inspect{order:4}#pmargin{order:5;grid-template-columns:minmax(0,1fr)}#pmargin .mr{min-height:44px}
+  .ly,.tl,.spd summary{min-height:44px}
+  .mapc #mapbar{max-width:calc(100% - 72px)}.mapc .maplibregl-ctrl-bottom-left{bottom:68px}#mapcredit{position:static;max-width:none;padding:4px 12px 6px;text-align:left}
+  .phour{left:12px;transform:none}   /* left: the active tool's word needs the top right */
+  .altc{top:64px;max-height:calc(100% - 140px)}   /* under the hour, not over it */
+  .plow{grid-template-columns:minmax(0,1fr)}.plow>section+section{padding:0 0 18px;border-left:0;border-top:1px solid var(--hair)}
+}
 @media (max-width:560px){
-  .ladder{grid-template-columns:repeat(2,minmax(0,1fr))}
   .doors a{padding:5px 8px}.lrow{grid-template-columns:minmax(0,1fr) auto}.lrow .s{grid-column:1 / -1;grid-row:2}
+  .refuse .lrow{grid-template-columns:minmax(0,1fr)}.refuse .lrow a.c{white-space:normal}
   summary{grid-template-columns:minmax(0,1fr) auto}summary .s{grid-column:1 / -1;grid-row:2}
   .srow,.axis{grid-template-columns:minmax(0,1fr) 64px}.srow .sp{grid-column:1 / -1;grid-row:2;width:100%}.axis span:first-child{display:none}
   .sms{grid-template-columns:minmax(0,1fr)}.tbl .hide{display:none}.ans button{padding:6px 10px}
   .lrow .bar{grid-column:1 / -1;grid-row:2}.lrow.two .s{grid-column:1 / -1}
 }
+/* a phone: the bar in three rows of 44 px targets (name and the three icons; the five doors; the register and the
+   as-of), so the headline is on the first screen; every target on Now is at least 44 × 44 (SPEC_mobile's own rule) */
+@media (max-width:480px){
+  .bar{gap:8px;padding:10px 16px}.bar .sp{display:none}.who{margin-right:auto;font-size:18px}
+  .iconbtn{width:44px;height:44px;order:1}.bar .iconbtn+.iconbtn{margin-left:0}
+  .doors{order:2;flex-basis:100%}.doors a{flex:1;display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 4px}
+  .reg{order:3}.reg button{min-height:44px;padding:0 12px}
+  #asof,#layout-switch{order:4}
+  .relnote:not([hidden]){order:5;flex-basis:100%;min-height:44px;display:flex;align-items:center;justify-content:center}#asof{flex:1;min-width:0;border:0;padding:0;font-size:12px;line-height:1.3}
+  #layout-switch{min-height:44px;display:none;align-items:center}html[data-phone="1"] #layout-switch{display:inline-flex}
+  .face{padding-top:14px}.kick .now,.kick .kr a{min-height:44px;display:inline-flex;align-items:center}
+  .kick .kr a{min-width:44px}.foot a,.foot button.linkish{min-height:44px;display:flex;align-items:center}
+}
 /* ---- Set up (doors-setup.js): mono's grid — 1px ink rules, square, outlined; Linear's section list and rows ---- */
 #setupv2 .sh{border-bottom:1px solid var(--ink);padding-bottom:18px}
 #setupv2 .sh h1{margin-top:8px}
 .sgrid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0;align-items:start}
-.snav{position:sticky;top:12px;display:flex;flex-direction:column;border-right:1px solid var(--ink);padding:18px 0}
-.snav a{display:flex;justify-content:space-between;gap:8px;padding:9px 16px 9px 0;color:var(--ink);text-decoration:none;font:500 var(--t-cap) var(--mono);letter-spacing:.1em;text-transform:uppercase;border-top:1px solid var(--hair)}
-.snav a:last-child{border-bottom:1px solid var(--hair)}
-.snav a i{font-style:normal;color:var(--mute);letter-spacing:.04em;text-transform:none}
-.snav a.on{background:var(--ink);color:var(--ground);padding-left:10px}.snav a.on i{color:var(--ground);opacity:.75}
-.snav a:not(.on):hover{padding-left:6px}
+/* the side menu (Set up's sections, Data's tabs), 27 Oct 2026, Tomas: "not so differentiated and feels it is all
+   clickable". Two kinds of line, two faces: a category is a label (mono, caps, grey, on an ink rule) and never reacts; a
+   section is a word in the body face that does (a wash and an underline on hover, ink when open). No rule between sections. */
+.snav{position:sticky;top:12px;display:flex;flex-direction:column;border-right:1px solid var(--ink);padding:18px 16px 18px 0}
+.snav a{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;min-width:44px;position:relative;box-sizing:border-box;padding:0 10px 0 12px;color:var(--ink);text-decoration:none;font:400 var(--t-body)/1.25 var(--body)}
+.snav a i{font:400 var(--t-cap) var(--mono);font-style:normal;color:var(--mute);letter-spacing:.04em;white-space:nowrap}
+.snav a:not(.on):hover{background:var(--raise);text-decoration:underline;text-underline-offset:3px}
+.snav a.on{background:var(--ink);color:var(--ground);font-weight:600}.snav a.on i{color:var(--ground);opacity:.75}
+/* the menu in categories, and each section's explainer on hover or keyboard focus (24 Oct 2026): ink on paper, square,
+   no shadow; a phone has no hover, so there it stays off and the section's own blurb says the same */
+.snav .scat{font:600 var(--t-cap) var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding:24px 0 6px;margin-bottom:6px;border-bottom:1px solid var(--ink);cursor:default}
+.snav .scat:first-child{padding-top:0}
+.snav a .tip{display:none;position:absolute;left:calc(100% + 30px);top:-1px;z-index:20;width:280px;padding:10px 12px;background:var(--ground);color:var(--ink);border:1px solid var(--ink);font:400 var(--t-small)/1.45 var(--body);letter-spacing:0;text-transform:none;white-space:normal;pointer-events:none}
+.snav a .tip b{display:block;font:600 var(--t-cap) var(--mono);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+.snav a .tip em{display:block;font:500 var(--t-cap)/1.5 var(--mono);font-style:normal;color:var(--mute);margin-top:6px}
+@media (hover:hover){.snav a:hover .tip{display:block}}
+.snav a:focus-visible .tip{display:block}
 .spane{padding:18px 0 120px 32px;min-width:0}
 .spane h2{margin:0 0 6px}.spane .blurb{max-width:68ch;color:var(--mute);margin:0 0 16px}
 .spane .gate{border:1px solid var(--ink);padding:10px 14px;margin:0 0 16px;max-width:68ch}
 .spane .gate a{color:var(--ink)}
-#setupv2 .srow{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);gap:10px 28px;padding:16px 0;border-top:1px solid var(--hair);align-items:start}
+#setupv2 .srow{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);gap:10px 28px;padding:12px 0;border-top:1px solid var(--hair);align-items:start}
 #setupv2 .srow.wide{grid-template-columns:minmax(0,1fr)}
 #setupv2 .srow .sl label{font:600 var(--t-read)/1.3 var(--body);display:block}
 #setupv2 .srow .sm{font:500 var(--t-cap) var(--mono);color:var(--mute);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
 #setupv2 .srow .sm code{font:inherit;color:var(--ink)}
 #setupv2 .srow .help{margin:6px 0 0;color:var(--mute);font-size:var(--t-small);max-width:62ch}
+#setupv2 .sdet{margin-left:auto}
 #setupv2 .srow .out,.sbar .out{border:1px solid var(--ink);padding:0 5px;color:var(--ink);font:600 var(--t-cap) var(--mono);letter-spacing:.04em}
 #setupv2 .srow .sc input,#setupv2 .srow .sc select{width:100%;background:var(--ground);color:var(--ink);border:1px solid var(--ink);border-radius:0;padding:8px 10px;font:500 var(--t-small) var(--mono)}
 #setupv2 .srow .sc input:focus-visible,#setupv2 .srow .sc select:focus-visible,#setupv2 .sw:focus-visible,.sbtn:focus-visible,.share .opt:focus-within{outline:2px solid var(--ink);outline-offset:2px}
 #setupv2 .srow .sc input[disabled],#setupv2 .srow .sc select[disabled],#setupv2 .sw[disabled],.share input[disabled]+b{opacity:.55;cursor:not-allowed}
 #setupv2 .srow.ro .sc input{border-style:dashed;color:var(--mute)}
 #setupv2 .srow .sc.txt{font-size:var(--t-small)}#setupv2 .srow .sc.txt a{color:var(--ink)}
+#setupv2 .srow .sc.txt code{overflow-wrap:anywhere}   /* Grafana's ssh -L line is one word to a 390 px phone */
 #setupv2 .srow .err{margin:6px 0 0;border-left:3px solid var(--signal-worse);padding:4px 8px;font-size:var(--t-small)}
-#setupv2 .sw{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:30px;border:1px solid var(--ink);background:none;color:var(--ink);font:600 var(--t-cap) var(--mono);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:0}
+#setupv2 .sw{display:inline-flex;align-items:center;justify-content:center;min-width:64px;height:44px;border:1px solid var(--ink);background:none;color:var(--ink);font:600 var(--t-cap) var(--mono);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:0}
 #setupv2 .sw.on{background:var(--ink);color:var(--ground)}
 .share{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--ink);margin-top:12px}
 .share .opt{display:block;padding:14px 16px;cursor:pointer;position:relative}
@@ -446,7 +713,15 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .share .opt.on{background:var(--ink);color:var(--ground)}.share .opt.on span{color:var(--ground);opacity:.85}
 .packs{display:flex;flex-direction:column;border-top:1px solid var(--ink);margin-bottom:18px;max-width:860px}
 .pcard{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);border-left:1px solid var(--ink);padding:16px 20px}
-.pcard .ph{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+.pcard .ph{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center}
+/* a pack card folds to its switch, its name and how many settings it has; + opens what it does and every setting, in
+   full (Tomas, 24 Oct 2026: fold the pack, not the rows inside it) */
+.pcard .px{width:44px;height:44px;border:1px solid var(--ink);background:none;color:var(--ink);font:500 18px/1 var(--mono);cursor:pointer;border-radius:0}
+.pcard .px:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.pcard .pbody{display:none}.pcard.open .pbody{display:block}
+.pcard i.new{font:600 var(--t-cap) var(--mono);font-style:normal;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);padding:0 5px;margin-left:8px}
+.pcard .pjob{margin:8px 0 0;font:500 var(--t-small) var(--mono)}.pcard .pjob:empty{display:none}
+.pcard .pbody > .help{margin-top:12px}
 .pcard .ph b{font:600 var(--t-read) var(--body)}.pcard .sm{font:500 var(--t-cap) var(--mono);color:var(--mute);margin-top:2px}
 .pcard .help{margin:8px 0 0;color:var(--mute);font-size:var(--t-small);line-height:1.5;max-width:72ch;overflow-wrap:break-word;word-break:normal}
 #setupv2 .pcard .srow{grid-template-columns:minmax(0,1fr) minmax(220px,340px);gap:10px 28px;padding:14px 0 0;border-top:1px solid var(--hair);margin-top:12px}
@@ -457,7 +732,7 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 .unlock2 input{background:var(--ground);color:var(--ink);border:1px solid var(--ink);border-radius:0;padding:8px 10px;font:500 var(--t-small) var(--mono);text-transform:none;letter-spacing:0}
 .unlock2 > div{grid-column:1 / -1}
 .state{font:600 var(--t-cap) var(--mono);letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink);padding:4px 8px}
-.sbtn{background:none;border:1px solid var(--ink);color:var(--ink);padding:0 20px;height:34px;font:600 var(--t-cap) var(--mono);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:0}
+.sbtn{background:none;border:1px solid var(--ink);color:var(--ink);padding:0 20px;min-width:44px;height:44px;font:600 var(--t-cap) var(--mono);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:0}
 .sbtn.primary{border-width:2px}
 .sbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;align-items:center;gap:12px;padding:12px clamp(16px,3vw,40px);background:var(--ground);border-top:2px solid var(--ink);font:500 var(--t-small) var(--mono)}
 .sbar .sp{flex:1}
@@ -472,11 +747,17 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 #stoast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--ground);padding:10px 16px;font:500 var(--t-small) var(--mono);max-width:min(640px,92vw)}
 #stoast.bad{background:var(--ground);color:var(--ink);border:2px solid var(--signal-worse)}
 @media (max-width:760px){.sgrid{grid-template-columns:minmax(0,1fr)}.snav{position:static;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--ink);padding:0}
-  .snav a{border-top:0;border-right:1px solid var(--hair);padding:10px 12px;white-space:nowrap}.spane{padding-left:0}
+  .snav a{flex-shrink:0;border-right:1px solid var(--hair);padding:0 12px;white-space:nowrap}.snav a.on{padding-left:12px}.spane{padding-left:0}
+  .snav{flex-wrap:wrap;overflow:visible}.snav .scat{flex:1 0 100%;padding:12px 12px 4px;margin:0;border-top:1px solid var(--ink);border-bottom:0}.snav .scat:first-child{border-top:0;padding-top:8px}.snav a .tip{display:none!important}
   #setupv2 .srow{grid-template-columns:minmax(0,1fr)}.share,.unlock2{grid-template-columns:minmax(0,1fr)}.share .opt+.opt{border-left:0;border-top:1px solid var(--ink)}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 .asking{display:none}
-.asking.on{display:grid;position:fixed;inset:0;z-index:40;background:var(--ground);grid-template-columns:1fr 360px;gap:40px;padding:clamp(20px,4vw,60px);align-content:center;align-items:center;max-width:1440px;margin:0 auto}
+.asking.on{display:grid;position:fixed;inset:0;z-index:40;background:var(--ground);grid-template-columns:1fr 360px;gap:40px;padding:clamp(20px,4vw,60px) max(clamp(20px,4vw,60px),calc((100vw - 1440px)/2));align-content:center;align-items:center}
+/* the seed: the measuring frame's own mark, centered, breathing from the first paint — the face's
+   middle is never empty while the scripts come. open() removes it the moment the globe wires in. */
+.asking .seed{position:absolute;width:18px;height:18px;border:1.5px solid var(--ink);margin:auto;inset:0;animation:seedbreathe 1.8s ease-in-out infinite}
+@keyframes seedbreathe{50%{opacity:.3;transform:scale(.86)}}
+@media (prefers-reduced-motion: reduce){.asking .seed{animation:none}}
 .asking .frame{position:relative;border:1px solid var(--ink);aspect-ratio:1.55;background:var(--ground);display:flex;align-items:center;justify-content:center}
 .asking .frame::before,.asking .frame::after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--ink)}
 .asking .frame::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
@@ -509,6 +790,7 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 </style>
 </head>
 <body>
+<a class="skip" href="#content">Skip to the content</a>
 <!-- the boot screen is the loading screen: the overlay ships already on, so the first paint is
      the asking face — brand, frame and the blink are CSS and move before any script arrives; the glyph
      globe joins when doors-core.js runs ASKING.open (its `on` is a JS flag, so open() still wires
@@ -516,7 +798,7 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
      before. A browser with scripting off gets the shell instead (@media (scripting: none) above). -->
 <div class="asking on" id="asking" aria-hidden="false">
   <p class="brand"><b>PLANETAI</b> loading</p>
-  <div class="frame"><canvas id="askcv"></canvas></div>
+  <div class="frame"><i class="seed" aria-hidden="true"></i><canvas id="askcv"></canvas></div>
   <div class="aside">
     <p class="hd"><span><i class="blink" aria-hidden="true"></i><b id="ask-what">Asking the node</b></span>
       <span id="ask-count"></span></p>
@@ -526,10 +808,12 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
     <p class="rule" id="ask-rule"></p>
   </div>
 </div>
-<header class="bar">
+<header class="bar" data-learn="bar" data-reads="/health" data-pack="core">
   <span class="who" id="who"></span>
   <nav class="doors" aria-label="Doors"><a href="#now" data-v="now">Now</a><a href="#place" data-v="place">Place</a><a href="#node" data-v="node">Node</a><a href="#data" data-v="data">Data</a><a href="#wall" data-v="wall">Wall</a></nav>
   <span class="sp"></span>
+  <a class="proto relnote" id="relnote" href="#setup/updates" title="What changed, and how to update" hidden></a>
+  <a id="layout-switch" href="/?layout=mobile" title="Open the phone page">Phone view</a>
   <span class="proto" id="asof"></span>
   <div class="reg" role="group" aria-label="Register"><button data-r="light" class="on">PAPER</button><button data-r="dark">DARK</button></div>
   <a class="iconbtn" href="https://planetai.fab.city/docs/" target="_blank" rel="noopener" aria-label="Documentation (opens planetai.fab.city)" title="Documentation"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5h-10.5zM12 2.5v3.5h3.5M7.5 10h5M7.5 12.5h5M7.5 15h3"/></svg></a>
@@ -537,98 +821,146 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
   <a class="iconbtn" href="#setup" id="gear" aria-label="Set up" title="Set up"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.6 2h2.8l.4 2.2 1.5.7 1.9-1.3 2 2-1.3 1.9.7 1.5 2.2.4v2.8l-2.2.4-.7 1.5 1.3 1.9-2 2-1.9-1.3-1.5.7-.4 2.2H8.6l-.4-2.2-1.5-.7-1.9 1.3-2-2 1.3-1.9-.7-1.5L1.2 11.4V8.6l2.2-.4.7-1.5-1.3-1.9 2-2 1.9 1.3 1.5-.7z"/><circle cx="10" cy="10" r="2.6"/></svg></a>
 </header>
 
-<!-- NOW -->
+<!-- NOW — the household's first screen (Tomas, 14–15 Oct 2026: "I am not happy with what is showing"). Ten blocks of equal
+     weight became one reading order, each part answering one question, in the order a person asks them:
+       1. Right now: the sentence (sign, title, tagline) and the day drawing as one block, the only bold thing here.
+          The res 2–12 rail left Now; the kicker keeps one link to Place ("497 m · 0.64 km² ›"), which has the scales.
+       2. The four distances as one quiet line under the drawing, provenance as ink pills (the drawing shows them).
+       3. What to do: the Decide card, framed and with its buttons, only while something is asked (`asking`, or a live
+          event still asking). Otherwise one plain line, "Nothing is asked now.", with the hour it is usually worst.
+       4. Did it work, then Yesterday (#nremember, admin token only): quiet, no frame.
+       5. Next days (Tomas, 4 Nov: the switch "Now · Next days" was a second tab bar under the doors): the rest of today,
+          tomorrow and the day after, a part of Now under What to do. #now/next scrolls to it.
+       6. Around the house: the issues drawn by the hour as rows (Air, Heat), then the stations' map, its caption one line.
+          Land and Coast change yearly and moved to Place, beside the ground.
+       7. Also read here, under both columns: the packs' observe bands side by side, each band's source once, its note
+          folded under "How this is read".
+       8. Heads are sentence case and name the reader's question; mono is kept for units, times and values. Every part
+          keeps its data-learn / data-reads / data-stage / data-kind.
+       9. Phone (≤ 480 px): the same order in one column, the bar in three rows of 44 px targets, the week as one
+          tappable row per day. -->
+<div id="content" tabindex="-1"></div>
 <main class="face view" data-view="now">
-  <div class="kick"><div class="rail" id="rail" data-learn="dial" data-reads="/health /issues" data-stage="observe" data-pack="core" data-kind="row"></div><button class="now" id="back" hidden>BACK TO NOW</button></div>
-  <div class="kick2 k" id="kick"></div>
+  <div class="kick"><p class="nk" id="kick"></p><span class="kr"><button class="now" id="back" hidden>Back to now</button><a href="#place" class="mono" id="cellink" title="This node's cell, on Place"></a></span></div>
   <div class="lcol">
-    <section aria-live="polite" data-learn="lead" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="readout"><p class="sentence" id="sentence"></p></section>
-    <div class="ladder" id="ladder" data-learn="distances" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="stack"></div>
-    <section class="decide" id="decide" data-learn="buttons" data-reads="/issues /actions" data-stage="decide" data-pack="core" data-kind="readout" aria-label="The decision of the moment"></section>
-    <section class="fig" data-learn="figure" data-reads="/issues /issues/days" data-stage="observe" data-pack="core" data-kind="series" aria-label="The day and the week">
-      <div class="head"><span class="k" id="fighead"></span><span class="k" id="figline"></span></div>
-      <svg id="svg" tabindex="0" role="img" aria-describedby="sentence"></svg>
-      <p class="howto">Drag across the day, press any hour of the week, or focus the drawing and use the arrow keys: ← → an hour, ↑ ↓ a day.</p>
-    </section>
+    <div class="hero">
+      <section aria-live="polite" data-learn="now-sentence" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="readout"><h1 class="sentence" id="sentence"></h1></section>
+      <section class="fig" data-learn="figure" data-reads="/issues /issues/days" data-stage="observe" data-pack="core" data-kind="series" aria-label="The day and the week">
+        <svg id="svg" tabindex="0" role="img" aria-describedby="sentence"></svg>
+        <div class="week" id="week" role="group" aria-label="The last seven days" hidden></div>
+      </section>
+      <p class="ladder" id="ladder" data-learn="now-distances" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="stack"></p>
+      <p class="nk figfoot"><span id="fighead"></span> <span id="figline"></span></p>
+    </div>
+    <section class="todo" id="decide" data-learn="now-todo" data-reads="/issues /actions /alerts" data-stage="decide" data-pack="core" data-kind="readout" aria-label="What to do"></section>
+    <div id="asks" hidden></div>
+    <div id="ndecl-decide" hidden></div>
+    <section class="nrem" id="nremember" data-learn="now-worked" data-reads="/learned /learned/search /household" data-stage="measure" data-pack="core" data-kind="readout" aria-label="Did it work, and yesterday" hidden></section>
+    <div id="ndecl-measure" hidden></div>
+    <div class="nxpart"><h2 class="nh" id="nexth">Next days</h2>
+      <section id="next" data-learn="now-next" data-reads="/forecast" data-stage="observe" data-pack="forecast" data-kind="readout" aria-labelledby="nexth"></section></div>
   </div>
   <div class="rcol">
-    <aside data-learn="states" data-reads="/issues /issues/days" data-stage="measure" data-pack="core"><div class="k">observe · at this hour</div><div class="rows" id="rows"></div></aside>
-    <figure style="margin:0" data-learn="custody" data-reads="/sensors /stats" data-stage="observe" data-pack="air-quality" data-kind="stack"><div class="k">observe · around this house, now</div><div id="rose"></div><figcaption class="fine" id="rosecap"></figcaption></figure>
+    <h2 class="nh">Around the house</h2>
+    <aside data-learn="now-rows" data-reads="/issues /issues/days" data-stage="measure" data-pack="core"><div class="rows" id="rows"></div></aside>
+    <figure class="around" data-learn="now-around" data-reads="/sensors /stats" data-stage="observe" data-pack="air-quality" data-kind="stack"><div id="rose"></div><figcaption class="fine" id="rosecap"></figcaption></figure>
+    <p class="fine" id="nthings" data-learn="now-things" data-reads="/things" data-stage="observe" data-pack="core" data-kind="row" hidden></p>
   </div>
+  <section class="alsoread" id="alsoread" aria-labelledby="alsoh" hidden><h2 class="nh" id="alsoh">Also read here</h2><div class="alsog" id="ndecl-observe"></div></section>
 </main>
 
 <!-- PLACE -->
 <section class="page view" data-view="place" hidden>
-  <div id="placehead"></div>
+  <div class="phead"><div id="placehead" data-learn="place-head" data-reads="/health /issues" data-stage="observe" data-pack="place"></div>
+    <div class="prow"><form id="pask" class="pask"><label class="vh" for="paskq">Ask the node about this place</label><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14v10H8l-4 3v-3H3z"/></svg><input id="paskq" autocomplete="off" placeholder="Ask about this place"><kbd>/</kbd></form><span id="paddimg"></span></div></div>
   <div class="bench">
-    <nav id="layers" aria-label="Layers" data-learn="containment" data-reads="/health /issues /packs" data-stage="observe" data-pack="place"></nav>
-    <div class="mapc" data-learn="cell" data-reads="/place/geojson /sensors /issues" data-stage="observe" data-pack="place"><div id="mapbar"></div><div id="map"></div><div id="mapstatus" class="mono" aria-live="off"></div><p id="mapcredit"></p></div>
-    <aside id="facts" data-learn="prov" data-reads="/issues /sensors" data-stage="observe" data-pack="core"></aside>
-    <div class="altc" data-learn="cell" data-reads="/earth" data-stage="observe" data-pack="earth"><div id="altbar"></div><div id="mapalt"></div></div>
-    <aside id="altfacts" data-learn="prov" data-reads="/issues /earth" data-stage="observe" data-pack="earth"></aside>
+    <nav id="cake" aria-label="What this place is made of" data-learn="place-layers" data-reads="/health /issues /packs" data-stage="observe" data-pack="place"></nav>
+    <div class="pmid">
+      <div class="mapc" data-learn="place-map" data-reads="/place/geojson /sensors /issues" data-stage="observe" data-pack="place"><div class="mapw"><div id="mapbar"></div><div id="map"></div><div id="phour" class="phour"></div><svg id="pedges" aria-hidden="true"></svg><p id="mapcredit"></p>
+        <div class="altc" hidden data-learn="place-orbit" data-reads="/earth" data-stage="observe" data-pack="earth"><div id="altbar"></div><div id="mapalt"></div></div></div></div>
+      <div class="psbar"><button data-s="cake" aria-expanded="false" aria-controls="cake">Layers</button><button data-s="tools" aria-expanded="false" aria-controls="ptools">Tools</button></div>
+      <div id="facts" class="inspect" aria-live="polite"></div>
+      <aside id="pmargin" aria-label="Around the house"></aside>
+    </div>
+    <aside id="ptools" aria-label="Tools" data-learn="place-tools" data-reads="/geo/rings /geo/measure /geo/cell" data-stage="observe" data-pack="core"></aside>
+    <details id="spd" class="spd"><summary>the list</summary><section id="pspecies" class="pspecies" data-learn="place-species" data-reads="/species /captures" data-stage="observe" data-pack="core"></section></details>
   </div>
-  <div class="cols2">
-    <section data-learn="reach" data-reads="/reach" data-stage="observe" data-pack="core" data-kind="row"><h2>How far back</h2><div id="reach"></div></section>
-    <section data-learn="registry" data-reads="/sources" data-stage="observe" data-pack="core" data-kind="row"><h2>Coming to this place</h2><p class="lede">Sources this node does not read yet. Each says what it would answer, and none draws until it is real.</p><div id="soon"></div></section>
+  <dialog id="imgdlg" class="imgdlg" aria-label="Add an image"></dialog>
+  <div class="plow">
+    <section id="ptable" aria-label="Selected"><h3 class="pmh">selected</h3><p class="fine">When a tool runs, what it returns is listed here, a row for each thing it found.</p></section>
+    <section id="pfigures" data-learn="place-changing" data-reads="/issues /cells /sources" data-stage="observe" data-pack="core"></section>
   </div>
 </section>
 
 <!-- DATA -->
 <section class="page view" data-view="data" hidden>
-  <div id="datahead" data-learn="raw" data-reads="/export" data-stage="observe" data-pack="core"></div>
+  <div id="datahead" data-learn="data-head" data-reads="/export" data-stage="observe" data-pack="core"></div>
   <div class="sgrid dgrid">
-    <nav class="snav" id="dnav" aria-label="Data sections"></nav>
+    <nav class="snav" id="dnav" aria-label="Data tabs"></nav>
     <div class="dpane">
       <section id="d-readings" class="dsec"><div class="dsh"><h2>What this house reads</h2><p class="blurb">Every kind of reading the node holds, by family. Press one to draw every source that reads it.</p></div>
-        <div id="metrics" role="group" aria-label="Kind of reading" data-learn="sensors" data-reads="/stats /aggregates" data-pack="core"></div>
-        <div id="sensors" data-learn="siting" data-reads="/sensors /stats /aggregates" data-stage="observe" data-pack="core" data-kind="series"></div></section>
-      <section id="issues7" class="dsec" data-learn="figure" data-reads="/issues/days" data-stage="observe" data-pack="core" data-kind="series"></section>
-      <section id="models" class="dsec" data-learn="prov" data-reads="/sensors /observations" data-stage="observe" data-pack="earth" data-kind="row"></section>
-      <section id="cells" class="dsec" data-learn="parent" data-reads="/cells" data-stage="measure" data-pack="core" data-kind="row"></section>
-      <section id="perday" class="dsec" data-learn="strips" data-reads="/issues/days" data-stage="measure" data-pack="core" data-kind="row"></section>
-      <section id="ledger" class="dsec" data-learn="actions" data-reads="/actions /alerts" data-stage="act" data-pack="core" data-kind="row"></section>
-      <section id="api" class="dsec" data-learn="api" data-reads="/static/docs_site.json" data-pack="core"></section>
+        <div id="metrics" role="group" aria-label="Kind of reading" data-learn="data-readings" data-reads="/stats /aggregates" data-stage="observe" data-pack="core"></div>
+        <div id="sensors" data-learn="data-sources" data-reads="/sensors /stats /aggregates" data-stage="observe" data-pack="core" data-kind="series"></div></section>
+      <section id="issues7" class="dsec" data-learn="data-week" data-reads="/issues/days" data-stage="observe" data-pack="core" data-kind="series"></section>
+      <section id="models" class="dsec" data-learn="data-models" data-reads="/sensors /observations" data-stage="observe" data-pack="earth" data-kind="row"></section>
+      <section id="perday" class="dsec" data-learn="data-perday" data-reads="/issues/days" data-stage="measure" data-pack="core" data-kind="row"></section>
+      <section id="d-images" class="dsec" data-learn="data-images" data-reads="/captures" data-stage="observe" data-pack="core" data-kind="row"></section>
+      <section id="d-things" class="dsec" data-learn="data-things" data-reads="/things" data-stage="observe" data-pack="core" data-kind="row"></section>
+      <section id="ledger" class="dsec" data-learn="data-ledger" data-reads="/actions /alerts" data-stage="act" data-pack="core" data-kind="row"></section>
+      <p class="fine dsec" id="dnote">The diary, what is usual and what worked are on <a href="#node/remember">Node › What it remembers</a>; the Index cells on <a href="#node/cells">Node</a>, under the flow.</p>
+      <section id="api" class="dsec" data-learn="data-api" data-reads="/static/docs_site.json" data-pack="core"></section>
+      <section id="d-workbench" class="dsec" data-reads="/workbench /static/firmware/" data-pack="core"></section>
     </div>
   </div>
 </section>
 
 <!-- WALL -->
-<section class="view" data-view="wall" hidden><div id="wallv" data-learn="dial" data-reads="/health /issues /stats /rho" data-stage="observe" data-pack="core"></div></section>
+<section class="view" data-view="wall" hidden><div id="wallv" data-learn="wall-never" data-reads="/health /issues /stats" data-stage="observe" data-pack="core"></div></section>
 
 <!-- SET UP: a page of its own, opened by the gear (doors-setup.js) -->
-<section class="page view" data-view="setup" hidden><div id="setupv2" data-learn="settings" data-reads="/settings /packs /actions /health" data-pack="core"></div></section>
+<section class="page view" data-view="setup" hidden><div id="setupv2"></div></section>
 
 <!-- NODE -->
 <section class="page view" data-view="node" hidden>
-  <div id="nodehead" data-learn="purpose" data-reads="/health" data-pack="core"></div>
+  <div id="nodehead" data-learn="node-verdict" data-reads="/health" data-pack="core"></div>
   <h2>What comes in, what goes out</h2>
-  <div id="flow" data-learn="raw" data-reads="/health /sensors /stats /alerts /actions /rho /cells" data-pack="core" data-kind="row"></div><p class="fine" id="flownote"></p>
+  <div id="flow" data-learn="node-flow" data-reads="/health /sensors /stats /alerts /actions /rho /cells" data-pack="core" data-kind="row"></div><p class="fine" id="flownote"></p>
+  <section id="cells" data-learn="node-cells" data-reads="/cells" data-stage="measure" data-pack="core" data-kind="row"></section>
+  <section id="remember" data-learn="node-remember" data-reads="/learned /learned/search /household" data-stage="measure" data-pack="core" data-kind="row" aria-label="What it remembers"></section>
   <h2>The nodes around it</h2>
-  <div id="world" data-learn="presence" data-reads="/health" data-pack="reticulum"></div><div id="nodes"></div>
+  <div id="nodes" data-learn="node-around" data-reads="/nodes /health" data-pack="core"></div><div id="world" data-learn="node-globe" data-reads="/nodes /geo/planet /geo/cell" data-pack="core"></div>
   <div class="runwrap">
-    <section data-learn="health" data-reads="/health /machine /storage" data-pack="core"><h2>Running</h2><div id="running"></div>
+    <section data-learn="node-running" data-reads="/health /machine /storage" data-pack="core"><h2>Running</h2><div id="running"></div>
       <p class="fine"><a href="#setup">Set up</a> holds this node’s settings, its packs, who may read it and this screen’s token.</p></section>
 
   </div>
-  <section data-learn="refusals" data-pack="core"><h2>What this node will not do, at any stage</h2>
-    <div class="lrow"><span class="t" style="grid-column:1 / -1;font-weight:400">No raw readings leave the instance that recorded them.</span></div>
-    <div class="lrow"><span class="t" style="grid-column:1 / -1;font-weight:400">No cell is upgraded from mock or partial to live by aggregation.</span></div>
-    <div class="lrow"><span class="t" style="grid-column:1 / -1;font-weight:400">No agent dispatches without a human row in the actions ledger.</span></div>
-    <div class="lrow"><span class="t" style="grid-column:1 / -1;font-weight:400">No layer requires a cloud provider to function.</span></div>
-    <div class="lrow"><span class="t" style="grid-column:1 / -1;font-weight:400">No scale is skipped: a city aggregator is built from nodes, not declared from above.</span></div>
+  <!-- the five refusals in plain words, each pointing at where it can be checked (Tomas, 15 Oct) -->
+  <section class="refuse" data-learn="node-refusals" data-pack="core"><h2>What this node will not do, at any stage</h2>
+    <div class="lrow"><span class="t">Raw readings stay on this machine. Only hourly averages, the area the node is in, its Index scores and the open daily file leave it.</span><a class="c" href="#node/flow">What comes in, what goes out →</a></div>
+    <div class="lrow"><span class="t">A cell is never called live because the ones around it are. Live means measured here.</span><a class="c" href="#node/cells">Each cell’s state, under the flow →</a></div>
+    <div class="lrow"><span class="t">No agent acts for this house unless a person here said so, in the ledger.</span><a class="c" href="#data/ledger">The ledger, in Data →</a></div>
+    <div class="lrow"><span class="t">Nothing here stops working without a cloud company: the readings, the rules and the alerts run on this machine.</span><a class="c" href="#setup/machine">This machine, in Set up →</a></div>
+    <div class="lrow"><span class="t">No step is skipped: a city is built from nodes like this one, never declared from above.</span><a class="c" href="#node/nodes">The nodes around it →</a></div>
   </section>
 </section>
 
-<footer class="foot" id="foot" data-learn="purpose" data-reads="/health"></footer>
+<footer class="foot" id="foot" data-learn="foot" data-reads="/health" data-pack="core"></footer>
 
 <aside class="askpane" id="askpane" hidden aria-label="Ask the node">
   <div class="ah"><b>Ask the node</b><button id="askclose" aria-label="Close">×</button></div>
-  <textarea id="q" rows="3" placeholder="Ask about this place, its readings, or this page"></textarea>
-  <div class="try" id="try"></div><button class="now" id="qsend">ASK</button>
-  <div class="answer said" id="qout" role="status" aria-live="polite"></div>
-  <p class="fine">The node searches its own notes and readings first, and asks a model only if one is set up here (POST /ask).</p>
-  <label class="learnsw"><input type="checkbox" id="learn"> <span><b>Learn this page</b><br>Number every part of the door you are on, and say here what each one is.</span></label>
-  <ol class="learnlist" id="learnlist"></ol>
+  <p class="amode" id="amode"></p>
+  <label class="learnsw"><input type="checkbox" id="learn"> <span><b>Learn this page</b> · number every part of the door you are on, and say here what each one is</span></label>
+  <div class="ascroll" id="ascroll">
+    <ol class="learnlist" id="learnlist"></ol>
+    <div class="thread" id="thread" role="log" aria-live="polite"><p class="fine" id="athello">The node searches its own notes and readings first, and asks a model only if one is set up here.</p></div>
+  </div>
+  <div class="abottom">
+    <div class="try" id="try" aria-label="Questions to ask"></div>
+    <form class="compose" id="qform"><label class="vh" for="q">Ask the node</label>
+      <textarea id="q" rows="2" placeholder="Ask about this place, its readings, or this page"></textarea>
+      <button type="submit" id="qsend" aria-label="Ask"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button></form>
+    <p class="hint">Enter to ask · Shift+Enter for a new line</p>
+  </div>
 </aside>
 
 <link rel="stylesheet" href="/static/maplibre-gl.css">
@@ -640,6 +972,7 @@ svg text.lab,svg text.num{fill:var(--ink)}svg text.num{font-weight:600}svg text.
 <script src="/static/doors-core.js"></script>
 <script src="/static/doors-fig.js"></script>
 <script src="/static/doors-now.js"></script>
+<script src="/static/doors-cake.js"></script>
 <script src="/static/doors-placemap.js"></script>
 <script src="/static/doors-place.js"></script>
 <script src="/static/doors-data.js"></script>

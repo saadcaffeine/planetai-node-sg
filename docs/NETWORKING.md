@@ -1,38 +1,39 @@
 # Networking
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
 
-Three layers, each doing one thing.
+Three layers connect a node, each with one job.
 
 | layer | for | command |
 |---|---|---|
 | Tailscale | reaching the node from anywhere; nodes reaching each other | `planetai mesh` |
 | Meshtastic (LoRa) | sensors and alerts where there is no WiFi | `planetai meshtastic` |
-| Reticulum (LXMF) | encrypted messages when the internet is gone; later, node-to-node data | `planetai reticulum` |
+| Reticulum (LXMF) | encrypted messages when the internet is gone | `planetai reticulum` |
 
 ## Tailscale
 
-`planetai mesh` installs the client and joins the tailnet under the node's name. No open ports; the node is reachable
-as `<name>.<tailnet>.ts.net` from any of your devices. `PARENT_API_URL` becomes a tailnet hostname when a district node exists.
-Tailscale SSH is Linux-only. On a Mac, ordinary `ssh` over the tailnet, with Remote Login on.
+`planetai mesh` installs the client (with Homebrew on a Mac) and joins the tailnet under the node's name, asking
+you once to approve it in a browser. The node then answers as `<name>.<tailnet>.ts.net` from any of your devices,
+with no port open on any router. `planetai mesh status` shows the tailnet; `planetai mesh down` leaves it. When a
+district node exists, `PARENT_API_URL` is its tailnet hostname.
 
-Headscale, self-hosted, is the recorded exit if a partner's governance forbids a third-party coordinator. Swap the login
-server; nothing else changes.
+On Linux it turns on Tailscale SSH, so `ssh <name>` needs no keys; on a Mac it is ordinary `ssh` over the tailnet,
+with Remote Login on. Where a third-party coordinator is ruled out, self-hosted Headscale replaces only the login
+server.
 
 ## Meshtastic
 
-The ground layer. One gateway radio with WiFi uplinks the mesh to a broker on the node; field radios carry sensors on
-batteries; a shelf radio paired to a phone receives alerts with no internet. Everything about the radios is in
-[`MESHTASTIC.md`](MESHTASTIC.md).
-
-A LoRa frame is about 200 bytes, a few a minute. Telemetry and one-line alerts, not data between nodes.
+One gateway radio with WiFi uplinks the mesh to a broker on the node, field radios carry sensors on batteries, and a
+shelf radio paired to a phone receives alerts with no internet. A LoRa frame is about 200 bytes, a few a minute,
+enough for telemetry and one-line alerts. Everything about the radios is on [Radios](MESHTASTIC.md).
 
 ## Reticulum
 
-The bridge container gives the node an LXMF address. Inbox: `act <id>` from Sideband records an action. Outbox: alerts
-to `RETICULUM_ALERT_DESTINATIONS`. Presence, only with `RETICULUM_PRESENCE=1`: every half hour it announces the node's
-name and its H3 cell rounded up to `RETICULUM_PRESENCE_RES` (3 by default, never finer than 6). TCP today; an RNode LoRa interface is a commented block in
-`config/reticulum/config.tpl`.
-Node-to-node data over Reticulum returns when a district and a community node have no internet between them (SPEC §6).
+The bridge container gives the node an LXMF address. It lives in its own repository, [`fabcity/planetai-reticulum`](https://github.com/fabcity/planetai-reticulum), which
+`planetai reticulum` fetches at a pinned commit and builds on the node. `act <id>` sent from Sideband records an action, and alerts go
+to `RETICULUM_ALERT_DESTINATIONS`. With `RETICULUM_PRESENCE=1` it also announces, every half hour, the node's name
+and its H3 cell rounded to `RETICULUM_PRESENCE_RES` (3 by default, never finer than 6). It runs over TCP; an RNode
+LoRa interface is a commented block in its `config.tpl`, which becomes `config/reticulum/config`. `rns` and `lxmf` are pinned and are under the Reticulum License,
+which is not an open licence: [docs/decisions/2026-10-23-reticulum-licence.md](decisions/2026-10-23-reticulum-licence.md).
 
 ## What connects to what
 
@@ -47,4 +48,4 @@ sensors (WiFi)  ──HTTP──▶ node ◀──MQTT── gateway radio ◀�
 ```
 
 Raw readings never leave the house on any of these. Home Assistant, on your own network, gets each sensor's latest
-value; hourly means go up to a parent; alerts go out; that is all.
+value, a parent gets hourly means, and alerts go to the people who act on them.

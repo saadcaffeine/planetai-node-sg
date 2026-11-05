@@ -1300,7 +1300,7 @@ h1.brand { font: inherit }
 @media (scripting: none) { .asking { display: none !important } }
 .asking.on { display: grid; position: fixed; inset: 0; z-index: 8; background: var(--ground);
   grid-template-columns: minmax(0, 1fr) min(380px, 40vw); gap: clamp(16px, 3vw, 32px);
-  align-content: start; padding: clamp(16px, 3vw, 28px) clamp(16px, 4vw, 32px); overflow: auto }
+  align-content: center; padding: clamp(16px, 3vw, 28px) clamp(16px, 4vw, 32px); overflow: auto }
 .asking .frame { position: relative; border: 1px solid var(--ink); aspect-ratio: 1.55;
   max-height: 60vh; overflow: hidden }
 /* The corner brackets: a frame around a thing being measured, which is what this is. */
@@ -1309,6 +1309,12 @@ h1.brand { font: inherit }
 .asking .frame::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0 }
 .asking .frame::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0 }
 .asking canvas { width: 100%; height: 100%; display: block }
+/* the seed: the measuring frame's own mark, centered, breathing from the first paint — the face's
+   middle is never empty while the scripts come. open() removes it the moment the globe wires in. */
+.asking .seed { position: absolute; width: 18px; height: 18px; border: 1.5px solid var(--ink);
+  margin: auto; inset: 0; animation: seedbreathe 1.8s ease-in-out infinite }
+@keyframes seedbreathe { 50% { opacity: .3; transform: scale(.86) } }
+@media (prefers-reduced-motion: reduce) { .asking .seed { animation: none } }
 .asking .aside { min-width: 0 }
 .asking .hd { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 10px;
   font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--mute) }

@@ -7,6 +7,6 @@ Santiago); Delhi and Menorca are not — Delhi is a worked example, Menorca is w
 Everything a preset sets can be overridden by a flag or edited in `.env` afterwards. Nowhere on this list? Run without a preset and pass `--lat --lon`. A node bootstraps from global sources at
 any coordinates on earth, so nothing depends on being listed here.
 
-Adding your city is one file and a pull request. Copy the closest one, change the five values and `NODE_ISSUES`, and set
-`BAD_ENABLED=0` unless you are in Bali. If your city runs a CKAN portal, add it; test the URL first with
+Adding your city is one file and a pull request. Copy the closest one and change the five values and `NODE_ISSUES`;
+leave out `BAD_ENABLED`, which only Bali's preset sets (the `bali-air-dispatch` pack is off everywhere else). If your city runs a CKAN portal, add it; test the URL first with
 `https://<domain>/api/3/action/package_search?rows=0`.

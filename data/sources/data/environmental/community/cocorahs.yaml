@@ -1,0 +1,42 @@
+name: CoCoRaHS (Community Collaborative Rain, Hail and Snow Network)
+url: https://www.cocorahs.org/
+description: |
+  Volunteers read a standard rain gauge every morning and report rain, hail and snow. Run by the Colorado
+  Climate Center; covers the United States, Canada and the Bahamas, with a key-free daily export.
+pillar: environmental
+scale: community
+status: candidate
+license: CC-BY-4.0
+api: https://data.cocorahs.org/export/exportreports.aspx
+pilot_relevance: [boston]
+places: [boston, cambridge, somerville, oakland, sacramento, montreal, charlotte, detroit]
+tags: [weather, precipitation, rain, snow, hail, citizen-science, volunteer-observers, north-america]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, not yet read for a real territory.
+
+  LICENCE. The Data Usage Policy (cocorahs.org/Content.aspx?page=datausagepolicy) reads "Unless
+  otherwise noted, all CoCoRaHS content and data are released under a Creative Commons Attribution 4.0
+  License", and asks "that everyone who uses CoCoRaHS data to please acknowledge its source when
+  displaying it". Older copies of the same policy and some app listings say CC BY 3.0; the live page
+  says 4.0.
+
+  ENDPOINT. exportreports.aspx?ReportType=Daily&dtf=1&Format=CSV&State=MA&ReportDateType=reportdate
+  &Date=10/22/2026 returned 203 Massachusetts reports as CSV: station number, name, lat/lon,
+  TotalPrecipAmt (inches), new and total snow and their water equivalent. Country=CAN returned 386
+  Canadian reports for the same day. One reading a day per gauge, with its observation time.
+
+  PLACES. Distinct stations reporting on 22 Oct 2026 within 10 km of each place's centroid in fci-index
+  public/data/coordinates.json: somerville 8, oakland 7, cambridge 6, boston 5, sacramento 3,
+  montreal 3, charlotte 2, detroit 2. None within 10 km of bas-saint-laurent's centroid.
+
+  WHY NO CELL. Rainfall is weather, and no Index cell has a rainfall row today, so feeds_cells is
+  empty, as for open-meteo and bmkg-prakiraan-cuaca. A node would read it for decisions about water
+  at home: whether the garden needs watering, how much a roof could have caught.
+
+  WHAT IT DOES NOT CLAIM. Manual gauges, read once a day: no rainfall rate, no hourly totals. A
+  day with no report has no reading, so a gap cannot be summed as zero rain.

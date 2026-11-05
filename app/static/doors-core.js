@@ -5,11 +5,15 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/* A wire time says its own local hour; read it from the string, never re-derive it (DST-safe). */
-const dayOf = iso => iso.slice(0, 10), hourOf = iso => +iso.slice(11, 13), hhmm = iso => iso.slice(11, 16);
+/* Every wire time is read in the node's own zone (doorsLocal, doors-load.js): a UTC string and a local one say the same
+   hour on the page. `when` is a time as a row of a table says it, 'YYYY-MM-DD HH:MM'. */
+const loc = iso => doorsLocal(iso, D && D.tz);
+const dayOf = iso => loc(iso).slice(0, 10), hourOf = iso => +loc(iso).slice(11, 13), hhmm = iso => loc(iso).slice(11, 16), when = iso => iso ? loc(iso).replace('T', ' ') : '';
 const dLabel = d => { const t = new Date(d + 'T12:00:00Z'); return `${WD[t.getUTCDay()]}, ${t.getUTCDate()} ${MO[t.getUTCMonth()]}`; };
 const wdhm = iso => `${dLabel(dayOf(iso)).split(',')[0]} ${hhmm(iso)}`;
 const fmt = (v, dp) => v == null || Number.isNaN(+v) ? '—' : (+v).toFixed(dp);
+/* a line's name on a drawing (Tomas, 14 Oct: "the WHO line in graphics as reference"): the issue's own value, named the WHO's where its source is the WHO, else "line". The look is .linep */
+const lineLab = it => `${/^WHO\b/.test(it.line_source || '') ? 'WHO' : 'line'} ${fmt(it.line, it.dp)}`;
 const plain = s => String(s ?? '').replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim();
 /* the node's own Sentinel-2 annual median for a year (GET /earth/frame.png, open) */
 const SAT = y => `/earth/frame.png?year=${y}&source=sentinel`;
@@ -20,12 +24,15 @@ const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).
 const NODE = '/static/';                           // the node's own frozen layer: theme, tokens, signs, learn.json, fonts
 // The node's own words are never uppercased (µ uppercases to M): anything the node wrote goes in .said.
 const said = x => `<span class="said">${esc(x)}</span>`;
+// Where a screen is unlocked: Set up › This screen, as a link wherever a door says it is locked.
+const UNLOCK_AT = '<a href="#setup/screen">Set up › This screen</a>';
 // A sign from the node's signs.svg; counting signs repeat, never grow, and never draw under --sign-floor (12 px).
 const sign = (id, cls = '') => `<svg class="sg ${cls}" aria-hidden="true"><use href="${NODE}signs.svg#${id}"/></svg>`;
 // Provenance is ink only and square: the glyph, then one of the five words. Anything else is an absence, not a provenance.
 const PROV = ['live', 'partial', 'model', 'cached', 'example'];
 const prov = w => PROV.includes(w) ? `<span class="pill">${sign('sign-prov-' + w)}${w}</span>` : `<span class="gap">${esc(w)}</span>`;
 // Every numeral carries its comparison: data-num names it, data-cmp says against what (the visual gate reads both).
+const ago = m => m < 90 ? `${Math.round(m)} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`;   /* an age in minutes, said the way the Node door and Now's declared bands say it */
 const num = (key, v, cmp, inner) => `<span data-num="${esc(key)}" data-cmp="${esc(cmp)}">${inner ?? esc(v)}</span>`;
 const unitOf = m => (D.metrics[m] || {}).unit || '';
 const labelOf = m => (D.metrics[m] || {}).label || m.replace(/_/g, ' ');
@@ -44,9 +51,15 @@ const ISSUES_DRAWN = k => D.issues[k].series && Object.values(D.issues[k].series
 function val(k, dist, i) { const s = (D.issues[k].series || {})[dist]; return s ? s[i] : null; }
 function evAt(k, i) {
   const t = D.buckets[i];
-  return D.events.filter(e => e.issue === k && e.opened_at.slice(0, 13) <= t.slice(0, 13) && (e.cleared_at == null || e.cleared_at.slice(0, 13) >= t.slice(0, 13)));
+  const h = iso => loc(iso).slice(0, 13), th = h(t);
+  return D.events.filter(e => e.issue === k && h(e.opened_at) <= th && (e.cleared_at == null || h(e.cleared_at) >= th));
 }
-function answerWords(a) { return a ? { w: `${a.stage} · ${a.actor} · ${hhmm(a.ts)}`, closed: a.stage === 'acted' } : { w: 'no answer yet', closed: false }; }
+/* an answer in the household's words: which button, who, when, and until when a Not now holds the node's question */
+function answerWords(a) {
+  if (!a) return { w: 'no answer yet', closed: false };
+  const B = D.buttons || {}, said = { acted: B.done || 'Done', acknowledged: B.not_now || 'Not now', dismissed: B.doesnt_fit || 'Doesn’t fit' }[a.stage] || a.stage;
+  return { w: `answered: ${said}${a.actor ? ` by ${a.actor}` : ''} at ${hhmm(a.ts)}${a.held_until ? `, asked again at ${hhmm(a.held_until)}` : ''}${a.note ? ` · “${a.note}”` : ''}`, closed: a.stage === 'acted' };
+}
 /* The last hour's mean of one metric at one sensor, from the raw hourly table. */
 /* The last hour's mean of one metric at one sensor, from the raw hourly table (token-only); without it the 15-minute
    mean GET /stats gives every screen at `open`. */
@@ -59,18 +72,23 @@ const DOORS = ['now', 'place', 'node', 'data', 'wall', 'setup'];   /* setup is a
 /* #data/<sensor-id> opens a door at one thing: the part after the slash is the door's to read */
 const view = () => { const d = location.hash.slice(1).split('/')[0]; return DOORS.includes(d) ? d : 'now'; };
 const VIEWS = {};
-let userTheme = 'light';
+/* the reader's register: what they chose last on this screen, else what their system asks for */
+let userTheme = (() => { try { const t = localStorage.getItem('planetai_theme'); if (t === 'light' || t === 'dark') return t; } catch (e) { /* no storage here */ }
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; })();
+document.querySelectorAll('.bar .reg button').forEach(o => o.classList.toggle('on', o.dataset.r === userTheme));
 function route() {
   const v = view();
   document.querySelectorAll('.view').forEach(el => { el.hidden = el.dataset.view !== v; });
   document.querySelectorAll('.doors a').forEach(a => a.classList.toggle('on', a.dataset.v === v));
+  const gear = $('#gear'); if (v === 'setup') gear.setAttribute('aria-current', 'page'); else gear.removeAttribute('aria-current');   /* Set up is open */
   document.body.dataset.view = v;
   if (v !== 'wall' && typeof flowStop === 'function') { const w = $('#wfield'); w && flowStop(w); }
   if (v !== 'wall' && typeof WALLMAP !== 'undefined' && WALLMAP.stop) WALLMAP.stop();
   // the wall is the keeper's register: dark, always (Decision 15); every other door keeps the reader's choice
   document.documentElement.dataset.theme = v === 'wall' ? 'dark' : userTheme;
-  VIEWS[v]();
+  const drawn = VIEWS[v]();
   learnList(); window.scrollTo(0, 0);
+  if (drawn && drawn.then) drawn.then(() => learnList());   /* Set up and the Wall draw after they have asked the node */
 }
 
 const ASKING = (function () {
@@ -188,6 +206,7 @@ const ASKING = (function () {
         (box.querySelector('.frame') || box).appendChild(cv);
       }
       on = true; reads.length = 0; asking = ''; settle0 = 0; spec = null;
+      const seed = box.querySelector('.seed'); if (seed) seed.remove();   /* the globe takes the middle from here */
       settleFor = SETTLE_MS; held = !!hold;
       t0 = performance.now();
       box.classList.add('on'); box.setAttribute('aria-hidden', 'false');
@@ -196,9 +215,8 @@ const ASKING = (function () {
       const m = el('ask-meters'); if (m) m.innerHTML = '';
       const r = el('ask-rule');
       if (r) {
-        r.textContent = 'The glyphs are the sixteen characters an H3 index is written in. They turn '
-          + 'while the node has not answered and settle into this node’s own cell the moment '
-          + '/issues lands. Nothing here is a reading.';
+        r.textContent = 'Finding this place. The characters settle into the address of the node’s own area '
+          + 'once it answers. Nothing here is a reading yet.';
       }
       size();
       window.addEventListener('resize', size);
@@ -219,7 +237,7 @@ const ASKING = (function () {
       spec = [
         `RES ${c.res == null ? '?' : c.res} · EDGE ${c.edge_m == null ? '?' : `${c.edge_m} M`}`
           + `${area ? ` · ${area} M²` : ''}`,
-        `SHARE LEVEL ${String((health.share_level || 'off')).toUpperCase()} · RAW STAYS HOME`,
+        'RAW READINGS STAY HOME',
       ];
     },
     landed(issues) {
@@ -255,13 +273,16 @@ Promise.all([loadD(), fetch(NODE + 'learn.json').then(r => r.json()).catch(() =>
   D = d; D.learn = l.marks;
   D.dates = [...new Set(D.buckets.map(dayOf))];
   D.at = {}; D.buckets.forEach((b, i) => { D.at[dayOf(b) + '|' + hourOf(b)] = i; });
-  S.issue = D.lead; S.i = D.buckets.length - 1; D.now = S.i;
+  /* Now opens on the lead when it is drawn by the hour; Land and Coast change yearly and live on Place (15 Oct) */
+  S.issue = D.lead && ISSUES_DRAWN(D.lead) ? D.lead : D.order.find(ISSUES_DRAWN) || D.lead; S.i = D.buckets.length - 1; D.now = S.i;
   D.sens = Object.fromEntries(D.sensors.map(s => [s.sensor_id, s]));
   /* the cells and distances the flow, the Wall and Node draw are the node's answers (js/nodegeo.js) */
-  knownNodes(D); foot();
+  await knownNodes(D); foot();
   if (D.askOff) $('#askbtn').hidden = true;                 /* UI_ASK off: no ask here either */
   $('#who').innerHTML = `${esc(D.node.name)}<small>${esc(D.node.place || '')}</small>`;
-  $('#asof').textContent = `${new URLSearchParams(location.search).get('fixture') ? 'CAPTURE' : 'LIVE'} · as of ${hhmm(D.as_of)} · ${D.health.version || ''}${DOORS_TOKEN() ? '' : ' · locked'}`;
+  $('#asof').textContent = `${new URLSearchParams(location.search).get('fixture') ? 'CAPTURE' : 'LIVE'} · as of ${hhmm(D.as_of)}${DOORS_TOKEN() ? '' : ' · locked'}`;   /* the version is in the footer (audit, 15 Oct) */
+  const rel = D.health.release || {};                        /* a newer release: one small line in the bar, to Set up › Updates */
+  $('#relnote').hidden = !rel.newer; $('#relnote').textContent = rel.newer ? `${rel.latest} is out` : '';
   try { D.ngeo = await nodeGeo(D); } catch (e) { D.ngeo = null; D.ngeoErr = e.message; }
   route();
   ASKING.close();
@@ -274,10 +295,15 @@ Promise.all([loadD(), fetch(NODE + 'learn.json').then(r => r.json()).catch(() =>
    the node's own sentence, and the one way in, the token. Without this the page stayed blank and could not be unlocked. */
 async function refused(e) {
   const [h, r] = await Promise.all([fetch('/health').then(x => x.json()).catch(() => ({})),
-    fetch('/issues', { headers: DOORS_AUTH() }).then(async x => x.ok ? null : (await x.json().catch(() => ({}))).error || (await x.text().catch(() => ''))).catch(() => null)]);
+    doorsFetch('/issues').then(async x => x.ok ? null : (await x.json().catch(() => ({}))).error || (await x.text().catch(() => ''))).catch(() => null)]);
   $('#who').innerHTML = `${esc(h.node || 'this node')}<small>${esc(h.city || '')}</small>`;
-  $('#asof').textContent = `${h.version || ''} · locked`;
+  $('#asof').textContent = 'locked';
   document.querySelectorAll('.view').forEach(el => { el.hidden = el.dataset.view !== 'setup'; });
+  /* a Wall is a screen nobody operates: one line it can be read by from across the room, never a token form (audit, 15 Oct) */
+  if (/^#wall/.test(location.hash)) {
+    $('#setupv2').innerHTML = `<header class="sh"><h1>This screen needs sharing turned on.</h1><p class="lede">Whoever set up ${esc(h.node || 'this node')} can turn it on in Set up › Sharing. Then this screen shows the house by itself.</p></header>`;
+    return;
+  }
   $('#setupv2').innerHTML = `<header class="sh"><div class="k">${esc(h.node || 'this node')} · not sharing with this screen</div><h1>This node is not sharing its readings with this screen.</h1>`
     + `<p class="lede">${esc(r || e.message)}</p><p class="lede">Unlock this screen with a token, or ask whoever set this node up to turn sharing on (Set up → Sharing). <code>planetai ui</code> on the node prints the tokens.</p></header>`
     + `<form class="unlock2" id="sunlock"><label>Admin token<input type="password" id="stok" autocomplete="off" placeholder="changes settings, reads everything"></label>`
@@ -287,38 +313,109 @@ async function refused(e) {
     try { if (t1) localStorage.setItem('planetai_admin', t1); if (t2) localStorage.setItem('planetai_act', t2); } catch (x) { /* no storage here */ } location.reload(); };
 }
 
-document.querySelectorAll('.reg button').forEach(b => b.onclick = () => {
-  userTheme = b.dataset.r; document.querySelectorAll('.reg button').forEach(o => o.classList.toggle('on', o === b)); route(); });
+document.querySelectorAll('.bar .reg button').forEach(b => b.onclick = () => {
+  userTheme = b.dataset.r; try { localStorage.setItem('planetai_theme', userTheme); } catch (e) { /* no storage here */ }
+  document.querySelectorAll('.bar .reg button').forEach(o => o.classList.toggle('on', o === b)); route(); });
 
 /* ---------- Ask the node, and Learn inside it ----------
    Learn is the node's own learn mode (app/static/learn.json): every part names a mark, and the list says what the
    docs say about it, which routes the part reads, which pack drew it and which stage of the loop it belongs to.
    The questions offered are the marks' own. */
+/* The docs' markdown, inline only: a quote is a cut of a page, so its backticks, bold and links arrive as written */
+const quoted = q => esc(String(q).replace(/\s*\n\s*/g, ' ')).replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+  .replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
 function learnList() {
   const v = view(), on = $('#learn').checked, pane = document.querySelector(`.view[data-view="${v}"]`);
-  const parts = pane ? [...pane.querySelectorAll('[data-learn]')] : [];
+  /* the parts a person can see, in the order they see them: the bar, the door's own parts, the foot. A tab, a view or
+     a block the node has not filled yet is hidden, and is not a part of what is on the screen. */
+  const shown = el => el.getClientRects().length > 0;
+  const mine = pane ? [...pane.querySelectorAll('[data-learn]')].filter(shown) : [];
+  const parts = [$('.bar'), ...mine, $('#foot')].filter(el => el && el.dataset.learn && shown(el));
   document.body.classList.toggle('learn', on);
   parts.forEach((el, n) => el.dataset.n = n + 1);
   $('#learnlist').innerHTML = on ? parts.map((el, n) => {
-    const m = D.learn[el.dataset.learn] || {};
-    return `<li><i>${n + 1}</i><span><b>${esc(m.title || el.dataset.learn)}</b>${el.dataset.stage ? ` <span class="k">${esc(el.dataset.stage)}</span>` : ''}<br>${esc(plain(m.more || ''))}`
-      + `<span class="reads">${(el.dataset.reads || '').split(' ').filter(Boolean).map(r => `<code>GET ${esc(r)}</code>`).join(' ')}${el.dataset.pack ? ` <code>${esc(el.dataset.pack)}</code>` : ''}`
-      + `${m.page ? ` · <a href="https://planetai.fab.city/docs/${esc(m.page.replace('.md', '/'))}">${esc(m.page_title || m.page)}</a>` : ''}</span></span></li>`;
+    const m = D.learn[el.dataset.learn] || {}, reads = (el.dataset.reads || '').split(' ').filter(Boolean);
+    return `<li data-learn-item="${esc(el.dataset.learn)}"><i>${n + 1}</i><div><p><b>${esc(m.title || el.dataset.learn)}</b>${el.dataset.stage ? ` <span class="k">${esc(el.dataset.stage)}</span>` : ''}</p>`
+      + (m.quote ? `<blockquote>${quoted(m.quote)}</blockquote>` : '') + (m.more ? `<p class="lm">${esc(plain(m.more))}</p>` : '')
+      + `<span class="reads">${reads.map(r => `<code>GET ${esc(r)}</code>`).join(' ')}${el.dataset.pack ? ` <code>${esc(el.dataset.pack)}</code>` : ''}`
+      + `${m.url ? `${reads.length || el.dataset.pack ? ' · ' : ''}<a href="${esc(m.url)}" target="_blank" rel="noopener">From ${esc(m.page_title || m.page)}${m.section ? ` · ${esc(plain(m.section).replace(/`/g, ''))}` : ''}</a>` : ''}</span></div></li>`;
   }).join('') : '';
-  const qs = [...new Set(parts.flatMap(el => ((D.learn[el.dataset.learn] || {}).questions || {}).en || []))].slice(0, 4);
-  $('#try').innerHTML = qs.map(q => `<button>${esc(q)}</button>`).join('');
-  document.querySelectorAll('#try button').forEach(b => b.onclick = () => { $('#q').value = b.textContent; });
+  tryQs(on ? mine : []);
 }
-$('#askbtn').onclick = () => { const open = $('#askpane').hidden; $('#askpane').hidden = !open; $('#askbtn').setAttribute('aria-expanded', String(open)); if (open) { learnList(); $('#q').focus(); } };
+/* A door fills some parts after it is drawn (Did it work, a Data tab, Place's views): while learn is on, a part that
+   appears or goes is counted again */
+const LEARN_SEEN = new MutationObserver(() => { if ($('#learn').checked) { clearTimeout(LEARN_SEEN.t); LEARN_SEEN.t = setTimeout(learnList, 120); } });
+document.querySelectorAll('.view').forEach(el => LEARN_SEEN.observe(el, { subtree: true, attributes: true, attributeFilter: ['hidden', 'data-pview', 'data-learn'] }));
+/* The questions offered: with learn on, the marks' own for this door first; then the node's pool, written from
+   tonight's figures, three at a time and turning after each answer so the same three never stand there all day.
+   A press asks it. */
+let TURN = 0;
+const ASKED = new Set();
+function tryQs(parts) {
+  const L = (D.health || {}).locale || 'en';
+  const mine = [...new Set(parts.flatMap(el => { const q = (D.learn[el.dataset.learn] || {}).questions || {}; return q[L] || q.en || []; }))].slice(0, 2);
+  const pool = (D.prompts || []).filter(q => !ASKED.has(q) && !mine.includes(q)), r = pool.length ? TURN % pool.length : 0;
+  const qs = [...mine, ...pool.slice(r), ...pool.slice(0, r)].slice(0, 3);
+  $('#try').innerHTML = qs.map(q => `<button type="button">${esc(q)}</button>`).join('');
+  document.querySelectorAll('#try button').forEach(b => b.onclick = () => { $('#q').value = b.textContent; $('#qform').requestSubmit(); });
+}
+/* Enter asks, Shift+Enter starts a new line, as in every chat box; a composition in progress (an IME) is left alone */
+$('#q').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing && ev.keyCode !== 229) {   /* 229: Safari's IME commit */ ev.preventDefault(); $('#qform').requestSubmit(); }
+});
+$('#askbtn').onclick = () => { const open = $('#askpane').hidden; $('#askpane').hidden = !open; $('#askbtn').setAttribute('aria-expanded', String(open)); if (open) { learnList(); askMode(); $('#q').focus(); } };
 $('#askclose').onclick = () => { $('#askpane').hidden = true; $('#askbtn').setAttribute('aria-expanded', 'false'); $('#learn').checked = false; learnList(); };
 $('#learn').onchange = learnList;
 /* the token is set and cleared on Set up → This screen (doors-setup.js), kept where the dashboard keeps it */
 /* POST /ask, the node's own: it streams `event: token` blocks; only the words are drawn here, the dashboard's ask pane
    keeps the ledger of what it read. One question at a time, no thread. */
-$('#qsend').onclick = async () => {
-  const q = $('#q').value.trim(), out = $('#qout'); if (!q) return;
-  out.textContent = '…'; $('#qsend').disabled = true;
+/* Which way the box answers: a model the node has set up, or, with none, the documentation itself, searched by the
+   question's words (GET /docs/search). Asked once per page, when the pane first opens. */
+let MODE = null;
+async function askMode() {
+  if (MODE) return;
+  const r = await fetch('/ask/status', { headers: DOORS_AUTH() }).catch(() => null);
+  MODE = r && r.ok ? 'model' : 'docs';
+  $('#amode').textContent = MODE === 'model' ? 'Answers from the model set up for this node' : 'No model is set up here, so the box searches these docs';
+  $('#q').placeholder = MODE === 'model' ? 'Ask about this place, its readings, or this page' : 'Search the docs: how do I add a sensor?';
+}
+/* The docs' answer: the sections that hold most of the question's words, each a link to the page it is from. */
+async function docsHits(q, n) {
+  const r = await fetch('/docs/search?q=' + encodeURIComponent(q.slice(0, 200)), { headers: DOORS_AUTH() }).catch(() => null);
+  return r && r.ok ? (await r.json()).slice(0, n) : null;
+}
+function hitsHtml(hits) {
+  const base = (D.health || {}).docs || 'https://planetai.fab.city/docs/';
+  return `<ol class="hits">${hits.map(h => `<li><a href="${esc(base + String(h.page || '').replace(/\.md$/, '/') + (h.anchor ? '#' + h.anchor : ''))}" target="_blank" rel="noopener">${esc(h.title || h.page)}</a><p>${esc(h.snippet)}…</p></li>`).join('')}</ol>`;
+}
+async function docsAnswer(q, why, out) {
+  const hits = await docsHits(q, 5);
+  if (!hits) { out.textContent = WORDS.noreply; return; }
+  out.innerHTML = (why ? `<p class="fine">${esc(why)}</p>` : '') + (hits.length ? hitsHtml(hits)
+    : '<p>Nothing in the docs holds those words. Try other ones; the docs are in English.</p>');
+}
+/* Under a model's answer, the three sections of the docs that hold most of the question's words. */
+async function docsAfter(q, out) {
+  const hits = await docsHits(q, 3);
+  if (hits && hits.length) out.insertAdjacentHTML('beforeend', `<p class="amode">In the docs</p>${hitsHtml(hits)}`);
+}
+/* One exchange in the thread: the question as the person's own line, the answer under it, the view kept at the newest.
+   What is shown stays in this tab; only the new question is ever sent. */
+function exchange(q) {
+  const th = $('#thread'), hello = $('#athello');
+  if (hello) hello.remove();
+  th.insertAdjacentHTML('beforeend', `<div class="msg me">${esc(q)}</div><div class="msg node answer said">…</div>`);
+  const out = th.lastElementChild, sc = $('#ascroll');
+  sc.scrollTop = sc.scrollHeight;
+  return out;
+}
+$('#qform').onsubmit = async ev => {
+  ev.preventDefault();
+  const q = $('#q').value.trim(); if (!q || $('#qsend').disabled) return;
+  const out = exchange(q); $('#q').value = ''; $('#qsend').disabled = true;
   try {
+    await askMode();
+    if (MODE === 'docs') { await docsAnswer(q, '', out); ASKED.add(q); TURN += 3; return; }
     const r = await fetch('/ask', { method: 'POST', headers: { 'content-type': 'application/json', ...DOORS_AUTH() },
       body: JSON.stringify({ messages: [{ role: 'user', content: q }], view: view(), mode: 'advanced', focus: null }) });
     if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).detail || `the node answered ${r.status}`);
@@ -334,9 +431,12 @@ $('#qsend').onclick = async () => {
         else if (ev === 'error') throw new Error(data.message);
       }
     }
-    if (!text) out.textContent = 'The node answered with nothing.';
-  } catch (e) { out.textContent = `The node did not answer: ${e.message}`; }
-  finally { $('#qsend').disabled = false; }
+    if (!text) throw new Error('empty');
+    out.innerHTML = `<p>${esc(text)}</p>`;
+    if (!(D.prompts || []).includes(q)) await docsAfter(q, out);   /* the node's own questions are about tonight's readings, not the docs */
+    ASKED.add(q); TURN += 3;
+  } catch (e) { await docsAnswer(q, 'The model did not answer, so here is what the docs say.', out); }
+  finally { $('#qsend').disabled = false; learnList(); const sc = $('#ascroll'); sc.scrollTop = sc.scrollHeight; $('#q').focus(); }
 };
 
 /* The foot of every door but the Wall: what this is, where its words are, and who it belongs to. The links are the
@@ -344,12 +444,12 @@ $('#qsend').onclick = async () => {
    doors are tried. */
 function foot() {
   const h = D.health, docs = h.docs || 'https://planetai.fab.city/docs/', rel = h.release || {};
-  $('#foot').innerHTML = `<div><b>This node</b><p>${esc(D.node.name)}${D.node.place ? ` · ${esc(D.node.place)}` : ''} · planetai-node ${esc(h.version || '')}</p>`
+  $('#foot').innerHTML = `<div><b>This node</b><p>A home monitor for air, heat, sea and land, part of Fab City’s PLANETAI.</p><p>${esc(D.node.name)}${D.node.place ? ` · ${esc(D.node.place)}` : ''} · planetai-node ${esc(h.version || '')}</p>`
     + `<p>${rel.newer ? `${esc(rel.latest)} is out: <code>planetai update</code> on the node.` : 'A node of PLANETAI, the Fab City programme’s network of homes that read their place, decide and act.'}</p></div>`
     + `<div><b>Read</b><a href="${esc(docs)}" target="_blank" rel="noopener">Documentation</a><a href="${esc(docs)}dashboard/" target="_blank" rel="noopener">These pages, explained</a>`
     + `<a href="${esc(h.llms || '/llms.txt')}">For agents: llms.txt</a>${D.askOff ? '' : '<button class="linkish" type="button" id="footask">Ask the node</button>'}</div>`
-    + `<div><b>This house</b><a href="/?layout=classic">The classic dashboard</a><a href="#setup">Set up</a><a href="#setup/screen">Unlock this screen</a><a href="/export?day=${esc(dayOf(D.as_of))}">Today’s open data, CC BY 4.0</a></div>`
-    + `<div><b>Fab City</b><a href="https://planetai.fab.city/" target="_blank" rel="noopener">PLANETAI</a><a href="https://fab.city/" target="_blank" rel="noopener">Fab City Foundation</a>`
+    + `<div><b>This house</b><a href="#setup">Set up</a><a href="#setup/screen">Unlock this screen</a><a href="/export?day=${esc(dayOf(D.as_of))}">Today’s open data, CC BY 4.0</a></div>`
+    + `<div><b>Fab City</b><a href="https://planetai.fab.city/" target="_blank" rel="noopener">PLANETAI</a><a href="https://fab.city/" target="_blank" rel="noopener">Fab City</a>`
     + `<a href="https://github.com/fabcity/planetai-node" target="_blank" rel="noopener">Source, Apache-2.0</a></div>`;
   if (!D.askOff) $('#footask').onclick = () => $('#askbtn').click();
 }

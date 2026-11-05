@@ -1,0 +1,33 @@
+{
+  "point": {
+    "lat": -8.8271,
+    "lon": 115.15709
+  },
+  "sources": [],
+  "hours": [],
+  "attribution": [
+    "BMKG (Badan Meteorologi, Klimatologi, dan Geofisika), api.bmkg.go.id",
+    "Open-Meteo, open-meteo.com, CC-BY 4.0 (free tier: non-commercial use only)"
+  ],
+  "far_from_node": null,
+  "days": [
+    {
+      "date": "2026-11-03",
+      "part": "rest",
+      "rows": {}
+    },
+    {
+      "date": "2026-11-04",
+      "part": "day",
+      "rows": {}
+    },
+    {
+      "date": "2026-11-05",
+      "part": "day",
+      "rows": {}
+    }
+  ],
+  "lines": [],
+  "openmeteo": false,
+  "schema": "forecast-v0"
+}

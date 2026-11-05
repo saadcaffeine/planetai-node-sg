@@ -1,0 +1,55 @@
+<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 472">
+<style>
+.dg{--dg-ground:var(--ground,#F9F5F2);--dg-ink:var(--ink,#171717);--dg-mute:var(--mute,#5F5A54);--dg-cell:var(--cells,#20388D);--dg-ring:var(--rings,#00A057)}
+@media (prefers-color-scheme:dark){.dg{--dg-ground:var(--ground,#171717);--dg-ink:var(--ink,#F9F5F2);--dg-mute:var(--mute,#A3A19F);--dg-cell:var(--cells,#7FA5E8);--dg-ring:var(--rings,#00A057)}}
+.dg text{font-family:var(--fc-font-body,Figtree,system-ui,sans-serif);font-size:15px;fill:var(--dg-ink)}
+.dg .dg-h{font-family:var(--fc-font-display,"Funnel Sans",Figtree,system-ui,sans-serif);font-size:18px;font-weight:700}
+.dg .dg-m{font-family:var(--mono,ui-monospace,monospace)}
+.dg .dg-b{font-weight:600}
+.dg .dg-s{fill:var(--dg-mute)}
+.dg .dg-ct{fill:var(--dg-cell)}
+.dg-ln{fill:none;stroke:var(--dg-ink);stroke-width:1.5}
+.dg-off{stroke-dasharray:5 4}
+.dg-dot{stroke-dasharray:0.1 5;stroke-linecap:round;stroke-width:2.5}
+.dg-hv{stroke-width:2.5}
+.dg-hd{fill:var(--dg-ink)}
+.dg-g{stroke:var(--dg-ring)}
+.dg-gf{fill:var(--dg-ring)}
+.dg-c{stroke:var(--dg-cell)}
+.dg-cf{fill:var(--dg-cell);fill-opacity:.13}
+.dg-gc{fill:var(--dg-ring);fill-opacity:.13}
+.dg-gr{fill:var(--dg-ground)}
+</style>
+<text x="20" y="30" class="dg-b">Act-level alerts sent in the last 30 days</text>
+<line x1="20" y1="78" x2="620" y2="78" class="dg-ln"/>
+<text x="20" y="108" class="dg-s">30 days ago</text>
+<text x="620" y="108" class="dg-s" text-anchor="end">now</text>
+<circle cx="52" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="104" cy="78" r="11" class="dg-ln dg-g dg-hv dg-gc"/>
+<circle cx="150" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="230" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="286" cy="78" r="11" class="dg-ln dg-g dg-hv dg-gc"/>
+<circle cx="330" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="410" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="470" cy="78" r="11" class="dg-ln dg-gr"/>
+<circle cx="532" cy="78" r="11" class="dg-ln dg-g dg-hv dg-gc"/>
+<circle cx="590" cy="78" r="11" class="dg-ln dg-gr"/>
+<text x="20" y="160" class="dg-b">Each alert gets 24 hours, and the first answer stops the clock</text>
+<text x="60" y="196" class="dg-s" text-anchor="middle">sent</text>
+<text x="420" y="196" class="dg-m dg-s" text-anchor="middle">24 h</text>
+<line x1="60" y1="206" x2="60" y2="242" class="dg-ln"/>
+<line x1="420" y1="206" x2="420" y2="242" class="dg-ln dg-off"/>
+<line x1="60" y1="224" x2="200" y2="224" class="dg-ln dg-g dg-hv"/>
+<circle cx="200" cy="224" r="11" class="dg-ln dg-g dg-hv dg-gc"/>
+<text x="220" y="229" class="dg-s">acted after 3 h: answered</text>
+<line x1="60" y1="262" x2="60" y2="298" class="dg-ln"/>
+<line x1="420" y1="262" x2="420" y2="298" class="dg-ln dg-off"/>
+<line x1="60" y1="280" x2="452" y2="280" class="dg-ln"/>
+<circle cx="452" cy="280" r="11" class="dg-ln dg-gr"/>
+<text x="472" y="285" class="dg-s">26 h: not counted</text>
+<text x="20" y="350" class="dg-h">ρ = answered ÷ sent</text>
+<text x="20" y="378" class="dg-s">here <tspan class="dg-m">3 ÷ 10 = 0.3</tspan>, an example</text>
+<text x="20" y="414" class="dg-s">sent: an act-level alert, an event the engine sent,</text>
+<text x="20" y="434" class="dg-s">or a child's act-level alert pushed up</text>
+<text x="20" y="454" class="dg-s">answered: acknowledged or acted</text>
+</svg>

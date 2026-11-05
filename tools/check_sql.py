@@ -49,7 +49,8 @@ for line in dockerfile.splitlines():
 import subprocess
 compose = open("docker-compose.yml").read()
 tracked = set(subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split())
-runtime_created = {"config/mosquitto/passwd", "config/reticulum/config", "config/ee-key.json", "app/requirements-packs.txt"}
+# config/reticulum: `planetai reticulum` copies the bridge's config.tpl there before it adds the profile
+runtime_created = {"config/mosquitto/passwd", "config/reticulum", "config/ee-key.json", "app/requirements-packs.txt"}
 for m in re.finditer(r"^\s*-\s*\./([^:\s]+):", compose, re.M):
     src = m.group(1).rstrip("/")
     if src in runtime_created or src.startswith(("backups", "packs", "out", "exports")):

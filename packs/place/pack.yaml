@@ -24,3 +24,13 @@ env:
   - "GROUND_DRONE_MAXZ=18"
 pip: [earthengine-api]
 attribution: "© OpenStreetMap contributors, ODbL, via Overpass; Google Open Buildings V3 and Temporal v1 (CC BY 4.0) via Earth Engine"
+# Where this pack's word reaches (app/issues/geometry.py::claims): the kilometre it draws.
+footprint:
+  key: place
+  name: The kilometre it draws
+  what: "the plan: buildings, water, green, from OpenStreetMap"
+  setting: PLACE_RADIUS_M
+  default: 1000
+  unit: m
+  shape: circle
+  base_res: 10

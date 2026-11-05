@@ -1,0 +1,52 @@
+<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 344">
+<style>
+.dg{--dg-ground:var(--ground,#F9F5F2);--dg-ink:var(--ink,#171717);--dg-mute:var(--mute,#5F5A54);--dg-cell:var(--cells,#20388D);--dg-ring:var(--rings,#00A057)}
+@media (prefers-color-scheme:dark){.dg{--dg-ground:var(--ground,#171717);--dg-ink:var(--ink,#F9F5F2);--dg-mute:var(--mute,#A3A19F);--dg-cell:var(--cells,#7FA5E8);--dg-ring:var(--rings,#00A057)}}
+.dg text{font-family:var(--fc-font-body,Figtree,system-ui,sans-serif);font-size:15px;fill:var(--dg-ink)}
+.dg .dg-h{font-family:var(--fc-font-display,"Funnel Sans",Figtree,system-ui,sans-serif);font-size:18px;font-weight:700}
+.dg .dg-m{font-family:var(--mono,ui-monospace,monospace)}
+.dg .dg-b{font-weight:600}
+.dg .dg-s{fill:var(--dg-mute)}
+.dg .dg-ct{fill:var(--dg-cell)}
+.dg-ln{fill:none;stroke:var(--dg-ink);stroke-width:1.5}
+.dg-off{stroke-dasharray:5 4}
+.dg-dot{stroke-dasharray:0.1 5;stroke-linecap:round;stroke-width:2.5}
+.dg-hv{stroke-width:2.5}
+.dg-hd{fill:var(--dg-ink)}
+.dg-g{stroke:var(--dg-ring)}
+.dg-gf{fill:var(--dg-ring)}
+.dg-c{stroke:var(--dg-cell)}
+.dg-cf{fill:var(--dg-cell);fill-opacity:.13}
+.dg-gc{fill:var(--dg-ring);fill-opacity:.13}
+.dg-gr{fill:var(--dg-ground)}
+</style>
+<polygon points="290.0,172.0 220.0,293.2 80.0,293.2 10.0,172.0 80.0,50.8 220.0,50.8" class="dg-ln dg-c dg-dot"/>
+<polygon points="264.0,172.0 207.0,270.7 93.0,270.7 36.0,172.0 93.0,73.3 207.0,73.3" class="dg-ln dg-c"/>
+<polygon points="238.0,172.0 194.0,248.2 106.0,248.2 62.0,172.0 106.0,95.8 194.0,95.8" class="dg-ln dg-c dg-hv dg-cf"/>
+<polygon points="213.0,172.0 181.5,226.6 118.5,226.6 87.0,172.0 118.5,117.4 181.5,117.4" class="dg-ln dg-c"/>
+<polygon points="188.0,172.0 169.0,204.9 131.0,204.9 112.0,172.0 131.0,139.1 169.0,139.1" class="dg-ln dg-c"/>
+<text x="150" y="66.76" class="dg-m dg-ct" text-anchor="middle">6</text>
+<text x="150" y="89.276" class="dg-m dg-ct" text-anchor="middle">7</text>
+<text x="150" y="111.792" class="dg-m dg-ct" text-anchor="middle">8</text>
+<text x="150" y="133.442" class="dg-m dg-ct" text-anchor="middle">9</text>
+<text x="150" y="155.09199999999998" class="dg-m dg-ct" text-anchor="middle">10</text>
+<polygon points="160.0,172.0 155.0,180.7 145.0,180.7 140.0,172.0 145.0,163.3 155.0,163.3" class="dg-ln dg-c"/>
+<line x1="143" y1="182" x2="157" y2="162" class="dg-ln dg-c"/>
+<line x1="318" y1="29" x2="352" y2="29" class="dg-ln dg-c dg-dot"/>
+<text x="364" y="34" class="dg-m">res 6 · edge 3.7 km</text>
+<text x="364" y="56" class="dg-s">the finest a node may</text>
+<text x="364" y="76" class="dg-s">announce over the radio</text>
+<line x1="318" y1="109" x2="352" y2="109" class="dg-ln dg-c dg-hv"/>
+<text x="364" y="114" class="dg-m">res 8 · edge 530 m</text>
+<text x="364" y="136" class="dg-s">the node's cell; its centre</text>
+<text x="364" y="156" class="dg-s">is what the node publishes</text>
+<line x1="318" y1="189" x2="352" y2="189" class="dg-ln dg-c"/>
+<text x="364" y="194" class="dg-m">res 10 · edge 76 m</text>
+<text x="364" y="216" class="dg-s">as fine as the node says</text>
+<text x="364" y="236" class="dg-s">where it is</text>
+<line x1="318" y1="269" x2="352" y2="269" class="dg-ln dg-c"/>
+<line x1="330" y1="275" x2="340" y2="263" class="dg-ln dg-c"/>
+<text x="364" y="274" class="dg-m">res 11, 12 · edge 29 m, 11 m</text>
+<text x="364" y="296" class="dg-s">finer than that: struck</text>
+<text x="364" y="316" class="dg-s">through, never drawn as true</text>
+</svg>

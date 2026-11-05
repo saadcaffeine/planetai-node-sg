@@ -37,6 +37,12 @@ DOCS = sorted(glob.glob("*.md") + glob.glob("docs/*.md") + glob.glob("packs/*/RE
 SKILLS = sorted(os.path.basename(os.path.dirname(f)) for f in glob.glob("skills/*/SKILL.md"))
 CLI = open("bin/planetai").read()
 MAIN = open("app/main.py").read()
+# a pack's own routes (packs/<id>/routes.py, mounted by packs.routers()) are the node's endpoints too
+MAIN += "\n".join(open(f).read().replace("@router.", "@app.") for f in sorted(glob.glob("packs/*/routes.py")))
+# and every core module's router mounted with no prefix (app/basemap.py: GET /ground/*, and the groups review item 15
+# takes out of main.py); app/issues/api.py has its own prefix and is read where /issues is
+MAIN += "\n".join(open(f).read().replace("@router.", "@app.") for f in sorted(glob.glob("app/*.py"))
+                   if f != "app/main.py" and "APIRouter()" in open(f).read())
 ENVEX = open(".env.example").read()
 CODE = "\n".join(open(f).read() for f in glob.glob("app/*.py") + glob.glob("packs/*/*.py")) + CLI + \
        "\n".join(open(f).read() for f in ("install.sh", "update.sh", "backup.sh", "install", "docker-compose.yml"))
@@ -83,10 +89,6 @@ PROPOSED = {
     # same gate that fired for the licence record fires for this one. What replaces it is the promise
     # the spec itself makes: tests/test_rho.py lands with Phase 2's code and deletes this line.
     "docs/SPEC_rho.md": {"tests/test_rho.py"},
-    # docs/SPEC_dashboard_figures.md (v0.78) names what its three pull requests add: the wire PR adds the test file,
-    # the page PR the two vendored files and their hash list, the Grafana PR its folder and its command. Each PR
-    # deletes the names it makes exist; the assertion below fails a PR that forgets.
-    "docs/SPEC_dashboard_figures.md": {"config/grafana/", "grafana"},
 }
 # Names a page uses on purpose that are not the tree's: a page saying a command does NOT exist, the
 # reticulum bridge's own routes, the worked example a reader builds. Same shape as PROPOSED, and the
@@ -121,13 +123,14 @@ for doc in DOCS:
         if cmd not in CMDS and cmd not in proposed:
             errs.append(f"{doc}: mentions `planetai {cmd}`, which the CLI does not dispatch")
 
-    for link in set() if doc in SITE else set(re.findall(r"\]\((?!https?:|#|mailto:)([^)#]+)", text)):
+    for link in set() if doc in SITE else set(re.findall(r"\]\((?!https?:|#|mailto:)([^)#\s]+)", text)):
         target = os.path.normpath(os.path.join(os.path.dirname(doc), link))
         if not os.path.exists(target):
             errs.append(f"{doc}: link to `{link}` does not exist")
 
     # files a command creates at runtime are documented before they exist; that is correct
     RUNTIME = {"config/ee-key.json", "config/reticulum/config", "config/mosquitto/passwd",
+               "config/radio", "config/radio/fleet.yaml", "config/mosquitto/bridges",   # planetai radio init / federate --write
                "app/requirements-packs.txt", "out/", "packs/_test",
                # a build artifact: present on any machine that has run the app, absent in a clean
                # checkout. `make lint` passed on every laptop and failed on every CI run since 5 Sep.
@@ -156,8 +159,8 @@ for doc in DOCS:
                       "/actions", "/aggregates", "/observations", "/send", "/install"):
                 errs.append(f"{doc}: documents endpoint `{ep}`, which app/main.py does not define")
 
-    for pk in set(re.findall(r"`packs/([a-z0-9-]+)/", text)) | set(re.findall(r"\bpacks/([a-z0-9-]+)\b", text)):
-        if pk not in PACKS and pk not in EXAMPLE_PACKS:
+    for pk in set(re.findall(r"`packs/([a-z0-9-]+)/", text)) | set(re.findall(r"(?<!/)\bpacks/([a-z0-9-]+)\b", text)):   # `/packs/all` is a route, not a folder
+        if pk not in PACKS and pk not in EXAMPLE_PACKS and doc != "CHANGELOG.md":   # a record: packs move, as files do
             errs.append(f"{doc}: refers to pack `{pk}`, which does not exist")
 
 # Every declared channel must be a metric some adapter actually produces. A declaration for a metric that does not
@@ -235,8 +238,8 @@ for f in sorted(glob.glob("packs/*/README.md")):
         if not re.search(rf"(?<![\d.]){re.escape(n)}(?![\d.])", body):
             errs.append(f"{f}: documents a threshold of {n}, which appears nowhere in {pack}/")
 
-if n_core_rules != 2:
-    errs.append(f"config/rules.yml has {n_core_rules} rules; docs/PACKS.md says two domain-blind core rules — check both")
+if n_core_rules != 5:
+    errs.append(f"config/rules.yml has {n_core_rules} rules; the docs say two domain-blind rules and trust's three — check both")
 
 # ---- the agent-facing layer -------------------------------------------------------------------
 # A skill is read by a machine that will act on it. Three things have to hold or it silently does not

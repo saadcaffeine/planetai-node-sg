@@ -3,7 +3,7 @@
 Two things live here, in this order, because the second is the ruler for everything that comes after it:
 
   bundle(cur, hours)      every number the node has about the last `hours`, as one JSON-able document
-  sheet(bundle, locale)   the node's own report, deterministic, six parts, under a hundred words
+  sheet(bundle, locale)   the node's own report, deterministic, four parts, under a hundred words
 
 The sheet is what a household gets on a node with no model anywhere, which is most nodes. When a model is in the
 path it is handed the bundle and the sheet, and anything it writes is checked against the numbers in them before
@@ -19,6 +19,9 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 import index
+import learn
+from actions import rooms_said
+import packs
 import settings
 
 log = logging.getLogger("planetai.report")
@@ -91,7 +94,7 @@ def held_hours(since, due, every: int, cap: int = MAX_WINDOW) -> int:
 
 # The names the bundle owns. A pack that contributes under one of these would overwrite the node's own numbers,
 # and a model reading the document would have no way to tell.
-RESERVED = ("meta", "series", "now", "observations", "alerts", "open_act", "sensors_quiet", "rho", "previous",
+RESERVED = ("meta", "series", "now", "observations", "alerts", "open_act", "open_events", "sensors_quiet", "rho", "previous",
             "cells", "health", "rules")
 
 
@@ -110,7 +113,7 @@ SERIES_SQL = """
 WITH win AS (
   SELECT r.sensor_id, r.metric, r.bucket, r.mean, r.min AS lo, r.max AS hi, r.n
     FROM readings_1h r
-   WHERE r.bucket > now() - make_interval(hours => %(h)s)
+   WHERE r.bucket > now() - make_interval(hours => %(h)s) AND """ + packs.public_sql("r") + """
 ), agg AS (
   SELECT sensor_id, metric, min(bucket) AS t0, max(bucket) AS t1,
          min(lo) AS lo, max(hi) AS hi, sum(n)::int AS n,
@@ -175,7 +178,7 @@ QUIET_SQL = """
 SELECT s.sensor_id, s.name,
        (SELECT round(extract(epoch FROM now() - max(r.ts)) / 60) FROM readings r WHERE r.sensor_id = s.sensor_id) AS silent_minutes
   FROM sensors s
- WHERE s.local
+ WHERE s.local AND s.kind = 'sensor'
    AND NOT EXISTS (SELECT 1 FROM stats t WHERE t.sensor_id = s.sensor_id AND t.silent_minutes < 180)
  ORDER BY s.sensor_id
 """
@@ -185,9 +188,8 @@ SELECT s.sensor_id, s.name,
 NOW_SQL = """
 SELECT sensor_id, name, metric, indoor, local, kind,
        round(last::numeric, 2) AS last, round(mean_15m::numeric, 2) AS mean_15m,
-       round(mean_1h::numeric, 2) AS mean_1h, round(silent_minutes) AS silent_minutes,
-       (SELECT s.meta->>'role' FROM sensors s WHERE s.sensor_id = stats.sensor_id) AS role
-  FROM stats ORDER BY local DESC, indoor DESC, sensor_id, metric
+       round(mean_1h::numeric, 2) AS mean_1h, round(silent_minutes) AS silent_minutes
+  FROM stats WHERE """ + packs.public_sql("stats") + """ ORDER BY local DESC, indoor DESC, sensor_id, metric
 """
 
 PREV_SQL = "SELECT id, ts, text, cells, window_hours, held_quiet FROM reports WHERE sent ORDER BY ts DESC LIMIT 1"
@@ -257,15 +259,34 @@ def bundle(cur, hours: int, held_hours: int = 0) -> dict:
 
     b["now"] = [{"sensor_id": r["sensor_id"], "name": r["name"], "metric": r["metric"], "indoor": r["indoor"],
                  "local": r["local"], "kind": r["kind"], "last": _f(r["last"], 2), "mean_15m": _f(r["mean_15m"], 2),
-                 "mean_1h": _f(r["mean_1h"], 2), "silent_minutes": int(r["silent_minutes"]) if r["silent_minutes"] is not None else None,
-                 "role": r.get("role")}
+                 "mean_1h": _f(r["mean_1h"], 2), "silent_minutes": int(r["silent_minutes"]) if r["silent_minutes"] is not None else None}
                 for r in index.run_ro(cur, NOW_SQL)]
 
+    # On ALERT_ENGINE=events the engine speaks for the packs it replaced, from its first message on, and their rules
+    # still record rows nobody received (learn.silent). The report tells what was sent: node #1's 19:00 report on
+    # 14 Oct opened "It is hot inside" from a heat row the household never got, while the page said it was bearable.
+    try:
+        rep = learn.replaced(packs.load_rules(), settings.get("ALERT_ENGINE", "rules") or "rules")
+    except Exception as e:  # noqa: BLE001 — no rule set, nothing to leave out
+        log.warning("report: cannot read the rule set to leave silent alerts out: %s", e)
+        rep = set()
+    since = None
+    if rep:
+        cur.execute("SELECT min(ts) AS t FROM event_messages WHERE mode = 'events'")
+        since = (cur.fetchone() or {}).get("t")
+    told = lambda r: not learn.silent(r["rule_id"], r["ts"], rep, since)  # noqa: E731
     b["alerts"] = [{"id": r["id"], "at": r["ts"].isoformat(), "rule": r["rule_id"], "sensor_id": r["sensor_id"],
                     "level": r["level"], "line": r["line"], "acted": r["acted"]}
-                   for r in index.run_ro(cur, ALERTS_SQL, p)]
+                   for r in index.run_ro(cur, ALERTS_SQL, p) if told(r)]
     b["open_act"] = [{"id": r["id"], "at": r["ts"].isoformat(), "rule": r["rule_id"], "sensor_id": r["sensor_id"],
-                      "line": r["line"]} for r in index.run_ro(cur, OPEN_ACT_SQL)]
+                      "line": r["line"]} for r in index.run_ro(cur, OPEN_ACT_SQL) if told(r)]
+    # what the engine has open and has told the household, which stands in for the replaced packs' open alerts
+    b["open_events"] = []
+    if rep:
+        cur.execute("""SELECT issue, kind, opened_at, rooms FROM alert_events
+                       WHERE cleared_at IS NULL AND ever_sent AND level = 'act' ORDER BY opened_at""")
+        b["open_events"] = [{"issue": r["issue"], "kind": r["kind"], "at": r["opened_at"].isoformat(),
+                             "rooms": sorted(r.get("rooms") or [])} for r in cur.fetchall()]
     b["sensors_quiet"] = [{"sensor_id": r["sensor_id"], "name": r["name"],
                            "silent_minutes": int(r["silent_minutes"]) if r["silent_minutes"] is not None else None}
                           for r in index.run_ro(cur, QUIET_SQL)]
@@ -289,7 +310,6 @@ def bundle(cur, hours: int, held_hours: int = 0) -> dict:
         log.warning("cells unavailable for the report: %s", e)
 
     try:
-        import packs
         b["rules"] = sorted(r["id"] for r in packs.rules())
         for r in packs.contributors("report"):
             key = r["id"].split("/")[-1]
@@ -339,17 +359,20 @@ def _fit(b: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------------------------------- the sheet
-# What an act-level rule watches, and the line it watches for, so the report can say whether the value came back
-# down. The numbers are the rules' own; tests/test_report_templates.py refuses a value here that is not in that
-# rule's SQL, the same way a pack README's thresholds are checked against its files. A rule that is not here gets
-# no sentence rather than a guessed one: heat_stress_now watches an apparent temperature that no column holds, and
-# in v0.39 it becomes a condition with an outcome of its own.
-THRESHOLDS = {
-    "air-quality/indoor_pm25_high":      ("pm25", 35.5),
-    "air-quality/outside_worse_keep_shut": ("pm25", 35.5),
-    "air-quality/outdoor_pm25_high":     ("pm25", 55.5),
-    "air-quality/inside_worse_ventilate": ("pm25", 15.0),
-}
+def thresholds() -> dict:
+    """{rule id: (metric, line, whose line)}: what an act-level rule watches, the line it watches for, and whose line
+    that is, so the report can say whether the value came back down and name the line with its unit (Tomas, 14 Oct:
+    never a bare "35.5"). A rule declares it as `line: {value, label}` in its pack's rules.yml, and the metric is its
+    issue's own (issues.owners()); until 23 Oct 2026 this was a map here naming air-quality's four rules.
+    tests/test_report_templates.py refuses a value that is not in that rule's SQL, the same way a pack README's
+    thresholds are checked against its files. A rule without one gets no sentence rather than a guessed one: heat
+    speaks through HEAT_LINE and the open episodes instead."""
+    import issues                    # noqa: PLC0415
+    own = issues.owners()
+    return {r["id"]: ((own.get(r["id"].split("/")[0]) or {}).get("metric"), float(r["line"]["value"]), r["line"]["label"])
+            for r in packs.load_rules() if isinstance(r.get("line"), dict) and "/" in r["id"]}
+# This house's heat line, feels-like. The same number as packs/heat/issue.yml's `line.value`; the test holds them equal.
+HEAT_LINE = 35.0
 
 # What the node may mention beyond its own sensors: an observation that crossed a line a rule on this node cares
 # about. Nothing else. There is no UV rule and no rain rule in any pack that ships, so the report says nothing
@@ -357,93 +380,142 @@ THRESHOLDS = {
 BEYOND = {
     "coast/heavy_swell": ("beyond_swell", lambda o: (o.get(("marine-point", "swell_height_m")) or 0) >= 2.5
                                                 and (o.get(("marine-point", "swell_period_s")) or 0) >= 12),
-    "air-quality/indoor_pm25_high": ("beyond_satellite", lambda o: (o.get(("cams-point", "pm25_model")) or 0) > ACT),
+    "air-quality/indoor_pm25_high": ("beyond_satellite", lambda o: (o.get(("cams-point", "pm25_model")) or 0) > 35.5),
 }
 
 # One dict per language. Every phrase a household reads is in here; the code decides which key, never the words,
-# so a new language is this dict again and nothing else. `id` and `es` are assistant-written and are waiting on a
+# so a new language is this dict again and nothing else. `id` and `es` are ASSISTANT-WRITTEN and are waiting on a
 # native reader — see docs/BETA_TESTER_GUIDE.md.
+#
+# THE VOICE (design review of node #1, 14 Oct): the headline is the state in words, with one sign and no number; then
+# what happened, per room and with the local time; then the one thing to do; then the invitation, last. A line is
+# always named with its owner and its unit. A "what changed" sentence says what a person would say about the room
+# ("Studio was more humid than usual"), never "the damp ran higher".
 T = {
     "en": {
         "folded": "Overnight and this morning.",
         "state_hot": "🥵 It is dangerously hot inside.",
-        "state_heat": "🌡️ It is hot inside: it feels like 35 °C or more.",
+        "state_heat": "🌡️ It is hot inside.",
         "state_bad": "😷 The air inside is unhealthy right now.",
         "state_warm": "🌫️ The air inside is middling: not clean, not unhealthy.",
         "state_clean": "✅ The air inside is clean.",
         "state_no_sensor": "🛰️ No sensor inside yet, so what follows is the district and not your rooms.",
-        "state_climate": "🏠 Inside it is {t}°C and {h}% humidity.", "state_climate_t": "🏠 Inside it is {t}°C.",
-        "wind": "Wind from the {dir}, {kn} knots.",
-        "changed": "What changed: {clauses}.",
-        "changed_high": "{place}: the {what} ran higher than usual",
-        "changed_low": "{place}: the {what} sat lower than usual",
-        "what_pm25": "air", "what_temp": "heat", "what_humidity": "damp",
+        "high_pm25": "The air in {place} was dirtier than usual.",
+        "low_pm25": "The air in {place} was cleaner than usual.",
+        "high_temp": "{place} was warmer than usual.",
+        "low_temp": "{place} was cooler than usual.",
+        "high_humidity": "{place} was more humid than usual.",
+        "low_humidity": "{place} was drier than usual.",
         "beyond_swell": "Out at sea a big, long-period swell is arriving.",
-        "beyond_satellite": "The satellite has the whole district above the line to act on.",
-        "after": "After the alert: {clauses}.",
+        "beyond_satellite": "The European air model puts the whole district past the US EPA's unhealthy level, 35.5 µg/m³.",
+        "heat_over": "In {rooms} it has felt past {line}, since {at}.",
+        "heat_usual": "In {rooms} it has been hotter than usual since {at}.",
+        "line_heat": "this house's heat line, {n} °C feels-like",
+        "line_who": "the WHO line, {n} µg/m³",
+        "line_epa": "the US EPA's unhealthy level, {n} µg/m³",
+        "line_epa_all": "the US EPA's level unhealthy for everyone, {n} µg/m³",
+        "after_under": "{place} went past {line}, at {at}; it is back under now.",
+        "after_above": "{place} went past {line}, at {at}, and is still past it.",
         # packs/make. A report that ends on a number leaves nowhere to go; this ends on a place.
         "make": "Nearest place to make or fix something: {where}.",
-        "after_under": "{place} is back under {n}",
-        "after_above": "{place} is still above {n}",
-        "todo_above": "👉 {place} is the one to deal with before the next report.",
-        "todo_quiet": "👉 Check {place}: it has stopped sending.",
-        "todo_health": "👉 The node itself needs a look: {fix}",
-        "todo_none": "👉 Nothing needs doing before the next report.",
-        "ask": "Ask me anything about the air, the heat, the sea or what is around here.",
+        "todo_above": "{place} is the one to deal with before the next report.",
+        "todo_quiet": "Check {place}: it has stopped sending.",
+        "health_poll": "The node has stopped reading its sensors. Check it is switched on.",
+        "health_backup": "The last backup did not run. Whoever set up the node can check it.",
+        "health_frozen": "A sensor is stuck on the same number: {place}. Switching it off and on again usually fixes it.",
+        "health_quiet": "A sensor has gone quiet: {place}.",
+        "health_quiet_any": "A sensor has gone quiet.",
+        "health_other": "The node itself needs a look. Whoever set it up can see what on the Node page.",
+        "todo_none": "Nothing needs doing before the next report.",
+        "ask": "Ask me anything about the air, the heat or the sea.",
     },
     "id": {
         "folded": "Semalam dan pagi ini.",
         "state_hot": "🥵 Di dalam panasnya berbahaya.",
-        "state_heat": "🌡️ Di dalam panas: terasa 35 °C atau lebih.",
+        "state_heat": "🌡️ Di dalam panas.",
         "state_bad": "😷 Udara di dalam sedang tidak sehat.",
         "state_warm": "🌫️ Udara di dalam sedang-sedang: belum bersih, belum tidak sehat.",
         "state_clean": "✅ Udara di dalam bersih.",
         "state_no_sensor": "🛰️ Belum ada sensor di dalam, jadi ini kecamatan, bukan ruangan Anda.",
-        "state_climate": "🏠 Di dalam {t}°C, kelembapan {h}%.", "state_climate_t": "🏠 Di dalam {t}°C.",
-        "wind": "Angin dari {dir}, {kn} knot.",
-        "changed": "Yang berubah: {clauses}.",
-        "changed_high": "{place}: {what}nya lebih tinggi dari biasanya",
-        "changed_low": "{place}: {what}nya lebih rendah dari biasanya",
-        "what_pm25": "udara", "what_temp": "panas", "what_humidity": "kelembapan",
+        "high_pm25": "Udara di {place} lebih kotor dari biasanya.",
+        "low_pm25": "Udara di {place} lebih bersih dari biasanya.",
+        "high_temp": "{place} lebih hangat dari biasanya.",
+        "low_temp": "{place} lebih sejuk dari biasanya.",
+        "high_humidity": "{place} lebih lembap dari biasanya.",
+        "low_humidity": "{place} lebih kering dari biasanya.",
         "beyond_swell": "Di laut ombak besar berperiode panjang sedang datang.",
-        "beyond_satellite": "Satelit melihat seluruh kecamatan di atas batas untuk bertindak.",
-        "after": "Setelah peringatan: {clauses}.",
+        "beyond_satellite": "Model udara Eropa menempatkan seluruh kecamatan di atas batas tidak sehat US EPA, 35.5 µg/m³.",
+        "heat_over": "Di {rooms} terasa melewati {line}, sejak {at}.",
+        "heat_usual": "Di {rooms} lebih panas dari biasanya sejak {at}.",
+        "line_heat": "batas panas rumah ini, {n} °C terasa",
+        "line_who": "batas WHO, {n} µg/m³",
+        "line_epa": "tingkat tidak sehat US EPA, {n} µg/m³",
+        "line_epa_all": "tingkat US EPA yang tidak sehat bagi semua orang, {n} µg/m³",
+        "after_under": "{place} melewati {line}, pukul {at}; sekarang sudah di bawahnya.",
+        "after_above": "{place} melewati {line}, pukul {at}, dan masih di atasnya.",
         "make": "Tempat terdekat untuk membuat atau memperbaiki sesuatu: {where}.",
-        "after_under": "{place} sudah di bawah {n}",
-        "after_above": "{place} masih di atas {n}",
-        "todo_above": "👉 {place} yang perlu diurus sebelum laporan berikutnya.",
-        "todo_quiet": "👉 Cek {place}: sudah tidak mengirim data.",
-        "todo_health": "👉 Node-nya sendiri perlu dilihat: {fix}",
-        "todo_none": "👉 Tidak ada yang perlu dilakukan sebelum laporan berikutnya.",
-        "ask": "Tanya apa saja tentang udara, panas, laut, atau apa yang ada di sekitar sini.",
+        "todo_above": "{place} yang perlu diurus sebelum laporan berikutnya.",
+        "todo_quiet": "Cek {place}: sudah tidak mengirim data.",
+        "health_poll": "Node berhenti membaca sensornya. Pastikan node menyala.",
+        "health_backup": "Cadangan terakhir tidak berjalan. Orang yang memasang node bisa memeriksanya.",
+        "health_frozen": "Sebuah sensor terus menunjukkan angka yang sama: {place}. Biasanya beres jika dimatikan lalu dinyalakan lagi.",
+        "health_quiet": "Sebuah sensor tidak mengirim lagi: {place}.",
+        "health_quiet_any": "Sebuah sensor tidak mengirim lagi.",
+        "health_other": "Node-nya sendiri perlu dilihat. Orang yang memasangnya bisa melihat apa di halaman Node.",
+        "todo_none": "Tidak ada yang perlu dilakukan sebelum laporan berikutnya.",
+        "ask": "Tanya apa saja tentang udara, panas, atau laut.",
     },
     "es": {
         "folded": "La noche y esta mañana.",
         "state_hot": "🥵 Dentro hace un calor peligroso.",
-        "state_heat": "🌡️ Dentro hace calor: la sensación es de 35 °C o más.",
+        "state_heat": "🌡️ Dentro hace calor.",
         "state_bad": "😷 El aire de dentro está insalubre ahora mismo.",
         "state_warm": "🌫️ El aire de dentro está a medias: ni limpio ni insalubre.",
         "state_clean": "✅ El aire de dentro está limpio.",
-        "state_no_sensor": "🛰️ Aún no hay sensor dentro, así que esto es la comuna y no tus habitaciones.",
-        "state_climate": "🏠 Dentro hay {t}°C y {h}% de humedad.", "state_climate_t": "🏠 Dentro hay {t}°C.",
-        "wind": "Viento del {dir}, {kn} nudos.",
-        "changed": "Lo que cambió: {clauses}.",
-        "changed_high": "{place}: el {what} estuvo más alto de lo habitual",
-        "changed_low": "{place}: el {what} estuvo más bajo de lo habitual",
-        "what_pm25": "aire", "what_temp": "calor", "what_humidity": "vapor",
+        "state_no_sensor": "🛰️ Aún no hay sensor dentro, así que esto es la zona y no tus habitaciones.",
+        "high_pm25": "El aire en {place} estuvo más sucio de lo habitual.",
+        "low_pm25": "El aire en {place} estuvo más limpio de lo habitual.",
+        "high_temp": "En {place} hizo más calor de lo habitual.",
+        "low_temp": "En {place} hizo más fresco de lo habitual.",
+        "high_humidity": "En {place} hubo más humedad de lo habitual.",
+        "low_humidity": "En {place} el aire estuvo más seco de lo habitual.",
         "beyond_swell": "Mar adentro llega un oleaje grande y de periodo largo.",
-        "beyond_satellite": "El satélite ve toda la comuna por encima de la línea para actuar.",
-        "after": "Después de la alerta: {clauses}.",
+        "beyond_satellite": "El modelo europeo del aire pone toda la zona por encima del nivel insalubre de la US EPA, 35.5 µg/m³.",
+        "heat_over": "En {rooms} la sensación pasa de {line}, desde las {at}.",
+        "heat_usual": "En {rooms} hace más calor de lo habitual desde las {at}.",
+        "line_heat": "el límite de calor de esta casa, {n} °C de sensación",
+        "line_who": "el límite de la OMS, {n} µg/m³",
+        "line_epa": "el nivel insalubre de la EPA de EE. UU., {n} µg/m³",
+        "line_epa_all": "el nivel de la EPA de EE. UU. insalubre para todos, {n} µg/m³",
+        "after_under": "{place} pasó {line}, a las {at}; ya volvió a bajar.",
+        "after_above": "{place} pasó {line}, a las {at}, y sigue por encima.",
         "make": "El lugar más cercano para fabricar o reparar algo: {where}.",
-        "after_under": "{place} volvió por debajo de {n}",
-        "after_above": "{place} sigue por encima de {n}",
-        "todo_above": "👉 {place} es lo que hay que atender antes del próximo informe.",
-        "todo_quiet": "👉 Revisa {place}: dejó de enviar datos.",
-        "todo_health": "👉 El nodo mismo necesita una revisión: {fix}",
-        "todo_none": "👉 No hay nada que hacer antes del próximo informe.",
-        "ask": "Pregúntame lo que quieras sobre el aire, el calor, el mar o lo que hay por aquí.",
+        "todo_above": "{place} es lo que hay que atender antes del próximo informe.",
+        "todo_quiet": "Revisa {place}: dejó de enviar datos.",
+        "health_poll": "El nodo dejó de leer sus sensores. Comprueba que está encendido.",
+        "health_backup": "La última copia de seguridad no se hizo. Quien instaló el nodo puede revisarlo.",
+        "health_frozen": "Un sensor se quedó en el mismo número: {place}. Apagarlo y encenderlo de nuevo suele arreglarlo.",
+        "health_quiet": "Un sensor dejó de enviar: {place}.",
+        "health_quiet_any": "Un sensor dejó de enviar.",
+        "health_other": "El nodo mismo necesita una revisión. Quien lo instaló puede ver qué en la página Nodo.",
+        "todo_none": "No hay nada que hacer antes del próximo informe.",
+        "ask": "Pregúntame lo que quieras sobre el aire, el calor o el mar.",
     },
 }
+
+
+# app/agent.py::health_check's `fix` is for whoever runs the node (shell commands, ids); the morning message says the
+# same failure in the household's words, keyed by the check's name. A check not listed here gets health_other.
+HEALTH = {"polled in the last 15 min": "health_poll", "a backup in the last 2 days": "health_backup",
+          "no local sensor's ambient channel is frozen": "health_frozen", "LoRa radios heard in the last hour": "health_quiet"}
+
+
+def _health_line(check: dict, t: dict) -> str:
+    key = HEALTH.get(check.get("check"), "health_other")
+    who = ", ".join(_place({"name": n}) for n in check.get("who") or [])
+    if key in ("health_frozen", "health_quiet") and not who:   # never the id: no name, no name in the sentence
+        key = "health_quiet_any" if key == "health_quiet" else "health_other"
+    return t[key].format(place=who)
 
 
 def _place(row: dict) -> str:
@@ -457,94 +529,105 @@ def _n(v: float) -> str:
     return str(int(v)) if float(v) == int(v) else f"{float(v):g}"
 
 
+def _at(iso, tz: str) -> str | None:
+    """HH:MM in the household's own zone, from the bundle's ISO time; None when it cannot be read, and the
+    sentence that needed it is then left out rather than said without its time."""
+    try:
+        return datetime.fromisoformat(iso).astimezone(ZoneInfo(tz or "UTC")).strftime("%H:%M")
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def sheet(b: dict, locale: str = "en") -> str:
-    """The node's own report: six parts, plain text, deterministic, under a hundred words. This is what a household
+    """The node's own report: four parts, plain text, deterministic, under a hundred words. This is what a household
     on a node with no model gets, and it is the ruler a model's rewrite is checked against."""
-    t = T.get((locale or "en").split("-")[0], T["en"])
+    loc = (locale or "en").split("-")[0]
+    t = T.get(loc, T["en"])
     rules = set(b.get("rules") or [])
     now = b.get("now") or []
+    tz = (b.get("meta") or {}).get("tz") or _tz()
     parts = []
 
-    # 1. where the place stands
+    # 1. the headline: where the place stands, in words
     lead = t["folded"] + " " if b.get("meta", {}).get("folds_a_held_report") else ""
     indoor = [r.get("mean_15m") or r.get("mean_1h") or r.get("last")
               for r in now if r.get("local") and r.get("indoor") and r["metric"] == "pm25"]
     indoor = [v for v in indoor if v is not None]
-    heat = [(a.get("rule") or "") for a in b.get("open_act") or [] if (a.get("rule") or "").startswith("heat/")]
-    if "heat/heat_danger" in heat:
+    # heat, per room: the old engine's open act rows (one sensor each) and the event engine's open episodes (rooms)
+    heat = [(a.get("rule") or "", _place(next((r for r in now if r["sensor_id"] == a.get("sensor_id")), a)), a.get("at"))
+            for a in b.get("open_act") or [] if (a.get("rule") or "").startswith("heat/")]
+    heat += [(f"heat/{e.get('kind')}", rooms_said(e.get("rooms") or [], loc), e.get("at"))
+             for e in b.get("open_events") or [] if e.get("issue") == "heat"]
+    kinds = {k for k, _, _ in heat}
+    if "heat/heat_danger" in kinds or "heat/danger" in kinds:
         parts.append(lead + t["state_hot"])          # feels like 40 °C or more: the one heat line called danger
     elif heat:
         # heat_stress_now's 35 is node #1's ordinary afternoon (SPEC_alerts §1): said as a fact, never as danger
         parts.append(lead + t["state_heat"])
     elif not indoor:
-        # No indoor air sensor, but a room with a thermometer is still "a sensor inside". The one the household chose
-        # as its reference (not a `secondary` room) speaks for the house.
-        room = {r["metric"]: (r.get("mean_15m") or r.get("mean_1h") or r.get("last"))
-                for r in now if r.get("local") and r.get("indoor") and r.get("role") != "secondary"
-                and r["metric"] in ("temp", "humidity") and (r.get("silent_minutes") or 0) <= 180}
-        if room.get("temp") is not None:
-            parts.append(lead + (t["state_climate"].format(t=round(room["temp"], 1), h=round(room["humidity"]))
-                                 if room.get("humidity") is not None else t["state_climate_t"].format(t=round(room["temp"], 1))))
-        else:
-            parts.append(lead + t["state_no_sensor"])
+        parts.append(lead + t["state_no_sensor"])
     else:
         worst = max(indoor)
         parts.append(lead + t["state_bad" if worst >= ACT else "state_warm" if worst >= CLEAN else "state_clean"])
 
-    # 2. what changed, and 3. what only the models know — one paragraph
-    body = []
-    # one clause per place, not per metric: "the kitchen's air ran higher, the kitchen's heat ran lower" is one
+    # 2. what happened, per room, with the local time: heat, the act alerts and where they stand now, what ran unusual,
+    # and what only the models know — one paragraph
+    body, told = [], set()
+    for kind, rooms, at in heat:
+        hm = _at(at, tz)
+        if not (rooms and hm) or rooms in told:
+            continue
+        told.add(rooms)
+        over = kind not in ("heat/unusual",)        # the old rules and sustained/danger are past the line; unusual is not
+        body.append(t["heat_over" if over else "heat_usual"].format(
+            rooms=rooms, at=hm, line=t["line_heat"].format(n=_n(HEAT_LINE))))
+        if len(told) == 2:
+            break
+    still_above, places, lines = None, set(), thresholds()
+    for a in [x for x in b.get("alerts") or [] if x.get("level") == "act"]:
+        watch = lines.get(a.get("rule") or "")
+        if not watch:
+            continue
+        metric, line, owner = watch
+        cur = next((r for r in now if r["sensor_id"] == a.get("sensor_id") and r["metric"] == metric), None)
+        v = None if not cur else (cur.get("mean_15m") or cur.get("mean_1h") or cur.get("last"))
+        hm = _at(a.get("at"), tz)
+        if v is None or hm is None or _place(cur) in places:
+            continue                    # one sentence per room: the newest alert on it (alerts come newest first)
+        places.add(_place(cur))
+        over = v >= line
+        body.append(t["after_above" if over else "after_under"].format(
+            place=_place(cur), at=hm, line=t[owner].format(n=_n(line))))
+        if over and still_above is None:
+            still_above = cur
+        if len(places) == 2:
+            break
+    # one sentence per place, not per metric: "the kitchen's air ran higher, the kitchen's heat ran lower" is one
     # story told twice, and the second half of it is noise.
     moved, seen = [], set()
     for s in b.get("series") or []:
         if not (s.get("local") and s.get("kind") == "sensor" and abs(s.get("notability") or 0) >= 1.5):
             continue
+        if f"high_{s['metric']}" not in t:
+            continue                    # a metric with no household word (bme_iaq) is never named: it reached a report raw
         if s["sensor_id"] in seen:
             continue
         seen.add(s["sensor_id"]); moved.append(s)
         if len(moved) == 2:
             break
-    if moved:
-        clauses = [t["changed_high" if (s["notability"] or 0) > 0 else "changed_low"].format(
-            place=_place(s), what=t.get(f"what_{s['metric']}", s["metric"])) for s in moved]
-        body.append(t["changed"].format(clauses=", ".join(clauses)))
+    for s in moved:
+        body.append(t[("high_" if (s["notability"] or 0) > 0 else "low_") + s["metric"]].format(place=_place(s)))
     obs = {(o["sensor_id"], o["metric"]): o.get("value") for o in b.get("observations") or []}
     for rule, (key, crossed) in BEYOND.items():
         if rule in rules and crossed(obs):
             body.append(t[key])
             break                       # one clause, not a weather report
-    spd = next((r for r in now if r["sensor_id"] == "nea-windspeed" and r["metric"] == "wind_speed"), None)
-    dr = next((r for r in now if r["sensor_id"] == "nea-winddir" and r["metric"] == "wind_dir"), None)
-    if spd and dr and spd.get("last") is not None and dr.get("last") is not None \
-            and (spd.get("silent_minutes") or 0) <= 180 and (dr.get("silent_minutes") or 0) <= 180:
-        pts = ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
-        body.append(t["wind"].format(dir=pts[int((dr["last"] % 360) / 22.5 + 0.5) % 16], kn=_n(round(spd["last"]))))
     if body:
         parts.append(" ".join(body))
 
-    # 4. what happened after this window's alerts, and 5. the one thing to do — one paragraph
+    # 3. the one thing to do. Where to go, if this node knows, comes first: a person reads what happened, then where
+    # somebody could do something about it, then what is theirs to do.
     tail = []
-    outcomes, still_above = [], None
-    for a in [x for x in b.get("alerts") or [] if x.get("level") == "act"]:
-        watch = THRESHOLDS.get(a.get("rule") or "")
-        if not watch:
-            continue
-        metric, line = watch
-        cur = next((r for r in now if r["sensor_id"] == a.get("sensor_id") and r["metric"] == metric), None)
-        v = None if not cur else (cur.get("mean_15m") or cur.get("mean_1h") or cur.get("last"))
-        if v is None:
-            continue
-        over = v >= line
-        outcomes.append(t["after_above" if over else "after_under"].format(place=_place(cur), n=_n(line)))
-        if over and still_above is None:
-            still_above = cur
-        if len(outcomes) == 2:
-            break
-    if outcomes:
-        tail.append(t["after"].format(clauses=", ".join(outcomes)))
-
-    # Where to go, if this node knows. It is deliberately AFTER the outcomes: a person reads what
-    # happened first, and only then is told where somebody could do something about it.
     fac = b.get("facility")
     if fac:
         try:
@@ -560,17 +643,20 @@ def sheet(b: dict, locale: str = "en") -> str:
             tail.append(t["make"].format(where=where))
 
     quiet = (b.get("sensors_quiet") or [None])[0]
-    bad_check = next((c for c in (b.get("health") or {}).get("checks") or [] if not c.get("ok") and c.get("fix")), None)
+    # A source refusing (Open-Meteo's daily limit, node #1 14 Oct) is not the household's to fix, and its raw error went
+    # out cut mid-URL; Node's Running section names failing sources. The to-do keeps what someone here can do.
+    bad_check = next((c for c in (b.get("health") or {}).get("checks") or []
+                      if not c.get("ok") and c.get("fix") and c.get("check") != "no source errors"), None)
     if still_above is not None:
         tail.append(t["todo_above"].format(place=_place(still_above)))
     elif quiet:
         tail.append(t["todo_quiet"].format(place=_place(quiet)))
     elif bad_check:
-        tail.append(t["todo_health"].format(fix=bad_check["fix"].split(";")[0].split(".")[0]))
+        tail.append(_health_line(bad_check, t))
     else:
         tail.append(t["todo_none"])
     parts.append(" ".join(tail))
 
-    # 6. the invitation
+    # 4. the invitation, always last: main.run_report puts the morning memory above it, not below
     parts.append(t["ask"])
     return "\n\n".join(parts)      # a part with nothing to say was never appended

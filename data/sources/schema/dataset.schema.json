@@ -125,7 +125,7 @@
     "adapter": {
       "type": "string",
       "pattern": "^(core:[a-z_]+|pack:[a-z0-9-]+)$",
-      "description": "What in planetai-node reads this source. `core:<fn>` names a function in app/sources.py or app/bootstrap.py (core:openmeteo_air, core:ckan, core:power_climatology); `pack:<id>` names a pack directory (pack:coast, pack:earth). Absent means no adapter exists — the source is registered and unread. Single-valued on purpose: when more than one reader exists, name the primary one here and the rest in notes."
+      "description": "What in planetai-node reads this source. `core:<fn>` names a function in app/sources.py or app/bootstrap.py (core:ckan, core:power_climatology); `pack:<id>` names a pack directory (pack:coast, pack:earth). Absent means no adapter exists — the source is registered and unread. Single-valued on purpose: when more than one reader exists, name the primary one here and the rest in notes."
     },
     "feeds_cells": {
       "type": "array",

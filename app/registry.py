@@ -10,7 +10,7 @@ writing, against the fourteen sources a node actually reads.
 That gap is the point. `index.cells()` can only emit rows this node can compute, so the cell nobody
 has an adapter for is simply absent from `/cells`, and until now absent meant unanswerable. The
 registry answers it: `GET /sources?cell=Social|City` says what is filed for that cell, and each
-entry's `adapter` — `core:openmeteo_air`, `pack:coast` — says which of it anything here reads yet.
+entry's `adapter` — `core:ckan`, `pack:coast` — says which of it anything here reads yet.
 
 This module names no metric, no source and no pillar. It loads, filters and serves; every word of
 vocabulary in it came out of the registry's own schema. Adding a source is still a PR upstream and a
@@ -156,7 +156,7 @@ def counts_by_cell() -> dict[str, tuple[int, bool]]:
 
     {cell: (how many registered, does anything read any of them)} — what index.py puts on a row.
 
-    `adapter` is a string naming the code that reads the entry — `core:openmeteo_air`, `pack:coast` —
+    `adapter` is a string naming the code that reads the entry — `core:ckan`, `pack:coast` —
     and its presence is the answer. It replaced `wired_in_planetai`, a boolean typed upstream by hand
     about this repository, which is why sixteen of thirty-two were once ticked including a paywalled
     source no node can call. The string is checked against this repo in the registry's own CI; the

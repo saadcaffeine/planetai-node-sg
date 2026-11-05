@@ -29,7 +29,14 @@ def columns_of(name: str) -> set[str]:
     m = re.search(rf"CREATE VIEW {name} AS(.*?);", SQL, re.S)
     if m:
         sel = m.group(1)
-        sel = sel[sel.index("SELECT") + 6:]
+        # the view's own SELECT is the first one at depth 0: a WITH's SELECTs sit inside its parentheses
+        depth, at = 0, None
+        for i, ch in enumerate(sel):
+            depth += (ch == "(") - (ch == ")")
+            if depth == 0 and sel.startswith("SELECT", i):
+                at = i
+                break
+        sel = sel[at + 6:]
         sel = re.sub(r"^\s*DISTINCT ON \([^)]*\)", "", sel)
         # Split the SELECT list on commas at depth 0 and stop at the FROM that is also at depth 0.
         # Both matter: `avg(value) AS mean` holds its own comma-free parens, and stats' own

@@ -3,9 +3,15 @@
 #   AT = t + 0.33·e − 4.0
 # Indoors there is no wind term to subtract, which makes this the right form for a house.
 
+# VOICE (14 Oct): one sign per message, and a line is named with its owner and unit ("the US EPA's unhealthy
+# level, 35.5 µg/m³", "this house's heat line, 35 °C feels-like"). The id and es wording of those line
+# clauses is ASSISTANT-WRITTEN.
 - id: heat_stress_now
+  name: heat inside                  # what the household calls it (learn.alert_name); `line:` is the line the report names
   level: act
-  cooldown_minutes: 240
+  # Once a room a day. In October 2026 the hot room on node #1 felt 35 °C or more in 44% of hours, so at 240 the same
+  # true sentence came back every four hours (171 in 30 days). heat_danger, at 40, keeps its own two hours. See README.
+  cooldown_minutes: 1440
   # The metric is computed inline from temp and humidity, so the SQL never says its name; the watch
   # comment below is where `check_rules` finds it. The line — 35 — is this place's own (see below).
   watch: {metric: apparent, over: 35}
@@ -26,11 +32,12 @@
     -- Node #1, 2-7 Sep 2026: AT was over 32 for 86% of all readings and never once fell below 28.7. See the README.
     WHERE (t + 0.33 * (rh/100.0 * 6.105 * exp(17.27*t/(237.7+t))) - 4.0) >= 35
   message:
-    en: "🥵 It is too hot at {name}: it feels like {at} °C — this house's own line is {line} °C, measured here.\n\nHumidity is stopping sweat from cooling the body, so the air feels hotter than the thermometer says and the strain builds quietly.\n\n👉 Drink water, move air, stop hard work, and check on anyone old, young or unwell."
-    id: "🥵 Panas berlebih di {name}: terasa seperti {at} °C — batas rumah ini sendiri {line} °C, diukur di sini.\n\nKelembapan menghambat keringat mendinginkan tubuh, jadi udara terasa lebih panas dari angka termometer dan beban menumpuk diam-diam.\n\n👉 Minum air, gerakkan udara, hentikan kerja berat, dan cek orang tua, anak kecil, atau yang sakit."
-    es: "🥵 Hace demasiado calor en {name}: la sensación es de {at} °C — el límite propio de esta casa es {line} °C, medido aquí.\n\nLa humedad impide que el sudor enfríe el cuerpo, así que el aire se siente más caliente de lo que marca el termómetro y el desgaste se acumula sin que se note.\n\n👉 Bebe agua, mueve el aire, para el trabajo duro y pregunta cómo están los mayores, los niños y quien esté enfermo."
+    en: "🥵 It is too hot at {name}: it feels like {at} °C — past this house's heat line, {line} °C feels-like, measured here.\n\nHumidity is stopping sweat from cooling the body, so the air feels hotter than the thermometer says and the strain builds quietly.\n\nDrink water, move air, stop hard work, and check on anyone old, young or unwell."
+    id: "🥵 Panas berlebih di {name}: terasa seperti {at} °C — melewati batas panas rumah ini, {line} °C terasa, diukur di sini.\n\nKelembapan menghambat keringat mendinginkan tubuh, jadi udara terasa lebih panas dari angka termometer dan beban menumpuk diam-diam.\n\nMinum air, gerakkan udara, hentikan kerja berat, dan cek orang tua, anak kecil, atau yang sakit."
+    es: "🥵 Hace demasiado calor en {name}: la sensación es de {at} °C — por encima del límite de calor de esta casa, {line} °C de sensación, medido aquí.\n\nLa humedad impide que el sudor enfríe el cuerpo, así que el aire se siente más caliente de lo que marca el termómetro y el desgaste se acumula sin que se note.\n\nBebe agua, mueve el aire, para el trabajo duro y pregunta cómo están los mayores, los niños y quien esté enfermo."
 
 - id: heat_danger
+  name: dangerous heat inside
   level: act
   cooldown_minutes: 120
   watch: {metric: apparent, over: 40}
@@ -48,9 +55,9 @@
     FROM x
     WHERE (t + 0.33 * (rh/100.0 * 6.105 * exp(17.27*t/(237.7+t))) - 4.0) >= 40
   message:
-    en: "🚨🥵 DANGER at {name}: it feels like {at} °C — the danger line here is {line} °C.\n\nThis is heatstroke territory. The body cannot shed heat at this level, and it goes wrong fast.\n\n👉 Cool the room or leave it. Wet skin, a fan, shade, water. Do not leave anyone alone in it."
-    id: "🚨🥵 BAHAYA di {name}: terasa seperti {at} °C — garis bahaya di sini {line} °C.\n\nIni wilayah heatstroke. Tubuh tidak bisa membuang panas di tingkat ini, dan cepat memburuk.\n\n👉 Dinginkan ruangan atau keluar. Basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian di dalamnya."
-    es: "🚨🥵 PELIGRO en {name}: la sensación es de {at} °C — la línea de peligro aquí es {line} °C.\n\nEsto es terreno de golpe de calor. A este nivel el cuerpo no consigue soltar calor, y se descompone rápido.\n\n👉 Enfría la habitación o sal de ella. Piel mojada, un ventilador, sombra, agua. No dejes a nadie solo ahí."
+    en: "🚨 Dangerous heat at {name}: it feels like {at} °C, past the danger line here, {line} °C.\n\nThis is heatstroke territory. The body cannot shed heat at this level, and it goes wrong fast.\n\nCool the room or leave it. Wet skin, a fan, shade, water. Do not leave anyone alone in it."
+    id: "🚨 Panas berbahaya di {name}: terasa seperti {at} °C, melewati garis bahaya di sini, {line} °C.\n\nIni wilayah heatstroke. Tubuh tidak bisa membuang panas di tingkat ini, dan cepat memburuk.\n\nDinginkan ruangan atau keluar. Basahi kulit, kipas, teduh, air. Jangan tinggalkan siapa pun sendirian di dalamnya."
+    es: "🚨 Calor peligroso en {name}: la sensación es de {at} °C, por encima de la línea de peligro de aquí, {line} °C.\n\nEsto es terreno de golpe de calor. A este nivel el cuerpo no consigue soltar calor, y se descompone rápido.\n\nEnfría la habitación o sal de ella. Piel mojada, un ventilador, sombra, agua. No dejes a nadie solo ahí."
 
 - id: night_no_relief
   level: info
@@ -65,9 +72,9 @@
     GROUP BY r.sensor_id, s.name
     HAVING min(r.min) > 28 AND count(*) >= 5
   message:
-    en: "🌙🥵 Last night never cooled down at {name}.\n\nWhen a room stays this warm all night, the body does not recover in sleep; people wake tired and the heat wears them down day by day.\n\n👉 Open up at the coolest hour, just before dawn. If this is every night, the room needs shade or airflow, not a bigger fan."
-    id: "🌙🥵 Semalam tidak sempat dingin di {name}.\n\nKalau ruangan sehangat ini semalaman, tubuh tidak pulih saat tidur; orang bangun lelah dan panas menggerus hari demi hari.\n\n👉 Buka di jam terdingin, sebelum subuh. Kalau tiap malam begini, ruangan perlu peneduh atau aliran udara, bukan kipas lebih besar."
-    es: "🌙🥵 Anoche nunca refrescó en {name}.\n\nCuando una habitación sigue así de caliente toda la noche, el cuerpo no se recupera durmiendo; la gente se levanta cansada y el calor la va desgastando día a día.\n\n👉 Abre a la hora más fresca, justo antes del amanecer. Si pasa todas las noches, la habitación necesita sombra o corriente de aire, no un ventilador más grande."
+    en: "🌙 Last night never cooled down at {name}.\n\nWhen a room stays this warm all night, the body does not recover in sleep; people wake tired and the heat wears them down day by day.\n\nOpen up at the coolest hour, just before dawn. If this is every night, the room needs shade or airflow, not a bigger fan."
+    id: "🌙 Semalam tidak sempat dingin di {name}.\n\nKalau ruangan sehangat ini semalaman, tubuh tidak pulih saat tidur; orang bangun lelah dan panas menggerus hari demi hari.\n\nBuka di jam terdingin, sebelum subuh. Kalau tiap malam begini, ruangan perlu peneduh atau aliran udara, bukan kipas lebih besar."
+    es: "🌙 Anoche nunca refrescó en {name}.\n\nCuando una habitación sigue así de caliente toda la noche, el cuerpo no se recupera durmiendo; la gente se levanta cansada y el calor la va desgastando día a día.\n\nAbre a la hora más fresca, justo antes del amanecer. Si pasa todas las noches, la habitación necesita sombra o corriente de aire, no un ventilador más grande."
 
 # ---- kinded rules: the event engine's (docs/SPEC_alerts.md §3). The old engine skips any rule with `kind:`. ----
 # The id and es strings below are ASSISTANT-WRITTEN.

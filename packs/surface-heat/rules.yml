@@ -1,0 +1,38 @@
+# Nothing here interrupts anyone. A clear Landsat pass comes every week or three, at about 10:30, and is context for
+# the heat issue, not news: this puts the ground beside the air at the same minute into the report bundle, as
+# `bundle.ground`, where the report and a model may quote it. No alert and no cell, by design: a roof's skin
+# temperature is not anyone's exposure, and a satellite number is never this node's measurement.
+- id: ground
+  contributes: report
+  sql: |
+    WITH pass AS (
+      SELECT ts,
+             max(value) FILTER (WHERE metric = 'lst')        AS lst,
+             max(value) FILTER (WHERE metric = 'lst_ring')   AS lst_ring,
+             max(value) FILTER (WHERE metric = 'lst_delta')  AS lst_delta,
+             max(value) FILTER (WHERE metric = 'lst_pctile') AS lst_pctile
+      FROM readings
+      WHERE sensor_id = 'surface-cell'
+        AND ts = (SELECT max(ts) FROM readings WHERE sensor_id = 'surface-cell' AND metric = 'lst' AND ts <= now())
+      GROUP BY ts),
+    -- the house's own outdoor air within half an hour of the pass, never a channel the house keeps private
+    own AS (
+      SELECT avg(r.value) AS v FROM pass, readings r JOIN sensors s USING (sensor_id)
+      WHERE s.local AND NOT s.indoor AND s.kind = 'sensor' AND r.metric = 'temp' AND r.ts <= now()
+        AND r.ts BETWEEN pass.ts - interval '30 minutes' AND pass.ts + interval '30 minutes'
+        AND NOT EXISTS (SELECT 1 FROM channel_roles pc
+                        WHERE pc.source = s.source AND pc.metric = r.metric AND pc.role = 'private')),
+    -- else the weather model at the same minute, and the row says which it was
+    model AS (
+      SELECT avg(r.value) AS v FROM pass, readings r
+      WHERE r.sensor_id = 'om-point' AND r.metric = 'temp_model' AND r.ts <= now()
+        AND r.ts BETWEEN pass.ts - interval '30 minutes' AND pass.ts + interval '30 minutes')
+    SELECT to_char(pass.ts, 'YYYY-MM-DD HH24:MI')        AS seen_at,
+           round(pass.lst::numeric, 1)                     AS ground_c,
+           round(pass.lst_ring::numeric, 1)                AS around_c,
+           round(pass.lst_delta::numeric, 1)               AS hotter_than_around_c,
+           round(pass.lst_pctile::numeric)                 AS percentile_in_ring,
+           round(coalesce(own.v, model.v)::numeric, 1)     AS air_c,
+           CASE WHEN own.v IS NOT NULL THEN 'own outdoor sensor'
+                WHEN model.v IS NOT NULL THEN 'weather model' END AS air_from
+    FROM pass, own, model

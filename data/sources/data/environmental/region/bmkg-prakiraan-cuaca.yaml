@@ -30,7 +30,7 @@ notes: |
 
   PLANETAI: `packs/forecast` reads it on Bali nodes. `feeds_cells` is empty because that pack has no
   cells.yml — it produces an ask, not an Index row. Note also that the pack does not declare a
-  `sources:` line, so scripts/wired.py cannot see this link from the node's side; `adapter` is the
+  `sources:` line, so the node's adapter check cannot see this link from its side; `adapter` is the
   only record of it until it does.
   LICENCE, UNRESOLVED: data.bmkg.go.id asks only for attribution, but the agency-wide terms (S9.3)
   require written permission before integration into a third-party application. The Foundation should

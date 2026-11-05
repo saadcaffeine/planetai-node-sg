@@ -7,7 +7,7 @@ description: >-
 author: PLANETAI core (official, prototype)
 version: 0.1.0
 requires: { node: ">=0.40.0" }
-kind: data
+kind: code          # its window script runs with the node's privileges; its rules are data
 domain: air
 metrics: [pm25]
 scales: [community]

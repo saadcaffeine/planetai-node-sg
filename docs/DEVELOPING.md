@@ -71,7 +71,7 @@ PLANETAI_SIGNING_KEY=~/.planetai/release_key tools/release.sh 0.73
 
 `AGENTS.md` at the root is the operating manual for an AI agent (Claude, Codex, a local model): the MCP surface at
 `/mcp`, the `--json` commands, the invariants, the gates. `planetai agent` prints the endpoint, the token and a config
-snippet. The MCP server is `app/agent.py`, twenty tools over the existing API; host operations are handed back as
+snippet. The MCP server is `app/agent.py`, twenty-one tools over the existing API; host operations are handed back as
 commands because the container has no Docker or git. `app/agent_loop.py` is a local model (Ollama, `qwen3.5:4b` on 8 GB) using
 those tools, talking to the household over Telegram; `planetai agent local` sets it up. A bigger model on a laptop or workstation becomes the `remote` rung with
 `tools/remote-model.sh gptoss` (llama.cpp, `--jinja` for tool calls, an API key, the tailnet address printed for the
@@ -87,7 +87,7 @@ app/          main.py (api, loops, notify) · sources.py (adapters) · index.py 
 bin/planetai  the operator CLI
 packs/        seventeen packs; see PACKS.md
 config/       rules.yml (two domain-blind rules), mosquitto, reticulum
-tools/        gates, hooks, bundle, release, mesh-provision.sh, nas/ (the NAS puller)
+tools/        gates, hooks, bundle, release, radio.py + radio_profiles/ (planetai radio), nas/ (the NAS puller)
 tests/        offline suites
 docs/         you are here
 ```

@@ -237,6 +237,11 @@ as the events PR's are.
 
 ## 5. Grafana, for the keeper (PR 3)
 
+**Built 24 October 2026, after a spike on a copy of node #1's database** ([Grafana](site/grafana.md)). What changed
+from the plan below: the login's password is generated into a volume by a one-shot `grafana-role` container, so
+nothing goes in `.env`; `planetai grafana` turns it on and `planetai grafana off` drops the login; one starter
+dashboard of six panels with the alert events as annotations, in place of the two; and its own docs page.
+
 - **A profile.** A `grafana` service in `docker-compose.yml`, `profiles: [grafana]`, a pinned `grafana/grafana-oss`
   image, ports `127.0.0.1:3000:3000`, never `env_file`. It reads two keys under `environment:`.
 - **`planetai grafana on`** generates `GRAFANA_DB_PASSWORD` and `GRAFANA_ADMIN_PASSWORD` into `.env`, creates the

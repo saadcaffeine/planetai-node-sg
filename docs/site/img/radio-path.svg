@@ -1,0 +1,52 @@
+<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 368">
+<style>
+.dg{--dg-ground:var(--ground,#F9F5F2);--dg-ink:var(--ink,#171717);--dg-mute:var(--mute,#5F5A54);--dg-cell:var(--cells,#20388D);--dg-ring:var(--rings,#00A057)}
+@media (prefers-color-scheme:dark){.dg{--dg-ground:var(--ground,#171717);--dg-ink:var(--ink,#F9F5F2);--dg-mute:var(--mute,#A3A19F);--dg-cell:var(--cells,#7FA5E8);--dg-ring:var(--rings,#00A057)}}
+.dg text{font-family:var(--fc-font-body,Figtree,system-ui,sans-serif);font-size:15px;fill:var(--dg-ink)}
+.dg .dg-h{font-family:var(--fc-font-display,"Funnel Sans",Figtree,system-ui,sans-serif);font-size:18px;font-weight:700}
+.dg .dg-m{font-family:var(--mono,ui-monospace,monospace)}
+.dg .dg-b{font-weight:600}
+.dg .dg-s{fill:var(--dg-mute)}
+.dg .dg-ct{fill:var(--dg-cell)}
+.dg-ln{fill:none;stroke:var(--dg-ink);stroke-width:1.5}
+.dg-off{stroke-dasharray:5 4}
+.dg-dot{stroke-dasharray:0.1 5;stroke-linecap:round;stroke-width:2.5}
+.dg-hv{stroke-width:2.5}
+.dg-hd{fill:var(--dg-ink)}
+.dg-g{stroke:var(--dg-ring)}
+.dg-gf{fill:var(--dg-ring)}
+.dg-c{stroke:var(--dg-cell)}
+.dg-cf{fill:var(--dg-cell);fill-opacity:.13}
+.dg-gc{fill:var(--dg-ring);fill-opacity:.13}
+.dg-gr{fill:var(--dg-ground)}
+</style>
+<rect x="20" y="20" width="200" height="76" class="dg-ln"/>
+<text x="34" y="47" class="dg-h">Sensor radio</text>
+<text x="34" y="70" class="dg-s">"Subak edge"</text>
+<text x="34" y="88" class="dg-m dg-ct">!a1b2c3d4</text>
+<polyline points="220,58 412.0,58.0" class="dg-ln"/><path d="M420.0 58.0L410.0 63.0L410.0 53.0Z" class="dg-hd"/>
+<text x="320" y="48" class="dg-b" text-anchor="middle">LoRa mesh</text>
+<text x="320" y="80" class="dg-s" text-anchor="middle">every 15 min</text>
+<rect x="420" y="20" width="200" height="76" class="dg-ln"/>
+<text x="434" y="47" class="dg-h">Gateway radio</text>
+<text x="434" y="70" class="dg-s">plugged into USB</text>
+<text x="434" y="88" class="dg-s">only passes it on</text>
+<polyline points="520,96 520.0,152.0" class="dg-ln"/><path d="M520.0 160.0L515.0 150.0L525.0 150.0Z" class="dg-hd"/>
+<text x="534" y="133" class="dg-s">serial</text>
+<rect x="440" y="160" width="180" height="64" class="dg-ln"/>
+<text x="454" y="187" class="dg-h">Gateway service</text>
+<text x="454" y="210" class="dg-s">on the host</text>
+<rect x="230" y="160" width="180" height="64" class="dg-ln"/>
+<text x="244" y="187" class="dg-h">MQTT broker</text>
+<text x="244" y="210" class="dg-s"><tspan class="dg-m">mosquitto</tspan>, <tspan class="dg-m">:1883</tspan></text>
+<rect x="20" y="160" width="180" height="64" class="dg-ln"/>
+<text x="34" y="187" class="dg-h">The app</text>
+<text x="34" y="210" class="dg-s">its MQTT thread</text>
+<polyline points="440,192 418.0,192.0" class="dg-ln"/><path d="M410.0 192.0L420.0 187.0L420.0 197.0Z" class="dg-hd"/>
+<polyline points="230,192 208.0,192.0" class="dg-ln"/><path d="M200.0 192.0L210.0 187.0L210.0 197.0Z" class="dg-hd"/>
+<polyline points="110,224 110.0,276.0" class="dg-ln"/><path d="M110.0 284.0L105.0 274.0L115.0 274.0Z" class="dg-hd"/>
+<text x="124" y="260" class="dg-s">filed under the sender, not the gateway</text>
+<rect x="20" y="284" width="380" height="64" class="dg-ln dg-hv"/>
+<text x="34" y="311" class="dg-m dg-ct">msh-a1b2c3d4</text>
+<text x="34" y="334" class="dg-s">every reading, named Subak edge</text>
+</svg>

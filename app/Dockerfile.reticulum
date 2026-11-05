@@ -1,6 +1,0 @@
-FROM python:3.12-slim
-RUN pip install --no-cache-dir rns lxmf httpx
-WORKDIR /app
-COPY reticulum_bridge.py .
-EXPOSE 4242 4243
-CMD ["python", "reticulum_bridge.py"]

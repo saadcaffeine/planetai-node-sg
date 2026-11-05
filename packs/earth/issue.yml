@@ -1,0 +1,116 @@
+# Land. What the ground within a few kilometres did, from one year to the next.
+#
+# A context issue: yearly cadence, no rules at act level, and it never asks a household for anything.
+# It informs. The dashboard draws it with the satellite component rather than a stack strip.
+#
+# The id and es strings below are ASSISTANT-WRITTEN and have not been read by a native speaker.
+
+# This pack's issue (app/issues/__init__.py::load reads it while the pack is on). Until 23 Oct 2026, app/issues/land.yml.
+key: land
+
+name:
+  en: Land
+  id: Lahan
+  es: Suelo
+
+kind: context
+metric: land_change
+unit: "%"
+dp: 1
+
+line: ~                   # nothing to cross. A year-over-year change is not a threshold.
+
+packs:
+  domains: [land]         # earth (this node's own AlphaEarth copy) and earth-engine (the catalog)
+  rules: []
+
+# Land has no room, no yard and no ring: nothing in the house measures what the land did, and
+# neither does a neighbour's kit. The page says that rather than leaving three empty boxes.
+distances:
+  room: ~
+  yard: ~
+  ring: ~
+  region:
+    # packs/earth downloaded the embeddings, compared them here with arithmetic, and wrote
+    # share_over_threshold and hectares_over_threshold into its own JSON. That is the thing the
+    # household watches, and it is what the sentence is built from.
+    #
+    # There is deliberately NO fallback. The obvious candidate would be `earth-engine`'s
+    # `land_change_score`, and this prompt asked for it — but that metric was retired in v0.33.1 and
+    # packs/earth/README.md gives the reason: it is 1 - cosine of the MEAN embedding vector over
+    # 1 km, computed in somebody else's cluster, while this pack takes the mean of the PER-PIXEL
+    # distances over 10 km. On node #1 the two read 0.037 and 0.041 with no way for a reader to tell
+    # why, "and two numbers for one idea with different provenance is worse than one".
+    #
+    # It is worse than absent for a second reason. `observations` keeps the latest row per source
+    # per metric forever, so a node that ran earth-engine before v0.33.1 still HAS a
+    # land_change_score row — node #1 does, which is how it reached the 6 September capture. Reading
+    # it would put a number retired a year ago on the wall as this year's answer.
+    #
+    # With no record, land is `none` and says how to get one. That is the honest page.
+    from: earth
+
+# Context issues carry readouts instead of a stack: numbers with no line and no comparison.
+readouts:
+  - metric: built_frac
+    sensor_id: ee-point
+    unit: "%"
+    scale: 100
+    dp: 0
+    label: { en: built, id: terbangun, es: construido }
+  - metric: tree_frac
+    sensor_id: ee-point
+    unit: "%"
+    scale: 100
+    dp: 0
+    label: { en: trees, id: pohon, es: árboles }
+
+# "over this square of the map" is the shared phrase and it is nearly right here, but the square is
+# the one packs/earth downloaded, whose size is EARTH_RADIUS_M — so the phrase carries no number and
+# the size travels in provenance instead, where it can be true on every node.
+where:
+  en: { region: of the square this node watches }
+  id: { region: dari kotak yang dipantau node ini }
+  es: { region: del cuadrado que vigila este nodo }
+
+sentences:
+  # A word headline (docs/SPEC_language.md). {span} and {since} moved to context_plain, which the
+  # engine renders as `plain`: "1.3 % of the square this node watches changed between 2024 and
+  # 2025. 8.5 % since 2017." One year is a number; eight years is a direction.
+  en:
+    state:
+      context: "The ground this node watches keeps changing, year on year."
+      context_plain: "{n} {unit} {where} changed {span}. {since} {cmp}"
+      none: "No satellite record yet for this square."
+  id:
+    state:
+      context: "Tanah yang dipantau node ini terus berubah, tahun demi tahun."
+      context_plain: "{n} {unit} {where} berubah {span}. {since} {cmp}"
+      none: "Belum ada rekaman satelit untuk kotak ini."
+  es:
+    state:
+      context: "La tierra que este nodo vigila sigue cambiando, año tras año."
+      context_plain: "{n} {unit} {where} cambió {span}. {since} {cmp}"
+      none: "Aún no hay registro satelital para este cuadrado."
+
+# The supporting layer: where the number comes from, and that the node never asks anything.
+about:
+  en: "The number is the share of the square that changed between two satellite years, from this node's own copy of the embeddings. The satellite looks once a year, and the node never asks you to do anything about it."
+  id: "Angka tersebut adalah bagian dari kotak yang berubah antara dua tahun satelit, dari salinan embeddings milik node ini. Satelit melihat setahun sekali, dan node tidak pernah meminta Anda melakukan apa pun."
+  es: "El número es la parte del cuadrado que cambió entre dos años de satélite, desde la copia propia de este nodo. El satélite mira una vez al año, y el nodo nunca te pide que hagas nada al respecto."
+
+# No rule and a date: the satellite looks once a year, so the stamp says when it looked and when it
+# looks next. The numeral is the built share, the number a household recognises about its ground;
+# the change the sentence reports stays in the sentence.
+hero:
+  sign: sign-land
+  pictogram: pix-land
+  numeral: built_frac
+  unit: "%"
+  dp: 0
+  clock: date
+
+empty:
+  en: "No satellite pictures of this place yet."
+  id: "Belum ada citra satelit tempat ini."
+  es: "Aún no hay imágenes de satélite de este lugar."

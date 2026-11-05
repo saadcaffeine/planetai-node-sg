@@ -67,9 +67,9 @@ imply the other. So there are two switches and a keeper picks either, both, or n
 
 Both live under Set up → Node, side by side, with one sentence each. Neither is enabled by an update.
 
-**The endpoint stays the one place the policy lives.** `app/reticulum_bridge.py` does not compute the
+**The endpoint stays the one place the policy lives.** The bridge (`reticulum_bridge.py`, fabcity/planetai-reticulum) does not compute the
 cell or read the settings; it calls `GET /presence` on localhost and announces whatever comes back
-(`app/reticulum_bridge.py:150`, and its own comment: *"asking keeps the policy in one place"*). That
+(`announce_presence`, and its own comment: *"asking keeps the policy in one place"*). That
 stays true. `/presence` answers:
 
 - to **localhost** — always, with `on` listing every wire that is enabled. The bridge announces when
@@ -131,7 +131,7 @@ readings, and this is not readings.
 
 ## 6 · The same thing over the radio, later
 
-The radio already carries this. `app/reticulum_bridge.py` announces a `planetai.presence` destination
+The radio already carries this. The bridge announces a `planetai.presence` destination
 with the body from section 2, and a `PresenceHandler` remembers every node it hears. What changes when
 Reticulum's turn comes is small and mostly honesty:
 
@@ -222,7 +222,7 @@ symmetric by convention or two independent one-way decisions that happen to poin
 
 ---
 
-*Grounded in `app/main.py::presence` and `PRESENCE_RES_FLOOR`, `app/reticulum_bridge.py` (the
+*Grounded in `app/main.py::presence` and `PRESENCE_RES_FLOOR`, the bridge in fabcity/planetai-reticulum (the
 announce loop and `PresenceHandler`), `ARCHITECTURE.md:217` on aggregation, `docs/site/concepts.md`
 on `custody`, `docs/site/federation.md` ("listening to other nodes as peers is proposed and not built
 in this version"), and `docs/site/cli.md` on `planetai mesh`.*

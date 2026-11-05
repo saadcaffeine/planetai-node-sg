@@ -13,10 +13,11 @@ mkdir -p "$TMP/planetai-node"
 # whole of it now rather than just its audit/: it holds the review screenshots, and eight full-page
 # JPEGs of a 9800px page is close to two megabytes on a download somebody is doing over a phone
 # hotspot in Ungasan. tools/shots.* goes with them — it needs playwright, which is not here.
-# docs/archive/ is history for contributors, not a page a node serves.
-git ls-files -z | grep -zvE '^(\.github/|tools/(package|release|bundle)\.sh|tools/(check_|shots\.)|tests/|docs/design/|docs/archive/)' \
+# docs/archive/ is history for contributors, not a page a node serves, and docs/site/img/ is the docs site's
+# pictures, which the site serves and a node never does.
+git ls-files -z | grep -zvE '^(\.github/|tools/(package|release|bundle)\.sh|tools/(check_|shots\.)|tests/|docs/design/|docs/archive/|docs/site/img/)' \
   | xargs -0 -I{} cp --parents {} "$TMP/planetai-node/" 2>/dev/null \
-  || git ls-files | grep -vE '^(\.github/|tools/(package|release|bundle)\.sh|tools/(check_|shots\.)|tests/|docs/design/|docs/archive/)' \
+  || git ls-files | grep -vE '^(\.github/|tools/(package|release|bundle)\.sh|tools/(check_|shots\.)|tests/|docs/design/|docs/archive/|docs/site/img/)' \
      | while read -r f; do mkdir -p "$TMP/planetai-node/$(dirname "$f")"; cp "$f" "$TMP/planetai-node/$f"; done
 echo "$VER" > "$TMP/planetai-node/VERSION"
 mkdir -p "$TMP/planetai-node/out" && cp out/.gitkeep "$TMP/planetai-node/out/" 2>/dev/null || true

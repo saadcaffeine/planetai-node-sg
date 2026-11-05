@@ -1,0 +1,88 @@
+# Water. Where the next day's rain goes around this node, from the shape of the ground.
+#
+# A context issue, like land: readouts, no line, no alert and no hero, so it never leads. An alert waits until a
+# household has told us that water stood or ran here on a day the forecast said so many millimetres; until then
+# there is no line to set (docs/SPEC_terrain.md §8).
+#
+# The id and es strings below are ASSISTANT-WRITTEN and have not been read by a native speaker.
+key: water
+
+name:
+  en: Water
+  id: Air
+  es: Agua
+
+kind: context
+metric: water_24h_m3
+unit: m³
+dp: 0
+
+line: ~                   # nothing to cross yet: no household has said how much rain is too much here
+
+packs:
+  domains: [water]        # terrain
+  rules: []
+
+# Nothing in the house measures where rain runs. The figure is the ground's, from a model of its surface.
+distances:
+  room: ~
+  yard: ~
+  ring: ~
+  region:
+    from: observations
+    sensor_id: terrain-point
+    metrics: [water_24h_m3]
+
+readouts:
+  - metric: rain_24h_mm
+    sensor_id: terrain-point
+    unit: mm
+    dp: 0
+    label: { en: rain forecast, id: hujan diperkirakan, es: lluvia prevista }
+  - metric: terrain_upslope_ha
+    sensor_id: terrain-point
+    unit: ha
+    dp: 1
+    label: { en: ground draining here, id: lahan yang mengalir ke sini, es: terreno que drena aquí }
+  - metric: terrain_hollow_m
+    sensor_id: terrain-point
+    unit: m
+    dp: 1
+    label: { en: hollow, id: cekungan, es: hondonada }
+  - metric: terrain_upslope_near_ha
+    sensor_id: terrain-point
+    unit: ha
+    dp: 1
+    label: { en: largest flow within 60 m, id: aliran terbesar dalam 60 m, es: mayor flujo a menos de 60 m }
+
+where:
+  en: { region: could run onto this point in the next day }
+  id: { region: bisa mengalir ke titik ini dalam sehari ke depan }
+  es: { region: podrían llegar a este punto en el próximo día }
+
+sentences:
+  en:
+    state:
+      context: "Where the next day's rain goes, from the shape of the ground here."
+      context_plain: "{n} {unit} {where}, if none of it soaks in. {cmp}"
+      none: "No elevation for this point yet, or no forecast: planetai run terrain fetch, and the forecast pack on."
+  id:
+    state:
+      context: "Ke mana hujan sehari ke depan mengalir, dari bentuk tanah di sini."
+      context_plain: "{n} {unit} {where}, jika tidak ada yang meresap. {cmp}"
+      none: "Belum ada data ketinggian untuk titik ini, atau belum ada prakiraan: planetai run terrain fetch, dan nyalakan pack forecast."
+  es:
+    state:
+      context: "Adónde va la lluvia del próximo día, según la forma del terreno aquí."
+      context_plain: "{n} {unit} {where}, si nada se infiltra. {cmp}"
+      none: "Aún no hay elevación para este punto, o no hay pronóstico: planetai run terrain fetch, y el pack forecast activado."
+
+about:
+  en: "The rain the forecast puts on the ground that drains through this point, as if none of it soaked in. The ground is a 30 m satellite model with roofs and trees in it, so it sees the street, not the yard. The node never asks you to do anything about it."
+  id: "Hujan yang diperkirakan jatuh di lahan yang mengalir melalui titik ini, seolah tidak ada yang meresap. Tanahnya adalah model satelit 30 m yang memuat atap dan pohon, jadi ia melihat jalan, bukan halaman. Node tidak pernah meminta Anda melakukan apa pun."
+  es: "La lluvia que el pronóstico pone sobre el terreno que drena por este punto, como si nada se infiltrara. El terreno es un modelo satelital de 30 m con tejados y árboles, así que ve la calle, no el patio. El nodo nunca te pide que hagas nada al respecto."
+
+empty:
+  en: "No elevation model for this point yet."
+  id: "Belum ada model ketinggian untuk titik ini."
+  es: "Aún no hay modelo de elevación para este punto."

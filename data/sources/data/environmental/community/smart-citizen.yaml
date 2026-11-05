@@ -13,7 +13,7 @@ pilot_relevance: [barcelona, global]
 places: [barcelona]
 tags: [air-quality, citizen-science, open-hardware, fab-lab-bcn, iaac]
 added: 2026-05-04
-adapter: core:smartcitizen
+adapter: pack:smartcitizen
 feeds_cells: [Environmental|Community, Social|Community]
 upstream_listed_in: []
 notes: |

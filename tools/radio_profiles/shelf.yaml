@@ -1,0 +1,10 @@
+# The radio on the shelf, paired to a phone: receives the node's alerts when the internet is down and lets the
+# household answer on the fabcity channel. Indoors, so no position broadcast (MESH_INDOOR_NODES in .env too).
+config:
+  device:
+    role: CLIENT
+  position:
+    gpsMode: DISABLED
+  bluetooth:
+    enabled: true
+    fixedPin: 123456

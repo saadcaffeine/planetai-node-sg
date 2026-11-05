@@ -1,0 +1,11 @@
+# The starter dashboard ships with the node and is replaced on every update, so it cannot be saved over:
+# "Save as" makes the keeper's own copy, which lives in the grafana volume and survives updates.
+apiVersion: 1
+providers:
+  - name: planetai
+    folder: PLANETAI
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

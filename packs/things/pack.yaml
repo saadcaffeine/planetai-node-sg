@@ -1,0 +1,17 @@
+id: things
+name: Things a home keeps
+description: >-
+  The things this home keeps, one row each with how often it is used and whether it works, three private counts per
+  class written as readings so readouts, rules and cells can use them, and the ones the household offers to lend or
+  give, published at the node's own res-8 cell with a Telegram link to ask. Core until 24 October 2026.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.83.0" }
+kind: code
+domain: things
+scales: [community]
+# What this pack's routes.py serves that every share level answers (app/auth.py): the offers are public by choice.
+share:
+  "off": [/offers]                 # quoted: YAML reads a bare off as false
+thresholds: >-
+  None. The counts are the household's own and private; what they mean is for a readout, a rule or a cell to say.

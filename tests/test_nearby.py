@@ -4,12 +4,17 @@ Run: PYTHONPATH=/tmp/stub:app python3 tests/test_nearby.py
 Against tests/data/bad_*_2026-09-07.json — the archive as it answered on 7 September 2026, saved whole, not
 numbers typed into a test. Every exclusion below fires on a real station; none of them needed a crafted case.
 """
+import importlib.util
 import json
 import os
 
 import sources
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# the archive's adapter lives in its pack (packs/bali-air-dispatch) since the release after v0.82.3
+_spec = importlib.util.spec_from_file_location("bad_adapter", os.path.join(ROOT, "packs/bali-air-dispatch/adapter.py"))
+B = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(B)
 LAT, LON = -8.8271, 115.15709          # node #1, bayu-2, Ungasan
 # the Smart Citizen kits node #1 polls itself: SC_USER=tomasdiez, state has_published, seen in the last 3 days
 POLLED = {"sc-19898", "sc-19880", "sc-19849", "sc-19874", "sc-19897", "sc-19236"}
@@ -24,7 +29,7 @@ latest = fixture("bad_latest_2026-09-07.json")["readings"]
 stations = {s["station_id"]: s for s in fixture("bad_stations_2026-09-07.json")["stations"]}
 assert len(latest) == 84 and len(stations) == 87, "the fixture is the archive as it stood, 84 of 87 with a reading"
 
-v = dict((r["station_id"], w) for r, w in sources.bad_verdicts(latest, LAT, LON, 15.0, POLLED))
+v = dict((r["station_id"], w) for r, w in B.verdicts(latest, LAT, LON, 15.0, POLLED))
 
 # ---- identity. sc-19236 is "Ungasan Kit", 1.3 km away: no distance rule would ever catch it, and the node reads
 # it directly, so the ring would be this node arguing with itself.
@@ -37,13 +42,13 @@ assert v["sc-19835"].startswith("excluded: proximity"), v["sc-19835"]
 assert "sc-19835" not in POLLED, "the case only means something while this kit is not one we poll"
 
 # ---- by hand
-byhand = dict((r["station_id"], w) for r, w in sources.bad_verdicts(latest, LAT, LON, 15.0, POLLED, {"sc-19760"}))
+byhand = dict((r["station_id"], w) for r, w in B.verdicts(latest, LAT, LON, 15.0, POLLED, {"sc-19760"}))
 assert byhand["sc-19760"] == "excluded: by hand (BAD_EXCLUDE)", byhand["sc-19760"]
 assert v["sc-19760"] == "included", "and without the hand list it is a neighbour, not a duplicate"
 
 # ---- quality flags, each on the station that actually carries it. Ownership and radius are decided first, so
 # the only station flagged malfunctioning (33 km away) is read from the wide view.
-wide = dict((r["station_id"], w) for r, w in sources.bad_verdicts(latest, LAT, LON, 50.0, POLLED))
+wide = dict((r["station_id"], w) for r, w in B.verdicts(latest, LAT, LON, 50.0, POLLED))
 assert wide["iq-kopernik"] == "excluded: suspected_malfunctioning", wide["iq-kopernik"]
 assert v["iqs-jimbaran-s"] == "excluded: suspected_indoor", v["iqs-jimbaran-s"]
 assert v["sc-19618"].startswith("excluded: stale"), v["sc-19618"]
@@ -55,7 +60,7 @@ assert wide["ag-197980"] == "included", "keep the direct network"
 assert wide["oq-6432409"] == "excluded: same device as ag-197980", wide["oq-6432409"]
 mirrors = [k for k, w in wide.items() if w.startswith("excluded: same device")]
 assert len(mirrors) >= 20, f"only {len(mirrors)} mirrors collapsed; the archive had 23 on 7 Sep"
-assert all(m.startswith(sources.BAD_MIRROR_PREFIXES) for m in mirrors), "the mirror is dropped, never the direct row"
+assert all(m.startswith(B.MIRROR_PREFIXES) for m in mirrors), "the mirror is dropped, never the direct row"
 # not only OpenAQ: AQICN republishes an IQAir station at Sempidi under its own id.
 assert wide["aq--519205"] == "excluded: same device as iqs-kabupaten-badung-sempidi", wide["aq--519205"]
 
@@ -83,7 +88,7 @@ class _HC:
     def get(self, url, timeout=None): return _R(self.j)
 
 
-s, r = sources.baliairdispatch(_HC({"readings": [ring]}), LAT, LON, 15.0, min_separation_m=10.0)
+s, r = B.ring(_HC({"readings": [ring]}), LAT, LON, 15.0, min_separation_m=10.0)
 assert len(s) == 1 and s[0]["local"] is False, "a station 40 m away is a neighbour, not this node's own kit"
 assert 39 < sources.metres(LAT, LON, ring["latitude"], ring["longitude"]) < 41
 sources.stamp_local(s, LAT, LON, 500.0)

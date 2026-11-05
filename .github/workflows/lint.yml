@@ -35,6 +35,9 @@ jobs:
           docker exec -i pg psql -v ON_ERROR_STOP=1 -U planetai planetai < init.sql
           docker exec -i pg psql -v ON_ERROR_STOP=1 -U planetai planetai < init.sql   # must be safe twice
           docker exec -i pg psql -U planetai planetai -c "SELECT * FROM stats LIMIT 0" -c "SELECT * FROM observations LIMIT 0" -c "SELECT max(version) FROM schema_version"
+          pip install -q "psycopg[binary]" pyyaml
+          RHO_PG_URL=postgresql://planetai:x@127.0.0.1:5432/planetai PYTHONPATH=app PACKS_DIR=packs python3 tests/test_rho_pg.py   # rho asks only what was sent
+          RHO_PG_URL=postgresql://planetai:x@127.0.0.1:5432/planetai PYTHONPATH=app PACKS_DIR=packs python3 tests/test_views_pg.py   # stats, observations, silence: the old rows
           docker rm -f pg
       # Was one suite of twenty-five. tests/all runs all of them, keeps going, and counts.
       - name: every suite

@@ -1,0 +1,22 @@
+id: purpleair
+name: PurpleAir
+description: >-
+  This node's own PurpleAir sensors, read on the household's WiFi at http://<ip>/json?live=true, no cloud. PM2.5 is
+  EPA 2021 on the mean of the two laser channels, kept raw beside it; a large gap between the channels is stored as
+  channel_disagreement, because it means one laser is failing. Temperature converted from °F, pressure from hPa.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.83.0" }
+kind: code
+domain: air
+metrics: [pm25, pm25_raw, pm10, temp, humidity, pressure, channel_disagreement]
+scales: [community]
+# On whenever a host is listed, as it was in the core before v0.16 dropped it from the poll. PURPLEAIR_HOSTS and
+# SENSOR_INDOOR stay core settings, under Set up → Sources, where the installer's --purpleair writes them.
+switch: [PURPLEAIR_HOSTS]
+needs:
+  - the sensors' own addresses on this node's network
+thresholds: >-
+  None. It stores the house's own readings; the air-quality and heat packs decide what they mean.
+attribution: >-
+  PurpleAir, purpleair.com. EPA 2021 correction: Barkjohn et al. 2021.

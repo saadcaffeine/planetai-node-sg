@@ -24,3 +24,19 @@ attribution: "The AlphaEarth Foundations Satellite Embedding dataset is produced
 needs: >-
   Network to storage.googleapis.com on the first fetch; nothing else. No key, no account, no cloud project:
   the bucket answers anonymous range requests. Disk: 64 MB per year cached, 576 MB for all nine.
+# Where this pack's word reaches (app/issues/geometry.py::claims): the square it keeps, at its own 10 m grain.
+footprint:
+  key: region
+  name: The square this node keeps
+  what: AlphaEarth satellite embeddings, year against year
+  setting: EARTH_RADIUS_M
+  default: 5000
+  unit: m
+  shape: square
+  native_m: 10
+  base_res: 9
+  note: >-
+    the only source whose own resolution is finer than a household sensor, and the only one whose footprint is a square
+# The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
+share:
+  open: [/earth, /earth/change.png, /earth/year.png]

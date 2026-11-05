@@ -1,0 +1,9 @@
+# Applied to every role before the role's own file. Keys are the DeviceProfile's (meshtastic --configure), camelCase.
+# No lora section here: `render` writes it from the fleet (region, preset, slot), after the URL, so the region
+# the URL set is never overwritten by a lora section seeded from the radio's old config.
+config:
+  device:
+    serialEnabled: true          # the node reads the radio over USB; off by default on the XIAO, which cost a day
+module_config:
+  telemetry:
+    deviceUpdateInterval: 900    # battery and channel utilisation every 15 min: the dead-sensor rule needs it

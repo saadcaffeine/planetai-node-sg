@@ -24,13 +24,16 @@ Alerts do not pass through the model. The node sends them; the model answers que
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
 import time
+from urllib.parse import urlparse
 
 import httpx
 import re
+from buttons import pick
 from contextlib import asynccontextmanager
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
@@ -62,6 +65,21 @@ LOCALE = os.getenv("ALERT_LOCALE", "en")
 LANG_NAME = {"id": "Bahasa Indonesia", "es": "Spanish"}.get(LOCALE, "English")
 
 
+
+# /learned's first line per learning: the alert as the household calls it and the verdict, then the status in words.
+# `holding` means the learning holds, not that acting helps; the verdict (learn.VERDICT_WORDS, served by the node as
+# `verdict`) says which. The key is left to the page: nobody in a kitchen says "air-quality/indoor_pm25_high".
+LEARNED_STATUS = {"holding": "the finding holds", "weakening": "weakening", "too_early": "too early", "gone": "gone"}
+
+
+def _learned_head(x: dict) -> str:
+    name = x.get("name") or x.get("key") or ""
+    head = name[:1].upper() + name[1:]
+    if x.get("verdict"):
+        head += f": {x['verdict']}"
+    return f"{head} ({LEARNED_STATUS.get(x.get('status'), str(x.get('status') or '').replace('_', ' '))})"
+
+
 def T(en: str, **other: str) -> str:
     """The bot's own few sentences, in the node's language. Bahasa falls back to English here until a native reader
     has been through the set; the model itself answers in whatever ALERT_LOCALE says."""
@@ -70,10 +88,32 @@ MAX_ROUNDS = 8
 SKIP_FOR = 300
 
 
+HOME_SUFFIXES = (".local", ".lan", ".home.arpa", ".internal", ".ts.net")
+TAILNET = ipaddress.ip_network("100.64.0.0/10")     # CGNAT, where Tailscale puts every node
+
+
+def stays_home(url: str) -> bool:
+    """True when a model at `url` is on this house's own network: loopback, a private or tailnet address, or a
+    name only a home network resolves (no dot, .local, .ts.net...). Judged by the address and never by the box it
+    was typed into: a city's GPU server in AGENT_REMOTE_URL was labelled "your network" and handed what the house
+    learned, while the page said nothing left. No DNS lookup, so a public name always counts as leaving."""
+    host = (urlparse(url).hostname or "").lower()
+    if not host:
+        return False
+    if "." not in host or host.endswith(HOME_SUFFIXES):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local or (ip.version == 4 and ip in TAILNET)
+
+
 class Rung:
     def __init__(self, name, url, model, key="", small=False):
         self.name, self.url, self.model, self.key, self.small = name, url.rstrip("/"), model, key, small
         self.skip_until = 0.0
+        self.leaves = not stays_home(self.url)
 
     def headers(self):
         h = {"content-type": "application/json"}
@@ -110,7 +150,14 @@ def ladder(cfg: dict) -> list[Rung]:
     rungs.append(Rung("local", os.getenv("OLLAMA_URL", "http://host.docker.internal:11434") + "/v1", os.getenv("MODEL", "qwen3:4b"), small=True))
     prefer = g("AGENT_PREFER", "private")
     if prefer == "private":
-        rungs = [r for r in rungs if r.name != "online"]
+        # Nothing leaves: no online rung, and no rung whose address is outside this house's network, whatever box it
+        # was typed into. A city's GPU server in the remote box is used only once somebody here picks fallback or
+        # strongest, the same choice an online key needs.
+        for r in rungs:
+            if r.name != "online" and r.leaves:
+                log.warning("%s rung not used: %s is outside this network and Model preference is private",
+                            r.name, urlparse(r.url).hostname)
+        rungs = [r for r in rungs if r.name != "online" and not r.leaves]
     elif prefer == "fallback":
         # Your own big model, then the online one, then the small local model last.
         #
@@ -179,7 +226,7 @@ def clean(text: str) -> str:
 # rather than retyped, so a tool added there cannot quietly appear in a model's menu here.
 #
 # NOTHING IS REMOVED FROM THE MCP SURFACE. A person operating an agent over the tailnet still has all
-# twenty. This is only what the model running unattended on the box is handed.
+# twenty-one. This is only what the model running unattended on the box is handed.
 from tool_classes import TOOL_CLASS  # noqa: E402 — a table and nothing else; see that module's docstring
 
 LOCAL_CLASSES = ("read", "act")
@@ -225,7 +272,10 @@ async def chat(hc: httpx.AsyncClient, rung: Rung, messages: list, tools: list | 
     # the result it was a model counting a list in hidden text: on node #1, gemma4:31b wrote 1,162 to 1,871
     # tokens of it at 9 to 16 a second for a 42-character sentence, and the pane waited one to three minutes.
     # Off for that round, it wrote 19. A server that does not take the field says so with a 400, once.
-    elif messages[-1].get("role") == "tool" and (rung.url, rung.model) not in NO_EFFORT:
+    # With no tools offered there is nothing to choose, so no thinking from the first call: the Wall's story, from
+    # facts it is handed, had gemma4:26b think 12,690 tokens (185 s) for 572 characters, past the timeout, and the
+    # Wall showed nothing (21 Oct 2026). Off, it wrote 635 characters in 2.5 s.
+    elif (not tools or messages[-1].get("role") == "tool") and (rung.url, rung.model) not in NO_EFFORT:
         body["reasoning_effort"] = "none"
     r = await hc.post(f"{rung.url}/chat/completions", json=body, headers=rung.headers())
     if r.status_code == 400 and body.pop("reasoning_effort", None):
@@ -264,7 +314,8 @@ def stack_text(data: dict, one: str = "") -> str:
         issues, head = data.get("issues") or {}, data.get("headline")
         rows = [(k, issues[k]) for k in (data.get("order") or []) if k in issues]
     if not rows:
-        return "No issues are declared on this node yet. Set NODE_ISSUES under Set up → Basics."
+        return T("The node is not watching anything yet; whoever set it up can choose what in Set up.",
+                 es="El nodo todavía no vigila nada; quien lo instaló puede elegir qué en Configurar.")
     out = []
     for key, iss in rows:
         name = (iss.get("name") or {}).get(LOCALE) or key
@@ -318,10 +369,12 @@ async def ask(session: ClientSession, tools: list[dict], user: str, history: lis
     last_err = None
     async with httpx.AsyncClient(timeout=240) as hc:
         for rung in order:
+            # A rung that leaves the house gets what the pane gets: no settings, no report bundle, no day's export.
+            tools_ = [t for t in tools if t["function"]["name"] not in PANE_WITHHELD] if rung.leaves else tools
             messages = [{"role": "system", "content": SYSTEM}, *(history or []), {"role": "user", "content": user}]
             try:
                 for _ in range(MAX_ROUNDS):
-                    msg = await chat(hc, rung, messages, tools)
+                    msg = await chat(hc, rung, messages, tools_)
                     messages.append(msg)
                     calls = msg.get("tool_calls") or []
                     if not calls:
@@ -339,7 +392,11 @@ async def ask(session: ClientSession, tools: list[dict], user: str, history: lis
                         if isinstance(args, str):
                             try: args = json.loads(args)
                             except Exception: args = {}
-                        spec = next((t for t in tools if t["function"]["name"] == fn), {}).get("function", {}).get("parameters", {}).get("properties", {})
+                        if fn not in {t["function"]["name"] for t in tools_}:
+                            messages.append({"role": "tool", "tool_call_id": c.get("id", fn),
+                                             "content": f"tool error: {fn} is not offered to a model outside this house"})
+                            continue
+                        spec = next((t for t in tools_ if t["function"]["name"] == fn), {}).get("function", {}).get("parameters", {}).get("properties", {})
                         if "agent" in spec:
                             args.setdefault("agent", f"{NAME}/{rung.name}")
                         shown = {k: ("****" if ("KEY" in k or "TOKEN" in k or "PASS" in k) else v) for k, v in args.items()} if fn != "settings_set" else {"changes": sorted((args.get("changes") or {}).keys())}
@@ -359,9 +416,12 @@ async def ask(session: ClientSession, tools: list[dict], user: str, history: lis
                 last_err = e
                 rung.skip_until = time.time() + SKIP_FOR
                 log.warning("[%s] unavailable (%s: %s); trying the next rung", rung.name, type(e).__name__, str(e)[:100])
-    why = type(last_err).__name__ if last_err else 'none configured'
-    return T(f"No model answered ({why}). On the node: `ollama list`, and check AGENT_* in .env.",
-             es=f"Ningún modelo respondió ({why}). En el nodo: `ollama list`, y revisa AGENT_* en .env."), "none"
+    # The admin detail is the log's; the household gets what still works and who can fix it.
+    log.warning("no model answered: %s", type(last_err).__name__ if last_err else "none configured")
+    return T("I can't answer questions right now. Alerts and the morning report still work. "
+             "Whoever set up the node can fix this in Set up › Model.",
+             es="Ahora no puedo responder preguntas. Las alertas y el informe de la mañana siguen funcionando. "
+                "Quien instaló el nodo puede arreglarlo en Configurar › Modelo."), "none"
 
 
 # ---------------------------------------------------------------------------------------- the dashboard's pane
@@ -404,10 +464,23 @@ The page's context:
 
 
 # WALL_SYSTEM: the node's "thinking aloud" voice for the wall screen (docs/SPEC_language.md §The prompts).
-# Verbatim from app/static/doors-wall.js:73, with NARR_ANGLES rotation handled node-side.
-WALL_ANGLES = ['what is happening right now', 'what has changed over the last few hours', 'how warm it feels inside the home',
-  'how inside the home compares with the street and the neighbourhood', 'how today compares with the last few days']
-WALL_SYSTEM = """You are the voice of this home's sensor node, speaking on a screen in the living room to people who know nothing about air science, units or maps. Like a calm neighbour telling a short story, say what is happening around their home: the air, and the heat if your context has it. Plain everyday words only. Never write units or symbols such as µg/m³, °C, PM2.5, AQI, ppm, percent or km. Say 'inside your home', 'your street', 'the neighbourhood', 'the wider area' instead of room, yard, ring or region. Instead of numbers, compare: 'clean', 'a little hazy', 'well under the safe limit', 'warmer than usual for this hour'. At most two numbers. Go in this order: what is happening inside the home; how that compares with the street and the neighbourhood; what it suggests for an ordinary day, such as windows, cooking, sleep or children outside, never telling people that anything is safe, fine or without risk, only what the readings show; and last, what the next few hours may bring, from the forecast or the usual pattern for this hour if your context has it, or that the node will keep watching if it does not. Use only the figures in your context. Six to eight sentences, one paragraph, no lists, no greeting, no questions."""
+# WALL_ANGLES: (angle, what its facts are called). ask.wall_angles keeps an angle only when a key of the Wall's context
+# matches, so a node with no forecast is never asked to start from one. Searched in the context's keys, never its
+# values: the air's title may say "smoke" on a node with no fire pack.
+WALL_ANGLES = [
+    ("what is happening right now", ""),
+    ("the day so far, and how it has gone until now", r"\bso far\b"),
+    ("what has changed over the last few hours", r"\btrend\b"),
+    ("how warm it feels inside the home", r"\bheat\b"),
+    ("how inside the home compares with the street and the neighbourhood", r"\bstreet\b"),
+    ("the neighbourhood and the public stations around it", r"\bstations\b"),
+    ("what is usual for this place at this hour and this week", r"usual for this place"),
+    ("what the next few hours bring", r"\bforecast\b"),
+    ("the land and the sea around", r"\b(land|coast)\b"),
+    ("smoke and fires around, and which way the wind carries them", r"fire|smoke|hotspot"),
+    ("the heat of the ground itself, here and around", r"surface|ground"),
+]
+WALL_SYSTEM = """You are the voice of this home's sensor node, speaking on a screen in the living room to whoever walks past, people who know nothing about air science, units or maps. Like a calm neighbour telling a short story, say what is happening in and around their home: the air, the heat, and, when your context has them, the stations nearby, what is usual for this place, the forecast, the land, the sea, fires and the ground's heat. Each fact in your context ends with where it comes from: live is measured here or nearby, model is a forecast or a model's estimate, satellite is seen from space; say it in words, such as 'the stations nearby show', 'the forecast expects', 'seen from space'. Plain everyday words only. Never write units or symbols such as µg/m³, °C, PM2.5, AQI, ppm, percent, mm or km. Say 'inside your home', 'your street', 'the neighbourhood', 'the wider area'. Never name a room, a sensor, a device or a person. Instead of numbers, compare: 'clean', 'a little hazy', 'under the World Health Organization's line', 'warmer than usual for this hour'. At most two numbers. Say what the day has been so far and what it suggests for an ordinary day, such as windows, cooking, sleep or children outside, never telling people that anything is safe, fine or without risk, only what the readings show. End with what the next few hours may bring, from the forecast or what is usual here if your context has them, or that the node will keep watching if it does not. Use only the facts in your context, and leave out what it does not have rather than saying so. Six to eight sentences, one paragraph, no lists, no greeting, no questions."""
 
 
 def pane_tools(listed) -> list[dict]:
@@ -459,11 +532,20 @@ def recommend() -> dict:
 def where_of(rung: Rung) -> dict:
     """Where a rung runs, in the words the pane prints: this machine, your network, or online.
 
-    `online` is the one that leaves the house: the pane says so in its header and on every answer it gives."""
-    from urllib.parse import urlparse
+    `online` is any rung that leaves the house, by its address (stays_home), whatever its name: the pane says so in
+    its header and on every answer it gives."""
     host = urlparse(rung.url).hostname or rung.url
-    return {"rung": rung.name, "model": rung.model, "host": host,
-            "where": {"local": "this machine", "remote": "your network"}.get(rung.name, "online")}
+    where = "online" if rung.leaves else {"local": "this machine"}.get(rung.name, "your network")
+    return {"rung": rung.name, "model": rung.model, "host": host, "where": where, "leaves": rung.leaves}
+
+
+def models_stay_home(cfg) -> bool:
+    """What the house learned, and who lives in it, may reach a model only while this is true: AGENT_PREFER is
+    private AND no rung the ladder would build leaves the house. `cfg` is anything with .get(key), the settings
+    module included."""
+    if (cfg.get("AGENT_PREFER") or os.getenv("AGENT_PREFER") or "private") != "private":
+        return False
+    return not any(r.leaves for r in ladder(cfg))
 
 
 def pane_rungs(cfg: dict, with_local: bool = True) -> list[Rung]:
@@ -597,12 +679,29 @@ def parse_callback(data) -> tuple[int, str] | None:
     return (int(m.group(1)), m.group(2)) if m else None
 
 
-def note_pending(pending: dict, chat: str, text: str, now: float) -> int | None:
+def parse_alert_callback(data) -> tuple[int, str] | None:
+    """al:<alert_id>:<value> — what buttons.telegram_rows writes under an alert a pack gave buttons. The value is
+    the only thing taken from the callback; the button's words, stage and question are read back from the node."""
+    m = re.fullmatch(r"al:(\d+):([a-z0-9:_-]{1,40})", str(data or ""))
+    return (int(m.group(1)), m.group(2)) if m else None
+
+
+def lift(keyboard: list, data: str, all_rows: bool) -> list:
+    """The inline keyboard without the row holding `data` (the answer was taken there); [] when `all_rows`
+    (an acknowledged answer closes the whole question)."""
+    if all_rows:
+        return []
+    return [row for row in keyboard if not any(b.get("callback_data") == data for b in row)]
+
+
+def note_pending(pending: dict, chat: str, text: str, now: float, from_id=None) -> int | tuple | None:
     """The Doesn't-fit follow-up. The dismissal was already recorded at the press; a free-text line within
     NOTE_WINDOW becomes its note — a second actions row, which is allowed on purpose ("two people who both acted
     are both recording something true"), and the wire keeps the latest answer, which is the one carrying the note.
     A command is never a note and leaves the ask open; a stale ask is forgotten. Returns the event id to
-    annotate, or None."""
+    annotate (or, for a pack button's question, the ("al", alert_id, choice, actor, from_id) it was asked under), or
+    None. A pack button's question belongs to the person who pressed: in a group chat another person's line is not
+    its note (`from_id` is Telegram's id, never the name) and the ask stays open for the presser."""
     p = pending.get(chat)
     if not p:
         return None
@@ -611,18 +710,263 @@ def note_pending(pending: dict, chat: str, text: str, now: float) -> int | None:
         return None
     if text.startswith("/"):
         return None
+    if isinstance(p[0], tuple) and (from_id is None or from_id != p[0][4]):
+        return None
     pending.pop(chat, None)
     return p[0]
+
+
+async def _keep_alert_note(hc, pending: dict, chat: str, m: dict, text: str, now: float) -> bool:
+    """The line that answers a pack button's question, from the person who pressed it, goes to the same row as that
+    answer (the stored actor, so it is always the UPDATE of their row). True when the line was taken as the note;
+    anything else (an event's ask, another person, a command, a stale ask) is left to the normal flow."""
+    p = pending.get(chat)
+    if not (p and isinstance(p[0], tuple)):
+        return False
+    ask = note_pending(pending, chat, text, now, (m.get("from") or {}).get("id"))
+    if not isinstance(ask, tuple):
+        return False
+    try:
+        await _post_answer(hc, None, "", ask[3], note=text, alert_id=ask[1], choice=ask[2])
+        said = T("Note kept with that answer.", es="Nota guardada con esa respuesta.")
+    except Exception as e:  # noqa: BLE001
+        log.warning("note on alert #%s failed: %s: %s", ask[1], type(e).__name__, str(e)[:200])
+        said = T("⚠️ I could not keep that note on the node. The answer stands; the note is lost.",
+                 es="⚠️ No pude guardar esa nota en el nodo. La respuesta queda; la nota se pierde.")
+    await telegram("sendMessage", chat_id=chat, text=said)
+    return True
 
 
 def _name_of(user: dict) -> str:
     return ((user.get("first_name") or "") or (user.get("username") or "") or "someone").strip()[:80] or "someone"
 
 
-async def _post_answer(hc, event_id: int, stage: str, actor: str, note: str = "") -> None:
-    r = await hc.post(node_url("/actions"), timeout=15,
-                      json={"event_id": event_id, "stage": stage, "actor": actor, "note": note})
+# ----------------------------------------------------------- offers (SPEC_inventory step 4)
+# Someone who is not this household opens an offer's link (t.me/<bot>?start=offer-<id>), writes one message, and the
+# bot passes it to the household's chats with the sender's Telegram name, so they can write back. The household's chat
+# ids never show and nothing the stranger says is kept. One message per chat an hour; everything else from a chat that
+# is not the household's is still ignored. Tomas, 13 Oct 2026: offers are answered through the bot.
+OFFER_WINDOW = 1800        # seconds after opening an offer in which the next message is the one passed on
+OFFER_GAP = 3600           # seconds between two messages passed on from the same chat
+OFFER_ASKING: dict = {}    # chat -> (offer, until)
+OFFER_SENT: dict = {}      # chat -> when its last message was passed on
+
+
+async def relay_offer(hc, m: dict, chat: str, text: str, now: float) -> bool:
+    """A message from a chat that is not the household's, about an offer. True when it was answered."""
+    hit = re.fullmatch(r"/start offer-(\d+)", text)
+    if hit:
+        r = await hc.get(node_url("/offers"), timeout=15)
+        o = next((x for x in r.json().get("offers", []) if x["id"] == int(hit.group(1))), None) if r.status_code == 200 else None
+        if not o:
+            await telegram("sendMessage", chat_id=chat, text=T("That offer is not here any more.", es="Esa oferta ya no está."))
+            return True
+        OFFER_ASKING[chat] = (o, now + OFFER_WINDOW)
+        what = T("to borrow", es="para prestar") if o["offer"] == "lend" else T("to give away", es="para regalar")
+        await telegram("sendMessage", chat_id=chat, text=T(
+            f"This is the {NODE} node. Write one message about the {o['name']} ({what}) and I will pass it to the "
+            "household with your Telegram name, so they can write back to you.",
+            es=f"Este es el nodo {NODE}. Escribe un mensaje sobre {o['name']} ({what}) y se lo pasaré al hogar con tu "
+               "nombre de Telegram, para que te puedan responder."))
+        return True
+    o, until = OFFER_ASKING.get(chat, (None, 0))
+    if not o or now > until or text.startswith("/"):
+        return False
+    if now - OFFER_SENT.get(chat, -OFFER_GAP) < OFFER_GAP:
+        await telegram("sendMessage", chat_id=chat, text=T("You already wrote to them this hour. Give them time to answer.",
+                                                           es="Ya les escribiste en esta hora. Dales tiempo para responder."))
+        return True
+    u = m.get("from") or {}
+    handle = f"@{u['username']}" if u.get("username") else ""
+    note = "" if handle else T("\n(They have no Telegram username, so you can reach them only if they said how.)",
+                               es="\n(No tiene nombre de usuario en Telegram: solo puedes contestar si dijo cómo.)")
+    for c in CHATS():
+        await telegram("sendMessage", chat_id=c, text=T(
+            f"📦 Someone asks about your offer #{o['id']}, the {o['name']}:\n\n{text[:1000]}\n\n— {_name_of(u)} {handle}{note}",
+            es=f"📦 Alguien pregunta por tu oferta #{o['id']}, {o['name']}:\n\n{text[:1000]}\n\n— {_name_of(u)} {handle}{note}"))
+    OFFER_SENT[chat] = now
+    OFFER_ASKING.pop(chat, None)
+    await telegram("sendMessage", chat_id=chat, text=T(
+        "Passed on. The household will write to you if they can." + ("" if handle else
+        " You have no Telegram username, so they can only reach you if your message said how."),
+        es="Enviado. El hogar te escribirá si puede." + ("" if handle else
+        " No tienes nombre de usuario en Telegram: solo te podrán contestar si tu mensaje dice cómo.")))
+    return True
+
+
+# ----------------------------------------------------------- pictures (Tomas, 15 Oct 2026)
+# A household sends a picture to the bot and the node keeps it, as the dashboard's + Add an image does: the same
+# upload route, so the node cleans the file, finds its place and has the image model describe it. A photo arrives
+# recompressed by Telegram with no EXIF, so its date is the message's; a picture sent as a file is the original, its
+# own date and GPS included, and goes to the node byte for byte. Strangers' pictures are ignored like their words.
+TG_FILE_MAX = 20 * 1024 * 1024   # the Bot API gives a bot no file larger than this; getFile refuses it
+PICTURE_KINDS = ("phone", "camera", "microscope", "drone", "balloon")   # main.py's kinds; this container never imports main
+
+
+def picture_of(m: dict) -> tuple[dict, bool] | None:
+    """The file a message carries and whether it is the original: the largest size of a photo, or a document."""
+    if m.get("photo"):
+        return max(m["photo"], key=lambda p: (p.get("width", 0) * p.get("height", 0), p.get("file_size", 0))), False
+    if m.get("document"):
+        return m["document"], True
+    return None
+
+
+def kind_and_note(caption: str) -> tuple[str, str]:
+    """`#drone`, `#microscope`, `#camera` or `#balloon` in the caption names what took it; the rest is the note."""
+    tags = [t.lower() for t in re.findall(r"#(\w+)", caption or "") if t.lower() in PICTURE_KINDS]
+    note = re.sub(r"#(%s)\b" % "|".join(PICTURE_KINDS), "", caption or "", flags=re.I)
+    return (tags[0] if tags else "phone"), " ".join(note.split())
+
+
+async def tg_download(file_id: str) -> bytes:
+    """getFile, then the file. The file's URL holds the bot token, so an error carries a status or a type name, never
+    the URL or httpx's message (which quotes it)."""
+    path = ((await telegram("getFile", file_id=file_id)).get("result") or {}).get("file_path")
+    if not path:
+        raise TelegramError("getFile gave no file_path")
+    async with httpx.AsyncClient(timeout=120) as dl:
+        try:
+            r = await dl.get(f"https://api.telegram.org/file/bot{TG_TOKEN()}/{path}")
+        except httpx.HTTPError as e:
+            raise TelegramError(type(e).__name__) from None
+    if r.status_code >= 400:
+        raise TelegramError(f"{r.status_code}")
+    return r.content
+
+
+async def keep_picture(hc, m: dict, chat: str) -> bool:
+    """A picture from a chat: kept on the node and answered, or refused with the reason. False when it was ignored."""
+    got = picture_of(m)
+    if not got:
+        return False
+    if chat not in CHATS():
+        log.info("picture from chat %s ignored: not in TELEGRAM_CHAT_IDS", chat)
+        return False
+    f, original = got
+    say = lambda en, es: telegram("sendMessage", chat_id=chat, text=T(en, es=es))  # noqa: E731
+    mime = f.get("mime_type") or ("image/jpeg" if not original else "")
+    if not mime.startswith("image/"):
+        await say("I keep pictures only: a jpeg, png, heic or webp. That file is not one.",
+                  "Solo guardo imágenes: jpeg, png, heic o webp. Ese archivo no lo es.")
+        return True
+    if (f.get("file_size") or 0) > TG_FILE_MAX:
+        await say("That picture is over 20 MB, the most Telegram lets a bot fetch. Send it as a photo instead, "
+                  "or add it on the dashboard: Place › Images › + Add an image.",
+                  "Esa imagen pasa de 20 MB, lo máximo que Telegram deja bajar a un bot. Envíala como foto, "
+                  "o añádela en el panel: Place › Images › + Add an image.")
+        return True
+    try:
+        raw = await tg_download(f["file_id"])
+    except Exception as e:  # noqa: BLE001
+        log.warning("picture from chat %s not fetched: %s", chat, e.args[0] if isinstance(e, TelegramError) and e.args else type(e).__name__)
+        await say("⚠️ I could not fetch that picture from Telegram. Nothing was kept; send it again in a moment.",
+                  "⚠️ No pude bajar esa imagen de Telegram. No se guardó nada; envíala de nuevo en un momento.")
+        return True
+    kind, note = kind_and_note(m.get("caption") or "")
+    form = {"kind": kind, "note": note, "actor": _name_of(m.get("from") or {}), "describe": "1"}
+    if not original and m.get("date"):   # Telegram stripped the photo's own date; the original keeps it, and it wins
+        form["taken_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime(m["date"]))   # a conversion, not a clock read
+    name = f.get("file_name") or f"telegram-{m.get('message_id', 0)}.jpg"
+    try:
+        r = await hc.post(node_url("/captures"), files={"photo": (name, raw, mime)}, data=form, timeout=120)
+    except Exception as e:  # noqa: BLE001
+        log.warning("picture from chat %s not kept: %s", chat, type(e).__name__)
+        await say("⚠️ I could not reach the node. Nothing was kept; send it again in a moment.",
+                  "⚠️ No pude llegar al nodo. No se guardó nada; envíala de nuevo en un momento.")
+        return True
+    try:
+        body = r.json()
+    except ValueError:
+        body = {}
+    if r.status_code in (401, 403):
+        log.warning("picture from chat %s refused by the node: %s", chat, r.status_code)
+        await say("The node did not accept this picture. Whoever set up the node needs to check the bot's access.",
+                  "El nodo no aceptó esta imagen. Quien instaló el nodo tiene que revisar el acceso del bot.")
+    elif r.status_code >= 400:
+        why = str(body.get("detail") or "")[:300]   # the node's own sentence: it names no token; a bare status is the log's
+        log.warning("picture from chat %s refused by the node: %s", chat, r.status_code)
+        if why:
+            await say(f"The node did not keep it: {why}", f"El nodo no la guardó: {why}")
+        else:
+            await say("The node did not keep it; send it again in a minute.",
+                      "El nodo no la guardó; envíala de nuevo en un minuto.")
+    elif body.get("duplicate"):
+        await say("That picture is already kept.", "Esa imagen ya está guardada.")
+    elif body.get("describing"):
+        await say("Kept. The image model on this machine is describing it; it will be in Data › Images in a minute.",
+                  "Guardada. El modelo de imágenes de esta máquina la está describiendo; estará en Data › Images en un minuto.")
+    else:
+        await say("Kept. It is in Data › Images. No image model is set, so nothing describes it yet.",
+                  "Guardada. Está en Data › Images. No hay modelo de imágenes, así que nada la describe todavía.")
+    return True
+
+
+async def _post_answer(hc, event_id: int | None, stage: str, actor: str, note: str = "", *,
+                       alert_id: int | None = None, choice: str = ""):
+    """POST /actions: an event's stage, or (alert_id + choice) a pack button's answer. Raises on any 4xx/5xx; the
+    response comes back so a caller can read `kept`."""
+    body = ({"alert_id": alert_id, "choice": choice, "actor": actor, "note": note} if alert_id is not None
+            else {"event_id": event_id, "stage": stage, "actor": actor, "note": note})
+    r = await hc.post(node_url("/actions"), timeout=15, json=body)
     r.raise_for_status()
+    return r
+
+
+async def _handle_alert_tap(hc, cq: dict, pending: dict, chat: str, actor: str, alert_id: int, choice: str) -> None:
+    """A tap on a pack's button. The node is asked what the button is (text, stage, question) and decides whether
+    the answer is taken (/actions: 400 not offered, 404 no alert, 409 closed). A second chat's tap is a second
+    actor and is written; the same actor repeating a choice comes back `kept` and says nothing twice."""
+    qid = cq.get("id")
+    msg = cq.get("message") or {}
+
+    async def answer(text: str = "") -> None:
+        if qid:
+            await telegram("answerCallbackQuery", callback_query_id=qid, **({"text": text} if text else {}))
+
+    closed = T("This question has closed.", es="Esta pregunta ya se cerró.")
+    try:
+        # the node's own window for an open question: it closes after 72 hours (buttons.MAX_AGE_H), and a busy node
+        # can write more than 200 alerts in that time
+        r = await hc.get(node_url("/alerts"), params={"since_hours": 72, "limit": 1000}, timeout=15)
+        r.raise_for_status()
+        alert = next((a for a in r.json() if a.get("id") == alert_id), None)
+    except Exception as e:  # noqa: BLE001
+        log.warning("reading alert #%s failed: %s: %s", alert_id, type(e).__name__, str(e)[:200])
+        return await answer(T("⚠️ I could not record that on the node. Nothing was written; press again in a moment.",
+                              es="⚠️ No pude anotarlo en el nodo. No se escribió nada; pulsa de nuevo en un momento."))
+    button = next((b for row in (alert or {}).get("buttons") or [] for b in row if b["value"] == choice), None)
+    if not button:
+        return await answer(closed)
+    try:
+        r = await _post_answer(hc, None, "", actor, alert_id=alert_id, choice=choice)
+    except Exception as e:  # noqa: BLE001
+        code = getattr(getattr(e, "response", None), "status_code", None)
+        log.warning("answer on alert #%s failed: %s: %s", alert_id, type(e).__name__, str(e)[:200])
+        if code == 409:
+            # closed, or (DECISION_REQUIRED) an act that needs a decision first: say the one the node said
+            try:
+                detail = str(e.response.json().get("detail") or "")
+            except Exception:  # noqa: BLE001
+                detail = ""
+            return await answer(detail if detail and detail != "this question has closed" else closed)
+        if code in (400, 404):
+            return await answer(T("That answer is not open any more.", es="Esa respuesta ya no está abierta."))
+        return await answer(T("⚠️ I could not record that on the node. Nothing was written; press again in a moment.",
+                              es="⚠️ No pude anotarlo en el nodo. No se escribió nada; pulsa de nuevo en un momento."))
+    await answer()
+    kept = bool((r.json() or {}).get("kept"))
+    try:
+        await telegram("editMessageReplyMarkup", chat_id=chat, message_id=msg.get("message_id"),
+                       reply_markup={"inline_keyboard": lift((msg.get("reply_markup") or {}).get("inline_keyboard") or [],
+                                                             cq.get("data"), button["stage"] == "acknowledged")})
+        if not kept:
+            await telegram("sendMessage", chat_id=chat, text=f"{pick(button['text'], LOCALE)} · {actor}")
+    except Exception as e:  # noqa: BLE001
+        log.warning("callback follow-up failed: %s", type(e).__name__)
+    if button.get("ask") and not kept:
+        pending[chat] = (("al", alert_id, choice, actor, (cq.get("from") or {}).get("id")), time.monotonic())
+        await telegram("sendMessage", chat_id=chat, text=pick(button["ask"], LOCALE))
 
 
 async def handle_callback(hc, cq: dict, pending: dict) -> None:
@@ -634,16 +978,19 @@ async def handle_callback(hc, cq: dict, pending: dict) -> None:
     chat = str((msg.get("chat") or {}).get("id", ""))
     actor = _name_of(cq.get("from") or {})
     parsed = parse_callback(cq.get("data"))
+    alert_tap = parse_alert_callback(cq.get("data"))
     if chat not in CHATS():
         log.info("callback from chat %s ignored: not in TELEGRAM_CHAT_IDS", chat)
         if qid:
             await telegram("answerCallbackQuery", callback_query_id=qid)
         return
+    if alert_tap:
+        return await _handle_alert_tap(hc, cq, pending, chat, actor, *alert_tap)
     if not parsed:
         if qid:
             await telegram("answerCallbackQuery", callback_query_id=qid,
-                           text=T("This button is from another time; the event it belonged to is no longer mine.",
-                                  es="Este botón es de otro momento; el evento al que pertenecía ya no es mío."))
+                           text=T("This alert is already closed, so there is nothing to answer.",
+                                  es="Esta alerta ya está cerrada, así que no hay nada que responder."))
         return
     eid, stage = parsed
     try:
@@ -724,6 +1071,7 @@ async def main():
     if TG_TOKEN() and CHATS():
         await announce_buttons(hc)
     offset, history, pins, pending = 0, {}, {}, {}
+    told_unknown: set[str] = set()     # unknown chats already told why the node is quiet
     while True:
         if not TG_TOKEN():
             await asyncio.sleep(30); continue
@@ -745,17 +1093,35 @@ async def main():
                 continue
             m = u.get("message") or {}
             chat = str((m.get("chat") or {}).get("id", "")); text = (m.get("text") or "").strip()
+            if picture_of(m):          # a picture has no text, only a caption: it is answered here or not at all
+                try:
+                    await keep_picture(hc, m, chat)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("picture failed: %s", type(e).__name__)
+                continue
             if not text:
                 continue
             if chat not in CHATS():
+                try:
+                    if await relay_offer(hc, m, chat, text, time.monotonic()):
+                        continue
+                except Exception as e:  # noqa: BLE001
+                    log.warning("offer relay failed: %s", type(e).__name__)
                 log.info("message from chat %s ignored: not in TELEGRAM_CHAT_IDS %s", chat, sorted(CHATS()))
+                # once per chat per run, so a second person in the house learns why it is quiet (audit, 15 Oct)
+                if chat not in told_unknown:
+                    told_unknown.add(chat)
+                    await telegram("sendMessage", chat_id=chat, text=T(
+                        f"This node answers its household only. To be added, ask whoever set it up to add this chat: {chat}.",
+                        es=f"Este nodo solo responde a su casa. Para entrar, pide a quien lo instaló que añada este chat: {chat}."))
                 continue
+            if await _keep_alert_note(hc, pending, chat, m, text, time.monotonic()):
+                continue                              # the answer to a pack button's question
             note_eid = note_pending(pending, chat, text, time.monotonic())
             if note_eid is not None:
                 try:
                     await _post_answer(hc, note_eid, "dismissed", _name_of(m.get("from") or {}), note=text)
-                    said = T(f"Kept as the note for event #{note_eid}.",
-                             es=f"Anotado como la nota del evento #{note_eid}.")
+                    said = T("Note kept with that alert.", es="Nota guardada con esa alerta.")
                 except Exception as e:  # noqa: BLE001
                     log.warning("note on event #%s failed: %s: %s", note_eid, type(e).__name__, str(e)[:200])
                     said = T("⚠️ I could not keep that note on the node. The Doesn't fit stands; the note is lost.",
@@ -769,20 +1135,54 @@ async def main():
                     # where the person's own sentence belongs — and rho is built out of those sentences.
                     # Asking costs one message and gets something true.
                     await telegram("sendMessage", chat_id=chat,
-                                   text=T(f"What did you do about #{parts[1]}? Send it as:  /act {parts[1]} <what you did>",
-                                          es=f"¿Qué hiciste con la #{parts[1]}? Envíalo así:  /act {parts[1]} <lo que hiciste>"))
+                                   text=T(f"What did you do about it? Send it with your words:  /act {parts[1]} <what you did>",
+                                          es=f"¿Qué hiciste? Envíalo con tus palabras:  /act {parts[1]} <lo que hiciste>"))
                     continue
                 if len(parts) >= 3 and parts[1].isdigit():
                     try:
                         async with node_session(hc) as (session, _t):
                             await session.call_tool("act", {"alert_id": int(parts[1]), "note": parts[2], "agent": f"{NAME}/telegram"})
-                        said = T(f"Recorded: you acted on #{parts[1]}.", es=f"Anotado: actuaste sobre #{parts[1]}.")
+                        said = T("Recorded what you did.", es="Anotado lo que hiciste.")
                     except Exception as e:  # noqa: BLE001
                         log.warning("act on #%s failed: %s: %s", parts[1], type(e).__name__, str(e)[:200])
-                        said = T(f"⚠️ I could not record that on the node ({type(e).__name__}). Nothing was written; try again in a moment.",
-                                 es=f"⚠️ No pude anotarlo en el nodo ({type(e).__name__}). No se escribió nada; inténtalo de nuevo en un momento.")
+                        said = T("⚠️ I couldn't record that. Nothing was saved; try again in a minute.",
+                                 es="⚠️ No pude anotarlo. No se guardó nada; inténtalo de nuevo en un minuto.")
                     await telegram("sendMessage", chat_id=chat, text=said)
                     continue
+            if text.startswith("/learned"):
+                # No model, as /stack: the node's own sentences, printed. Each learning's statement was written by
+                # the node from its numbers (app/learn.py), so nothing here can add one.
+                words = text.split(maxsplit=1)[1].strip() if " " in text else ""
+                scale = words.lower() if words.lower() in ("day", "week", "month", "year") else ""
+                try:
+                    async with node_session(hc) as (session, _t):
+                        data = _tool_json(await session.call_tool("learned", {"scale": scale} if scale else
+                                                                  {"query": words} if words else {}))
+                    if scale:   # /learned week: the newest entry of that size, as the morning carries it
+                        hits = data.get("results") or []
+                        said = data.get("kept_home") or (f"📔 {hits[0]['text']}" if hits else
+                                                         T(f"No {scale} is written yet.", es="Todavía no hay nada escrito a esa escala."))
+                        await telegram("sendMessage", chat_id=chat, text=said[:4000])
+                        continue
+                    if words:   # /learned <words>: the diary and the learnings that mention them, newest first
+                        hits = data.get("results") or []
+                        said = data.get("kept_home") or ("\n\n".join(f"• {h['label']}\n{h['text']}" for h in hits[:5])
+                                                         or T(f"Nothing in the diary mentions {words}.",
+                                                              es=f"Nada en el diario menciona {words}."))
+                        await telegram("sendMessage", chat_id=chat, text=said[:4000])
+                        continue
+                    rows = [x for x in data.get("learnings", []) if x.get("status") != "gone"]
+                    said = (data.get("kept_home") or T("Nothing learned yet: the node checks once a day.",
+                                                      es="Nada aprendido todavía: el nodo lo revisa una vez al día.")) \
+                        if not rows else "\n\n".join(f"• {_learned_head(x)}\n{x['statement']}"
+                                                       + (T(" Matters here: ", es=" Importa aquí: ") + ", ".join(x["for_whom"]) + "." if x.get("for_whom") else "")
+                                                       for x in rows)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("/learned failed: %s: %s", type(e).__name__, str(e)[:200])
+                    said = T("⚠️ I couldn't read what the node learned. Try again in a minute.",
+                             es="⚠️ No pude leer lo que aprendió el nodo. Inténtalo de nuevo en un minuto.")
+                await telegram("sendMessage", chat_id=chat, text=said)
+                continue
             if text.startswith("/stack"):
                 # No model, ever. /stack is a read of the node's own arithmetic printed through a
                 # template, so it answers on a node with no agent rung reachable at all — which is
@@ -795,8 +1195,8 @@ async def main():
                     said = stack_text(_tool_json(res), arg)
                 except Exception as e:  # noqa: BLE001
                     log.warning("/stack failed: %s: %s", type(e).__name__, str(e)[:200])
-                    said = T(f"⚠️ I could not read the node ({type(e).__name__}). Nothing is wrong with your air; this is me.",
-                             es=f"⚠️ No pude leer el nodo ({type(e).__name__}). Tu aire está bien; el problema soy yo.")
+                    said = T("⚠️ I can't reach the node right now, so I can't say how the air is. Try again in a minute.",
+                             es="⚠️ Ahora no llego al nodo, así que no puedo decir cómo está el aire. Prueba en un minuto.")
                 await telegram("sendMessage", chat_id=chat, text=said)
                 continue
             if text.startswith("/model"):
@@ -812,7 +1212,8 @@ async def main():
             except Exception as e:  # noqa: BLE001
                 # The node itself, not a model: say so plainly rather than letting a model guess at it.
                 log.warning("no session to the node for chat %s: %s: %s", chat, type(e).__name__, str(e)[:200])
-                answer, rung = f"⚠️ I could not open a session to the node just now ({type(e).__name__}). It may be restarting — try again in a moment.", "none"
+                answer, rung = T("⚠️ I couldn't reach the node just now. It may be restarting; try again in a minute.",
+                                 es="⚠️ Ahora no pude llegar al nodo. Puede que se esté reiniciando; inténtalo de nuevo en un minuto."), "none"
             history.setdefault(chat, []).extend([{"role": "user", "content": text}, {"role": "assistant", "content": answer}])
             log.info("chat %s via %s: %.1fs", chat, rung, time.time() - t0)
             await telegram("sendMessage", chat_id=chat, text=answer[:4000])

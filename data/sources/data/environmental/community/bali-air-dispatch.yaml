@@ -13,7 +13,7 @@ pilot_relevance: [bali]
 places: [bali]
 tags: [air-quality, pm25, aggregator, peer-observatory, humidity-corrected, bali]
 added: 2026-09-18
-adapter: core:baliairdispatch
+adapter: pack:bali-air-dispatch
 feeds_cells: [Environmental|City]
 auth: none
 upstream_listed_in: []
@@ -24,11 +24,12 @@ notes: |
   Plantower-based networks and stores raw alongside corrected; flags
   suspected-indoor stations and stale readings. Collaborators: Fab Lab Bali,
   CAST Foundation, Bali Net Zero Coalition, Meaningful Design Group.
-  PLANETAI: read by `app/sources.py::baliairdispatch()` as reference context
+  PLANETAI: read by the `bali-air-dispatch` pack as reference context
   (local=false) on Bali nodes and by `packs/nearby`. Nodes with outdoor
   hardware should also publish to a network BAD reads so the map densifies.
 
-  PLANETAI: three readers, and `adapter` names one. `app/sources.py::baliairdispatch()` ingests the ring;
+  PLANETAI: three readers, and `adapter` names one. `packs/bali-air-dispatch` ingests the ring (a core
+  source in `app/sources.py` until the node release after v0.82.3);
   `packs/nearby` configures and verifies it; `packs/season` reads the same rows over a 68-day window.
   Its stations are stored `local=False`, so they fill the public-reference-stations cell and never the
   in-custody one — which is the whole point of the ring.

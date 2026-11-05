@@ -1,0 +1,23 @@
+id: airgradient
+name: AirGradient
+description: >-
+  This node's own AirGradient ONE and Open Air monitors, read on the household's WiFi at
+  http://<host>/measures/current, no cloud. PM2.5 is corrected with EPA 2021 from the raw Plantower reading, which is
+  kept beside it as pm25_raw; CO2, temperature, humidity, PM1, PM10 and the TVOC and NOx indexes as the monitor gives them.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.83.0" }
+kind: code
+domain: air
+metrics: [pm25, pm25_raw, pm10, pm1, co2, temp, humidity, tvoc_index, nox_index]
+scales: [community]
+sources: [environmental/community/airgradient]
+# On whenever a host is listed, as it was in the core before v0.16 dropped it from the poll. AIRGRADIENT_HOSTS and
+# SENSOR_INDOOR stay core settings, under Set up → Sources, where the installer's --airgradient writes them.
+switch: [AIRGRADIENT_HOSTS]
+needs:
+  - the monitors' own addresses on this node's network
+thresholds: >-
+  None. It stores the house's own readings; the air-quality and heat packs decide what they mean.
+attribution: >-
+  AirGradient, airgradient.com. EPA 2021 correction: Barkjohn et al. 2021.

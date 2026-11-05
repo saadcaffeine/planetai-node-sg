@@ -284,6 +284,8 @@ if [[ "${SHIP_WITHOUT_DOCS:-0}" == 1 ]]; then
 else
   PY="$(docs_python)" || die "$NODOCS_MSG"
   "$PY" tools/build_learn.py --check >/dev/null || die "app/static/learn.json is not what docs/site says. make learn, commit, then ship."
+  # Built from empty, so a page that left the sidebar leaves the site too (git add docs records the deletion).
+  rm -rf "$SITE/docs"
   "$PY" tools/build_docs.py --out "$SITE/docs" >/dev/null || die "the docs site did not build. $PY tools/build_docs.py --check says why."
   say "docs site rebuilt at ${HERE}"
 fi
@@ -332,7 +334,7 @@ if [[ "$HERE" == v*  && "$HERE" != *-g* ]]; then
 Install from here rather than the site:
 
     PLANETAI_GET=https://github.com/fabcity/planetai-node/releases/download/${HERE} \\
-      bash -c \"\$(curl -fsSL planetai.fab.city/install)\"
+      bash -c \"\$(curl -fsSL https://planetai.fab.city/install)\"
 
 SECURITY.md has the signer fingerprint and how to report something." \
         "${FILES[@]}" \

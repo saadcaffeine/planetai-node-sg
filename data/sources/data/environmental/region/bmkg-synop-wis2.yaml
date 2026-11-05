@@ -1,0 +1,45 @@
+name: BMKG hourly SYNOP observations on WMO WIS2
+url: https://wis2-gdc.weather.gc.ca/collections/wis2-discovery-metadata/items/urn:wmo:md:id-bmkg:surface-based-observations
+description: |
+  Hourly observations from BMKG's synoptic stations across Indonesia (temperature, humidity, pressure, wind, rain,
+  cloud, visibility), published as WMO core data through WIS2 global brokers and caches, key-free.
+pillar: environmental
+scale: region
+status: candidate
+license: WMO Unified Data Policy, core data (free and unrestricted)
+api: mqtts://everyone:everyone@globalbroker.meteo.fr:8883
+pilot_relevance: [bali]
+places: [bali]
+tags: [weather, observations, synop, indonesia, bmkg, wmo, wis2, bufr, government]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23, not yet read for a real territory.
+
+  LICENCE. The WIS2 Global Discovery Catalogue record urn:wmo:md:id-bmkg:surface-based-observations
+  (created 2026-08-21) carries "wmo:dataPolicy": "core". WMO's code register (codes.wmo.int/wmdr/
+  DataPolicy/core) defines it: "WMO Members shall provide core data on a free and unrestricted basis",
+  citing Resolution 1 (Cg-Ext(2021)). That covers these observations only. BMKG's forecast API is a
+  separate product under BMKG's own terms (see bmkg-prakiraan-cuaca).
+
+  ENDPOINT. No HTTP API. Subscribe over MQTT (user and password "everyone") to
+  cache/a/wis2/id-bmkg/data/core/weather/surface-based-observations/# on any of the four global
+  brokers listed in the record. Listening on Météo-France's from 04:26 to 05:11 UTC on 23 Oct 2026
+  caught 342 notifications, all for 05:00 UTC: 56 distinct reports (54 synop, 2 ship), each
+  announced by six global caches. Each notification names the station's WIGOS id and coordinates,
+  carries the BUFR4 message inline (base64) and links the cached file. Bali's report, WIGOS
+  0-20000-0-97230 (Ngurah Rai, -8.750, 115.177), was published at 05:00:02. Its file at
+  gc.wis.cma.cn downloaded key-free (HTTP 200, 387 bytes, starts "BUFR"). The BMKG node itself
+  (wis2node.bmkg.go.id) answered 403 from Bali. A reader needs a BUFR decoder such as ecCodes. I did
+  not decode a value.
+
+  WHY NO CELL. Weather, the same as open-meteo and bmkg-prakiraan-cuaca: no Index cell has a row for
+  it. A node would read it as the official reference beside its own sensors and the community
+  stations around it.
+
+  WHAT IT DOES NOT CLAIM. Bali has one station in this feed, at the airport on the southern coast.
+  It says nothing about the highlands or the north. Only 54 stations reported in the hour I
+  listened. I did not check whether the rest report at 3-hourly main hours.

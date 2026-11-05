@@ -36,7 +36,8 @@ def run(js, *extra, built=("v0.73", "v0.73")):
     for sub, tag in zip(("assets/p", "staging/assets"), built):
         (d / sub).mkdir(parents=True)
         if tag:
-            (d / sub / "hooks-x.js").write_text(f'Ed={{tag:"{tag}",asOf:"{today}",count:87}}')
+            # without asOf: Vite drops properties no page reads, and at v0.90 RELEASE.asOf was one (24 Oct 2026)
+            (d / sub / "hooks-x.js").write_text(f'Ed={{tag:"{tag}",packs:{{total:25,code:20}},count:87}}')
     r = subprocess.run(TOOL + ["--site", str(d), *extra], capture_output=True, text=True, cwd=ROOT)
     shutil.rmtree(d)
     return r.returncode, r.stdout + r.stderr
@@ -51,7 +52,7 @@ for what, js, extra, needle in [
     ("another release", good, ["--version", "v0.74"], "says v0.73"),
     ("a pack count", good.replace(f"total: {f['packs']}", f"total: {f['packs'] + 1}"), [], "packs"),
     ("a language", good.replace(", 'Spanish'", ""), [], "languages"),
-    ("the docs count", good.replace(f"docsPages: {f['docs']}", "docsPages: 40"), [], "documentation pages"),
+    ("the docs count", good.replace(f"docsPages: {f['docs']}", f"docsPages: {f['docs'] + 1}"), [], "documentation pages"),
     ("the purpose", good.replace("clean air, water and soil", "clean air"), [], "PURPOSE"),
     ("the line", good.replace("for distributed production';", "for regenerative local production';"), [], "not inside the lead"),
     ("a stale rho at release", good.replace(today, "2026-01-01"), ["--version", "v0.73"], "days ago"),

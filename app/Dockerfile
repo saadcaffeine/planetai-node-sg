@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY *.py ./
 # app/ is not volume-mounted (docker-compose.yml mounts config, packs, out, backups, exports only),
 # so a package directory reaches the image only by being named here. `COPY *.py` does not see it,
-# and neither does it see the .yml files the issues are declared in.
+# and neither does it see the engine's fixtures. (The issues themselves are declared in packs/<id>/issue.yml, mounted.)
 COPY issues ./issues
 COPY static ./static
 EXPOSE 8080

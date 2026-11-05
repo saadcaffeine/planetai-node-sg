@@ -22,8 +22,12 @@ A data pack (YAML and SQL only): copy `packs/heat`. A pack that fetches a new so
 code pack: start from the core pack whose source looks most like theirs, and read `docs/sensors.md §1`. Then:
 
 - `id:` in `pack.yaml` equals the folder name, and is not the name of a core pack (`ls packs/`).
-- `requires: { node: ">=0.76" }` if it uses `readouts:` or `sections:`; an older node ignores both silently.
+- `requires: { node: ">=0.76" }` if it uses `readouts:` or `sections:`, `">=0.77"` if it uses `secrets:` or
+  `agent_scripts:`; an older node ignores those keys silently (on v0.76 a secret shows unmasked).
 - A token or key goes in `env:` blank and its name under `secrets:`. Never a value, anywhere.
+- A metric that is the house's own and must never leave (a count of its things, a reading about the household) is
+  `role: private` in `channels.yml`: rules, readouts and cells use it, and no export, parent or agent receives it.
+  A declared section with `wall: true` also reaches the Wall, which anyone walking past reads.
 - A script an agent should be able to run (a `verify`, a `status`) is named under `agent_scripts:`; a wild pack's
   other scripts reach only the node's own terminal.
 - Every source it reads is an entry in the registry (`fabcity/awesome-fabcity-data`) and named in `sources:`.

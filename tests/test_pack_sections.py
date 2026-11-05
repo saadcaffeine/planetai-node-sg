@@ -1,8 +1,8 @@
 """Sections a pack declares as data (docs/decisions/2026-10-01-packs.md, point 5).
 
 The node half: issues.pack_sections() refusing what is not well formed, engine._sections() filling a declared section
-with the node's own rows and nothing for a row it does not have, and no shipped pack declaring one, so /issues gains
-an empty list and nothing else on any node today. The page half: the shell's declared(), lifted out of dashboard.js
+with the node's own rows and nothing for a row it does not have, and the one shipped section (fire's) left out of /issues
+until the node holds a row of it, so a node that never turned fires on gains nothing. The page half: the shell's declared(), lifted out of dashboard.js
 and run in node, turning a served section into a section of the page's own shape, drawn with its readout card.
 Run: PYTHONPATH=app python3 tests/test_pack_sections.py
 """
@@ -69,9 +69,19 @@ print("  a declared section carries the rows the node has, with their age, and s
 assert engine._sections([{**sec(), "pack": "p"}], [], now)[0]["readouts"] == []
 print("  and nothing for a row the node does not have, never an invented number")
 
-assert not [m["id"] for m in packs.manifests() if m.get("sections")], "a shipped pack declares a section"
-assert I.pack_sections(packs.manifests()) == []
-print("  no shipped pack declares a section, so /issues on every node gains an empty list")
+# Two shipped packs declare a section: fire's and surface-heat's (15 Oct), both for the Wall. A core pack is on every
+# node whether or not its keeper turned it on, so its section stays out of /issues until the node holds a row of it; a
+# wild pack, added on purpose, still says what has not arrived.
+assert sorted(m["id"] for m in packs.manifests() if m.get("sections")) == ["fire", "surface-heat"], "a shipped pack declares a section"
+shipped = I.pack_sections(packs.manifests())
+assert sorted((s["id"], s.get("core"), s["wall"]) for s in shipped) == [("fire", True, True), ("surface-heat", True, True)], shipped
+assert engine._sections(shipped, [], now) == [], "a core section nobody turned on must not draw an empty band"
+fire_row = {"sensor_id": "firms-fires", "metric": "fires_region_24h", "value": 51.0, "kind": "model",
+            "name": "NASA FIRMS, VIIRS satellites: nearby is within 25 km, the region 150 km", "ts": "2026-10-02T06:40:00+00:00"}
+got = engine._sections(shipped, [fire_row], now)
+assert len(got) == 1 and got[0]["expected"] == 5 and "core" not in got[0] and "FIRMS" in got[0]["readouts"][0]["source"], got
+assert engine._sections([{**sec(), "pack": "p"}], [], now)[0]["readouts"] == []
+print("  fire's section stays out of /issues until a row of it exists; a wild pack's still says what has not arrived")
 
 # ---------------------------------------------------------------- the page: declared(), lifted and run
 js = (ROOT / "app/static/dashboard.js").read_text()

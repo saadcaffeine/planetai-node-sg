@@ -1,112 +1,78 @@
 # Design
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.91.0 -->
 
-What a PLANETAI surface is made of, and why each part is the way it is. This page is the programme layer
-written out: the colours and what each one means, the type, the four card kinds, the signs, every motion with
-the datum that drives it, and the refusals that hold at every stage. It is the reference behind
-[the dashboard](dashboard.md) and [the wall](wall.md), so that a number read on either means the same
-thing, drawn the same way, on every node.
+The design language every PLANETAI surface is drawn in: the colours and the one thing each means, the type, the four
+card kinds, the signs and the motion. [The dashboard](dashboard.md), [the Wall](wall.md) and the phone page all follow
+it, so a number reads the same, drawn the same way, on every node.
 
-Every value here comes from one table, `planetai-design/references/planetai-layer.md`, which the design
-repository's generator turns into `app/static/planetai-theme.css`. The node carries a copy and does not edit
-it. To change a value you change the table and regenerate; there is nowhere else to change it.
-
-> **Note.** This page says nothing the layer does not. Where the layer records a value as unsettled, this
-> page says so and names the item. Nothing below is an aspiration.
-
-## How the copy is held
-
-Three files under `app/static/` belong to the design repository: `planetai-theme.css`, `signs.svg` and
-`kilometre-cells.json`. `tools/check_theme.py` runs in `make lint` and checks each against the sha256 recorded
-in `data/frozen_layer.txt`, with the design commit they were copied from, on every machine. Where a
-`planetai-design` checkout is present it also compares the files byte for byte against that pinned commit,
-not against whatever branch the checkout is on. One difference is forgiven and named: the theme declares the
-mono at `fonts/jetbrains-mono-latin.woff2`, and the node serves it at the flat name, so that one `src:` line
-is reported rather than failed. `python3 tools/check_theme.py --update` rewrites the pin, and refuses unless
-the design repository is there and the files match it.
-
-`tokens.css` is the Fab City foundation the layer imports; the programme layer's own tokens are unprefixed
-and redefine no `--fc-` token.
+Every value comes from one table, `planetai-design/references/planetai-layer.md`, which the design repository turns
+into `app/static/planetai-theme.css`. The node carries a pinned copy of that file, `signs.svg` and
+`kilometre-cells.json`, and does not edit them: `tools/check_theme.py`, in `make lint`, holds each to the sha256 in
+`data/frozen_layer.txt`. To change a value, change the table and regenerate. `tokens.css` is the Fab City foundation
+the layer imports; the layer's own tokens are unprefixed and redefine no `--fc-` token.
 
 ## The plate
 
-Paper by day, dark on a wall and by a reader's switch. `--ground` is `#F9F5F2` on paper and `#171717` in the
-dark register; `--ink` is the reverse. Everything drawn is ink on ground (buildings, roads, labels,
-provenance), and the register is one attribute on `<html>`, `data-theme="dark"`, so a page carries both and
-no drawing is exported twice. The Paper / Dark switch sits in the dashboard's header and the choice is kept
-per browser; the wall is always dark.
+`--ground` is `#F9F5F2` on paper and `#171717` in the dark register, and `--ink` is the reverse. Everything drawn is
+ink on ground: buildings, roads, labels, provenance. The register is one attribute on `<html>`, `data-theme="dark"`,
+so a page carries both. The Paper / Dark switch is in the bar of the doors and the classic dashboard and in the phone
+page's foot; the choice is kept per browser, and the doors and the phone follow the system's setting until one is
+chosen. The Wall is always dark.
 
-Corners are square, and the page draws no gauges, no dials with needles and no rounded verdict: a reading is a
-number with its comparison beside it.
+Corners are square. There are no gauges, no dials with needles and no rounded verdict: a reading is a number with its
+comparison beside it.
 
-## Colour is argument, never decoration
+## Colour
 
-Four colours, one meaning each. A surface that uses one of them for anything else is wrong, and that is the
-whole of the rule.
+Four colours, one meaning each. A surface that uses one of them for anything else is wrong.
 
-| token | paper | dark | what it means, and nothing else |
+| token | paper | dark | what it means |
 |---|---|---|---|
-| `--cells` | `#20388D` | `#7FA5E8` | an H3 cell. Also data and identity, which are the same claim: this is where the reading is from |
+| `--cells` | `#20388D` | `#7FA5E8` | an H3 cell, and where a reading is from. On the doors it is also the keyboard focus |
 | `--rings` | `#00A057` | `#00A057` | a loop closed: somebody was asked and somebody answered |
-| `--signal-worse` | `#E62038` | `#E62038` | a signal got worse, or crossed a line the issue declares |
-| `--satellite-only` | `#DB7200` | `#FF931E` | what only the satellite knows, and nothing else |
+| `--signal-worse` | `#E62038` | `#E62038` | a reading got worse or crossed the line its issue declares. A mark, never small type |
+| `--satellite-only` | `#DB7200` | `#FF931E` | what only the satellite knows |
 
-`--loop-closed` and `--rho-closed` are both `var(--rings)`: a closed ring means the same thing in the ρ row
-as it does anywhere else, so it is the same green by name rather than by coincidence.
+`--loop-closed` and `--rho-closed` are both `var(--rings)`, so a closed ring is the same green in the ρ row as anywhere
+else. Everything else is ink.
 
-**State is carried by weight, fill and dash, never by hue.** A live node is a 2.5 stroke, a registered one
-a 1.5 dashed `5 4`, a pilot a 1 at 45% opacity. On the dashboard the same rule reads as type weight: the
-state word is set at 500 in the muted ink, and `act` alone at 700 in full ink. Nothing in a table is tinted.
-The ladder follows it too: rungs that may leave the machine are dotted, rungs that stay are plain, rungs
-finer than the node says where it is are struck through. A reader who cannot separate blue from grey still
-sees three zones.
+Contrast decides which register a colour may appear in, and the generator computes it. `#7FA5E8` is 2.29:1 on paper,
+so it appears only in the dark block. `#20388D` is 1.72:1 on ink, so it never appears there. `#DB7200` is the paper
+orange at 3.02:1; `#FF931E` is 2.05:1 on paper and 8.06:1 on ink. Neither crosses into the other's block.
 
-Provenance is ink only and square (`--prov` is `var(--ink)`), never a coloured pill. The words are `live`,
-`partial`, `model`, `cached` and `stale`; see [Concepts](concepts.md).
+### State and provenance are not colours
 
-### Two numbers that are rules
+State is carried by weight, fill and dash, never by hue. On a map a live node is a 2.5 stroke, a registered one 1.5
+dashed `5 4`, a pilot 1 at 45% opacity. On a page the same rule is type weight: a state word is set at 500 in the
+muted ink, and `act` alone at 700 in full ink. Nothing in a table is tinted. The ladder follows it: rungs whose cell
+may leave the machine are dotted, rungs that stay are plain, rungs finer than the node says where it is are struck
+through, so a reader who cannot tell blue from grey still sees three zones.
 
-Contrast decides which register a colour may appear in, and the generator computes it.
-
-- `#7FA5E8` measures **2.29:1** on paper. It may appear only inside the dark block.
-- `#20388D` measures **1.72:1** on ink. It may never appear inside it. A dark export still carrying
-  `#20388D` is a stale asset, not a style choice.
-- `#DB7200` is the paper register's satellite orange at **3.02:1**; `#FF931E` is **2.05:1** on paper,
-  under the 3:1 floor for a graphical object, and **8.06:1** on ink. Neither crosses into the other's block.
+Provenance is ink only and square (`--prov` is `var(--ink)`): the word's sign, then the word.
+The words are `live`, `partial`, `model`, `cached` and `example`, and the classic dashboard also prints `stale` when
+the node stops answering; see [Concepts](concepts.md#provenance-words-on-the-page).
 
 ## Type
 
-Three faces, three jobs.
-
 | role | face | where |
 |---|---|---|
-| display | Funnel Sans | headings, the stage names, a band's title |
+| display | Funnel Sans | headings, stage names, a section's title |
 | body | Figtree | the node's own sentences: the lead, the reason, a caption |
 | mono | JetBrains Mono (`--mono`) | every number, unit, timestamp, cell id and chip label |
 
-All three are self-hosted and served from the node, because a node serves its page to a household network
-that may have no route out at all; a webfont from a CDN is a page with no typography.
+All three are self-hosted and served by the node, because its page may be read on a network with no route out.
+`--num-face` is the large numeral on the lead and the Wall. It defaults to `var(--mono)`; whether it should be Funnel
+Sans is open item O13.
 
-`--num-face` is the one numeral big enough to be a piece of typography rather than a reading: the monument
-figure on the lead. It defaults to `var(--mono)` and exists so that the open question, mono or Funnel Sans,
-is one line either way. Recorded as **O13**.
+The node's own words are never uppercased, because `µ` uppercases to `M` and `µg/m³` becomes `MG/M³`, a thousandfold
+error. Anything the node wrote is drawn inside `.said`, which turns uppercase off. On the classic dashboard
+`tools/check_ui.py` fails a new uppercase rule, and a `µ` written outside `.said`.
 
-**The node's own words are never uppercased.** `µg/m³` once became `MG/M³` on a hero, which is a
-thousandfold error in a unit, on a wall, silently: `µ` uppercases to `M`. `tools/check_ui.py` keeps the list
-of rules allowed to shout and fails on a new one, and fails on a `µ` written into the stylesheet or into the
-page's markup outside a `.said` wrapper.
-
-## Spacing
-
-There is no spacing scale in this layer, and that is worth saying rather than leaving a reader to look for
-one. The foundation tokens (`--fc-` prefixed, from the Fab City design system) carry the type scale; the
-dashboard's own rhythm is `clamp()` in `app/static/dashboard.css`. The measuring rig in
-`tests/visual/measure.mjs` renders the page at 375, 390, 768 and 1440 px, and the wall at 1920.
+The Wall has its own floor, `--wf`: 28 px at 1920×1080, scaled with the screen, and nothing on the Wall is smaller.
 
 ## Four card kinds and no fifth
 
-Everything on a node's page is one of four things. A fifth would mean the page had learned a new way to be
-read, which is a decision and not a detail.
+Everything on a node's page is one of four things, and each part of the doors says which in `data-kind`.
 
 | kind | what it is for |
 |---|---|
@@ -115,43 +81,34 @@ read, which is a decision and not a detail.
 | **series** | a quantity over time |
 | **row** | a list of like things, counted in signs |
 
-A drawing is a drawing *inside* a card, not a fifth kind. A gap in a series is a gap in the line, never a
-ramp across a line nobody measured. Every numeral carries its comparison; a numeral with nothing to compare
-it to says so in words.
+A drawing sits inside a card, it is not a fifth kind. A gap in a series is a gap in the line, never a ramp across a
+line nobody measured. Every numeral carries its comparison (`data-num` names it, `data-cmp` says against what), and a
+numeral with nothing to compare it to says so in words.
 
-## Drawn with Plot
-
-The figures are drawn with Observable Plot 0.6.17 and the d3 7.9.0 it is built on, served by the node as two static
-files (ISC; `app/static/licences/`), so the page draws on a network with no route out. `data/vendor.sha256` pins both
-and `make lint` checks them. Plot draws marks; the layer's rules still decide them: ink for readings, red for the line
-and the hours over it, green only for an answer that closed a loop, blue only for focus. A figure is a `series` card,
-so the four card kinds stay four.
+The figures are drawn with Observable Plot 0.6.17 and d3 7.9.0, served by the node (ISC, licences in
+`app/static/licences/`) and pinned in `data/vendor.sha256`. Plot draws the marks and the rules above decide them: ink
+for readings, red for the line and the hours over it, green only for an answer that closed a loop, blue only for a cell
+or focus.
 
 ## Signs
 
-Two families, two rules, and each is audited by its own. `app/static/signs.svg` carries 25 counting signs and
-4 pictograms.
+`app/static/signs.svg` carries 25 counting signs and 4 pictograms, two families with two rules.
 
-A **counting sign** is 24×24, fill only, `currentColor`. It is repeated to show quantity
-(more signs, never a bigger sign), so it has to survive `--sign-floor`, which is **12 px**, and tile in a row
-of ten without fusing. At that size the only discriminator that can be relied on is solid mass against hollow
-ring. `person` was drawn for the care label's agent row.
+A **counting sign** is 24×24, fill only, `currentColor`. It is repeated to show quantity (more signs, never a bigger
+sign), so it has to read at `--sign-floor`, 12 px, and tile in a row of ten without fusing. At that size the one
+reliable difference is solid mass against hollow ring.
 
-A **pictogram** is 15×11, drawn once at hero size beside the issue it names: `pix-air`, `pix-heat`,
-`pix-land`, `pix-coast`. It is never repeated to show quantity, and the 12 px floor is a rule about a use it
-does not have. An issue with no pictogram has none; the lead does not invent one.
+A **pictogram** (`pix-air`, `pix-heat`, `pix-land`, `pix-coast`) is 15×11, drawn once at hero size beside the issue it
+names, and never repeated. An issue with no pictogram has none.
 
-Distinctness is measured, not judged: every pair is rasterised at 12 px and compared cell for cell, and over
-90% identical fails unless the layer records it as an open item. Two pairs are recorded: **O7**
-(`prov-cached` against `prov-example`, 93.7%) and **O12** (`cell` against `prov-example`, 93.9%). Both are
-redraws waiting to happen, not exceptions. `person` went back for a redraw after its first pass measured
-90.3% identical to `heat`.
+Distinctness is measured: every pair is rasterised at 12 px and compared cell for cell, and over 90% identical fails
+unless the layer records it as an open item. Two pairs are recorded and wait for a redraw: O7 (`prov-cached` against
+`prov-example`, 93.7%) and O12 (`cell` against `prov-example`, 93.9%).
 
-## Motion, and the datum behind each one
+## Motion
 
-Every motion is named after the thing that drives it. A motion with no datum behind it is deleted rather
-than tokenised: there is no easing for its own sake anywhere on a PLANETAI surface, and nothing counts up,
-nothing eases between two readings, nothing moves without a reason.
+Every motion is named after the datum that drives it. A motion with no datum behind it is deleted: nothing counts up,
+and nothing eases between two readings.
 
 | token | datum | value |
 |---|---|---|
@@ -166,25 +123,22 @@ nothing eases between two readings, nothing moves without a reason.
 | `--motion-asking` | the node has not answered yet | `until-data` |
 | `--motion-asking-hold` | the loading state is also a reading | `3s`, the shortest time it is held |
 
-Transform and opacity only, never layout. One `requestAnimationFrame` loop for the whole page, which surfaces
-subscribe to and which stops when the tab is hidden, when the element is off screen, and when nobody is
-subscribed.
+The doors add one token the layer does not carry yet, `--motion-replay-loop: 30s`, defined in `doors.html`: a
+replayed window of 6 or 24 hours takes 30 s, on Node's flow and on the Wall's walk.
 
-**A motion is not always a duration.** `--motion-asking` is a word: the loading state lasts as long as the
-node takes to answer, which is a fact about the network and not a design decision. `--motion-asking-hold`
-sets a floor under it, because on a fast node the list of what the page asked and how long each read took
-was gone before anybody could read it. The dashboard holds it on a load and on **↻**, never on a poll.
+Only transform and opacity move. One `requestAnimationFrame` loop drives the whole page; surfaces subscribe to
+it, and it stops when the tab is hidden or nobody is subscribed. Time and scale move in steps: there is no
+place between resolution 7 and 8, so nothing morphs.
 
-**Reduced motion.** One `@media (prefers-reduced-motion: reduce)` block sets every *timed* token to `0s`,
-`--motion-asking-hold` included, and every surface has to read frozen. `--motion-asking` is not restated
-there: it has no number to remove, so under reduced motion the loading state still happens and stops
-moving. There is no SVG `<animate>` anywhere on a node's page, and `tools/check_ui.py` fails the lint if one
-appears: reduced motion reaches CSS animation and nothing else, so SMIL keeps moving after a household has
-asked the machine to stop, and no stylesheet can switch it off.
+`--motion-asking` is a word, not a duration: the loading state lasts as long as the node takes to answer.
+`--motion-asking-hold` puts a floor under it so the list of what the page asked can be read.
+
+Under `prefers-reduced-motion: reduce` one block sets every timed token to `0s`, `--motion-asking-hold` included, and
+every surface has to read frozen. The doors' clock never starts. `--motion-asking` is not restated there, so the
+loading state still happens and stops moving. No page uses SVG `<animate>`, because reduced motion reaches CSS
+animation and not SMIL.
 
 ## Refusals that hold at every stage
-
-The layer is not only what a surface may draw. It is also what it may not.
 
 - No raw readings leave the instance that recorded them.
 - No cell is upgraded from `mock` or `partial` to `live` by aggregation.
@@ -192,33 +146,20 @@ The layer is not only what a surface may draw. It is also what it may not.
 - No layer requires a cloud provider to function.
 - No scale is skipped: a city aggregator is built from nodes, not declared from above.
 
-On the dashboard these five are the care label, "What this node will not do, at any stage", drawn as signs
-inside the Measure stage's "Whether it worked", beside the funnel, where the loop closes.
-
-The longer form, with the staging from one node to a bioregion, is [Architecture](architecture.md); the
-privacy half (what leaves the machine and how coarse) is [Sharing and security](sharing.md).
+On the doors these close the Node door, "What this node will not do, at any stage", each in plain words beside a link
+to where it can be checked. On the classic dashboard they are the care label, drawn as signs in Measure beside the
+funnel. The longer form is [Architecture](architecture.md); what leaves the machine, and how coarse, is
+[Sharing and security](sharing.md).
 
 ## What is unsettled
 
-The theme carries 12 open items on 11 tokens, each emitted into the CSS as an `OPEN:` comment at the token it
-affects, so a reader of the stylesheet sees them without coming here: `--land-opacity`, `--cells`, `--prov`,
-`--cell-water-opacity`, `--state-pilot-opacity`, `--wall-line-opacity`, `--sign-floor` (two items), `--num-face`,
-`--motion-reading-pulse`, `--motion-day-curve-step` and `--motion-ring-closed`. They are the values that were
-set by eye, or on one screen, or in one room, and have not been measured since. The list lives in
-`planetai-design/references/planetai-layer.md`; `O7`, `O12` and `O13` are named above.
-
-## Where this comes from
-
-- `planetai-design/references/planetai-layer.md`: the token table, the guards and the open items.
-- `planetai-design/decisions/design-log.md`: which round settled what, and why.
-- `app/static/planetai-theme.css`: generated from the first, held to its pin by `tools/check_theme.py`.
-
-The node's page is `doors.html` (the five doors) or `index.html` (the classic dashboard at `/?layout=classic`) and the static files
-the node serves beside it, and stays so.
-`planetai.fab.city` may use a framework; the two never share code, and both read this layer.
+The theme carries 12 open items on 11 tokens, each written into the CSS as an `OPEN:` comment at the token it affects:
+`--land-opacity`, `--cells`, `--prov`, `--cell-water-opacity`, `--state-pilot-opacity`, `--wall-line-opacity`,
+`--sign-floor` (two items), `--num-face`, `--motion-reading-pulse`, `--motion-day-curve-step` and
+`--motion-ring-closed`. They are values set by eye, on one screen or in one room, and not measured since. The list
+lives in `planetai-design/references/planetai-layer.md`.
 
 ## Where this leads
 
-These rules are read on two surfaces. [The dashboard](dashboard.md) is where the ladder, the lead and the four
-stages draw them for a person at the page, and [Wall mode](wall.md) is the dark register for a screen read
-from three metres.
+[The dashboard](dashboard.md) is where these rules are read by a person at the page, and [Wall mode](wall.md) is the
+dark register for a screen read from three metres.

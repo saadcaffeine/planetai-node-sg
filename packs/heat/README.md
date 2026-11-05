@@ -44,7 +44,28 @@ record, replaying the rule's real per-sensor cooldown:
 | require AT rising by 1 °C or more in the hour | 36 → 19 | fires on the ordinary morning warm-up every day, and goes silent on a flat hot night — the case that actually hurts people. |
 | cooldown 240 → 1440 min | 36 → 8 | same count as the threshold fix, but every one of the eight is still a false alarm. It rations the wrong signal instead of correcting it. |
 
-At 35 °C the cooldown stops mattering (8 fires at 240 min, 7 at 360), so it stays at 240.
+At 35 °C the cooldown stopped mattering in that week (8 fires at 240 min, 7 at 360), so it stayed at 240.
+
+**October 2026: the line held, the repeats did not (14 Oct).** Thirty days later the same line meant something
+else. The hot room's median AT was 34.7 °C, its p90 36.7, and it felt 35 °C or more in 44% of all hours; the cooler
+room 16%. The rule fired 171 times in 30 days across three rooms, 5.7 a day, 21 at night, and two were acted on
+(the node's own learning, SPEC_learn step 2). Replaying the last 30 days of hourly AT with the per-room cooldown:
+
+| line | cooldown | fires in 30 days | a day | at night |
+|---|---|---|---|---|
+| 35 °C | 240 min | 138 | 4.6 | 14 |
+| 35 °C | **1440 min** | **56** | **1.9** | **0** |
+| 36 °C | 240 min | 65 | 2.2 | 3 |
+| 36 °C | 1440 min | 32 | 1.1 | 0 |
+| 37 °C | 240 min | 17 | 0.6 | 0 |
+
+(Hourly means, so a little under what the 15-minute rule sees.) The September argument was that a cooldown rations a
+wrong signal. In October the signal is right: the hot room is genuinely over the line for hours on end, and raising
+the line to the new p90 would call a sustained exposure normal. What was wrong is the repetition: the same true
+sentence every four hours, including at night, which is how an alert becomes background. So the line stays at 35
+and the cooldown becomes 1440 minutes, once a room a day. `heat_danger` (40 °C, 120 minutes) still interrupts as
+often as it must. A node on `ALERT_ENGINE=events` already sends one message per episode and is unchanged; this
+matters to nodes on `rules`, the default.
 
 **What it assumes.** A local sensor reporting both `temp` and `humidity` (Smart Citizen, AirGradient, and a BME680
 on a Tracker all do). Indoor for all of it. The night rule, the cell and the stress rules all read local indoor

@@ -31,7 +31,16 @@ def tree():
     for f in ("index.html", "dashboard.js", "dashboard.css", "learn.json",
               "signs.svg", "node-ground.svg"):
         shutil.copy(ROOT / "app" / "static" / f, tmp / "app" / "static" / f)
+    # the doors mark their parts in their own markup, and the learn check reads those marks too
+    for f in (ROOT / "app" / "static").glob("doors*.*"):
+        shutil.copy(f, tmp / "app" / "static" / f.name)
     shutil.copy(ROOT / "app" / "main.py", tmp / "app" / "main.py")
+    for f in (ROOT / "app").glob("*.py"):                   # every core router (GET /ground/*, /geo/*, ...)
+        if "APIRouter()" in f.read_text():
+            shutil.copy(f, tmp / "app" / f.name)
+    for f in (ROOT / "packs").glob("*/routes.py"):          # a pack's own routes are the node's too (/forecast)
+        (tmp / "packs" / f.parent.name).mkdir(parents=True, exist_ok=True)
+        shutil.copy(f, tmp / "packs" / f.parent.name / "routes.py")
     shutil.copy(ROOT / "app" / "ask.py", tmp / "app" / "ask.py")
     (tmp / "app" / "issues").mkdir(parents=True, exist_ok=True)
     shutil.copy(ROOT / "app" / "issues" / "api.py", tmp / "app" / "issues" / "api.py")
@@ -226,5 +235,9 @@ broken("a section with no reads",
 broken("a section that reads a route the node does not have",
        sub("  reads: ['/effect'],", "  reads: ['/effects'],"),
        r"section 'effect' reads /effects, which app/main\.py does not define", where="dashboard.js")
+# A doors part names its learn mark in the markup; a key the build never wrote is a part learn lists as its bare key.
+broken("a doors part whose learn mark is not in learn.json",
+       sub('data-learn="now-todo"', 'data-learn="now-to-do"'),
+       r"draws a learn mark 'now-to-do'", where="doors.html")
 
 print("check_ui: every visual-language gate fails when the page breaks its rule")

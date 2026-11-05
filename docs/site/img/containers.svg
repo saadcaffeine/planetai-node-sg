@@ -1,0 +1,69 @@
+<svg class="dg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 404">
+<style>
+.dg{--dg-ground:var(--ground,#F9F5F2);--dg-ink:var(--ink,#171717);--dg-mute:var(--mute,#5F5A54);--dg-cell:var(--cells,#20388D);--dg-ring:var(--rings,#00A057)}
+@media (prefers-color-scheme:dark){.dg{--dg-ground:var(--ground,#171717);--dg-ink:var(--ink,#F9F5F2);--dg-mute:var(--mute,#A3A19F);--dg-cell:var(--cells,#7FA5E8);--dg-ring:var(--rings,#00A057)}}
+.dg text{font-family:var(--fc-font-body,Figtree,system-ui,sans-serif);font-size:15px;fill:var(--dg-ink)}
+.dg .dg-h{font-family:var(--fc-font-display,"Funnel Sans",Figtree,system-ui,sans-serif);font-size:18px;font-weight:700}
+.dg .dg-m{font-family:var(--mono,ui-monospace,monospace)}
+.dg .dg-b{font-weight:600}
+.dg .dg-s{fill:var(--dg-mute)}
+.dg .dg-ct{fill:var(--dg-cell)}
+.dg-ln{fill:none;stroke:var(--dg-ink);stroke-width:1.5}
+.dg-off{stroke-dasharray:5 4}
+.dg-dot{stroke-dasharray:0.1 5;stroke-linecap:round;stroke-width:2.5}
+.dg-hv{stroke-width:2.5}
+.dg-hd{fill:var(--dg-ink)}
+.dg-g{stroke:var(--dg-ring)}
+.dg-gf{fill:var(--dg-ring)}
+.dg-c{stroke:var(--dg-cell)}
+.dg-cf{fill:var(--dg-cell);fill-opacity:.13}
+.dg-gc{fill:var(--dg-ring);fill-opacity:.13}
+.dg-gr{fill:var(--dg-ground)}
+</style>
+<rect x="20" y="20" width="400" height="336" class="dg-ln dg-hv"/>
+<text x="36" y="48" class="dg-h">This machine</text>
+<rect x="36" y="66" width="176" height="76" class="dg-ln"/>
+<text x="48" y="92" class="dg-m dg-b">db</text>
+<text x="48" y="114" class="dg-s">Postgres, PostGIS</text>
+<text x="48" y="133" class="dg-s"><tspan class="dg-m">127.0.0.1:5432</tspan></text>
+<rect x="228" y="66" width="176" height="76" class="dg-ln"/>
+<text x="240" y="92" class="dg-m dg-b">app</text>
+<text x="240" y="114" class="dg-s">the API and its loops</text>
+<text x="240" y="133" class="dg-s"><tspan class="dg-m">:8080</tspan></text>
+<rect x="36" y="168" width="176" height="76" class="dg-ln dg-off"/>
+<text x="48" y="194" class="dg-m dg-b">mosquitto</text>
+<text x="48" y="216" class="dg-s">radios, DIY sensors</text>
+<text x="48" y="235" class="dg-s"><tspan class="dg-m">:1883</tspan></text>
+<rect x="228" y="168" width="176" height="76" class="dg-ln dg-off"/>
+<text x="240" y="194" class="dg-m dg-b">agent</text>
+<text x="240" y="216" class="dg-s">the Telegram bot</text>
+<text x="240" y="235" class="dg-s">a local model</text>
+<rect x="36" y="264" width="176" height="76" class="dg-ln dg-off"/>
+<text x="48" y="290" class="dg-m dg-b">reticulum</text>
+<text x="48" y="312" class="dg-s">the LXMF mesh</text>
+<text x="48" y="331" class="dg-s"><tspan class="dg-m">:4242</tspan></text>
+<rect x="228" y="264" width="176" height="76" class="dg-ln dg-off"/>
+<text x="240" y="290" class="dg-m dg-b">ipfs</text>
+<text x="240" y="312" class="dg-s">the daily export</text>
+<text x="240" y="331" class="dg-s"><tspan class="dg-m">:4001</tspan></text>
+<polyline points="228,104 220.0,104.0" class="dg-ln"/><path d="M212.0 104.0L222.0 99.0L222.0 109.0Z" class="dg-hd"/>
+<rect x="470" y="20" width="150" height="56" class="dg-ln"/>
+<text x="482" y="44" class="dg-b">planetai.fab.city</text>
+<text x="482" y="65" class="dg-s">and GitHub, hourly</text>
+<rect x="470" y="86" width="150" height="56" class="dg-ln"/>
+<text x="482" y="110" class="dg-b">Sources</text>
+<text x="482" y="131" class="dg-s">polled every 300 s</text>
+<rect x="470" y="186" width="150" height="56" class="dg-ln"/>
+<text x="482" y="210" class="dg-b">Telegram</text>
+<text x="482" y="231" class="dg-s">alerts, the bot</text>
+<polyline points="404,80 440,80 440,48 462.0,48.0" class="dg-ln"/><path d="M470.0 48.0L460.0 53.0L460.0 43.0Z" class="dg-hd"/>
+<polyline points="470,114 412.0,114.0" class="dg-ln"/><path d="M404.0 114.0L414.0 109.0L414.0 119.0Z" class="dg-hd"/>
+<polyline points="404,132 445,132 445,200 462.0,200.0" class="dg-ln"/><path d="M470.0 200.0L460.0 205.0L460.0 195.0Z" class="dg-hd"/>
+<polyline points="404,226 462.0,226.0" class="dg-ln"/><path d="M470.0 226.0L460.0 231.0L460.0 221.0Z" class="dg-hd"/>
+<polyline points="316,168 316.0,150.0" class="dg-ln"/><path d="M316.0 142.0L321.0 152.0L311.0 152.0Z" class="dg-hd"/>
+<text x="326" y="160" class="dg-m dg-s">MCP</text>
+<line x1="20" y1="384" x2="60" y2="384" class="dg-ln"/>
+<text x="70" y="389" class="dg-s">always runs</text>
+<line x1="200" y1="384" x2="240" y2="384" class="dg-ln dg-off"/>
+<text x="250" y="389" class="dg-s">only when its profile is on</text>
+</svg>

@@ -2,25 +2,28 @@ id: forecast
 name: Forecast
 description: >-
   Official and model weather for this point, as context for reading the node's own air: where the wind is coming
-  from and when rain is expected, over the next day. It fetches; it does not predict, and it never sends an alert.
+  from and when rain is expected, over the next three days. It fetches; it does not predict, and it never sends an alert.
 author: PLANETAI core (official)
 version: 0.1.0
 requires: { node: ">=0.40.0" }
 kind: code
 domain: weather
-metrics: [fc_temp, fc_humidity, fc_wind_speed, fc_wind_direction, fc_cloud, fc_rain, fc_rain_prob, fc_lead_hours,
-          fc_temp_gap, fc_wind_speed_gap]
+metrics: [fc_temp, fc_humidity, fc_wind_speed, fc_wind_direction, fc_cloud, fc_rain, fc_wind_gusts, fc_rain_prob,
+          fc_shortwave, fc_et0, fc_soil_moisture, fc_pm25, fc_uv, fc_wave_m, fc_swell_m, fc_swell_s,
+          fc_swell_dir, fc_lead_hours, fc_temp_gap, fc_wind_speed_gap]
 scales: [community]
 env:
   - "# forecast: BMKG is Indonesia's meteorological agency and needs the village code for this point."
   - "# `planetai run forecast verify` proves the code resolves to somewhere near the node."
   - "FORECAST_BMKG=1"
   - "FORECAST_BMKG_ADM4="
-  - "# Open-Meteo works anywhere, which is why it is here at all — but its free tier is non-commercial only,"
-  - "# so it is the operator's decision, not ours. Off until you turn it on."
+  - "# Open-Meteo works anywhere, but its free tier is for non-commercial use only, so turning it on is the"
+  - "# operator's call. Off until you turn it on. This one switch turns on its weather, the CAMS air and, while the"
+  - "# coast pack is on, the sea, for the next 72 hours, and Next days on Now draws them."
   - "FORECAST_OPENMETEO=0"
-  - "# forecast: how often to ask, in hours. Both sources publish a few times a day, so six is the"
-  - "# publishers own cadence rather than a number this pack invented."
+  - "# forecast: how often to ask each source, in hours. They publish a few times a day, so six is the"
+  - "# publishers own cadence rather than a number this pack invented. A source that fails is asked again"
+  - "# after 30 minutes, not on the next poll: Open-Meteo's daily limit is per IP."
   - "FORECAST_POLL_HOURS=6"
   - "# forecast: the wind field the map draws moving (Open-Meteo, so only with FORECAST_OPENMETEO=1): points a side, and half-width in km"
   - "FORECAST_WIND_N=8"
@@ -28,6 +31,12 @@ env:
 needs:
   - api.bmkg.go.id
   - api.open-meteo.com
+  - air-quality-api.open-meteo.com
+  - marine-api.open-meteo.com
 attribution: >-
   Weather forecast data from BMKG (Badan Meteorologi, Klimatologi, dan Geofisika), api.bmkg.go.id.
-  Model forecast from Open-Meteo, open-meteo.com, CC-BY 4.0 — free tier is non-commercial use only.
+  Model forecast from Open-Meteo, open-meteo.com, CC-BY 4.0 — free tier is non-commercial use only. Air from the
+  Copernicus Atmosphere Monitoring Service (CAMS) and sea from Copernicus Marine / MFWAM, both through Open-Meteo.
+# The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
+share:
+  open: [/forecast]

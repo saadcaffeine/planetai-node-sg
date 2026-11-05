@@ -4,15 +4,27 @@
     {
       "name": "bayu-ungasan",
       "scale": "community",
-      "operator": "Meaningful Design Group",
+      "operator": "Fab Lab Bali",
       "place": "Ungasan, Badung, Bali, ID",
-      "cell": "8895a4c843fffff",
-      "lat": -8.816,
-      "lon": 115.164,
-      "sources": ["smartcitizen:19880", "baliairdispatch"],
+      "cell": "8895a4c855fffff",
+      "lat": -8.818,
+      "lon": 115.171,
+      "sources": ["baliairdispatch", "bmkg-synop", "earth", "earth-engine", "fablabs-io", "firms", "forecast-bmkg", "forecast-om", "landsat-lst", "meshtastic", "modis-lst", "open-meteo", "open-meteo-cams", "open-meteo-marine", "openaerialmap", "openstreetmap", "paddy", "sentinel-2", "smartcitizen", "terrain", "things"],
       "parent": null,
       "since": "2026-09",
-      "contact": "tomas@meaningful-design.org"
+      "contact": "fablabbali@gmail.com"
+    },
+    {
+      "name": "barcelona",
+      "scale": "community",
+      "operator": "Lars FAB City",
+      "place": "Barcelona Sant Andreu",
+      "cell": "88394460e5fffff",
+      "lat": 41.385,
+      "lon": 2.174,
+      "sources": ["earth-engine", "landsat-lst", "modis-lst", "nasa-power", "open-meteo", "open-meteo-cams", "open-meteo-marine", "openaerialmap", "openstreetmap", "sentinel-2", "terrain"],
+      "parent": null,
+      "since": "2026-10"
     }
   ]
 }

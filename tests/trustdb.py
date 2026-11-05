@@ -44,7 +44,7 @@ def _schema() -> str:
 def _init_sql() -> str:
     sql = _schema()
     out = []
-    for t in ("sensors", "readings", "channel_roles"):
+    for t in ("sensors", "readings", "channel_roles", "readings_1h_done"):
         m = re.search(rf"CREATE TABLE IF NOT EXISTS {t} \(.*?\n\);", sql, re.S)
         out.append(m.group(0).replace("JSONB", "JSON"))
     out.append(re.search(r"CREATE VIEW readings_1h AS.*?;", sql, re.S).group(0))

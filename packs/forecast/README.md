@@ -1,8 +1,10 @@
 # forecast
 
-**What it adds** — the next day of wind and rain for this point, from the meteorological agency that covers it.
-It answers the question that follows "is the air bad": is it arriving or leaving. A reading of 40 µg/m³ with the
-wind turning offshore and rain at four means something different from the same 40 with still air all night.
+**What it adds:** the next 72 hours of weather for the node's ground, from the meteorological agency that covers it,
+and with Open-Meteo on, the air too, and the sea while the `coast` pack is on. Now draws them under Next days
+([docs/site/next-days.md](../../docs/site/next-days.md)). It answers the question that follows "is the air bad": is it
+arriving or leaving. A reading of 40 µg/m³ with the wind turning offshore and rain at four means something different
+from the same 40 with still air all night.
 
 **It fetches. It does not predict.** Forecasting is the upstream tiers' job. This pack asks BMKG and Open-Meteo
 what they already published, stores it beside the node's own readings, and stops.
@@ -35,9 +37,15 @@ place is still a forecast, but it is not this address's.
 
 BMKG allows 60 requests a minute per IP and it enforces it — finding the code above cost a `429` that took several
 minutes to clear. `FORECAST_POLL_HOURS=6` is far inside it; BMKG publishes twice a day, so anything faster is
-asking a cache the same question.
+asking a cache the same question. Each source keeps its own stamp (`out/forecast.<source>.last`): one that fails is
+asked again after 30 minutes, not on the next 300 s poll, and the others are not held back. The stamp is written before
+the request, so an `out/` that cannot be written stops the fetch before anything is asked. The wind field has its own
+stamp (`out/forecast.wind.last`), behind the same `FORECAST_OPENMETEO` switch, so a refused field never asks the points again.
 
-## Two sources, and only one of them is on
+## The sources, and which of them are on
+
+Every source is kept for the next 72 hours (`HOURS = 72`). A newer fetch replaces the stored value for an hour that is
+still ahead, so the node always holds the latest run, and an hour that has passed is never rewritten.
 
 **BMKG** (`FORECAST_BMKG=1`, Indonesia). 3-hourly, three days, no key. `ws` is km/h, `wd_deg` is the direction the
 wind comes **from**, `tp` is rain in millimetres for the step. BMKG publishes no probability, so the node does not
@@ -47,8 +55,28 @@ invent one. Attribution is required and is on the card and in the export.
 makes this pack work for nodes #2 in Barcelona and #3 in Santiago, where BMKG does not. **Its free tier is
 non-commercial use only.** That is the operator's decision and not ours, so it is off until it is turned on.
 
-When both are on, a third derived channel records how far apart they are on temperature and wind for the same
-hour. Neither is the truth; a wide gap is the node saying so out loud rather than picking a favourite.
+**CAMS air and the sea** (also `FORECAST_OPENMETEO=1`, one switch for all three Open-Meteo sources). `forecast-cams` is
+PM2.5 and the UV index for the next 72 hours, `forecast-marine` is wave height and swell height, period and direction. The
+sea is asked only while the `coast` pack is on, at the node's own point; Open-Meteo snaps it to the nearest sea cell,
+the sensor sits at that cell, and one farther than `COAST_MAX_KM` (30) is refused, as the coast pack refuses it.
+
+## The territory, at the node's scale
+
+Open-Meteo's weather and the CAMS air are asked for the node's ground at its `NODE_SCALE`, in one request per source.
+`home` is one point, the node. `community`, the default, is 7 points, the node's resolution-7 H3 cell and the six
+around it. `city` and `region` are 19 each, the resolution-6 or resolution-5 cell with two rings around it. The node's
+own point keeps the node's coordinates and the plain sensor id (`forecast-om`, `forecast-cams`), the others sit at
+their cells' centres as `forecast-om-<cell>` and `forecast-cams-<cell>`, and every sensor carries its `cell` in meta.
+The sea and BMKG stay one point each. Open-Meteo counts each location as a call against its daily limit per IP, so
+each poll on a community node sends 7 locations for the weather and 7 for the air, beside the wind field's 65 (8 × 8
+and the node's own point) and, while `coast` is on, one for the sea.
+
+## The gap between the two
+
+When both are on, a third derived channel records how far apart they are on temperature and wind for the same hour.
+Neither is the truth; a wide gap is the node saying so out loud rather than picking a favourite. It compares BMKG with
+the node's own point only. The sources keep their own clocks, so the gap is made against the other source's last
+stored hours (`out/forecast.<source>.rows.json`, future hours only) when only one was fetched.
 
 ## The issue time, stored per value
 
@@ -85,7 +113,8 @@ planetai run forecast status    # the next day: wind, rain, temperature, and whe
 
 Weather forecast data from **BMKG** (Badan Meteorologi, Klimatologi, dan Geofisika), api.bmkg.go.id — BMKG must be
 named as the data source inside the application, and is, on the card and in the export.
-Model forecast from **Open-Meteo**, open-meteo.com, CC-BY 4.0.
+Model forecast from **Open-Meteo**, open-meteo.com, CC-BY 4.0. Air from the Copernicus Atmosphere Monitoring
+Service (**CAMS**) and the sea from **Copernicus Marine**, both through Open-Meteo.
 
 ## The wind field
 

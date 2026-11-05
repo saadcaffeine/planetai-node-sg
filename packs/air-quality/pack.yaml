@@ -2,12 +2,19 @@ id: air-quality
 name: Air quality
 description: >-
   PM2.5 rules and Index cells: the indoor/outdoor decision, WHO exceedance days, and the
-  daily air line. The first domain pack, and the template for the next one.
+  daily air line, and the CAMS model at the node's point, now and for its first 92 days. The first domain pack, and
+  the template for the next one.
 author: PLANETAI core (official)
-version: 0.2.0
-requires: { node: ">=0.2.0" }
-kind: data
+version: 0.3.0
+requires: { node: ">=0.83.0" }
+kind: code
 domain: air
-metrics: [pm25, pm10, pm1, humidity]
+metrics: [pm25, pm10, pm1, humidity, pm25_model, pm10_model, dust, aod, co, no2, o3, uv_index]
 scales: [community, city]
 thresholds: US EPA / WHO 2021 — see docs/sensors.md §7
+# CAMS was core until 24 Oct 2026 and ran wherever Global models was on, which .env.example ships at 1: the same key.
+switch: OPENMETEO_ENABLED
+needs:
+  - air-quality-api.open-meteo.com
+attribution: >-
+  CAMS ENSEMBLE data provider and Open-Meteo. EPA 2021 correction: Barkjohn et al. 2021.

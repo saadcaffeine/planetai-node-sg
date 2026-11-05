@@ -30,9 +30,15 @@ mkdir -p /tmp/stub && printf 'class Client: pass\n' > /tmp/stub/httpx.py
 #   test_issues_geometry  needs app/requirements.txt installed (h3 and friends)
 #   test_kinded_rules     the kinded rules replayed over node #1's readings, needs duckdb
 #   test_replay           the whole suite is a replay of both alert engines, and needs duckdb
+#   test_captures         needs app/requirements.txt installed (Pillow, python-multipart and friends)
+#   test_private          the predicate's replay needs duckdb
 # test_earth deliberately fails rather than skips when numpy is missing (see its own header): a pack that
 # ships because a suite printed "skipped" is the failure it is guarding against. Do not add it here.
-EXPECTED_SKIPS=" test_ground test_nearby test_season test_measures test_shipped test_custody test_issues_geometry test_kinded_rules test_replay "
+# test_radio, test_radio_gateway: the meshtastic package (and mosquitto, for the gateway) live on the host that
+# provisions radios, not on every machine that runs the suite. Without them the whole suite skips.
+# test_rho_pg, test_views_pg: on a real Postgres, at RHO_PG_URL; CI's lint job runs them in its schema step, so here
+# they skip.
+EXPECTED_SKIPS=" test_rho_pg test_views_pg test_ground test_nearby test_season test_measures test_shipped test_custody test_issues_geometry test_kinded_rules test_replay test_captures test_private test_radio test_radio_gateway "
 
 pass=0; fail=0; skips=0; undeclared=0
 failed_names=""; skip_lines=""
@@ -86,6 +92,7 @@ test_ship_signing|bash tests/test_ship_signing.sh
 test_daemon_state|bash tests/test_daemon_state.sh
 test_diagnose|bash tests/test_diagnose.sh
 test_remove|bash tests/test_remove.sh
+test_hello|bash tests/test_hello.sh
 test_sudo_prompt|bash tests/test_sudo_prompt.sh
 test_running_state|bash tests/test_running_state.sh
 test_preflight|bash tests/test_preflight.sh
@@ -93,15 +100,21 @@ test_geocode|bash tests/test_geocode.sh
 test_lan_ip|bash tests/test_lan_ip.sh
 test_test_alert|bash tests/test_test_alert.sh
 test_packs_add|bash tests/test_packs_add.sh
+test_pack_install|PYTHONPATH=app python3 tests/test_pack_install.py
 test_update_guard|bash tests/test_update_guard.sh
-test_peers_persist|python3 tests/test_peers_persist.py
 test_sweep|python3 tests/test_sweep.py
-test_sources|PYTHONPATH=/tmp/stub:app python3 tests/test_sources.py
+test_sources|PACKS_DIR=packs PYTHONPATH=/tmp/stub:app python3 tests/test_sources.py
 test_nearby|PYTHONPATH=/tmp/stub:app python3 tests/test_nearby.py
 test_season|PYTHONPATH=/tmp/stub:app python3 tests/test_season.py
 test_measures|PYTHONPATH=tests python3 tests/test_measures.py
 test_forecast|PYTHONPATH=/tmp/stub:app python3 tests/test_forecast.py
+test_forecast_territory|PYTHONPATH=app python3 tests/test_forecast_territory.py
+test_forecast_days|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_forecast_days.py
+test_store|PYTHONPATH=app python3 tests/test_store.py
 test_meshtastic|PYTHONPATH=/tmp/stub:app python3 tests/test_meshtastic.py
+test_radio|PYTHONPATH=/tmp/stub:app:tools python3 tests/test_radio.py
+test_radio_gateway|bash tests/test_radio_gateway.sh
+test_radio_cli|bash tests/test_radio_cli.sh
 test_sc_direct|PYTHONPATH=/tmp/stub:app python3 tests/test_sc_direct.py
 test_logic|PYTHONPATH=/tmp/stub:app python3 tests/test_logic.py
 test_packs|PYTHONPATH=/tmp/stub:app python3 tests/test_packs.py
@@ -112,9 +125,10 @@ test_pack_secrets|PYTHONPATH=app python3 tests/test_pack_secrets.py
 test_pack_agent_scripts|PYTHONPATH=app python3 tests/test_pack_agent_scripts.py
 test_ladder|PYTHONPATH=app python3 tests/test_ladder.py
 test_report_schedule|PYTHONPATH=/tmp/stub:app python3 tests/test_report_schedule.py
-test_report_templates|PYTHONPATH=/tmp/stub:app python3 tests/test_report_templates.py
+test_report_templates|PACKS_DIR=packs PYTHONPATH=/tmp/stub:app python3 tests/test_report_templates.py
 test_shipped|python3 tests/test_shipped.py
 test_share|PYTHONPATH=app python3 tests/test_share.py
+test_firmware|PYTHONPATH=app python3 tests/test_firmware.py
 test_ask|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_ask.py
 test_release_check|PYTHONPATH=app python3 tests/test_release_check.py
 test_config|python3 tests/test_config.py
@@ -123,8 +137,12 @@ test_issues|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues.py
 test_issues_engine|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues_engine.py
 test_pack_readouts|PYTHONPATH=app python3 tests/test_pack_readouts.py
 test_pack_sections|PYTHONPATH=app python3 tests/test_pack_sections.py
+test_doors_sections|PYTHONPATH=app python3 tests/test_doors_sections.py
+test_doors_asks|python3 tests/test_doors_asks.py
+test_doors_next|python3 tests/test_doors_next.py
+test_mobile_sections|PYTHONPATH=app python3 tests/test_mobile_sections.py
 test_requires|PYTHONPATH=app python3 tests/test_requires.py
-test_issues_geometry|PYTHONPATH=app python3 tests/test_issues_geometry.py
+test_issues_geometry|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_issues_geometry.py
 test_earth_frames|PYTHONPATH=app python3 tests/test_earth_frames.py
 test_check_ui|python3 tests/test_check_ui.py
 test_learn|python3 tests/test_learn.py
@@ -133,21 +151,46 @@ test_dashboard|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_dashboard.py
 test_ground|python3 tests/test_ground.py
 test_briefing|PYTHONPATH=/tmp/stub:app python3 tests/test_briefing.py
 test_earth|PYTHONPATH=/tmp/stub:app python3 tests/test_earth.py
+test_surface_heat|PYTHONPATH=/tmp/stub:app python3 tests/test_surface_heat.py
+test_terrain|PYTHONPATH=/tmp/stub:app python3 tests/test_terrain.py
 test_custody|PYTHONPATH=app python3 tests/test_custody.py
 test_registry|python3 tests/test_registry.py
 test_make|PYTHONPATH=app python3 tests/test_make.py
+test_fire|python3 tests/test_fire.py
 test_check_theme|python3 tests/test_check_theme.py
 test_wire|PYTHONPATH=app python3 tests/test_wire.py
 test_events|PYTHONPATH=app python3 tests/test_events.py
-test_events_pg|PYTHONPATH=app python3 tests/test_events_pg.py
+test_events_pg|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_events_pg.py
+test_rho_pg|PYTHONPATH=app PACKS_DIR=packs python3 tests/test_rho_pg.py
+test_views_pg|PYTHONPATH=app PACKS_DIR=packs python3 tests/test_views_pg.py
 test_actions|PYTHONPATH=app python3 tests/test_actions.py
 test_agent_buttons|PYTHONPATH=app python3 tests/test_agent_buttons.py
+test_nodes_registry|PYTHONPATH=app python3 tests/test_nodes_registry.py
+test_captures|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_captures.py
+test_private|PYTHONPATH=app python3 tests/test_private.py
+test_things|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_things.py
+test_rooms|PYTHONPATH=app python3 tests/test_rooms.py
+test_offers|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_offers.py
+test_bot_pictures|PYTHONPATH=app python3 tests/test_bot_pictures.py
+test_learned|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_learned.py
 test_events_wire|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_events_wire.py
 test_figures_wire|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_figures_wire.py
 test_run_rules_modes|python3 tests/test_run_rules_modes.py
+test_rule_act_placeholder|python3 tests/test_rule_act_placeholder.py
+test_pack_buttons|PYTHONPATH=app python3 tests/test_pack_buttons.py
+test_action_choice|PYTHONPATH=app python3 tests/test_action_choice.py
+test_notify_keyboard|PYTHONPATH=app python3 tests/test_notify_keyboard.py
+test_rule_buttons|PYTHONPATH=app python3 tests/test_rule_buttons.py
 test_kinded_rules|PYTHONPATH=tests:app python3 tests/test_kinded_rules.py
 test_replay|PYTHONPATH=tests:app:tools python3 tests/test_replay.py
 test_doors|PYTHONPATH=app python3 tests/test_doors.py
+test_fundamentals|PYTHONPATH=app python3 tests/test_fundamentals.py
+test_bali_air_dispatch|PACKS_DIR=packs PYTHONPATH=/tmp/stub:app python3 tests/test_bali_air_dispatch.py
+test_home_assistant|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_home_assistant.py
+test_smartcitizen|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_smartcitizen.py
+test_lan_air|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_lan_air.py
+test_pack_routes|PACKS_DIR=packs PYTHONPATH=app python3 tests/test_pack_routes.py
+test_grafana|python3 tests/test_grafana.py
 SUITES
 
 total=$((pass + fail))
@@ -156,11 +199,12 @@ printf '  %d suites: %d passed, %d failed, %d check(s) skipped\n' "$total" "$pas
 [ -n "$skip_lines" ] && printf '%s' "$skip_lines"
 [ -n "$failed_names" ] && printf '  failed:%s\n' "$failed_names"
 
-# Sixty-eight is the number of suites in the list above (test_agent_buttons joined test_doors and test_sc_direct, 10 Oct 2026). If the list and this number disagree, one of them
+# One hundred and five is the number of suites in the list above (test_doors_next joined 3 Nov 2026; test_forecast_days joined 3 Nov 2026; test_forecast_territory joined 3 Nov 2026; test_store joined 3 Nov 2026; test_action_choice and test_notify_keyboard joined 3 Nov 2026; test_doors_asks joined 3 Nov 2026; test_rule_buttons joined 3 Nov 2026; test_pack_buttons joined 3 Nov 2026; test_rule_act_placeholder joined 2 Nov 2026; test_mobile_sections joined 1 Nov 2026; test_peers_persist left with the Reticulum bridge, and
+# test_terrain joined, 23 Oct 2026; test_views_pg and test_grafana joined 24 Oct). If the list and this number disagree, one of them
 # is a typo, and a runner that quietly runs twenty-five of twenty-six is the bug it was written to end.
 # (The word and the number had drifted apart by two bumps when packs/make added the forty-fourth.)
-if [ "$total" -ne 68 ]; then
-  printf '  \033[31mx\033[0m ran %d suites, expected 68 — the list in this file lost or gained a line\n' "$total"
+if [ "$total" -ne 105 ]; then
+  printf '  \033[31mx\033[0m ran %d suites, expected 105 — the list in this file lost or gained a line\n' "$total"
   exit 1
 fi
 [ "$fail" -gt 0 ] && exit 1

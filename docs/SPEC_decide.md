@@ -306,7 +306,7 @@ start running until a decision has been made."*
 Evaluated, and the answer is **not by default, and a switch for the nodes that want it.**
 
 The reason is that five things write an act and four of them have no screen to decide on:
-`app/reticulum_bridge.py:178` (a LoRa reply, from a device with no display, in a place with no
+the bridge's `on_message` (fabcity/planetai-reticulum) (a LoRa reply, from a device with no display, in a place with no
 network), `app/agent.py:197` (the MCP `act` tool, and so Telegram), `bin/planetai:769` (the
 terminal), the dashboard, and anything posting to the route — a phone, Home Assistant. The radio
 settles it: that path exists for exactly the places a decision card cannot reach.

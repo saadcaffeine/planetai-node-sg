@@ -1,0 +1,48 @@
+name: Kontur Population (400 m H3 hexagons)
+url: https://www.kontur.io/datasets/population-dataset/
+description: |
+  Population counts for every inhabited H3 hexagon on Earth at resolution 8 (about 0.7 km2 each), fused by
+  Kontur from GHSL, Facebook HRSL, Microsoft buildings and OpenStreetMap. Published on HDX, globally and per country.
+pillar: social
+scale: city
+status: candidate
+license: "CC BY, version not stated; see notes"
+api: https://data.humdata.org/api/3/action/package_show?id=kontur-population-dataset
+pilot_relevance: [global]
+places: [barcelona, bali]
+tags: [population, density, h3, hexagon, grid, gridded, denominator, hdx]
+added: 2026-10-23
+assisted_by: Claude Code
+feeds_cells: [Social|City]
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-23.
+
+  LICENCE. Read on Kontur's own dataset page: "Kontur Population is available under Creative Commons Attribution
+  International (CC BY) license. You can use it for any purpose, even commercially." The page names no version,
+  and HDX's licence field for every Kontur package read (global, Indonesia, Spain) is an unversioned cc-by.
+  "International" points at the 4.0 suite, but nobody has confirmed it, so `license` records no version.
+  Every CC BY version allows any use with attribution, so criterion 1 is met either way. Attribution to Kontur; the sources it fuses (GHSL CC BY 4.0,
+  OSM ODbL among them) are Kontur's to answer for, and Kontur publishes the fusion under CC BY.
+
+  ENDPOINT. HDX CKAN API, no key. The global file kontur_population_20231101.gpkg.gz is 2.44 GB on Kontur's S3
+  (geodata-eu-central-1-kontur-public). Per-country packages are kontur-population-<country>: Spain 22 MB, Indonesia
+  64 MB gzipped. Each GeoPackage holds one table `population` (fid, geom in EPSG:3857, h3 TEXT, population REAL).
+  Spain: 286,702 hexagons, 47,551,642 people. Indonesia: 874,919 hexagons, 277,542,182 people.
+
+  READ, with h3 4.5.0, cells at resolution 8. Barcelona, Plaça de Catalunya, cell 88394460e5fffff: 18,262 people
+  in 0.716 km2; its ring of 7 sums 103,615; the 91-cell disk at k=5 has 75 cells present and sums 918,712. Denpasar,
+  Puputan square, cell 8895a4c2edfffff: 4,928 in 0.642 km2; ring of 7 sums 35,563; k=5 has all 91 and sums 421,701.
+  Those are the only two places read, so they are the only two in places.
+
+  ABSENCE. Only hexagons with people are stored. The 16 Barcelona cells missing from that disk are sea. A missing
+  hexagon means zero people modelled, never no data: a reader must fill 0, not leave a gap.
+
+  VINTAGE. The newest release is 2023-11-01, and HDX has listed nothing newer since. It inherits GHSL and HRSL
+  epochs underneath, so read it as a circa-2020 picture, older than its file date.
+
+  WHY THIS CELL. Population density for Social|City, already on the H3 grid, so it needs no raster-to-cell step.
+  WHAT IT DOES NOT CLAIM. A model, not a register. Where it disagrees with the municipal padron, the padron wins.
+  A review should sum it inside one real municipal boundary and record the gap to the census. Like any entry, it
+  goes live only with a usable review in reviews/ or an adapter.

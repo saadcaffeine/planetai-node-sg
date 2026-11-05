@@ -29,8 +29,8 @@ made. That is the whole reason the two halves are kept.
 
 **One line is allowed to differ, and it is named.** `planetai-theme.css` declares the mono at
 `fonts/jetbrains-mono-latin.woff2`. `GET /static/{name}` takes a NAME and not a path, deliberately,
-on a port that answers a household LAN, so that request 404s — a cost of one request, paid on
-purpose, because the alternative is a path parameter reaching the filesystem. `tokens.css` — this
+on a port that answers a household LAN, so that request 404'd on every page until 14 October 2026, when
+`main.static_mono` began answering that one fixed path (still no path parameter). `tokens.css` — this
 repo's file, where the other three faces already live — declares the same family at the flat name
 the node does serve, which is the declaration that resolves. This said `dashboard.css` until
 21 September 2026, and NO file declared it at all: the mono was the fourth of four faces and the

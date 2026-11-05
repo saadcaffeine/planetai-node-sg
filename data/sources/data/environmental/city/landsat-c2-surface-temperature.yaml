@@ -1,0 +1,46 @@
+name: Landsat Collection 2 Level-2 surface temperature (USGS, via Microsoft Planetary Computer)
+url: https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2
+description: |
+  USGS Landsat Collection 2 Level-2 products, including the surface temperature band
+  (ST_B10) at 30 m, resampled from 100 m thermal pixels; Landsat 8 and 9 together revisit
+  every 8 days. Served by Microsoft Planetary Computer as Cloud-Optimised GeoTIFFs behind a STAC API.
+pillar: environmental
+scale: city
+status: candidate
+license: US public domain (USGS-authored data)
+api: https://planetarycomputer.microsoft.com/api/stac/v1/collections/landsat-c2-l2
+pilot_relevance: [bali, global]
+places: [bali]
+tags: [land-surface-temperature, urban-heat, satellite, landsat, usgs, stac, cloud-optimised-geotiff]
+added: 2026-10-15
+assisted_by: Claude Code
+auth: none
+feeds_cells: []
+updated: 2026-10-15
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-15. Nothing read for a real territory yet.
+
+  LICENCE. The USGS copyrights page: "USGS-authored or produced data and information are
+  considered to be in the U.S. Public Domain", and it asks "that proper credit be given".
+  Planetary Computer is the host, not the publisher: its STAC says `license: proprietary`,
+  the STAC convention for "see links", and links the USGS data policy and three DOIs
+  (10.5066/P9IAXOVV, P9C7I13B, P9OGBGM6). Credit USGS, and name Planetary Computer as host.
+
+  ENDPOINT. STAC collection `landsat-c2-l2`, anonymous. The SAS token at
+  /api/sas/v1/token/landsat-c2-l2 answered 200 with no account. A search over Bali
+  (115.1,-8.8,115.3,-8.6) for 2026-09-15 to 10-15 returned 5 scenes on paths 116/066 and
+  117/066, the newest LC09_L2SP_117066_20261005_02_T1 at 02:30 UTC, 11.38 % cloud. Asset
+  `lwir11` is the surface temperature band: uint16, scale 0.00341802, offset 149 K, nodata 0.
+  Mask cloud with `qa_pixel`. Same data in Earth Engine as LANDSAT/LC0{8,9}/C02/T1_L2.
+
+  NODE. A candidate for the PLANETAI `surface-heat` pack (not built): the cell's surface
+  temperature against a 1–3 km ring around it, at the ~10:30 local overpass. No adapter yet.
+
+  WHY NO CELL. No Index cell has a surface-heat row today (Environmental|City has air,
+  GHG, waste and land change; Environmental|Community's thermal category is indoors), so
+  `feeds_cells` is empty. A reviewer decides whether a row belongs.
+
+  WHAT IT DOES NOT CLAIM. Land surface temperature is roofs and ground, not the air anyone
+  breathes or sleeps in. One daytime pass a few times a month; clouds remove many scenes,
+  so in a wet season a usable value can be weeks apart.

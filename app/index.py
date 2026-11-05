@@ -16,8 +16,10 @@ import logging
 import os
 from datetime import datetime, timezone
 
+import learn
 import packs
 import registry
+import settings
 
 log = logging.getLogger("planetai.index")
 CITY = os.getenv("NODE_CITY", "unknown")
@@ -150,6 +152,15 @@ def cells(cur) -> list[dict]:
     return out
 
 
+def _replaced() -> list[str]:
+    """The packs whose rule rows go unsent on this node, because the event engine speaks for them (learn.replaced)."""
+    try:
+        return sorted(learn.replaced(packs.load_rules(), settings.get("ALERT_ENGINE", "rules") or "rules"))
+    except Exception as e:  # noqa: BLE001
+        log.warning("cannot read the rule set, so every act-level alert row counts as sent: %s", e)
+        return []
+
+
 def rho(cur, days_ago: int = 0) -> dict:
     """rho over the last 30 days: share of level='act' alerts that got an 'acknowledged' or 'acted' row within 24h,
     plus median detect-to-act latency in minutes. The address-scale instrument for H0-A.
@@ -164,15 +175,35 @@ def rho(cur, days_ago: int = 0) -> dict:
     child's history at once with nothing to re-push.
 
     days_ago moves the whole 30-day window back, so the report can say whether the number moved this week without
-    keeping a second copy of this query anywhere."""
+    keeping a second copy of this query anywhere.
+
+    ONLY WHAT WAS SENT IS ASKED. On ALERT_ENGINE=events the engine speaks for the packs it replaced, and from its
+    first sent message on, those packs' `alerts` rows are written and never sent (learn.replaced, learn.silent). Counting
+    them asked node #1 289 times in 30 days for 9 messages that went out, and published rho as 0.028 (20 Oct). So a
+    replaced pack's row after the switch is left out, and each event the engine sent at act level is asked once, at
+    its first sent message, answered by an `actions` row carrying its event_id. Packs the engine does not replace
+    (nearby, a wild pack) still send through rules and still count as before; on a rules node nothing changes."""
+    rep = _replaced()
     cur.execute("""WITH ref AS (SELECT now() - make_interval(days => %(back)s) AS t),
-                        a AS (SELECT ('self/' || id) AS id, ts FROM alerts, ref
+                        sw AS (SELECT min(ts) AS t FROM event_messages WHERE sent AND mode = 'events'),
+                        a AS (SELECT ('self/' || id) AS id, ts FROM alerts, ref, sw
                               WHERE level='act' AND ts > ref.t - interval '30 days' AND ts <= ref.t
+                                AND NOT (split_part(rule_id, '/', 1) = ANY(%(rep)s::text[]) AND sw.t IS NOT NULL AND ts >= sw.t)
+                              UNION ALL
+                              SELECT ('ev/' || e.id), min(m.ts) FROM alert_events e
+                                JOIN event_messages m ON m.event_id = e.id AND m.sent AND m.mode = 'events'
+                                                     AND m.reason IN ('open', 'escalate')
+                              WHERE e.level = 'act'
+                              GROUP BY e.id
+                              HAVING min(m.ts) > (SELECT t FROM ref) - interval '30 days' AND min(m.ts) <= (SELECT t FROM ref)
                               UNION ALL
                               SELECT (e.child || '/' || e.alert_id), e.raised_at FROM events e, ref
                               WHERE e.level='act' AND e.raised_at > ref.t - interval '30 days' AND e.raised_at <= ref.t),
                         f AS (SELECT ('self/' || alert_id) AS id, min(ts) AS t FROM actions
-                              WHERE stage IN ('acknowledged','acted') GROUP BY alert_id
+                              WHERE stage IN ('acknowledged','acted') AND alert_id IS NOT NULL GROUP BY alert_id
+                              UNION ALL
+                              SELECT ('ev/' || event_id), min(ts) FROM actions
+                              WHERE stage IN ('acknowledged','acted') AND event_id IS NOT NULL GROUP BY event_id
                               UNION ALL
                               SELECT (child || '/' || alert_id), least(responded_at, acted_at) FROM events
                               WHERE responded_at IS NOT NULL OR acted_at IS NOT NULL)
@@ -180,7 +211,7 @@ def rho(cur, days_ago: int = 0) -> dict:
                           count(f.id) FILTER (WHERE f.t - a.ts < interval '24 hours') AS acted,
                           percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM f.t - a.ts)/60)
                             FILTER (WHERE f.t - a.ts < interval '24 hours') AS median_minutes
-                   FROM a LEFT JOIN f ON f.id = a.id""", {"back": days_ago})
+                   FROM a LEFT JOIN f ON f.id = a.id""", {"back": days_ago, "rep": rep})
     r = cur.fetchone() or {}
     n, acted = int(r.get("alerts_act") or 0), int(r.get("acted") or 0)
     out = {"window_days": 30, "days_ago": days_ago, "alerts_act": n, "acted": acted, "rho": round(acted / n, 3) if n else None,
@@ -234,9 +265,12 @@ def _funnel(cur, days_ago: int = 0) -> dict:
     The latencies are medians between CONSECUTIVE stages, each falling back to the last stage that
     actually happened: an ask acted on without being acknowledged first is measured from when it was
     asked, not from a timestamp that does not exist."""
+    rep = _replaced()
     cur.execute("""WITH ref AS (SELECT now() - make_interval(days => %(back)s) AS t),
-                        a AS (SELECT id, ts, rule_id, sensor_id FROM alerts, ref
-                              WHERE level='act' AND ts > ref.t - interval '30 days' AND ts <= ref.t),
+                        sw AS (SELECT min(ts) AS t FROM event_messages WHERE sent AND mode = 'events'),
+                        a AS (SELECT id, ts, rule_id, sensor_id FROM alerts, ref, sw
+                              WHERE level='act' AND ts > ref.t - interval '30 days' AND ts <= ref.t
+                                AND NOT (split_part(rule_id, '/', 1) = ANY(%(rep)s::text[]) AND sw.t IS NOT NULL AND ts >= sw.t)),
                         s AS (SELECT alert_id, stage, min(ts) AS t FROM actions
                               WHERE stage IN ('acknowledged','acted','measured') GROUP BY alert_id, stage),
                         -- Derived: the rule had a full MEASURED_WINDOW_MIN after the act to fire again on the same
@@ -268,8 +302,24 @@ def _funnel(cur, days_ago: int = 0) -> dict:
                    LEFT JOIN s ack ON ack.alert_id = a.id AND ack.stage = 'acknowledged'
                    LEFT JOIN s act ON act.alert_id = a.id AND act.stage = 'acted'
                    LEFT JOIN m mea ON mea.alert_id = a.id""",
-                {"back": days_ago, "win": MEASURED_WINDOW_MIN, "live": _live_rule_ids()})
-    f = cur.fetchone() or {}
+                {"back": days_ago, "win": MEASURED_WINDOW_MIN, "live": _live_rule_ids(), "rep": rep})
+    f = dict(cur.fetchone() or {})
+    # the event engine's episodes sent at act level are asked too, answered by their event_id (see rho()). They have
+    # no derived `measured`: that reads a rule firing again, and an episode does not; a posted measured row counts.
+    cur.execute("""WITH ref AS (SELECT now() - make_interval(days => %(back)s) AS t),
+                        e AS (SELECT e.id FROM alert_events e
+                                JOIN event_messages m ON m.event_id = e.id AND m.sent AND m.mode = 'events'
+                                                     AND m.reason IN ('open', 'escalate')
+                              WHERE e.level = 'act' GROUP BY e.id
+                              HAVING min(m.ts) > (SELECT t FROM ref) - interval '30 days' AND min(m.ts) <= (SELECT t FROM ref))
+                   SELECT count(*) AS asked,
+                          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM actions x WHERE x.event_id = e.id AND x.stage = 'acknowledged')) AS acknowledged,
+                          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM actions x WHERE x.event_id = e.id AND x.stage = 'acted')) AS acted,
+                          count(*) FILTER (WHERE EXISTS (SELECT 1 FROM actions x WHERE x.event_id = e.id AND x.stage = 'measured')) AS measured
+                   FROM e""", {"back": days_ago})
+    ev = cur.fetchone() or {}
+    for k in ("asked", "acknowledged", "acted", "measured"):
+        f[k] = int(f.get(k) or 0) + int(ev.get(k) or 0)
     rnd = lambda k: round(float(f[k])) if f.get(k) is not None else None      # noqa: E731
     return {
         "stages": {k: int(f.get(k) or 0) for k in ("asked", "acknowledged", "acted", "measured")},

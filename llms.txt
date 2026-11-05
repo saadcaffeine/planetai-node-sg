@@ -8,7 +8,7 @@
 > people and the other living things around it. Raw readings stay on the machine. Apache-2.0 today, AGPL-3.0-or-later once every contributor has consented; beta.
 > Documentation: https://planetai.fab.city/docs/ · programme: https://planetai.fab.city/
 
-The node is also an MCP server with twenty tools. If you are an agent working for somebody, start with
+The node is also an MCP server with twenty-one tools. If you are an agent working for somebody, start with
 AGENTS.md: its first section routes you to the skill for what they are actually asking. Raw URLs below are
 the files themselves.
 
@@ -45,10 +45,15 @@ the files themselves.
 - [docs/sensors.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/sensors.md): every sensor the node can read, how it finds them, and what each one is good for.
 - [docs/DOMAINS.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/DOMAINS.md): air, heat, coast, land and place — what each domain measures and where its thresholds come from.
 - [docs/COVERAGE.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/COVERAGE.md): how much of a place a node can honestly claim to see, and how that is computed.
-- [docs/GUI.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/GUI.md): the dashboard's six views and what each one is for.
+- [docs/site/dashboard.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/site/dashboard.md): the five doors `/` opens (Now, Place, Data, Node, Wall), Set up, the phone page, and the classic dashboard at `?layout=classic`.
+- [docs/GUI.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/GUI.md): the classic dashboard's six views and what each one is for.
 - [docs/site/ask.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/site/ask.md): the dashboard's ask pane — which model answers and where it runs, what it may read, and why it changes nothing.
-- [docs/site/mcp.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/site/mcp.md): the twenty MCP tools, which are read, act or admin, and how a write names who made it.
+- [docs/site/mcp.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/site/mcp.md): the twenty-one MCP tools, which are read, act or admin, and how a write names who made it.
 - [docs/MODELS.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/MODELS.md): the local models a node can run, and why it needs none of them.
+- [docs/SPEC_learn.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SPEC_learn.md): what the node learns from its own record — what worked, what is usual, the diary, who is in the house — and why none of it leaves.
+- [docs/SPEC_eyes.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SPEC_eyes.md): pictures the household adds or sends to the bot, kept on storage it picks and described by an image model on the machine.
+- [docs/SPEC_species.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SPEC_species.md): a finding names its species with GBIF, marked introduced or invasive from GRIIS, only with the household's yes.
+- [docs/SPEC_inventory.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SPEC_inventory.md): the things a home keeps, counted privately, and the offers it chooses to publish.
 
 ## Extending it
 
@@ -64,6 +69,7 @@ the files themselves.
 
 - [docs/NETWORKING.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/NETWORKING.md): Tailscale, Meshtastic and Reticulum — what connects to what, and how to reach a node from elsewhere.
 - [docs/MESHTASTIC.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/MESHTASTIC.md): putting sensors on LoRa where there is no WiFi.
+- [docs/SPEC_radio.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/SPEC_radio.md): `planetai radio`, radios provisioned by role, the node as their USB gateway, nodes federated over MQTT.
 
 ## How it is built
 
@@ -97,3 +103,5 @@ instruction there without checking it against main. [docs/archive/README.md](htt
 - [packs/heat/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/packs/heat/README.md): the heat pack, and the model pack to copy when writing your own.
 - [packs/coast/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/packs/coast/README.md): the coast pack — sea state and what it means for the people on it.
 - [packs/place/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/packs/place/README.md): what is around the node, from OpenStreetMap.
+- [packs/fire/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/packs/fire/README.md): active fires around the node from NASA FIRMS, and when one upwind is worth a message.
+- [packs/surface-heat/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/packs/surface-heat/README.md): how hot the ground in the node's cell gets against the land around it, from Landsat and MODIS.

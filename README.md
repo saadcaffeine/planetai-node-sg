@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-20388D?style=flat-square"></a>
-  <a href="CHANGELOG.md"><img alt="Version 0.76" src="https://img.shields.io/badge/version-0.76-171717?style=flat-square"></a>
+  <a href="CHANGELOG.md"><img alt="Version 0.82" src="https://img.shields.io/badge/version-0.82-171717?style=flat-square"></a>
   <img alt="Node #1 live" src="https://img.shields.io/badge/node%20%231-live%20in%20Bali-00A057?style=flat-square">
   <img alt="Containers: 2" src="https://img.shields.io/badge/containers-2-171717?style=flat-square">
   <img alt="Clouds required: 0" src="https://img.shields.io/badge/clouds%20required-0-171717?style=flat-square">
@@ -46,7 +46,7 @@ node. Raw readings stay on the machine; only summaries travel.
 > report decides what gets fixed first. Write to **info@fab.city** with what broke, what helped, what did not.
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 Four questions, two minutes, running. Then `planetai telegram` for the alerts and `planetai ui` for the dashboard.
@@ -74,17 +74,26 @@ satellite sources; water and soil have no pack yet, and no node has handed a job
 - **Turns awareness into action.** Alerts say what is happening, what it means, what to do. Then the node measures
   whether anything changed: ρ, the share of act-level alerts somebody answered, a number the Index never had.
 - **Shows the place.** A dashboard that leads with whatever the node puts first, as a number and a sentence, then the day
-  as an annotated chart, every source with a note, the sea, the land, the weather. Six views: Now, Historical, Network,
-  Wall, Arrange, Set up. Simple mode answers three questions (is it fine, is anything changing, is there something to
-  do); advanced draws everything; learn explains each mark. Paper or dark.
+  as an annotated chart, every source with a note, the sea, the land, the weather. Five doors: Now, Place, Data, Node
+  and Wall, with Set up behind the gear (Set up › Rooms names the room each sensor is in); the Wall walks out from the
+  house through four scales by itself. `?layout=mobile` is the phone page, `?layout=classic` the earlier six-view
+  dashboard. Paper or dark.
 - **Answers questions.** Ask the node from the dashboard's pane, or from a bot on your Telegram. Both run a small model on
   your own machine by default, read the node and explain it; point them at a bigger model on your network when you have
   one. Every answer says which model gave it and where that model runs, and nothing goes online unless somebody here
   chooses it.
+- **Remembers what worked.** Once a day it compares what happened after the alerts somebody answered with the ones
+  nobody did, learns what is usual here, and keeps a diary by day, week, month and year that the morning message
+  carries (`LEARN_PUSH`). None of it leaves the machine.
+- **Keeps the household's pictures and things.** A photo sent to the bot or added on the page is kept on storage the
+  household picks and, once `EYES_MODEL` names one, described by an image model on this machine; with the household's yes, a plant or
+  animal is named by GBIF and marked introduced or invasive from GRIIS. The things a home keeps are counted privately;
+  only what it would lend or give is published (`/offers`).
 - **Keeps the data where it was made.** Local database, nightly backups a NAS can collect, an open daily export you decide
-  where to send.
-- **Grows by folders.** Air, heat, coast, land, place (what is around you, from OpenStreetMap, in PostGIS) and open-data packs ship. Water, energy, noise, classroom CO₂, fire smoke
-  are a folder of rules each, written by whoever needs them, for their place.
+  where to send. A screen without the token reads "Room A" and "Sensor 1", never the house's own names.
+- **Grows by folders.** Air, heat, coast, land, place (what is around you, from OpenStreetMap, in PostGIS), fires (NASA
+  FIRMS), the ground's heat from orbit (Landsat and MODIS) and open-data packs ship, and Bali Air Dispatch's stations as a pack of their own: 19 core packs. Water, energy, noise,
+  classroom CO₂ are a folder of rules each, written by whoever needs them, for their place.
 
 Node #1, `bayu-ungasan`, has run in Kuta Selatan, Bali, since 2 September 2026 (above). Node #2 has run in Menorca since
 10 September.
@@ -104,7 +113,7 @@ docs/     getting a node running   START_HERE · PLATFORMS · REVIVE_A_LAPTOP ·
           extending it             PACKS · PACK_IDEAS · SOURCES · DEVELOPING
           testing a beta           BETA_TESTER_GUIDE · FAB26_EXPERIMENT
           releasing it             WORKFLOW · NEXT_RELEASE · SIGNING
-          specs, each with status  SPEC_custody · SPEC_identity · SPEC_rho · SPEC_discovery · SPEC_decide · SPEC_alerts · SPEC_dashboard_events · SPEC_event_led_state · SPEC_dashboard_figures · SPEC_language · SPEC_journeys
+          specs, each with status  SPEC_custody · SPEC_identity · SPEC_rho · SPEC_discovery · SPEC_decide · SPEC_alerts · SPEC_dashboard_events · SPEC_event_led_state · SPEC_dashboard_figures · SPEC_language · SPEC_journeys · SPEC_mobile · SPEC_hello · SPEC_eyes · SPEC_species · SPEC_inventory · SPEC_learn · SPEC_fablab · SPEC_radio · SPEC_place_analyses · SPEC_place_microgis · SPEC_terrain · SPEC_sensors · SPEC_next_days
           proposed, then decided   proposals/ · decisions/
           the documentation site   site/ (planetai.fab.city/docs)
           the page's design rounds design/ (not shipped to nodes)
@@ -141,12 +150,12 @@ file. `planetai agent` on the node prints the three facts you need for any other
 
 ```
 app/       main.py · sources.py · index.py · issues/ · packs.py · settings.py · ask.py · agent.py · agent_loop.py · report.py ·
-           static/
+           learn.py · fundamentals.py · static/
 bin/       planetai, the command line
 packs/     air-quality · heat · insight · trust · cold-start · open-data-health · coast · earth-engine · earth · place ·
-           nearby · season · forecast · make · thingdata · example-cooking-hours
+           nearby · season · forecast · make · thingdata · fire · surface-heat · example-cooking-hours
 config/    rules.yml · channels.yml · mosquitto · reticulum
-tools/     the checks, hooks, bundle and release scripts, mesh-provision.sh, nas/, remote-model.sh
+tools/     the checks, hooks, bundle and release scripts, radio.py + radio_profiles/ (planetai radio), nas/, remote-model.sh
 tests/     offline suites
 presets/   bali · barcelona · boston · santiago · delhi · menorca
 ```

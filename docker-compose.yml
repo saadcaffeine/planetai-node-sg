@@ -50,6 +50,10 @@ services:
       - ./data:/app/data:ro          # the vendored source registry (data/sources) and the platform floors — read, never written
       - ./out:/app/out               # the one writable path: artifacts a pack makes for you (images, charts, briefs)
       - ./backups:/app/backups:ro    # served at /backups (token) so a NAS can pull dumps without mounting anything
+      # CAPTURES_DIR: where the pictures a household takes are kept (SPEC_eyes). Default ./out/captures. Unlike
+      # DATA_DIR it MAY be a NAS share or any mounted storage: these are files, not Postgres — no fsync or locking
+      # is owed to them. The node refuses a capture, and doctor goes red, when the folder is missing or unwritable.
+      - ${CAPTURES_DIR:-./out/captures}:/app/captures
       - ./exports:/app/exports:ro    # served at /exports (public, CC BY 4.0)      # a directory, not a file: editors that save-by-replace would break a single-file mount
     ports: ["${APP_PORT:-8080}:8080"]     # host port; change APP_PORT in .env if 8080 is taken
     # The dashboard's ask pane asks Ollama on this machine, the same one the agent container asks.
@@ -104,13 +108,17 @@ services:
     logging: { driver: json-file, options: { max-size: "5m", max-file: "2" } }
 
   reticulum:
-    build: { context: ./app, dockerfile: Dockerfile.reticulum }
+    # The bridge lives in fabcity/planetai-reticulum, Apache-2.0, because rns and lxmf are under the Reticulum
+    # License and this repository is moving to the AGPL (docs/decisions/2026-10-23-reticulum-licence.md).
+    # `planetai reticulum` fetches it into ./reticulum at RETICULUM_REF (bin/planetai) and builds it here, on the
+    # operator's machine. The node talks to it over HTTP only.
+    build: { context: ./reticulum }
     profiles: [reticulum]
     restart: unless-stopped
     # No env_file here, on purpose (F2 of the 18 September design review). `env_file: .env` handed this
     # container every secret the node holds — the Telegram bot token, the online model key, the admin
     # token, the database password — to a process whose whole job is to speak to a public radio mesh.
-    # It reads eight variables and this is all eight; `grep getenv app/reticulum_bridge.py` is the list.
+    # It reads eight variables and this is all eight; the bridge's tests/test_peers.py holds it to this list.
     # A new one has to be added here, which is the point: it is a decision, not a default.
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -133,8 +141,56 @@ services:
     # For an RNode LoRa radio on Linux, add:   devices: ["/dev/ttyACM0:/dev/ttyACM0"]   and uncomment its block in config
     logging: { driver: json-file, options: { max-size: "5m", max-file: "2" } }
 
+  # Grafana for the keeper: their own panels over this node's readings, beside the dashboard and never instead of
+  # it (docs/site/grafana.md). profile: grafana (planetai grafana sets it). It reads the database as
+  # planetai_grafana, a login made by grafana-role below: a member of planetai_ro (init.sql), so every table but
+  # settings, read-only, 30 s per query. The password is generated into the grafana-secret volume; nothing in .env.
+  grafana-role:
+    image: imresamu/postgis:16-3.4-alpine   # db's own image: it has psql, so nothing new to pull
+    profiles: [grafana]
+    restart: "no"
+    entrypoint: ["sh", "/role.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: planetai
+      PGDATABASE: planetai
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      NODE_TZ: ${NODE_TZ:-UTC}
+    volumes:
+      - ./config/grafana/role.sh:/role.sh:ro
+      - grafana-secret:/secret
+    depends_on:
+      db: { condition: service_healthy }
+    logging: { driver: json-file, options: { max-size: "1m", max-file: "1" } }
+
+  grafana:
+    image: grafana/grafana-oss:13.0.2   # pinned 24 Oct 2026: a new Grafana is a decision, not a pull
+    profiles: [grafana]
+    restart: unless-stopped
+    # Loopback by default. GRAFANA_BIND=0.0.0.0 opens it to the LAN, after GRAFANA_ADMIN_PASSWORD is set: the
+    # admin can add any datasource, and admin/admin is the first thing anyone tries.
+    ports: ["${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: ${NODE_TZ:-browser}
+      # A node may have no route out, and the household's readings are nobody's analytics.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana:/var/lib/grafana            # the keeper's own dashboards, kept across updates
+      - grafana-secret:/secret:ro
+    depends_on:
+      grafana-role: { condition: service_completed_successfully }
+    logging: { driver: json-file, options: { max-size: "5m", max-file: "2" } }
+
 volumes:
   db: {}
   mosquitto: {}
   reticulum: {}
   ipfsdata: {}
+  grafana: {}
+  grafana-secret: {}

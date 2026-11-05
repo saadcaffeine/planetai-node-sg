@@ -6,7 +6,8 @@ weeks before it, or is this simply what the air here does? One rule that can rea
 one that only ever reaches the report (`record`).
 
 A **data pack**: two SQL rules and a script. It fetches nothing. The ring is already in this node's database,
-stored every poll by the `baliairdispatch` source in `app/sources.py` since v0.11, and this reads it back.
+stored every poll by the `bali-air-dispatch` pack (in `app/sources.py` from v0.11 until the release after
+v0.82.3), and this reads it back.
 
 ## Paired, always
 

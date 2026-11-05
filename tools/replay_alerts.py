@@ -184,7 +184,7 @@ def replay(node, rows, rules_old, rules_new, start, end, step_min, policy, home_
     naive = next((r for r in rows if r[0].tzinfo is None), None)
     if naive or start.tzinfo is None or end.tzinfo is None:
         raise ValueError(f"replay needs time-zone-aware timestamps (readings are UTC); got {naive or (start, end)}")
-    issues = {k: yaml.safe_load((ROOT / "app/issues" / f"{k}.yml").read_text()) for k in ("heat", "air")}
+    issues = {k: yaml.safe_load((ROOT / "packs" / pk / "issue.yml").read_text()) for k, pk in (("heat", "heat"), ("air", "air-quality"))}
     coords = {"lat": lat, "lon": lon, "from": "--lat/--lon"}
     if lat is None:
         # the node's coordinates are a setting a rule reads (planetai.lat/lon); stand in its local kits' centre

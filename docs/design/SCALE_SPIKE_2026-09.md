@@ -57,7 +57,7 @@ fixture than in a release.
 
 ## What each one breaks, precisely
 
-Read against `app/issues/*.yml`, `app/issues/schema.py` and the engine as they stand.
+Read against the issue files (then `app/issues/*.yml`, each pack's `issue.yml` since 23 Oct 2026), `app/issues/schema.py` and the engine as they stand.
 
 **1. `distances` has four rungs and they are all radii.** An issue declares `room`, `yard`, `ring`,
 `region`, and `land.yml` already shows the honest way to have only one of them — the other three are

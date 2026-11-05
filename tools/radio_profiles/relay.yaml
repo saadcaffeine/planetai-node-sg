@@ -1,0 +1,9 @@
+# A relay on a roof or a mast, mains or solar, nothing attached. ROUTER only up high: a router at desk height
+# repeats everything and makes the mesh worse, not better. No GPS, no sensors, screen off.
+config:
+  device:
+    role: ROUTER
+  position:
+    gpsMode: NOT_PRESENT
+  display:
+    screenOnSecs: 1

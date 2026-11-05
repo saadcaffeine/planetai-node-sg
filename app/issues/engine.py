@@ -33,6 +33,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import re
 import statistics
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import datetime, timedelta, timezone
@@ -40,8 +41,8 @@ from datetime import datetime, timedelta, timezone
 import actions as A
 import packs
 
-from . import (CMP_WORDS, DIGEST_WORDS, DISTANCES, HEADLINE_RULE, HERO_WORDS, JOIN_WORDS, LABEL_WORDS,
-               LOCALES, NOUN_WORDS, PLAIN_WORDS, PROMPT_WORDS, REASON_WORDS, SIMPLE_WORDS,
+from . import (CMP_WORDS, DAY_PARTS, DIGEST_WORDS, DISTANCES, HEADLINE_RULE, HERO_WORDS, JOIN_WORDS, LABEL_WORDS,
+               LOCALES, NOUN_WORDS, PLAIN_WORDS, PROMPT_WORDS, REASON_WORDS, SIMPLE_WORDS, prompt_issue,
                SPAN_WORDS, WHERE_WORDS, order, pack_sections)
 from . import geometry
 from .schema import CLOSED_STAGES, is_open, is_seen, place_of, stage_of
@@ -72,7 +73,9 @@ METRICS = {
     "aqi": {"unit": "AQI", "dp": 0, "issue": "air", "label": "AQI"},
     "temp": {"unit": "°C", "dp": 1, "issue": "heat", "label": "temperature"},
     "humidity": {"unit": "%", "dp": 0, "issue": "heat", "label": "humidity"},
-    "pressure": {"unit": "hPa", "dp": 0, "issue": None, "label": "pressure"},
+    # kPa: every source stores pressure in kPa (app/sources.py divides hPa by ten). This said hPa, and the Data door
+    # printed node #1's 99.8 as "99.8 hPa" beside the model's 996 hPa (14 Oct 2026).
+    "pressure": {"unit": "kPa", "dp": 1, "issue": None, "label": "pressure"},
     "noise": {"unit": "dB", "dp": 0, "issue": None, "label": "noise"},
     "light": {"unit": "lux", "dp": 0, "issue": None, "label": "light"},
     "gas_resistance": {"unit": "kΩ", "dp": 0, "issue": None, "label": "gas resistance"},
@@ -80,14 +83,15 @@ METRICS = {
 }
 
 
-def _source_of(sensor_id: str) -> dict:
-    """Where a station's data comes from, read off its id the way app/sources.py assigns them."""
+def _source_of(sensor_id: str, ring: list[dict] | tuple = ()) -> dict:
+    """Where a station's data comes from, read off its id the way app/sources.py assigns them, or off the `prefix` a
+    stations pack declares (`ring` is packs.stations())."""
     if sensor_id.startswith("sc-"):
         return {"source": "smartcitizen", "url": f"https://smartcitizen.me/kits/{sensor_id[3:]}",
                 "attribution": "Smart Citizen, smartcitizen.me"}
-    if sensor_id.startswith("bad-"):
-        return {"source": "baliairdispatch", "url": "https://baliairdispatch.com",
-                "attribution": "Bali Air Dispatch, baliairdispatch.com"}
+    for p in ring:
+        if p.get("prefix") and sensor_id.startswith(p["prefix"]):
+            return {"source": p["source"], "url": p.get("url"), "attribution": ", ".join(p.get("attribution") or []) or None}
     if sensor_id.startswith("msh-"):
         return {"source": "meshtastic", "url": None, "attribution": None}
     return {"source": "unknown", "url": None, "attribution": None}
@@ -106,10 +110,11 @@ def _stations(stats: list[dict], hourly: list[dict], lat: float, lon: float, sit
     `silent` is the stations heard within SILENT_DAYS and not in the last day; they keep a row with `last_heard`,
     unless a station heard today stands at the same point."""
     import h3  # noqa: PLC0415 — only this path needs it, and geometry.py already requires it
+    ring = packs.stations()
     def row(r: dict) -> dict:
         return {"sensor_id": r["sensor_id"], "name": r.get("name"), "lat": r["lat"], "lon": r["lon"],
                 "local": bool(r.get("local")), "indoor": bool(r.get("indoor")), "kind": r.get("kind") or "sensor",
-                **_source_of(r["sensor_id"]),
+                **_source_of(r["sensor_id"], ring),
                 "km": round(h3.great_circle_distance((lat, lon), (r["lat"], r["lon"]), unit="km"), 1) if sited
                 else None,
                 "read": {}, "series": {}}
@@ -124,9 +129,10 @@ def _stations(stats: list[dict], hourly: list[dict], lat: float, lon: float, sit
                                        "silent_minutes": None if r.get("silent_minutes") is None
                                        else round(r["silent_minutes"])}
     # The archive of silence (docs/SPEC_dashboard_figures.md §3.3): a station heard in the last 30 days and not in the
-    # last day keeps its row, with when it was last heard. Unless a station heard today stands at the same point: Bali
-    # Air Dispatch relays Smart Citizen kits as bad-sc-<kit> and AirGradient ones through OpenAQ, so a relay that
-    # stopped is a second road to a kit that still reports, and listing it would call a working kit dead.
+    # last day keeps its row, with when it was last heard. Unless a station heard today stands at the same point: an
+    # archive of public stations relays kits under its own ids (Bali Air Dispatch: Smart Citizen as bad-sc-<kit>,
+    # AirGradient through OpenAQ), so a relay that stopped is a second road to a kit that still reports, and listing
+    # it would call a working kit dead.
     heard = {(round(float(s["lat"]), 5), round(float(s["lon"]), 5)) for s in by.values()}
     for r in silent or []:
         if r.get("lat") is None or r.get("lon") is None or r["sensor_id"] in by:
@@ -135,13 +141,18 @@ def _stations(stats: list[dict], hourly: list[dict], lat: float, lon: float, sit
             continue
         lh = r.get("last_heard")
         by[r["sensor_id"]] = {**row(r), "last_heard": lh.isoformat() if hasattr(lh, "isoformat") else lh}
+    # The metrics the page may show, as `read` already is, and two decimals, as `read` already is. Every metric a station
+    # reported was 215 kB of node #1's 510 kB /issues (24 Oct 2026), and the dashboard's station notes look each key
+    # up in `metrics`: a radio's lora_channel_pct threw there, and the notes vanished without a word.
+    def r2(v):
+        return None if v is None else round(float(v), 2)
     for h in hourly or []:
         s = by.get(h.get("sensor_id"))
-        if s is None:
+        if s is None or h.get("metric") not in METRICS:
             continue
         s["series"].setdefault(h["metric"], []).append(
             {"t": h["bucket"] if isinstance(h["bucket"], str) else h["bucket"].isoformat(),
-             "mean": h.get("mean"), "min": h.get("min"), "max": h.get("max"), "n": h.get("n")})
+             "mean": r2(h.get("mean")), "min": r2(h.get("min")), "max": r2(h.get("max")), "n": h.get("n")})
     for s in by.values():
         for k in s["series"]:
             s["series"][k].sort(key=lambda x: x["t"])
@@ -196,8 +207,12 @@ def _asks_ledger(alerts: list[dict], actions: list[dict], facilities: list[dict]
         return str(t or "").split("\n")[0][:160]
 
     return {
+        # `level` rides along although every act is level act: the dashboard's ledger draws a rule at full weight when
+        # its latest ask says `act` and quiet otherwise, and without the key every rule drew quiet (24 Oct 2026). The
+        # doors stand these in for /alerts on a screen without a token, and read `level` off them too.
         "acts": [{"id": a.get("id"), "ts": a["ts"] if isinstance(a.get("ts"), str) else a["ts"].isoformat(),
-                  "rule_id": a.get("rule_id"), "sensor_id": a.get("sensor_id"), "text": first_line(a.get("text"))}
+                  "rule_id": a.get("rule_id"), "sensor_id": a.get("sensor_id"), "level": a.get("level"),
+                  "text": first_line(a.get("text"))}
                  for a in alerts if a.get("level") == "act"],
         "actions": [{"alert_id": x.get("alert_id"), "stage": x.get("stage"), "actor": x.get("actor"),
                      "ts": x["ts"] if isinstance(x.get("ts"), str) else x["ts"].isoformat()} for x in actions],
@@ -298,29 +313,32 @@ PROMPTS_MAX = 12
 
 
 def _prompts(out: dict, headline: str | None) -> dict:
-    """The ask pane's questions. The first three are the ones it opens with: why the lead leads, the oldest
-    open alert (or whether anything is asking), and what the lead's line means (or, with no line, where its
-    number comes from). After them, the pool the pane rotates through: every other issue with a reading as
-    it is now, the two newest of the other open alerts, and every other issue's line. Only two more alerts,
-    because node #1 had ten open and the pool became six copies of one question. An issue that is context
-    (land, coast: the satellite's year) is not asked about "right now". Nothing repeats, and there are at
-    most PROMPTS_MAX. The order is the same in every locale, so a rotation lands on the same question in each."""
-    opens = sorted((a for v in out.values() for a in (v.get("open_asks") or []) if a.get("id") is not None),
-                   key=lambda a: str(a.get("ts")))
-    oldest = opens[0] if opens else None
+    """The ask pane's questions. The first three are the ones it opens with: what to know about the lead today,
+    what can be done about the issue of the oldest open alert (or whether anything needs doing), and where the
+    lead's line comes from (or, with no line, whether its number is measured here). After them, the pool the
+    pane rotates through: every other issue as it is now, whether the lead and the others are worse than usual
+    for the hour, what can be done about the issues of other open alerts, and every other issue's line. An issue
+    that is context (land, coast: the satellite's year) is not asked about "right now" or "usual". Nothing
+    repeats, and there are at most PROMPTS_MAX. The order is the same in every locale, so a rotation lands on the
+    same question in each."""
+    opens = sorted(((k, a) for k, v in out.items() for a in (v.get("open_asks") or []) if a.get("id") is not None),
+                   key=lambda ka: str(ka[1].get("ts")))
     others = [k for k, v in out.items() if k != headline and v.get("state") not in (None, "none")]
+    live = lambda k: (out.get(k) or {}).get("state") not in (None, "none", "context")  # noqa: E731
     said = {}
     for loc in LOCALES:
         w = PROMPT_WORDS[loc]
-        nm = lambda k: ((out.get(k) or {}).get("name") or {}).get(loc, k or "").lower()  # noqa: E731
+        nm = lambda k: prompt_issue(((out.get(k) or {}).get("name") or {}).get(loc, k or ""), loc)  # noqa: E731
         line = lambda k: w["line" if (out[k].get("line") or {}).get("value") is not None else "model"].format(issue=nm(k))  # noqa: E731
         qs = [w["lead"].format(issue=nm(headline))] if headline else []
-        qs.append(w["ask"].format(id=oldest["id"]) if oldest else w["quiet"])
+        qs.append(w["act"].format(issue=nm(opens[0][0])) if opens else w["quiet"])
         if headline:
             qs.append(line(headline))
-        qs += [w["now"].format(issue=nm(k)) for k in others if out[k].get("state") != "context"]
-        qs += [w["ask"].format(id=a["id"]) for a in list(reversed(opens[1:]))[:2]]
+        qs += [w["now"].format(issue=nm(k)) for k in others if live(k)]
+        qs += [w["usual"].format(issue=nm(k)) for k in ([headline] if headline else []) + others if live(k)]
+        qs += [w["act"].format(issue=nm(k)) for k, _ in opens[1:]]
         qs += [line(k) for k in others]
+        qs = [q.replace(" de el ", " del ") for q in qs] if loc == "es" else qs   # de + el is del
         said[loc] = list(dict.fromkeys(qs))[:PROMPTS_MAX]
     return said
 
@@ -703,6 +721,27 @@ def _asks(d, alerts, actions, stack, line, domain_of, now, owned=frozenset()) ->
     return open_asks, recent
 
 
+def _asking(event: dict | None, open_asks: list[dict]) -> list[dict]:
+    """What this house is asked about this issue right now: the one answer every page reads (Now's Decide card, the
+    Wall, the phone), so no page decides it from its own source.
+
+    On 14 Oct 2026 node #1's Now said "No event was open for air", from the events, while the Wall said an alert was
+    still open and showed it, from `open_asks`. Both were reading something true and neither was the question. Asked
+    now is: the issue's open event while it still asks (`asking` on the events block: until somebody answers, and again
+    when a Not now's hold runs out), then each open act-level alert that is `current`. A stale one ("the reading came
+    back on its own") is still open and ρ still counts it, but it is not asking anything of anybody now; `open_asks`
+    keeps it. On `rules` there is no event; on `shadow` and `events` the replaced packs' alerts are already out of
+    `open_asks` (`_asks`), because the event stands for them."""
+    got = []
+    if event and (event["asking"] if event.get("asking") is not None else not event.get("answer")):
+        got.append({"event_id": event.get("id"), "since": event.get("opened_at"),
+                    "says": {loc: _reason_text({"code": "event_open", "at": event.get("opened_at"),
+                                                "kind": event.get("kind")}, loc) for loc in LOCALES}})
+    got += [{"alert_id": a["id"], "since": a["ts"], "says": a["says"], "how": a["how"]}
+            for a in open_asks if a["current"]]
+    return got
+
+
 # ------------------------------------------------------------------------------------------ the state
 def _state(d, stack, open_asks, recent, line, ev=None) -> tuple[str, dict]:
     """One of act · notable · quiet · context · none, and the reason, as a code plus its parts."""
@@ -758,6 +797,14 @@ def _hhmm(ts) -> str:
     return ts.strftime("%H:%M") if isinstance(ts, datetime) else ""
 
 
+def _today(now, clock):
+    """(the local date, the zone) the engine reads `now` in, for a reason's time to know whether it is today's."""
+    if now is None or now.tzinfo is None:
+        return None
+    t = now.astimezone(clock) if clock is not None else now
+    return (t.date(), t.tzinfo)
+
+
 def _reason_text(reason: dict, loc: str) -> str:
     """One line of why, in one language. Every word comes from REASON_WORDS; nothing is typed here.
 
@@ -771,7 +818,15 @@ def _reason_text(reason: dict, loc: str) -> str:
         code += "_peak"
     stage_key = {"acted": "done", "acknowledged": "not_now", "dismissed": "doesnt_fit"}.get(reason.get("stage"), "")
     word = (A.BUTTONS.get(loc) or A.BUTTONS["en"]).get(stage_key, "")
-    return words.get(code, "").format(when=_hhmm(reason.get("at")), level=reason.get("level", ""),
+    # a time from another day says its day: the Wall read "asked at 21:22" under a 22:00 clock for an alert raised on
+    # 2 Oct (node #1, 14 Oct). `today` is the engine's own, so a replayed capture reads as it did that day.
+    at, when_ = reason.get("at"), _hhmm(reason.get("at"))
+    if when_ and reason.get("today"):
+        t = datetime.fromisoformat(at.replace("Z", "+00:00")) if isinstance(at, str) else at
+        t = t.astimezone(reason["today"][1])
+        # ponytail: English month names in every locale; a locale's own when id/es get a native reader
+        when_ = f"{t:%H:%M}" if t.date() == reason["today"][0] else f"{t:%-d %b %H:%M}"
+    return words.get(code, "").format(when=when_, level=reason.get("level", ""),
                                       id=reason.get("alert_id", ""), peak=reason.get("peak", ""),
                                       peak_at=reason.get("peak_at", ""), kind=reason.get("kind", ""),
                                       who=reason.get("who") or words.get("someone", ""), word=word)
@@ -818,6 +873,36 @@ def _peak(series: list[float | None] | None, buckets: list, dp: int, unit: str =
     if tz is not None and isinstance(at, datetime) and at.tzinfo is not None:
         at = at.astimezone(tz)
     return {"peak": f"{v:.{dp}f} {unit}".strip(), "peak_at": _hhmm(at)}
+
+
+# The day behind the hour. At 19:00 on 14 Oct 2026 node #1's title said "The air is clean, inside and out" while the Air
+# row beside it read 12 h over the line today and the day's drawing was red until 11:00: the title spoke for the hour
+# and everything around it for the day. One hour over the line today, with the reading back under it now, is a day
+# that differs from the hour, and the title then says both. The knob is here if one hour proves too eager.
+DAY_OVER_HOURS = 1
+
+
+def _day(series: list[float | None] | None, buckets: list, line: dict | None, now: datetime, tz=None) -> dict | None:
+    """Today's hours over the line, counted the way GET /issues/days counts them for the "N h over the line today"
+    beside the title: the same series, the same strict `>`, the node's local day. {over, until, part}, or None.
+
+    `until` is the end of the last hour over, or now if that hour is still running, and then `running` is true: the
+    hour's mean is over while the reading that put the title under is not, so the clock time would be this minute and
+    the sentence would read as still over (audit, 15 Oct). `part` is the part of the day that held most of the hours
+    over, the later one on a tie (over from 00:00 to 11:00 is a morning, as the house tells it)."""
+    if line is None or not series or len(series) != len(buckets) or not buckets:
+        return None
+    lv, tz = float(line["value"]), tz or getattr(buckets[-1], "tzinfo", None)
+    local = lambda t: t.astimezone(tz) if tz is not None and t.tzinfo is not None else t   # noqa: E731
+    today = local(now).date()
+    over = [local(b) for b, v in zip(buckets, series)
+            if v is not None and v > lv and isinstance(b, datetime) and local(b).date() == today]
+    if not over:
+        return None
+    parts = [max(p for p in DAY_PARTS if p[0] <= h.hour) for h in over]
+    part = max(DAY_PARTS, key=lambda p: (parts.count(p), p[0]))[1]
+    end = over[-1] + timedelta(hours=1)
+    return {"over": len(over), "until": _hhmm(min(end, local(now))), "running": end > local(now), "part": part}
 
 
 def _trend(series: list[float | None], compare: dict) -> str:
@@ -903,22 +988,25 @@ def _cmp(d, stack, headline_dist, loc, compare) -> str:
 
 
 def _sentence(d, stack, state, headline_dist, verb_key, loc, compare, attribution,
-              line=None, reason=None) -> str:
+              line=None, reason=None, day=None) -> str:
     """The full sentence. `_sentence_parts` returns the title/tagline split with it."""
     return _sentence_parts(d, stack, state, headline_dist, verb_key, loc, compare,
-                           attribution, line, reason)[0]
+                           attribution, line, reason, day)[0]
 
 
 def _sentence_parts(d, stack, state, headline_dist, verb_key, loc, compare, attribution,
-                    line=None, reason=None) -> tuple[str, str, str]:
-    """(sentence, title, tagline): the sentence whole, then split at the {line} clause.
+                    line=None, reason=None, day=None) -> tuple[str, str, str]:
+    """(sentence, title, tagline). The template marks the split with "|".
 
-    The title is the qualitative head — what is happening, in the household's words, with no
-    number and no indicator in it ("The air is getting worse inside"). The tagline is the rest:
-    the line, the comparison, the day's event — the readings, introduced slowly and set smaller.
-    A page titles with the title and explains with the tagline; the full sentence stays for the
-    places that speak prose (the bot, the asks). Templates without a {line} clause (the none and
-    context states) do not split: the title is the whole and the tagline is empty.
+    The title says what is happening for the household, in its words, with no number and no indicator
+    ("The house is keeping the heat out"). The tagline is the evidence: the line, said once with what it
+    protects, the one comparison that explains the title, and the day's event. A page titles with the
+    title and explains with the tagline; the full sentence stays for prose (the bot, the asks). The none
+    and context states carry no "|" and do not split.
+
+    `day` is `_day()`'s today. When the reading is back under the line (or near it) after hours over it today, the
+    issue's `day` template for that relation says the day instead: "The air is clean now, after a dusty morning", and
+    the tagline when and how long. The hour alone was the contradiction the 14 Oct review found beside the day's count.
     """
     block = (d.get("sentences") or {}).get(loc) or {}
     if state in ("none", "context"):
@@ -941,10 +1029,7 @@ def _sentence_parts(d, stack, state, headline_dist, verb_key, loc, compare, attr
         if extra.get("since_year") and extra.get("since_pct") is not None else ""
     # The {line} clause is computed from the live value against the line, never written into a
     # template — so a template can never assert "under the line" on a day the reading is past it.
-    line_key = ""
-    if d["kind"] == "sensed" and line is not None and n is not None:
-        lv = float(line["value"])
-        line_key = "over" if n > lv else ("near" if n >= 0.9 * lv else "under")
+    line_key = _line_key(d, n, line)
     line_clause = (block.get("line") or {}).get(line_key, "")
     # The {event} clause for the day it crossed and came back: the state band says act or notable
     # because of what happened earlier, while the sentence says now. Naming the crossing keeps the
@@ -960,25 +1045,70 @@ def _sentence_parts(d, stack, state, headline_dist, verb_key, loc, compare, attr
                  where=_where(d, headline_dist, loc),
                  cmp=_cmp(d, stack, headline_dist, loc, compare),
                  line=line_clause, event=event_clause,
-                 span=span, since=since)
+                 span=span, since=since, part="", until="", hours="")
+    # The day over the hour: a template that names the hours over the line replaces the attribution, whose {event}
+    # clause ("crossed the line earlier today") was the same fact said without when or how long.
+    said_day = (block.get("day") or {}).get(line_key) if state not in ("none", "context") and day \
+        and day["over"] >= DAY_OVER_HOURS and line_key in ("under", "near") else None
+    if said_day:
+        tpl, dw = said_day, block["day"]
+        until = dw.get("recent", "a few minutes ago") if day.get("running") else dw.get("at", "{t}").format(t=day["until"])
+        slots.update(part=dw["parts"][day["part"]], until=until,
+                     hours=dw["hours"][0 if day["over"] == 1 else 1].format(n=day["over"]),
+                     where=_where(d, day.get("distance") or headline_dist, loc))
 
     def _fmt(t):
-        return " ".join(t.format(**slots).split()).replace(" ,", ",").replace(" .", ".")
+        s = " ".join(t.format(**slots).split()).replace(" ,", ",").replace(" .", ".")
+        # a clause that opens a sentence ("… inside the house. under the WHO line.") opens it upper-case
+        return re.sub(r"([.!?] )(\w)", lambda m: m[1] + m[2].upper(), s)
 
-    full = _fmt(tpl)
-    head, sep, tail = tpl.partition("{line}")
+    # The template says where the title ends: "title | tagline". The title is what it means for the household,
+    # in words; the tagline is the evidence, the line said once. A template with no "|" does not split.
+    head, sep, tail = tpl.partition("|")
     if not sep:
+        full = _fmt(tpl)
         return full, full, ""
-    title = _fmt(head).strip().rstrip(",—–- ").strip()
-    tagline = _fmt("{line}" + tail).strip()
-    # with no reading there is no line clause, and the tagline would open on the template's own
-    # punctuation — ". cleaner than the street" is not a sentence start
-    if tagline.startswith(". "):
-        tagline = tagline[2:]
-    # the clause is written to sit mid-sentence; standing alone under the title it is a sentence
+    title = _fmt(head).strip().rstrip(",.;:—–- ").strip()
+    # with no reading the line clause is empty, and the tagline must not open on the template's punctuation
+    tagline = _fmt(tail).strip().lstrip(",.;: ").strip()
     if tagline:
         tagline = tagline[0].upper() + tagline[1:]
-    return full, title, tagline
+    return (f"{title}. {tagline}" if tagline else f"{title}."), title, tagline
+
+
+
+def _line_key(d, n, line) -> str:
+    """over · near · under the issue's line — near is within a tenth below it. "" with no line or no value."""
+    if d["kind"] != "sensed" or line is None or n is None:
+        return ""
+    lv = float(line["value"])
+    return "over" if n > lv else ("near" if n >= 0.9 * lv else "under")
+
+
+def _hour_parts(d, series, buckets, i, dist, loc, compare, line, tz=None) -> list[str]:
+    """[title, tagline] for one hour of the day the page can scrub back to. `series` is every distance's hours.
+
+    The same order as the live sentence: the title says what that hour meant for the house, from the six stories
+    `_classify` tells (the house keeping the street's dust out, the dust coming from inside…), and the tagline the
+    reading and whose line. With no story to tell (a sensed issue with only one distance) the title is the trend
+    in the past tense. Every word comes from the issue's `past` block, so the page writes none.
+    """
+    block = (d.get("sentences") or {}).get(loc) or {}
+    past = block.get("past") or {}
+    at = buckets[i]
+    if tz is not None and isinstance(at, datetime) and at.tzinfo is not None:
+        at = at.astimezone(tz)
+    where, hour, own = _where(d, dist, loc), _hhmm(at), series.get(dist) or []
+    n = own[i] if i < len(own) else None
+    if n is None:
+        return [past.get("none", "").format(where=where, hour=hour), ""]
+    verb = (past.get("verbs") or {}).get(_trend(own[:i + 1], compare), "")
+    then = {x: {"value": v[i]} for x, v in series.items() if v and i < len(v) and v[i] is not None}
+    title = (past.get("attribution") or {}).get(_classify(then, line, compare)) or past.get("title", "")
+    line_clause = (block.get("line") or {}).get(_line_key(d, n, line), "")
+    tag = past.get("tagline", "").format(hour=hour, n=f"{n:.{d['dp']}f}", unit=d["unit"], line=line_clause)
+    tag = re.sub(r"\s*,\s*\.", ".", " ".join(tag.split()))
+    return [" ".join(title.format(verb=verb, where=where).split()), tag]
 
 
 # ------------------------------------------------------------------------------------------- readouts
@@ -1125,7 +1255,8 @@ def _values(spec: dict, hourly: dict, buckets: list, keep) -> list:
     for b in buckets:
         per: dict[str, dict] = {}
         for r in hourly.get(b, []):
-            if not keep(r) or r["metric"] not in spec["metrics"]:
+            # the metric first: it is a set lookup, and keep() asked place_of 130,524 times a /issues/days on node #1
+            if r["metric"] not in spec["metrics"] or not keep(r):
                 continue
             per.setdefault(r["sensor_id"], {})[r["metric"]] = r.get("mean")
         v, _, _ = _combine(per, spec["metrics"], spec.get("function"), spec["aggregate"])
@@ -1173,10 +1304,24 @@ USUAL_SQL = "SELECT sensor_id, metric, hour, median, p90 FROM usual_by_hour"
 # The archive of silence (docs/SPEC_dashboard_figures.md §3.3): stations heard within SILENT_DAYS and not in the last
 # day. `stats` holds the last 24 hours only, so without this a station silent for a day leaves /issues with no word.
 SILENT_DAYS = 30
-SILENT_SQL = ("SELECT s.sensor_id, s.name, s.lat, s.lon, s.local, s.indoor, s.kind, max(r.ts) AS last_heard "
-              "FROM readings r JOIN sensors s USING (sensor_id) "
-              "WHERE s.kind = 'sensor' AND r.ts > now() - make_interval(days => %s) "
-              "GROUP BY 1, 2, 3, 4, 5, 6, 7 HAVING max(r.ts) <= now() - interval '24 hours'")
+# Stations heard in the last day are left out first (their newest index entry answers that), and only the quiet ones
+# are walked, newest row per metric off readings_lookup. Grouping 30 days of every station's readings took ~300 ms on
+# node #1 (24 Oct 2026) to name four; this takes ~27 ms, the same four at the same times.
+SILENT_SQL = ("WITH RECURSIVE quiet AS ("
+              " SELECT s.sensor_id FROM sensors s WHERE s.kind = 'sensor' AND NOT EXISTS ("
+              "  SELECT 1 FROM readings r WHERE r.sensor_id = s.sensor_id AND r.ts > now() - interval '24 hours')"
+              "), m AS ("
+              " SELECT q.sensor_id, (SELECT min(r.metric) FROM readings r WHERE r.sensor_id = q.sensor_id) AS metric"
+              " FROM quiet q"
+              " UNION ALL"
+              " SELECT m.sensor_id, (SELECT min(r.metric) FROM readings r"
+              "  WHERE r.sensor_id = m.sensor_id AND r.metric > m.metric) FROM m WHERE m.metric IS NOT NULL"
+              ") SELECT s.sensor_id, s.name, s.lat, s.lon, s.local, s.indoor, s.kind, max(l.ts) AS last_heard"
+              " FROM m JOIN sensors s USING (sensor_id)"
+              " CROSS JOIN LATERAL (SELECT r.ts FROM readings r WHERE r.sensor_id = m.sensor_id AND r.metric = m.metric"
+              "  ORDER BY r.ts DESC LIMIT 1) l"
+              " WHERE m.metric IS NOT NULL GROUP BY 1, 2, 3, 4, 5, 6, 7"
+              " HAVING max(l.ts) > now() - make_interval(days => %s)")
 
 
 def _optional(cur, sql: str, *args) -> list[dict] | None:
@@ -1358,6 +1503,7 @@ def _geometry(lat: float, lon: float, settings, stations: list[dict], peers) -> 
     """
     import h3  # noqa: PLC0415 — only this path needs it, same lazy import _stations already uses
     floor = geometry.FLOOR_RES
+    ring = next((p for p in packs.stations() if p["on"] and p.get("radius")), None)
     pub = geometry.publication()
     peer_rows = [{"cell": p.get("cell"), "res": p.get("res"), "km": p.get("km")} for p in (peers or [])]
     return {
@@ -1365,10 +1511,10 @@ def _geometry(lat: float, lon: float, settings, stations: list[dict], peers) -> 
         "ladder": geometry.ladder(lat, lon),
         "nav": geometry.plates(lat, lon, stations),
         "grain_table": geometry.grain_table(lat, lon, stations, floor_res=floor, publication_res=pub["res"]),
-        "claims": geometry.claims(lat, lon, settings),
+        "claims": geometry.claims(lat, lon, settings, ring),
         "radio": geometry.radio(lat, lon, settings, peer_rows),
         "settings": {k: settings.num(k, d) for k, d in (
-            ("LOCAL_RADIUS_M", 500), ("BAD_RADIUS_KM", 15), ("EARTH_RADIUS_M", 5000),
+            ("LOCAL_RADIUS_M", 500), *([(ring["radius"], 15)] if ring else []), ("EARTH_RADIUS_M", 5000),
             ("PLACE_RADIUS_M", 1000), ("RETICULUM_PRESENCE_RES", 3))} | {"PRESENCE_RES_FLOOR": floor},
         "source": f"h3 {h3.__version__}, computed by this node",
     }
@@ -1452,7 +1598,10 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
     names = {r["sensor_id"]: r.get("name") for r in data["stats"]}
     clock = _clock(data)
 
-    buckets = sorted({r["bucket"] for r in data["hourly"]})[-24:]
+    # The last 24 hours that have happened. readings_1h also holds the forecast's hours, up to 48 h ahead, and the
+    # latest 24 buckets used to be mostly tomorrow's: no sensor reads there, so every series came back empty and
+    # every trend "steady" — on node #1 the live title said "holding" whatever the air did (11 Oct 2026).
+    buckets = sorted({r["bucket"] for r in data["hourly"] if (_age_minutes(r["bucket"], now) or 0) >= 0})[-24:]
     hourly: dict = {b: [] for b in buckets}
     for r in data["hourly"]:
         if r["bucket"] in hourly:
@@ -1471,7 +1620,7 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
                         "reason_text": {loc: _reason_text({"code": "not_watched"}, loc) for loc in LOCALES},
                         "name": d["name"], "kind": d["kind"], "unit": d["unit"], "dp": d["dp"],
                         "stack": {dist: None for dist in DISTANCES}, "line": d.get("line"),
-                        "attribution": None, "open_asks": [], "series": {dist: None for dist in DISTANCES},
+                        "attribution": None, "open_asks": [], "asking": [], "series": {dist: None for dist in DISTANCES},
                         "readouts": [], "provenance": [],
                         # "not watched here", not "no source". The node may well have a source for
                         # this — coast has a marine model wherever there is a sea — and telling a
@@ -1502,13 +1651,19 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
         verb_key = _trend(series.get("room") or series.get(headline), compare)
         if reason.get("code") in ("no_alert", "over_line"):
             reason = {**reason, **_peak(series.get("room") or series.get(headline), buckets, d["dp"], d["unit"], clock)}
+        # today's hours over the line, at the distance /issues/days counts them (its first with a series), so the title
+        # and the Now door's "N h over the line today" are one count
+        day_dist = next((x for x in DISTANCES if series.get(x)), None)
+        day = _day(series.get(day_dist), buckets, line, now, clock) if d["kind"] == "sensed" and day_dist else None
+        if day:
+            day["distance"] = day_dist
         _parts = {loc: _sentence_parts(d, stack, state, headline, verb_key, loc, compare,
-                                       attribution, line, reason)
+                                       attribution, line, reason, day)
                   for loc in LOCALES}
         out[key] = {
             "state": state, "watched": True,
             "reason": reason,
-            "reason_text": {loc: _reason_text(reason, loc) for loc in LOCALES},
+            "reason_text": {loc: _reason_text({**reason, "today": _today(now, clock)}, loc) for loc in LOCALES},
             "name": d["name"], "kind": d["kind"], "metric": d["metric"], "unit": d["unit"], "dp": d["dp"],
             "about": d.get("about"),
             "headline": headline, "stack": stack, "line": line, "attribution": attribution,
@@ -1516,6 +1671,8 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
             # How far it moved, beside which way it went. The page shows it; _headline ranks on it (_lead).
             "moved": round(_moved(series.get("room") or series.get(headline)), 4),
             "open_asks": open_asks,
+            # what is asked of the house about this issue now; every page reads this and nothing else (_asking)
+            "asking": _asking(ev_open.get(key), open_asks),
             "series": series, "buckets": [b.isoformat() if hasattr(b, "isoformat") else b for b in buckets],
             "readouts": [{k: v for k, v in r.items() if not k.startswith("_")} for r in d["_readouts"]],
             "provenance": _provenance(d, stack, earth),
@@ -1596,7 +1753,7 @@ def _local_days(buckets: list, tz) -> list[tuple]:
     return out
 
 
-def days(cur, settings, decl: dict, n: int, now: datetime | None = None) -> dict:
+def days(cur, settings, decl: dict, n: int, now: datetime | None = None, loc: str = "en") -> dict:
     """GET /issues/days: each declared issue's hourly series over n local days, computed by the same `_series` that
     gives /issues its 24 hours, so a cell of the page's strip is what the lead's numeral said at that hour
     (docs/SPEC_dashboard_figures.md §3.4). The node counts the hours over the line, so the page prints a count it did
@@ -1634,9 +1791,16 @@ def days(cur, settings, decl: dict, n: int, now: datetime | None = None) -> dict
             got = [series[dist][i] for i in idx if series[dist][i] is not None]
             per_day.append({"date": day.isoformat(), "over": None if lv is None else sum(1 for v in got if v > lv),
                             "read": len(got), "of": len(idx)})
+        compare = d.get("compare") or {"mode": "ratio", "margin": 1.5}
         issues[key] = {"distance": dist, "series": series,
                        "provenance": {x: _word(x) for x in DISTANCES if series.get(x)},
-                       "per_day": per_day, "line": line}
+                       "per_day": per_day, "line": line,
+                       # One [title, tagline] per bucket, for the hours the page scrubs back to: the past hour
+                       # speaks the engine's words too, and the page writes none. One locale, the one asked for —
+                       # seven days in all three would be a thousand strings nobody reads.
+                       "hours": ({loc: [_hour_parts(d, series, buckets, i, dist, loc, compare, line, tz)
+                                        for i in range(len(buckets))]}
+                                 if d["kind"] == "sensed" and dist else None)}
     events = _rows(cur, "SELECT id, issue, kind, level, opened_at, cleared_at FROM alert_events "
                         "WHERE opened_at >= %s OR cleared_at IS NULL OR cleared_at >= %s ORDER BY opened_at",
                    buckets[0], buckets[0])
@@ -1654,6 +1818,8 @@ def _sections(decl: list[dict], obs: list[dict], now: datetime) -> list[dict]:
     out = []
     for sec in decl:
         rows = _readouts(sec, obs)
+        if not rows and sec.get("core"):
+            continue          # a core pack nobody turned on: "none of its readings has arrived" would be noise
         out.append({"id": sec["id"], "pack": sec["pack"], "stage": sec["stage"], "title": sec["title"],
                     "order": sec.get("order", 50), "wall": bool(sec.get("wall")), "note": sec.get("note"),
                     "expected": len(sec["readouts"]),

@@ -1,0 +1,14 @@
+# A satellite's fire count is somebody else's measurement of somewhere else, worked out here into rings and
+# directions: derived, never comparable, never pooled with an instrument at this address. Public, not private:
+# the detections are NASA's open data, and nothing here says where the house is.
+- { source: firms, metric: fires_local_24h,       role: derived, comparable: false, unit: "fires" }
+- { source: firms, metric: fires_region_24h,      role: derived, comparable: false, unit: "fires" }
+- { source: firms, metric: frp_local_mw,          role: derived, comparable: false, unit: "MW" }
+- { source: firms, metric: frp_region_mw,         role: derived, comparable: false, unit: "MW" }
+- { source: firms, metric: fires_nearest_km,      role: derived, comparable: false, unit: "km" }
+- { source: firms, metric: fires_nearest_bearing, role: derived, comparable: false, unit: "°" }
+- { source: firms, metric: fires_local_upwind,    role: derived, comparable: false, unit: "fires" }
+- { source: firms, metric: fires_region_upwind,   role: derived, comparable: false, unit: "fires" }
+- { source: firms, metric: fires_upwind_km,       role: derived, comparable: false, unit: "km" }
+- { source: firms, metric: fires_upwind_bearing,  role: derived, comparable: false, unit: "°" }
+- { source: firms, metric: fire_wind_from_deg,    role: derived, comparable: false, unit: "°" }

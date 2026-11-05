@@ -39,7 +39,8 @@ mcp = MCPServer(
 
 
 def _get(path: str):
-    r = httpx.get(API + path, timeout=30)
+    # X-Agent on every read: the node leaves `private` readings out of what an agent is handed (main._shows_private)
+    r = httpx.get(API + path, headers={"X-Agent": "agent"}, timeout=30)
     r.raise_for_status()
     return r.json()
 
@@ -62,9 +63,13 @@ def status() -> dict:
 @mcp.tool()
 def health_check() -> dict:
     """Checks with the fix named next to each failure: polling recent, sources without errors, a backup in the last two days,
-    the database reachable, the mesh alive if configured."""
+    no local sensor's channel frozen, the LoRa radios heard if configured. `sources` is GET /health/sources: the fundamental sources, each
+    running or not, with its fix; they never make `ok` false."""
     h = _get("/health"); checks = []
-    def chk(name, ok, fix): checks.append({"check": name, "ok": bool(ok), "fix": None if ok else fix})
+    # `fix` is the admin's (Node › Running, MCP). `who` is the display names a failing check is about, so the morning
+    # message can name the room in the household's words instead of quoting `fix` (app/report.py, HEALTH).
+    def chk(name, ok, fix, who=()):
+        checks.append({"check": name, "ok": bool(ok), "fix": None if ok else fix, **({"who": list(who)} if who and not ok else {})})
     age = None
     if h.get("last_poll"):
         age = (datetime.now(timezone.utc) - datetime.fromisoformat(h["last_poll"])).total_seconds() / 60
@@ -75,28 +80,36 @@ def health_check() -> dict:
     fresh = dumps and (datetime.now(timezone.utc) - datetime.fromtimestamp(dumps[-1].stat().st_mtime, timezone.utc)) < timedelta(days=2)
     chk("a backup in the last 2 days", fresh, "run `planetai backup` on the node and check `crontab -l | grep backup`")
     # judge each local sensor by whether its ambient channels are still moving, not by its timestamp: a dead
-    # channel's kit keeps stamping fresh times over the same frozen value (see packs/trust/rules.yml, channel_dead)
+    # channel's kit keeps stamping fresh times over the same frozen value (see config/rules.yml, trust/channel_dead)
     try:
         trust = _get("/trust")
     except Exception as e:  # noqa: BLE001 — this check's own fetch must not take down every other check below it
         chk("no local sensor's ambient channel is frozen", False, f"/trust did not respond ({e}); check `planetai logs`")
     else:
         frozen = sorted({r["name"] or r["sensor_id"] for r in trust if r["frozen_channels"] > 0})
+        named = sorted({r["name"] for r in trust if r["frozen_channels"] > 0 and r.get("name")})
         chk("no local sensor's ambient channel is frozen", not frozen,
             f"{', '.join(frozen)} {'has' if len(frozen) == 1 else 'have'} a channel stuck on the same number for hours while the kit itself "
             f"still reports. What this means: any reading or alert built from that channel is wrong; the rest of the kit and the rest of the "
             f"node are unaffected. Most often one sensor inside the kit has died: power-cycle it. If the number stays frozen, replace that "
-            f"sensor — nothing it has recorded since it froze can be trusted.")
+            f"sensor — nothing it has recorded since it froze can be trusted.", named)
     if os.getenv("MQTT_HOST"):
         # judge the radios by their readings, not by in-memory packet counters that reset on every restart
         mesh = [r for r in _get("/stats") if r["sensor_id"].startswith("msh-")]
         quiet = sorted({r["sensor_id"] for r in mesh if r["silent_minutes"] > 60})
         heard = sorted({r["sensor_id"] for r in mesh if r["silent_minutes"] <= 60})
+        named = sorted({r["name"] for r in mesh if r["silent_minutes"] > 60 and r.get("name")})
         chk("LoRa radios heard in the last hour", bool(heard) or not mesh,
             f"radio(s) {', '.join(quiet)} have been silent for hours. What this means: readings and alerts that travel over LoRa have "
             f"stopped; everything else (the WiFi sensors, Telegram, the dashboard) is unaffected. Most often the gateway radio (the XIAO) "
-            f"lost WiFi or its MQTT session: check its power light, open its web page at its IP, or power-cycle it. `planetai logs mosquitto` shows whether the broker hears it.")
-    return {"ok": all(c["ok"] for c in checks), "checks": checks}
+            f"lost WiFi or its MQTT session: check its power light, open its web page at its IP, or power-cycle it. `planetai logs mosquitto` shows whether the broker hears it.", named)
+    # The fundamental sources (GET /health/sources), apart from the checks: a node with no sensor yet is unfinished,
+    # not broken, so they never make `ok` false. Each one that is not running carries its fix.
+    try:
+        srcs = _get("/health/sources")["sources"]
+    except Exception:  # noqa: BLE001 — an older node has no such route; the checks above stand on their own
+        srcs = None
+    return {"ok": all(c["ok"] for c in checks), "checks": checks, "sources": srcs}
 
 
 @mcp.tool()
@@ -164,9 +177,31 @@ def report_bundle(hours: int = 6) -> dict:
     cells. This is what a report is written from — use it to answer a question about a stretch of time rather than a
     moment, and never write a number that is not in it."""
     r = httpx.get(API + f"/report/bundle?hours={min(max(int(hours), 1), 168)}",
-                  headers={"Authorization": f"Bearer {os.getenv('ADMIN_TOKEN', '')}"}, timeout=120)
+                  headers={"Authorization": f"Bearer {os.getenv('ADMIN_TOKEN', '')}", "X-Agent": "agent"}, timeout=120)
     r.raise_for_status()
     return r.json()
+
+
+@mcp.tool()
+def learned(query: str = "", scale: str = "") -> dict:
+    """What this house has learned from its own record (docs/SPEC_learn.md), and its diary. With no arguments: the
+    learnings, what worked after someone acted, what is usual, and the alerts that may not fit. With `query`, a few
+    keywords ('October', 'smoke purifier', 'heat'), it searches the learnings and the digests the node writes for every
+    day, week, month and year; `scale` (day, week, month, year) narrows to digests of that size, and alone lists the
+    newest. To compare two periods, search for each. A learning's `for_whom` names who in this house it matters most
+    to, as the household said; say so when it applies. Every sentence is the node's own: quote it, never add a number or
+    a cause. Answers only while every model this node may use is on the house's own machines; otherwise it says why."""
+    if query or scale:
+        r = httpx.get(API + "/learned/search", params={"q": query, "scale": scale}, headers=_admin_headers("agent"), timeout=30)
+    else:
+        r = httpx.get(API + "/learned", headers=_admin_headers("agent"), timeout=30)
+    if r.status_code in (403, 422):
+        return {"kept_home" if r.status_code == 403 else "error": r.json().get("detail")}
+    r.raise_for_status()
+    if query or scale:
+        return {"results": [{k: x.get(k) for k in ("source", "scale", "label", "text")} for x in r.json().get("results", [])]}
+    return {"learnings": [{k: x.get(k) for k in ("key", "kind", "status", "statement", "n", "checked_at", "for_whom")}
+                          for x in r.json().get("learnings", [])]}
 
 
 @mcp.tool()
@@ -246,8 +281,8 @@ def issues(issue: str | None = None) -> dict:
     changed today · quiet = nothing to say · context = it informs and never asks · none = not
     watched or no source) and why; the same quantity at four distances (room, yard, ring, region)
     with a source and a provenance word for each; the line it is judged against and where that line
-    comes from; the open alerts, and whether each is still true; and one sentence in English, Bahasa
-    and Spanish.
+    comes from; the open alerts, and whether each is still true; `asking`, what is asked of the
+    household now; and one sentence in English, Bahasa and Spanish.
 
     `headline` is the issue to lead with: the highest state present, ties going to the keeper's
     order. Prefer this tool over `stats` or `readings` for any question about how the place is
@@ -272,7 +307,8 @@ def series(metric: str = "pm25", hours: int = 24) -> dict:
 
 @mcp.tool()
 def export_day(day: str | None = None) -> dict:
-    """One day as open data: hourly means per sensor, cells, alerts, rho. Default yesterday. What a parent node or a researcher receives."""
+    """One day as open data: hourly means per sensor, cells, alerts, rho, and what the household offers to lend or give.
+    Default yesterday. What a parent node or a researcher receives."""
     day = day or (date.today() - timedelta(days=1)).isoformat()
     return _get(f"/export?day={day}")
 
@@ -281,13 +317,15 @@ def export_day(day: str | None = None) -> dict:
 def run_pack_script(pack: str, script: str, args: list[str] | None = None, agent: str = "agent") -> dict:
     """Run a script a pack ships (e.g. earth-engine verify, earth-engine timelapse). Runs in the app container; output files land in out/.
     Returns stdout/stderr and the exit code."""
+    import packs as _packs
     pack, script = Path(pack).name, Path(script).name
     p = PACKS_DIR / pack / (script + ".py")
     reachable = agent_scripts()
     if f"{pack}/{script}" not in reachable:
         why = (f"{pack}/{script} is in a wild pack that does not list it under agent_scripts:, so only the node's own "
                f"terminal runs it: planetai run {pack} {script}") if p.is_file() and (p.parent / ".wild").is_file() \
-            else f"no such script: {pack}/{script}"
+            else (f"{pack} is not loaded on this node (PACKS_ENABLED, or its requires:), so its scripts do not run"
+                  if p.is_file() and pack not in {d.name for d in _packs._enabled()} else f"no such script: {pack}/{script}")
         return {"error": why, "available": reachable}
     r = subprocess.run(["python", str(p), *(args or [])], capture_output=True, text=True, timeout=900, env={**os.environ, "PACK_OUT": "/app/out"})
     return {"exit": r.returncode, "stdout": r.stdout[-6000:], "stderr": r.stderr[-2000:], "by": agent}

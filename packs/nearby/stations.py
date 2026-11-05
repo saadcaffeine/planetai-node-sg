@@ -10,7 +10,12 @@ import sys
 import httpx
 
 sys.path.insert(0, "/app")
+import packs  # noqa: E402
 import sources  # noqa: E402
+
+archive = packs.module("bali-air-dispatch")   # the archive's adapter: its endpoints and the one function that decides the ring
+if archive is None:
+    sys.exit("nearby: the bali-air-dispatch pack is not on this node; the ring reads what it stores")
 
 LAT, LON = float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"])
 RADIUS = float(os.getenv("BAD_RADIUS_KM", "15"))
@@ -19,20 +24,20 @@ BYHAND = {x for x in os.getenv("BAD_EXCLUDE", "").replace(" ", "").split(",") if
 INDOOR = os.getenv("BAD_INCLUDE_INDOOR", "0") == "1"
 
 hc = httpx.Client(timeout=60, headers={"user-agent": "planetai-node"})
-latest = {r["station_id"]: r for r in hc.get(sources.BAD_LATEST).json().get("readings", [])}
+latest = {r["station_id"]: r for r in hc.get(archive.LATEST).json().get("readings", [])}
 # /stations carries the three the archive has no current reading for, so the audit is the whole archive, not
 # only the part that answered today.
 rows = []
-for s in hc.get(sources.BAD_STATIONS).json().get("stations", []):
+for s in hc.get(archive.STATIONS).json().get("stations", []):
     rows.append({**s, **latest.get(s["station_id"], {})})
 
-# the station ids this node reads directly, built the same way app/sources.py builds them
+# the station ids this node reads directly, built the same way the pack's adapter builds them
 own = {f"sc-{i}" for i in sources.smartcitizen_account(hc, os.getenv("SC_USER", "").strip())} if os.getenv("SC_USER", "").strip() else set()
 own |= {f"sc-{x}" for x in os.getenv("SC_DEVICES", "").replace(" ", "").split(",") if x}
 own |= {f"ag-{h.replace('.local', '').replace('airgradient_', '')}"
         for h in os.getenv("AIRGRADIENT_HOSTS", "").replace(" ", "").split(",") if h}
 
-verdicts = sources.bad_verdicts(rows, LAT, LON, RADIUS, own, BYHAND, SEP, INDOOR)
+verdicts = archive.verdicts(rows, LAT, LON, RADIUS, own, BYHAND, SEP, INDOOR)
 verdicts.sort(key=lambda rv: sources.km(LAT, LON, rv[0]["latitude"], rv[0]["longitude"])
               if rv[0].get("latitude") is not None else 9e9)
 

@@ -32,20 +32,19 @@ account is read as yours; indoor/outdoor from each kit's own `exposure`. `SC_EXC
 Metrics are mapped by measurement name, since sensor ids differ between kit generations. Not humidity-corrected: the
 Seeed HM-3301 is not a Plantower and the EPA correction was not derived for it.
 
-**AirGradient** (`AIRGRADIENT_HOSTS=airgradient_abc.local`). Read on the LAN, never through the cloud. Plantower inside:
-EPA 2021 correction applied, raw kept as `pm25_raw`.
+**AirGradient** (the `airgradient` pack, `AIRGRADIENT_HOSTS=airgradient_abc.local`). Read on the LAN, never through
+the cloud. Plantower inside: EPA 2021 correction applied, raw kept as `pm25_raw`.
 
-**PurpleAir** (`PURPLEAIR_HOSTS=192.168.1.50`). LAN, `/json`. Two Plantower channels averaged; corrected; raw kept.
+**PurpleAir** (the `purpleair` pack, `PURPLEAIR_HOSTS=192.168.1.50`). LAN, `/json`. Two Plantower channels averaged;
+corrected; raw kept.
 
-> **Not polled in this version.** Both adapters are written and tested, but `sources.enabled()` does not register
-> them, so a host you set is used only to keep your own kit out of the Bali Air Dispatch ring. A regression to be
-> fixed, not a decision; until then the sensors a node reads on its own are a Smart Citizen kit, Meshtastic radios and,
-> through the `xiaomi-air` wild pack, Xiaomi purifiers.
+Both were core adapters that v0.16 dropped from the poll by accident; from 22 October 2026 they are packs, read again
+whenever a host is listed. `SENSOR_INDOOR=1` marks the units of both as indoors.
 
 **Meshtastic** (`planetai meshtastic`). Telemetry from radios via the gateway's MQTT uplink. `MESH_INDOOR_NODES` marks the
 indoor ones. DIY pods publish to `planetai/sensors/<id>/<metric>` on the same broker.
 
-**DIY nodes, direct** (`planetai broker`). A Making Sense Bali DIY node (its v4 portal asks where to publish) sends the
+**DIY nodes, direct** (`planetai broker`, read by the `smartcitizen` pack's `hooks.py` since 22 October 2026). A Making Sense Bali DIY node (its v4 portal asks where to publish) sends the
 platform's own topics and bytes to this node's Mosquitto: `device/sck/<token>/readings`, plus a retained `meta` message
 with the name, the site, the mounting height and whether it is indoors. The parser also reads a Smart Citizen Kit's
 `readings/raw` (`{t:...,55:28.3}`, what `mqtt -host <node> -port 1883` in the kit's shell would send), but the kit's
@@ -56,7 +55,8 @@ until a later version adds a listener scoped to `device/sck/#`. The node stores 
 smartcitizen.me unchanged, through a queue that outlives an internet outage, so the device keeps its page there;
 add that device's platform id to `SC_EXCLUDE` or it is read twice, once direct and once from the cloud.
 
-**Bali Air Dispatch** (`BAD_ENABLED=1`, Bali). The ring: other people's stations within `BAD_RADIUS_KM`, as the
+**Bali Air Dispatch** (the `bali-air-dispatch` pack, `BAD_ENABLED=1`, Bali; a core source until the release after
+v0.82.3, with the same ids and settings). The ring: other people's stations within `BAD_RADIUS_KM`, as the
 outdoor reference this node is read against. Never `local`, at any distance. Three rules keep this node's own kit out
 of its own ring — the ids it already polls, anything within `BAD_MIN_SEPARATION_M` of the node, and `BAD_EXCLUDE` by
 hand — and one more keeps a single device from arriving twice under two networks' ids. Stations the archive suspects
@@ -77,7 +77,7 @@ Copernicus model at 11 km; climate normals. `kind='model'`, never in an ambient 
    kit-level `last_reading_at` at poll time. A channel that has stopped producing new values still gets a fresh
    timestamp on every poll, and its frozen value is re-inserted under that new timestamp — forever. That pulls
    the 24-hour mean toward the frozen number and shrinks its variance, so a dying channel's own statistics make
-   it look steadier, not worse. A timestamp check would never catch this. `packs/trust`'s `channel_dead` rule
+   it look steadier, not worse. A timestamp check would never catch this. The core's `trust/channel_dead` rule
    looks at the value instead.
 3. **A daily mean can be one reading.** Check `n` before trusting an aggregate.
 4. **Instants are UTC; days are local.** Daily buckets use `NODE_TZ`. Bali's 9 am burn peak vanishes on a UTC day.
@@ -87,7 +87,7 @@ Copernicus model at 11 km; climate normals. `kind='model'`, never in an ambient 
 8. **Sensors in the same place disagree.** Three kits at one address read the same air and do not agree: one of
    them (`sc-19849`) runs about 1.5× the other two, measured ratios 1.508 against `sc-19880` and 1.426 against
    `sc-19897`. Collocation — more than one sensor at the same spot — is the cheapest calibration a node can run,
-   and most nodes have it by accident rather than by design. `packs/trust`'s `peer_disagreement` rule is what
+   and most nodes have it by accident rather than by design. The core's `trust/peer_disagreement` rule is what
    reads it.
 
 ## "Outside" resolves in one order
@@ -97,7 +97,7 @@ digest and the dashboard. Averaging every station within 15 km once put an Uluwa
 
 ## The EPA 2021 humidity correction
 
-Optical PM sensors over-read in humid air. Bali runs 45–70% RH. `epa_2021_correct(pm_raw, rh)` implements the US EPA 2021
+Optical PM sensors over-read in humid air. Bali runs 45–70% RH. `epa_2021_correct(pm_raw, rh)` in `packs/air-quality/adapter.py` implements the US EPA 2021
 Plantower correction; raw 28 at Bali humidity → about 15. Near-zero raw in dry air lifts to 1–2: a property of the
 regression, no health meaning. Apply to PurpleAir, AirGradient, DIY PMS5003. Do not apply to Smart Citizen, IQAir,
 AQICN, Airly.
@@ -123,7 +123,7 @@ The node writes it itself, from SQL against its own tables, so a node with no mo
 Two numbers in it are worth knowing about. **Notability** is the window's mean against the mean of the same local hours
 on each of the previous seven days, in standard deviations of that baseline; it is null until three days exist, so a
 node in its first three days claims nothing. It decides which two places get a sentence, which is how the report can say "the
-kitchen ran higher than usual" without anyone reading a chart. **Trend** is the digest's ±3 rule read across to each
+air in Kitchen was dirtier than usual" without anyone reading a chart. **Trend** is the digest's ±3 rule read across to each
 metric's own units: 3 µg/m³ for PM2.5, half a degree for a room's temperature, 5% of the window's range for a metric
 with no line of its own.
 

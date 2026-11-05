@@ -124,6 +124,39 @@ for k in ("production", "purpose"):
     assert f"mark('{k}'" in foot, f"the foot no longer carries the '{k}' mark"
 print("  · the walk follows the page, and the foot carries the node's purpose on every view")
 
+# --- the doors: every part names a mark written for the doors -------------------------------------
+# The doors (`/`) mark their parts in the markup and learnList() in doors-core.js lists them. A classic mark
+# describes the classic page (the ladder, Network's resolution line), so on the doors it said the wrong thing;
+# a doors part names a door-prefixed mark, cut from the section of dashboard.md or wall.md about that part,
+# or one of the few classic marks whose quote describes the doors part as well.
+REUSED = {"figure", "earth", "settings"}
+DOORS_SRC = {p.name: p.read_text(encoding="utf-8") for p in sorted((ROOT / "app" / "static").glob("doors*.*"))}
+dkeys = {}
+for name, src in DOORS_SRC.items():
+    for k in re.findall(r'data-learn="([a-z-]+)"', src):
+        dkeys.setdefault(k, name)
+    for expr in re.findall(r"dataset\.learn\s*=\s*([^;]+);", src):
+        for k in re.findall(r"(?:^|[?:])\s*'([a-z-]+)'", expr.strip()):
+            dkeys.setdefault(k, name)
+PREFIX = ("now-", "place-", "node-", "data-", "wall-", "setup-")
+for k, name in sorted(dkeys.items()):
+    assert k in KEYS, f"{name} marks a part '{k}', which is not in MARKS in tools/build_learn.py"
+    assert k.startswith(PREFIX) or k in REUSED | {"bar", "foot"}, (
+        f"{name} marks a part with the classic mark '{k}'. Give it a door mark cut from the docs section that "
+        f"describes that part, or add it to REUSED here only if its quote describes the doors part too.")
+for door in ("now", "place", "node", "data", "wall", "setup"):
+    assert any(k.startswith(door + "-") for k in dkeys), f"the {door} door marks none of its parts"
+for k in ("place-orbit", "place-image", "wall-narration", "setup-save", "bar", "foot"):
+    assert k in dkeys, f"no doors part names '{k}'"
+# the list says what the docs say: the quote is the main text, then the page's line, the reads and the docs link
+core = DOORS_SRC["doors-core.js"]
+ll = core[core.index("function learnList()"):]
+ll = ll[:ll.index("\n}\n")]
+for need in ("m.quote", "m.more", "m.url", "m.section", "dataset.reads", "dataset.stage", "getClientRects"):
+    assert need in ll, f"learnList() no longer draws {need}"
+assert ll.index("m.quote") < ll.index("m.more"), "the docs quote is the main text, before the page's own line"
+print(f"  · all {len(dkeys)} marks the doors name are in MARKS, and each was written for the doors part it marks")
+
 # --- the gate fails when the documentation moves --------------------------------------------------
 tmp = tree()
 try:
@@ -133,7 +166,7 @@ try:
 
     # 1. the quote is edited out of its page entirely
     page = tmp / "docs" / "site" / "rho.md"
-    before = edit(page, "ρ (rho) is the share of the node's act-level alerts",
+    before = edit(page, "ρ (rho) is the share of the node's act-level asks",
                   "ρ is roughly how often somebody did something")
     rc, out = run(tmp)
     assert rc != 0, f"the build accepted a quote that is no longer in its page:\n{out}"
@@ -143,8 +176,8 @@ try:
 
     # 2. the paragraph grows past what the panel holds
     page = tmp / "docs" / "site" / "alerts.md"
-    before = edit(page, "`ALERT_LEVEL` (default `act`) is the floor for interrupting a person.",
-                  "`ALERT_LEVEL` (default `act`) is the floor for interrupting a person. "
+    before = edit(page, "`ALERT_LEVEL` (default `act`) is the floor for interrupting a person,",
+                  "`ALERT_LEVEL` (default `act`) is the floor for interrupting a person, "
                   + "and so on " * 30)
     rc, out = run(tmp)
     assert rc != 0, f"the build accepted a quote past the word ceiling:\n{out}"

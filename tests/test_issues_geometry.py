@@ -108,8 +108,18 @@ class S:  # the settings module's two readers, over the preset node #1 was captu
     def get(k, d=""):
         return str(S._v.get(k, d))
 
-C = {c["key"]: c for c in G.claims(LAT, LON, S)}
-if list(c["key"] for c in G.claims(LAT, LON, S)) != ["coast", "ring", "region", "place", "yard", "room"]:
+RING = {"pack": "bali-air-dispatch", "radius": "BAD_RADIUS_KM"}   # what packs.stations() gives with the pack on
+# The pack claims are the packs' own `footprint:` (pack.yaml) since 23 Oct 2026, read while the pack is on.
+import packs as _packs  # noqa: E402
+_fp = {f["pack"]: f["key"] for f in _packs.footprints()}
+if _fp != {"coast": "coast", "earth": "region", "place": "place"}:
+    fails.append(f"coast, earth and place declare the three pack footprints; got {_fp}")
+if [c["key"] for c in G.claims(LAT, LON, S, footprints=[])] != ["yard", "room"]:
+    fails.append("with no pack footprint on, only the core's own two claims are drawn")
+C = {c["key"]: c for c in G.claims(LAT, LON, S, RING)}
+if [c["key"] for c in G.claims(LAT, LON, S)] != ["coast", "region", "place", "yard", "room"]:
+    fails.append("no stations pack on, no ring claimed")
+if list(c["key"] for c in G.claims(LAT, LON, S, RING)) != ["coast", "ring", "region", "place", "yard", "room"]:
     fails.append("claims are ordered widest first: coast, ring, region, place, yard, room")
 if not (2800 < C["coast"]["area_km2"] < 2830) or not (195 < C["ring"]["area_km2"] < 205):
     fails.append(f"coast ≈ 2,813 km² and ring ≈ 200 km²; got {C['coast']['area_km2']}, {C['ring']['area_km2']}")
@@ -158,7 +168,7 @@ class S0:  # a copy of S with BAD_RADIUS_KM set to 0 — S's own methods close o
         return str(S0._v.get(k, d))
 
 try:
-    C0 = {c["key"]: c for c in G.claims(LAT, LON, S0)}
+    C0 = {c["key"]: c for c in G.claims(LAT, LON, S0, RING)}
 except Exception as e:  # noqa: BLE001 — the assertion is that nothing raises
     fails.append(f"a zero radius must not raise: {e!r}")
 else:
@@ -203,6 +213,18 @@ _centre = (_pc.get("cells") or {}).get(_g8["home"])
 if _centre and _centre["edge_m"] != _g8["edge_m"]:
     fails.append(f"the plate's centre cell and the grain table disagree about one cell's edge: "
                  f"{_centre['edge_m']} m and {_g8['edge_m']} m")
+
+# The coverings are cached (geometry._covering, 24 Oct 2026): a second call is the same answer, a claim the caller
+# changes does not change the next one. A changed radius is a new key: S0's zero-radius ring above is that case.
+_a = G.claims(LAT, LON, S, RING)
+_b = __import__("copy").deepcopy(G.claims(LAT, LON, S, RING))       # a snapshot, not the same lists
+if _a != _b:
+    fails.append("two calls to claims() with the same settings gave different coverings")
+_a[0]["cells"].append("not-a-cell"); _a[0]["drawn"]["cells"] = -1
+if G.claims(LAT, LON, S, RING) != _b:
+    fails.append("changing one claims() result changed the next: the cached covering is shared, not copied")
+if G._covering.cache_info().hits == 0:
+    fails.append("claims() never hit its covering cache: every request pays for h3 again")
 
 for f in fails:
     print("FAIL", f)

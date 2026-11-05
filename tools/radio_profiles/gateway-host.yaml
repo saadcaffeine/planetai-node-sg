@@ -1,0 +1,16 @@
+# Any board on the node's own USB port: the node is the gateway. `planetai radio gateway --port …` reads packets
+# over serial, publishes the same JSON an ESP32 gateway would, sends alerts back out, and federates the fabcity
+# channel. Works on nRF52 (T1000-E, Tracker L1) as well as ESP32, and the radio's own MQTT module stays off.
+_gateway: true
+_uplink: host
+config:
+  device:
+    role: CLIENT
+    serialEnabled: true
+  position:
+    gpsMode: DISABLED        # the node knows where it is; a gateway's GPS adds nothing and leaks an address
+  bluetooth:
+    enabled: false           # one master: the USB host. Bluetooth pairing from a phone steals the connection
+module_config:
+  mqtt:
+    enabled: false

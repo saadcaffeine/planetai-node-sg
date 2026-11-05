@@ -120,13 +120,15 @@ assert '"cell": _cell()' in _main_src, "/health carries the cell"
 # So this scans the WHOLE file rather than one function. #59's version looked only inside /presence's
 # body and could not see the sibling two hundred lines up, which is how the second site shipped.
 _facts_keys = set(ground.facts(*BALI))
-_reads = set(_re.findall(r'here(?:\.get\(|\[)["\'](\w+)["\']', _main_src))
+# both readers are in app/presence.py since 24 Oct 2026, where _node_cell() is main's _cell()
+_pres_src = open("app/presence.py").read()
+_reads = set(_re.findall(r'here(?:\.get\(|\[)["\'](\w+)["\']', _main_src + _pres_src))
 assert _reads, "nothing reads ground.facts() any more — did the cell stop being announced?"
 assert _reads <= _facts_keys, (
     f"app/main.py reads {sorted(_reads - _facts_keys)} off _cell(), which returns {sorted(_facts_keys)}. "
     f"A node would announce cell: null, or show km: null for every peer.")
-assert _main_src.count("here = _cell()") == 2, (
-    f"{_main_src.count('here = _cell()')} places read _cell() — this guard assumes `here` is always "
+assert _pres_src.count("here = _node_cell()") == 2 and "here = _cell()" not in _main_src, (
+    f"{_pres_src.count('here = _node_cell()')} places read _cell() — this guard assumes `here` is always "
     "its result. If that changed, the scan above may be reading someone else's variable.")
 print(f"  both _cell() readers use {sorted(_reads)}; facts() returns {sorted(_facts_keys)}")
 assert "THE CELL THIS NODE STANDS IN" not in shipped, (

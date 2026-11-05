@@ -1,0 +1,44 @@
+name: MODIS Land Surface Temperature MOD11A1/MYD11A1 v061 (NASA, via Microsoft Planetary Computer)
+url: https://planetarycomputer.microsoft.com/dataset/modis-11A1-061
+description: |
+  NASA's daily 1 km land surface temperature and emissivity from MODIS on Terra (~10:30 and
+  22:30 local) and Aqua (~13:30 and 01:30), day and night, since 2000. Served by Microsoft
+  Planetary Computer as Cloud-Optimised GeoTIFFs behind a STAC API.
+pillar: environmental
+scale: city
+status: candidate
+license: CC0-1.0
+api: https://planetarycomputer.microsoft.com/api/stac/v1/collections/modis-11A1-061
+pilot_relevance: [bali, global]
+places: [bali]
+tags: [land-surface-temperature, urban-heat, night, satellite, modis, nasa, stac, cloud-optimised-geotiff]
+added: 2026-10-15
+assisted_by: Claude Code
+auth: none
+feeds_cells: []
+updated: 2026-10-15
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-15. Nothing read for a real territory yet.
+
+  LICENCE. LP DAAC's data citation and policies page, which Planetary Computer links, carries
+  NASA's statement: "Unless the content is marked with a use restriction or license, data
+  provided from a NASA-led mission are licensed as Creative Commons Zero (CC0)", and users are
+  "very strongly urged to cite". Cite DOIs 10.5067/MODIS/MOD11A1.061 and MYD11A1.061; name
+  Planetary Computer as host. Its STAC `license: proprietary` means "see links", not closed.
+
+  ENDPOINT. STAC collection `modis-11A1-061`, anonymous; the SAS token answered 200 with no
+  account. A search over Bali (115.1,-8.8,115.3,-8.6) for 2026-09-15 to 10-15 returned 39
+  items, the newest MOD11A1.A2026282 (9 Oct) on tile h29v09. Assets `LST_Day_1km` and
+  `LST_Night_1km` (uint16, scale 0.02, Kelvin), with `QC_Day`/`QC_Night` and view times. The
+  same product from LP DAAC or AppEEARS needs an Earthdata login; here it does not.
+
+  NODE. A candidate for the PLANETAI `surface-heat` pack (not built), for the night pass: the
+  1 km cell against a 9–25 km ring is the nocturnal heat-island figure Landsat cannot give.
+  No adapter yet.
+
+  WHY NO CELL. No Index cell has a surface-heat row today, so `feeds_cells` is empty; see
+  landsat-c2-surface-temperature.
+
+  WHAT IT DOES NOT CLAIM. 1 km is a neighbourhood, not a street or a roof. Surface, not air,
+  temperature. Clear-sky only: a cloudy night has no value, and QC flags must be read.

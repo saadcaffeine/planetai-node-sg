@@ -4,6 +4,7 @@
 #   device_health — the instrument talking about itself. Feeds liveness, never a measurement.
 #   derived       — computed by us from other readings. Carries the provenance of its inputs.
 #   index         — a vendor's own composite number. Never pooled, never averaged across makers.
+#   private       — the house's own. Used here (readouts, rules, cells); never exported, pushed, reported or read by an agent.
 
 - { source: smartcitizen, metric: pm25,           role: ambient, comparable: true,  unit: "µg/m³", reference: sc }
 - { source: smartcitizen, metric: pm10,           role: ambient, comparable: true,  unit: "µg/m³", reference: sc }
@@ -17,14 +18,6 @@
 - { source: smartcitizen, metric: bme_iaq,        role: index,   comparable: false }
 - { source: smartcitizen, metric: eco2,           role: index,   comparable: false, unit: "ppm" }
 - { source: smartcitizen, metric: tvoc,           role: index,   comparable: false }
-
-- { source: baliairdispatch, metric: pm25,     role: ambient, comparable: true, unit: "µg/m³" }
-- { source: baliairdispatch, metric: pm25_raw, role: ambient, comparable: false, unit: "µg/m³" }
-- { source: baliairdispatch, metric: pm10,     role: ambient, comparable: true, unit: "µg/m³" }
-- { source: baliairdispatch, metric: pm1,      role: ambient, comparable: true, unit: "µg/m³" }
-- { source: baliairdispatch, metric: temp,     role: ambient, comparable: true, unit: "°C" }
-- { source: baliairdispatch, metric: humidity, role: ambient, comparable: true, unit: "%" }
-- { source: baliairdispatch, metric: aqi,      role: index,   comparable: false }
 
 - { source: airgradient, metric: pm25,       role: ambient, comparable: true,  unit: "µg/m³", reference: plantower }
 - { source: airgradient, metric: pm25_raw,   role: ambient, comparable: false, unit: "µg/m³", reference: plantower }
@@ -48,15 +41,28 @@
 - { source: meshtastic, metric: temp,             role: enclosure,     comparable: false, unit: "°C" }
 - { source: meshtastic, metric: humidity,         role: enclosure,     comparable: false, unit: "%" }
 - { source: meshtastic, metric: pressure,         role: enclosure,     comparable: false, unit: "kPa" }
-- { source: meshtastic, metric: gas_resistance,   role: enclosure,     comparable: false, unit: "Ohm" }
+- { source: meshtastic, metric: gas_resistance,   role: enclosure,     comparable: false, unit: "kΩ" }    # firmware 2.7.26 divides the BME680's ohms by 1000
 - { source: meshtastic, metric: iaq,              role: index,         comparable: false }
 - { source: meshtastic, metric: pm25,             role: ambient,       comparable: true,  unit: "µg/m³" }
 - { source: meshtastic, metric: pm10,             role: ambient,       comparable: true,  unit: "µg/m³" }
 - { source: meshtastic, metric: pm1,              role: ambient,       comparable: true,  unit: "µg/m³" }
 - { source: meshtastic, metric: co2,              role: ambient,       comparable: true,  unit: "ppm" }
+- { source: meshtastic, metric: pm4,              role: ambient,       comparable: true,  unit: "µg/m³" }
+- { source: meshtastic, metric: hcho,             role: ambient,       comparable: true,  unit: "ppb" }
+- { source: meshtastic, metric: tvoc_index,       role: index,         comparable: false }
+- { source: meshtastic, metric: nox_index,        role: index,         comparable: false }
+- { source: meshtastic, metric: rainfall_1h,      role: ambient,       comparable: true,  unit: "mm" }
+- { source: meshtastic, metric: rainfall_24h,     role: ambient,       comparable: true,  unit: "mm" }
+- { source: meshtastic, metric: radiation,        role: ambient,       comparable: true,  unit: "µR/h" }
+- { source: meshtastic, metric: white_light,      role: ambient,       comparable: false, unit: "lux" }    # VEML7700 white channel, uncalibrated
+- { source: meshtastic, metric: distance,         role: ambient,       comparable: false, unit: "mm" }     # RCWL-9620 water level: depends on where it hangs
+- { source: meshtastic, metric: weight,           role: ambient,       comparable: false, unit: "kg" }
 - { source: meshtastic, metric: battery_pct,      role: device_health,  comparable: false, unit: "%" }
 - { source: meshtastic, metric: battery_v,        role: device_health,  comparable: false, unit: "V" }
 - { source: meshtastic, metric: lora_util_pct,    role: device_health,  comparable: false, unit: "%" }
 - { source: meshtastic, metric: lora_channel_pct, role: device_health,  comparable: false, unit: "%" }
+# an INA219/INA260 on the radio: environment_metrics voltage and current, the radio's own supply (a panel, a pump line)
+- { source: meshtastic, metric: voltage,          role: device_health,  comparable: false, unit: "V" }
+- { source: meshtastic, metric: current,          role: device_health,  comparable: false, unit: "mA" }
 
 - { source: open-meteo-cams, metric: pm25_model, role: derived, comparable: false, unit: "µg/m³" }

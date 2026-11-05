@@ -26,6 +26,9 @@ open a pull request and give it three things:
   `docs/NEXT_RELEASE.md`'s rules (one large change per release; the page and the packs in separate releases). Moving
   a pull request to the next milestone before it merges is easy; splitting a release after is not.
 - **`needs testing`** if it changes what a node does. Documentation and tooling need no label.
+- **Where a person finds it.** A new feature, setting or command has a place on the page or in Set up where a
+  household would look, and a page or section under `docs/site/` (AGENTS.md, "Anything new is visible"). Say in the
+  pull request where both are. A command or a `.env` key alone is not a feature anybody can use.
 
 Then `make lint && make test`, and merge with a squash.
 
@@ -65,6 +68,8 @@ The steps are in `docs/site/developing.md` (Releasing) and `skills/release-docs/
    until every page of the documentation site has been read again for vX.Y and its stamp moved.
 3. Merge it, tag, push the tag, wait for CI, then ship with the signing key. Deploying the site is `make deploy` in
    the site repository, and it is Tomas's.
-4. Close the milestone and open the next one.
+4. Rebuild the docs site from the tag and deploy it, then open every docs page this release added on
+   planetai.fab.city. A page that is only in this repository is not documentation anybody can read.
+5. Close the milestone and open the next one.
 
 The nodes that take releases, Menorca and any household node, update to it from then on.

@@ -1,5 +1,5 @@
 # Coverage: the node against the Fab City Index
-<!-- checked: v0.80.10 -->
+<!-- checked: v0.83.0 -->
 
 The Index is twenty cells: four pillars (Environmental, Economic, Social, Governance) by five scales (Community, City,
 Region, Bioregion, Planet). A node fills cells at any scale; the kind of source changes, not the code.
@@ -47,7 +47,7 @@ are one setting away: `Governance|City` from the `open-data-health` pack once `C
 | Economic \| Region, Bioregion | procurement feeds (TED, ChileCompra, LKPP); material-flow accounts | an institution |
 
 `planetai sources --all --cell 'Social|City'` lists what the registry files for a cell, and ends with its three
-counts. At the `851b8db` pin every row above counts capable 0, except Economic|Community, whose one is the
+counts. At the `db77fcc` pin every row above counts capable 0, except Economic|Community, whose one is the
 OpenStreetMap proxy the `place` pack reads.
 
 The Social column has the fewest sources of any in the registry. Heat-exposure hours is the first number in it.

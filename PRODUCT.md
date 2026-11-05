@@ -51,7 +51,7 @@ Not a target yet: Barcelona, Boston, Santiago. They come when a Bali node has st
 | tier | what | who pays | notes |
 |---|---|---|---|
 | **Open** | software + docs. Bring your own sensor and computer. | nobody | forever free. this is distribution, and it's how fab labs join. |
-| **Node kit** | sensor + preconfigured mini-PC or Pi + printed enclosure + install + Telegram/WhatsApp setup | one-time | hardware at cost + install fee. AirGradient ONE ($125–225, ships from Thailand in a week) or SCK 2.3 via Seeed. Enclosure printed at Fab Lab Bali. |
+| **Node kit** | sensor + preconfigured mini-PC or Pi + printed enclosure + install + Telegram/WhatsApp setup | one-time | hardware at cost + install fee. SCK 2.3 via Seeed, the sensor the installer offers today; AirGradient ONE ($125–225, ships from Thailand in a week) once the `air-sensors` pack reads it. Enclosure printed at Fab Lab Bali. |
 | **Kept alive** | monthly: alerts, monthly brief, remote monitoring, sensor swap when it dies, one site visit a year | monthly | this is the business. margin lives here. |
 | **Community** | one district node aggregating a desa's or a school cluster's nodes, public map presence, quarterly report to the kelian / principal | annual, Dana Desa or CSR | v0.2+, needs the aggregator |
 

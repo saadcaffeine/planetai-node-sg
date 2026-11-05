@@ -29,7 +29,7 @@ talks about armhf and concludes the node needs one.
 **The install.** The same line as every other platform. Nothing about it is Pi-specific:
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 **The run.** Seven days. Leave it alone. The point is not whether it starts — CI answers that — but whether

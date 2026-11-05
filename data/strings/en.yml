@@ -231,7 +231,7 @@ strings:
   - key: install:441
     en: "and NASA POWER climatology for its coordinates, so it has something true to say before hardware arrives."
   - key: install:442
-    en: "Add a sensor later with --sc / --airgradient / --purpleair, or edit .env."
+    en: "Add a sensor later with --sc (a Smart Citizen kit), or edit .env."
   - key: install:463
     en: "a database from an earlier node is still on this machine ( :-Docker volume ), and this is a new .env,"
   - key: install:464
@@ -260,16 +260,16 @@ strings:
     en: "the database did not answer in 60s — the checks below will say so"
   - key: install:520
     en: "checking what is running"
-  - key: install:530
+  - key: install:529
     en: "✓ backup.sh made executable"
-  - key: install:537
+  - key: install:535
     en: "nightly backup scheduled (03:17)"
   - key: install:542
     en: "a Telegram bot token is visible in this node's container logs (from a version before v0.4.3)."
   - key: install:543
     en: "Revoke it: message @BotFather -> /revoke -> pick the bot -> put the new token in .env -> make restart"
   - key: install:548
-    en: "first start pulls ~2,200 rows of history for your location (CAMS 92 days + NASA POWER normals)."
+    en: "first start pulls ~4,400 rows of history for your location (CAMS 92 days + NASA POWER normals)."
   - key: install:553
     en: "install OK — , steps in s, on localhost"
   - key: install:555

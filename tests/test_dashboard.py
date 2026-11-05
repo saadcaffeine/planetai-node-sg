@@ -782,8 +782,10 @@ console.log(JSON.stringify(out));""")
     assert "watching" not in _c, "no last_seen_at, no stamp — the card never invents one"
     assert 'class="evb' not in _evr["acted"] and "evdone" in _evr["acted"] and "tomas" in _evr["acted"], \
         "an acted event has no buttons and says who"
-    assert "evheld" in _evr["held"] and "held until 12:00" in _evr["held"] and 'class="evb' in _evr["held"], \
-        "a held event keeps its buttons and says until when"
+    # Tomas, 11 Oct: once somebody answered, the buttons go ("it is confusing"); the node's `asking` brings them
+    # back when a Not now's hold runs out. A held event says until when, and offers nothing in the meantime.
+    assert "evheld" in _evr["held"] and "held until 12:00" in _evr["held"] and 'class="evb' not in _evr["held"], \
+        "a held event says until when, and its buttons are gone while it holds"
     assert '“I opened the window &lt;b&gt;”' in _evr["noted"] and "<b>" not in _evr["noted"].split("evnote")[1], \
         "a Doesn't fit with a note carries the household's own words, escaped"
     assert "evnote" not in _evr["acted"], "an answer without a note invents none"
@@ -1144,8 +1146,8 @@ console.log(JSON.stringify({ none: evAnswered({ answer: null }), acted: evAnswer
     # An answer reads as the button that wrote it, in the node's own words (events.buttons), as the buttons do.
     assert ["Fet · tomas" in _an["own"][0], "Ara no · tomas" in _an["own"][1], "No encaixa · tomas" in _an["own"][2]] \
         == [True] * 3, f"evAnswered must print the node's button labels: {_an['own']}"
-assert "evAnswered(e) + (e.answer && e.answer.stage === 'acted' ? '' : evButtons(e))" in _lead, \
-    "an acted event's row has no buttons; a held one keeps them beside its answer"
+assert "evAnswered(e) + ((e.asking ?? !e.answer) ? evButtons(e) : '')" in _lead, \
+    "a row offers buttons only while the node is asking (Tomas, 11 Oct): an answered row, held or not, has none"
 assert "shadow \\u2014 nothing was sent" in _lead, "a shadow node's row says so"
 if shutil.which("node"):
     _pk = _node("\n".join((

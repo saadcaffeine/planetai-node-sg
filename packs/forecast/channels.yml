@@ -14,7 +14,19 @@
 - { source: forecast-om,   metric: fc_wind_direction, role: derived, comparable: false, unit: "°" }
 - { source: forecast-om,   metric: fc_cloud,          role: derived, comparable: false, unit: "%" }
 - { source: forecast-om,   metric: fc_rain,           role: derived, comparable: false, unit: "mm" }
-- { source: forecast-om,   metric: fc_rain_prob,      role: derived, comparable: false, unit: "%" }
+- { source: forecast-om,   metric: fc_wind_gusts,    role: derived, comparable: false, unit: "km/h" }
+- { source: forecast-om,   metric: fc_rain_prob,     role: derived, comparable: false, unit: "%" }
+- { source: forecast-om,   metric: fc_shortwave,     role: derived, comparable: false, unit: "W/m²" }
+- { source: forecast-om,   metric: fc_et0,           role: derived, comparable: false, unit: "mm" }
+- { source: forecast-om,   metric: fc_soil_moisture, role: derived, comparable: false, unit: "m³/m³" }
 - { source: forecast-om,   metric: fc_lead_hours,     role: derived, comparable: false, unit: "h" }
+- { source: forecast-cams,metric: fc_pm25,          role: derived, comparable: false, unit: "µg/m³" }
+- { source: forecast-cams,metric: fc_uv,            role: derived, comparable: false, unit: "index" }
+- { source: forecast-cams,metric: fc_lead_hours,    role: derived, comparable: false, unit: "h" }
+- { source: forecast-marine,metric: fc_wave_m,        role: derived, comparable: false, unit: "m" }
+- { source: forecast-marine,metric: fc_swell_m,       role: derived, comparable: false, unit: "m" }
+- { source: forecast-marine,metric: fc_swell_s,       role: derived, comparable: false, unit: "s" }
+- { source: forecast-marine,metric: fc_swell_dir,     role: derived, comparable: false, unit: "°" }
+- { source: forecast-marine,metric: fc_lead_hours,    role: derived, comparable: false, unit: "h" }
 - { source: forecast-gap,  metric: fc_temp_gap,       role: derived, comparable: false, unit: "°C" }
 - { source: forecast-gap,  metric: fc_wind_speed_gap, role: derived, comparable: false, unit: "km/h" }

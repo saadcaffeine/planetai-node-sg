@@ -1,0 +1,15 @@
+{
+  "schema": "forecast-v0",
+  "source": "packs/forecast/days.py::answer",
+  "keys": [
+    "attribution",
+    "days",
+    "far_from_node",
+    "hours",
+    "lines",
+    "openmeteo",
+    "point",
+    "schema",
+    "sources"
+  ]
+}

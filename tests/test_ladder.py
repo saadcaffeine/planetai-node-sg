@@ -72,7 +72,7 @@ assert set(S.CHOICES["AGENT_PREFER"]) == {"private", "fallback", "strongest"}, "
 # The model is a client of this node, not a component of it.
 #
 # Stage 1's trigger has not fired, the 9 September benchmark memo retired "local AI over your own data"
-# as a claim, and the agent surface is twenty tools including settings_set and run_pack_script. What the
+# as a claim, and the agent surface is twenty-one tools including settings_set and run_pack_script. What the
 # unattended model on the box may reach is therefore a decision, and this is where it is held.
 import types  # noqa: E402 — already imported above; named again because this block stands on its own
 import tool_classes as TC  # noqa: E402
@@ -96,8 +96,8 @@ for bad in ADMIN:
 assert "act" in menu and "issues" in menu, "read and act must still be there; this is a subset, not a lockout"
 
 # 3. nothing was removed from the MCP surface. A keeper in Claude Desktop over the tailnet still has all
-#    twenty, which is the case the surface was built for.
-assert len(TC.TOOL_CLASS) == 20, len(TC.TOOL_CLASS)
+#    twenty-one, which is the case the surface was built for.
+assert len(TC.TOOL_CLASS) == 21, len(TC.TOOL_CLASS)
 
 # 4. rho is built out of what people said, so a model may not write a row without it. The placeholders
 #    are the strings this repository itself used where a human's sentence belongs.
@@ -106,7 +106,7 @@ assert "/act" in open("app/agent_loop.py").read()
 src = open("app/agent_loop.py").read()
 assert '"note": parts[2] if len(parts) > 2 else "acted"' not in src, \
     "the Telegram handler is substituting a placeholder for the person's own words again"
-assert "What did you do about #" in src, "it must ask for the words instead of inventing them"
+assert "What did you do about it?" in src, "it must ask for the words instead of inventing them"
 
 # 5. `planetai agent` prints the class, and the two cannot drift. The CLI is Bash and cannot import the
 #    table, so this is the gate instead of a shared file.
@@ -137,3 +137,63 @@ _bad = _re.findall(r"^([A-Z_][A-Z0-9_]*)=[ \t]+#.*$", _env, _re.M)
 assert not _bad, f"put the comment on its own line above these keys, not after them: {_bad}"
 
 print(".env.example: no blank key carries a trailing comment compose would read as its value")
+
+# Where a rung runs is read off its address, never its name (agent_loop.stays_home). A city's GPU server typed into
+# AGENT_REMOTE_URL leaves the house, and until 21 Oct 2026 the node called it "your network" and handed it what the
+# house learned. Each pair: the URL, and whether a model there stays home.
+for url, home in (("http://host.docker.internal:11434/v1", True), ("http://localhost:11434/v1", True),
+                  ("http://192.168.4.44:11434/v1", True), ("http://macbook.local:11434/v1", True),
+                  ("http://100.64.0.1:8082/v1", True), ("http://gpu.tail1234.ts.net/v1", True),
+                  ("http://ollama:11434/v1", True), ("http://[::1]:8080/v1", True),
+                  ("https://api.anthropic.com/v1", False), ("https://vllm.city.example.org/v1", False),
+                  ("http://8.8.8.8/v1", False), ("http://100.128.0.1/v1", False)):
+    assert A.stays_home(url) is home, f"{url}: stays_home says {A.stays_home(url)}"
+# Under private a rung at a public address is not used at all (Tomas, 21 Oct 2026): private means nothing leaves.
+city = {"AGENT_REMOTE_URL": "https://vllm.city.example.org/v1", "AGENT_PREFER": "private"}
+assert [r.name for r in A.ladder(city)] == ["local"], "private used a remote model at a public address"
+assert A.models_stay_home(city), "private with a public remote: it is not used, so nothing leaves"
+assert [r.name for r in A.ladder({**city, "AGENT_REMOTE_URL": "http://192.168.4.44:11434/v1"})] == ["remote", "local"], \
+    "private dropped a remote model on the house's own network"
+city_fb = {**city, "AGENT_PREFER": "fallback"}
+assert [A.where_of(r)["where"] for r in A.ladder(city_fb)] == ["online", "this machine"], "fallback: a public remote is online"
+assert not A.models_stay_home(city_fb), "fallback with a public remote: the house's learnings would leave"
+assert A.models_stay_home({**BOTH, "AGENT_PREFER": "private"}), "private, tailnet remote, local: everything stays home"
+assert not A.models_stay_home({**BOTH, "AGENT_PREFER": "fallback"}), "fallback may reach the online rung"
+
+# And the Telegram bot hands a rung that leaves what the pane hands any rung: no settings, no report bundle, no day's
+# export. A tool the rung was not offered is refused, not run, even when the model names it anyway.
+import asyncio as _aio
+
+
+class _HC:
+    def __init__(self, *a, **k): pass
+    async def __aenter__(self): return self
+    async def __aexit__(self, *a): return False
+
+
+class _Session:
+    def __init__(self): self.called = []
+    async def call_tool(self, name, args):
+        self.called.append(name)
+        return types.SimpleNamespace(content=[types.SimpleNamespace(text="{}")])
+
+
+_menus = []
+
+
+async def _chat(hc, rung, messages, tools, final=False):
+    _menus.append(sorted(t["function"]["name"] for t in tools or []))
+    if len(_menus) == 1:        # the model asks for a withheld tool by name, as a model off its menu does
+        return {"role": "assistant", "content": "", "tool_calls": [{"id": "1", "function": {"name": "settings_get", "arguments": {}}}]}
+    return {"role": "assistant", "content": "done"}
+
+
+_tools = [{"type": "function", "function": {"name": n, "parameters": {}}} for n in ("status", "settings_get", "report_bundle", "export_day")]
+A.httpx.AsyncClient, A.chat = _HC, _chat
+for rungs, offered, ran in (([A.Rung("remote", "https://vllm.city.example.org/v1", "m")], ["status"], []),
+                            ([A.Rung("remote", "http://100.64.0.1:8082/v1", "m")], sorted(t["function"]["name"] for t in _tools), ["settings_get"])):
+    _menus.clear(); A.RUNGS = rungs; s = _Session()
+    _aio.run(A.ask(s, _tools, "hi"))
+    assert _menus[0] == offered, f"{rungs[0].url}: offered {_menus[0]}"
+    assert s.called == ran, f"{rungs[0].url}: ran {s.called}"
+print("a rung is home or online by its address; one that leaves gets no settings, bundle or export, and the house's learnings stay")

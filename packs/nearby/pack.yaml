@@ -7,7 +7,7 @@ description: >-
 author: PLANETAI core (official)
 version: 0.1.0
 requires: { node: ">=0.40.0" }
-kind: data
+kind: code          # its scripts (stations, status, verify, backfill) run with the node's privileges; its rules are data
 domain: air
 metrics: [pm25, pm25_raw, pm10, pm1, temp, humidity]
 scales: [community]
@@ -18,3 +18,6 @@ attribution: >-
   Bali Air Dispatch, baliairdispatch.com, and the originating network named in each row's `source` field
   (Nafas, IQAir, PurpleAir, AQICN, OpenAQ, AirGradient, Smart Citizen, Airly). Readings remain subject to
   their own networks' terms.
+# The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
+share:
+  open: [/nearby]

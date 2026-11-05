@@ -4,6 +4,7 @@ Runs once, on first start, if the readings table is empty. Everything here is fr
 needs nothing but the node's coordinates:
 
   · 92 days of hourly CAMS air quality      -> the node has three months of history in its first minute
+                                               (packs/air-quality's history(), while that pack is on)
   · NASA POWER climatology (1981-present)   -> 12 monthly normals for solar, temperature, rainfall
   · a place name from OpenStreetMap         -> so alerts say somewhere real, not a pair of decimals
 
@@ -22,7 +23,7 @@ from datetime import datetime, timezone
 
 import httpx
 
-import sources
+import packs
 
 log = logging.getLogger("planetai.bootstrap")
 POWER = "https://power.larc.nasa.gov/api/temporal/climatology/point"
@@ -30,24 +31,6 @@ POWER_PARAMS = "ALLSKY_SFC_SW_DWN,T2M,PRECTOTCORR,RH2M,WS10M"
 POWER_MAP = {"ALLSKY_SFC_SW_DWN": "solar_irradiance_norm", "T2M": "temp_norm",
              "PRECTOTCORR": "precipitation_norm", "RH2M": "humidity_norm", "WS10M": "wind_speed_norm"}
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-
-
-def cams_history(hc: httpx.Client, lat: float, lon: float, days: int = 92):
-    """Hourly CAMS PM2.5/PM10 for the past N days (92 is the API maximum). One call, ~2200 rows."""
-    r = hc.get(sources.OM_AIR_URL, params={"latitude": lat, "longitude": lon, "hourly": "pm2_5,pm10",
-                                           "past_days": min(days, 92), "forecast_days": 0, "timezone": "UTC"})
-    r.raise_for_status()
-    h = r.json().get("hourly") or {}
-    times = h.get("time") or []
-    out = []
-    for key, metric in (("pm2_5", "pm25_model"), ("pm10", "pm10_model")):
-        for t, v in zip(times, h.get(key) or []):
-            if v is None:
-                continue
-            ts = sources._iso(t if str(t).endswith("Z") else f"{t}Z")
-            if ts:
-                out.append((ts, "cams-point", metric, float(v)))
-    return [sources._om_air_sensor(lat, lon)], out
 
 
 def power_climatology(hc: httpx.Client, lat: float, lon: float):
@@ -95,8 +78,11 @@ def run(con, hc: httpx.Client, lat: float, lon: float) -> dict:
     """Called once when the readings table is empty. Returns a summary for the log and /health."""
     from psycopg.types.json import Jsonb
     done = {}
-    for name, fn in (("cams_history", lambda: cams_history(hc, lat, lon)),
-                     ("power_climatology", lambda: power_climatology(hc, lat, lon))):
+    air = packs.module("air-quality")     # the CAMS history is the air pack's since 24 Oct 2026; off, it is skipped
+    steps = [("power_climatology", lambda: power_climatology(hc, lat, lon))]
+    if air:
+        steps.insert(0, ("cams_history", lambda: air.history(hc, lat, lon)))
+    for name, fn in steps:
         try:
             sensors, readings = fn()
         except Exception as e:  # noqa: BLE001

@@ -1,0 +1,10 @@
+# The ESP32 gateway (XIAO ESP32-S3 + Wio-SX1262): uplinks the mesh to the node's broker over WiFi, JSON on.
+# One per node. `provision` fills module_config.mqtt from the node's .env and config.network from --wifi.
+# WiFi on turns Bluetooth off on ESP32; USB keeps working. nRF52 boards cannot do this role (no JSON): gateway-host.
+_gateway: true
+_uplink: wifi
+config:
+  device:
+    role: CLIENT
+  position:
+    gpsMode: DISABLED

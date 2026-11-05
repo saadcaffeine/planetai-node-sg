@@ -1,9 +1,19 @@
-"""Offline tests for the Smart Citizen wire-format parser: a kit or a Making Sense Bali DIY node publishing to this
-node's own broker instead of mqtt.smartcitizen.me. Payload shapes are the ones the two firmwares send today
-(fablabbcn/smartcitizen-kit-21 esp/src/SckESP.cpp; makingsensebali hardware/diy-node/firmware).
+"""Offline tests for the Smart Citizen wire-format parser (packs/smartcitizen/hooks.py since 22 Oct 2026): a kit or a
+Making Sense Bali DIY node publishing to this node's own broker instead of mqtt.smartcitizen.me. Payload shapes are the
+ones the two firmwares send today (fablabbcn/smartcitizen-kit-21 esp/src/SckESP.cpp; makingsensebali
+hardware/diy-node/firmware). And what the node does with them: stored, counted for /health, queued to forward.
 Run: PYTHONPATH=/tmp/stub:app python3 tests/test_sc_direct.py"""
+import importlib.util
 import json
-import sources
+import os
+import time
+
+import settings
+
+ROWS = {"SC_FORWARD": ""}
+settings._cache = {"at": time.time() + 1e9, "rows": ROWS}
+_spec = importlib.util.spec_from_file_location("sc_hooks", "packs/smartcitizen/hooks.py")
+sources = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(sources)   # the parser kept its names
 
 TOKEN = "a1b2c3"
 SID = sources.sc_sensor_id(TOKEN)
@@ -57,5 +67,26 @@ for payload in (b"", b"{", b"null", b'{"data": "x"}', b"{t:bad,55:x}"):
     s, r, _ = sources.smartcitizen_mqtt(f"device/sck/{TOKEN}/readings", payload)
     s2, r2, _ = sources.smartcitizen_mqtt(f"device/sck/{TOKEN}/readings/raw", payload)
     assert r == [] and r2 == []
+
+# ---- on_mqtt: what the node stores, what /health counts, what waits to be forwarded
+hooks = sources
+assert hooks.MQTT_TOPICS == [("device/sck/#", 1)], "QoS 1, as the platform asks"
+assert hooks.on_mqtt("msh/SG_923/2/json/LongFast/!a1", b"{}") is None, "another topic is not this pack's"
+s, r = hooks.on_mqtt(f"device/sck/{TOKEN}/meta", json.dumps(meta).encode())
+assert r == [] and s[0]["indoor"] is True and hooks.state["messages"] == 1
+s, r = hooks.on_mqtt(f"device/sck/{TOKEN}/readings", json.dumps(diy).encode())
+assert s[0]["name"] == "Balai Banjar Serangan" and s[0]["indoor"] is True and len(r) == 8, "the kept meta names the readings"
+assert hooks.state["devices"] == 1 and hooks.state["messages"] == 2 and hooks.state["queued"] == 0
+assert not hooks._forwarder, "nothing to forward, no thread"
+ROWS["SC_FORWARD"] = f"other, {TOKEN}"
+hooks._forwarder.append(None)        # stand in for the thread, so the test reaches no network
+hooks.on_mqtt(f"device/sck/{TOKEN}/meta", json.dumps(meta).encode())
+assert hooks.state["queued"] == 0, "a meta message is never forwarded"
+hooks.on_mqtt(f"device/sck/{TOKEN}/readings/raw", raw)
+assert list(hooks._queue) == [(f"device/sck/{TOKEN}/readings/raw", raw, TOKEN)] and hooks.state["queued"] == 1, "the device's own bytes"
+os.environ.pop("MQTT_HOST", None)
+assert hooks.status() == {}, "no broker, no direct key"
+os.environ["MQTT_HOST"] = "mosquitto"
+assert hooks.status() == {"direct": hooks.state} and TOKEN not in json.dumps(hooks.status())
 
 print("test_sc_direct: ok")

@@ -15,3 +15,17 @@ env:
   - "# coast: refuse to report if the nearest ocean cell is further away than this, in km"
   - "COAST_MAX_KM=30"
 attribution: "Open-Meteo Marine API (CC BY 4.0), model data from Copernicus Marine / MeteoFrance MFWAM"
+# Where this pack's word reaches, drawn on the page as the cells that cover it (app/issues/geometry.py::claims). The
+# radius is the setting named here, so a keeper who widens it widens the drawing.
+footprint:
+  key: coast
+  name: The sea
+  what: waves and sea-surface temperature at the nearest ocean cell
+  setting: COAST_MAX_KM
+  default: 30
+  unit: km
+  shape: circle
+  base_res: 7
+  note: >-
+    the pack refuses if the nearest ocean cell is further than this; the model cell it reads is not declared anywhere,
+    so the refusal radius is the only footprint there is

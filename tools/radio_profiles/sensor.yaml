@@ -1,0 +1,16 @@
+# A field sensor: a 3.3 V Grove sensor on a Tracker L1, on a battery, where there is no WiFi. GPS on so the
+# reading knows where it was taken. Role SENSOR: the radio sleeps between readings and does not relay.
+config:
+  device:
+    role: SENSOR
+  position:
+    gpsMode: ENABLED
+    positionBroadcastSecs: 1800
+    positionBroadcastSmartEnabled: false
+module_config:
+  telemetry:
+    environmentMeasurementEnabled: true
+    environmentUpdateInterval: 900   # 15 min: the node's cadence for mesh sensors (sources.py says PT15M)
+    environmentDisplayFahrenheit: false
+    airQualityEnabled: true          # off by default: a PM, CO2 or formaldehyde sensor on the radio sends nothing without it
+    airQualityInterval: 900

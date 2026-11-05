@@ -2,6 +2,1192 @@
 
 ## Unreleased
 
+- **Place is drawn as what the ground is made of.** The door has a list on the left with the sky at the top and the
+  ground at the bottom, one line a row with a dot for on, off, or not held yet, and a black screen in the middle that
+  stays black on the light page and the dark one. On the right is a column of tools. Rings and distance runs today, and
+  the sun and shade, trees, built form, sealed ground, streets, walking, what changed, where the rain goes and four
+  fitness tools are listed as not yet. Under the screen are a line for what you pressed and the list around the house,
+  and below that, what you selected and the place in figures. The rooms are gone from Place, and the hectare squares
+  view is gone until What changed runs as a tool. On a phone the layers and the tools open as a sheet over the lower
+  part of the page.
+
+## v0.91.0 — 2026-11-04 — Now looks ahead
+
+Under What to do on Now there's the rest of today, tomorrow and the day after, with the air and the heat judged
+against the same lines the node uses right now, the wind and rain, the sea, and a line from any pack that has
+something to say about tomorrow (surf is the first). BMKG answers for nodes in Indonesia. For the air, the sea and the
+gusts you need Open-Meteo, `FORECAST_OPENMETEO=1`, its free tier is for non-commercial use, so it stays off until you
+decide. A rule can ask with buttons now, on Telegram and on Now. The workbench is a tab in Data and flashes a sensor
+with no internet, and Set up › Packs installs a wild pack from the page. This release changes the page and the packs
+together, so if something looks off after you update, tell me what you saw and on which screen.
+
+- **The source registry is pinned at `7bf12a4`.** awesome-fabcity-data #101 adds Copernicus Sentinel-2 L2A on
+  Planetary Computer, the imagery the `paddy` wild pack reads, as a candidate. 284 entries.
+
+- **What to do says when it asked once.** The card's head line said "asked since 07:14 · still open" over the node's
+  own "asked at 07:14, and still true"; the head now names only the issue. The fire pack's source line under its band
+  said "Fires within 150 km", so "fires nearby" read as 150 km when it counts the 25 km ring; it now reads "NASA FIRMS,
+  VIIRS satellites: nearby is within 25 km, the region 150 km", from `FIRE_LOCAL_KM` and `FIRE_REGION_KM`.
+
+- **Now looks three days ahead.** Next days, under What to do on Now, shows the rest of today, tomorrow and the day
+  after, one row each for air, heat, wind and rain, and the sea, then a line from any pack that declares
+  one with `ahead:` in its `pack.yaml`; the `surf` wild pack is the first. Air and heat carry the state word against
+  their issue's line, by the engine's own comparison, with the hours over it, and a pressed row draws its 72 hours.
+  Under the rows each source says when it was issued or fetched, and the page says the numbers come from models and
+  that nothing here sends a message. `#now/next` links to it. The page is documented in `docs/site/next-days.md`.
+
+  The packs' own readings (fires, the ground's heat, a weather station, the rice) moved under both columns of Now,
+  in **Also read here**. Each band says its source once, under its title, and folds the pack's note under "How this
+  is read". The sentence about pack.yaml under every band is gone from Now; `docs/PACKS.md` still says it.
+
+  The forecast pack behind it keeps 72 hours, from BMKG as before, and with `FORECAST_OPENMETEO=1` from Open-Meteo's
+  weather with gusts, the chance of rain, sun, evaporation and soil moisture, the CAMS air (PM2.5 and UV) and, while
+  `coast` is on, Open-Meteo Marine (waves and swell). One switch turns on all three and it stays off by default,
+  because Open-Meteo's free tier is non-commercial, and using it is the operator's call. Open-Meteo and CAMS are asked
+  for the node's ground at its `NODE_SCALE`, 7 points on a community node and 19 on a city or region node,
+  each a sensor tagged with its cell. A newer forecast now replaces the stored value for an hour still ahead, where
+  the first one used to win; a past hour and any measurement are never rewritten, and `observations` stops at now, so
+  a forecast's furthest hour is no longer a sensor's latest reading. Each source keeps its own stamp, and one that
+  fails is asked again after 30 minutes without holding the others. `GET /forecast` adds `days`, `lines` and
+  `openmeteo`, pinned as the wire contract `forecast-v0`.
+
+- **A pack's rule can ask with buttons.** A rule that returns a `buttons` column, rows of buttons with a text in each
+  language, a `value`, and optionally a `stage` and a question to ask, gets them stored with its alert. With
+  `TELEGRAM_BUTTONS=1` they go to Telegram as a keyboard, and Now lists them under What to do. Each press is one
+  answer. `POST /actions` takes a `choice`, refuses one the alert did not offer (400) or an alert older than 72 hours
+  (409, "this question has closed"), and writes one row for each person's choice on an alert, a later note from the
+  same person replacing the earlier one. The bot lifts the pressed row and says who answered. When a button asks a
+  question, the reply from the person who pressed is kept as the note. A column that does not validate costs the alert
+  its buttons and nothing else, with one warning in the log. If Telegram refuses a keyboard, the message is sent again
+  without it. `{act}` still works for an answer in words. How to write them is under Buttons in `docs/PACKS.md`.
+
+- **A rule's message can say which number to answer.** `{act}` in a message becomes the alert's own `/act 812` (or
+  `planetai act 812` where the bot does not run). Until now a rule could not print it, because the message was written
+  before its alert existed, so a pack that wanted an answer had to hope someone found the number. The `surf` wild pack
+  is the first to use it: after a session the keeper answers how the surf was.
+
+- **`planetai act 812 closed the windows` keeps every word.** Only the first word after the id was stored, so an
+  unquoted note lost the rest without saying so. A message whose `{act}` reads `planetai act 812` now gets the whole
+  answer.
+
+- **`planetai hello` no longer undoes other nodes' entries.** It cut its branch from the operator's fork as it was
+  when they forked, so a fork made weeks ago sent back the list of that day: #365 put back an old operator and contact
+  on `bayu-ungasan` and conflicted with `larsbcn`. Now it brings the fork's `main` up to fabcity's first
+  (`gh repo sync`) and branches from that; a fork whose `main` has commits of its own stops with that command to run.
+  A node already listed now sends `registry: update <name>`, not `list`: #367 read as a new node for that reason.
+
+- **A wild pack's band shows on the default page.** A section a pack declares in its `pack.yaml` drew only in the
+  classic layout (`?layout=classic`), so on the doors every wild pack's band was missing: on node #1 the rice from
+  `paddy` and the airport weather from `bmkg-synop` could only be seen there. Now draws each band next to its own part
+  of the same stage: `observe` under the issue rows, `decide` and `act` under What to do, `measure` under Did it
+  work. They use Now's issue rows, say how many readings have not arrived, and carry the pack's note under them. The
+  classic layout and the Wall (`wall: true`) are as they were.
+
+- **And on a phone.** The phone page (`?layout=mobile`, where a phone lands on its own) draws the same bands, with
+  the same code, in its one column: `decide` and `act` under the Decide card, `observe` under the other issues,
+  `measure` at the end of Now.
+
+- **A laptop on the LAN can flash and test over USB.** Chrome opens a USB port only on a secure page, so from
+  `http://<node>:8080` the Flash and USB buttons stayed off. Now the workbench says how to fix that on the laptop, once:
+  Chrome's flag `chrome://flags/#unsafely-treat-insecure-origin-as-secure` with the page's own address filled in, in
+  English, Bahasa Indonesia and Spanish. The node serves nothing new. Self-signed https, a local CA and `tailscale cert`
+  were measured against it: `docs/decisions/2026-10-27-serial-on-the-lan.md`.
+
+- **The workbench is a Data tab now, and it flashes with no internet.** Data › Workbench draws a reduced copy of the
+  sensors workbench in the pane, under the same side menu, instead of opening a page of its own: Flash (the Bayu and
+  every Meshtastic board), Test over USB and Network, without the site's nav, the demo, the node dialog or the long
+  explanations. The full workbench on planetai.fab.city is linked when the node can reach it. The flasher (ESP Web
+  Tools 10.4.0) ships in the node, and the node keeps its own copy of the firmware in `out/firmware/`, refreshed every
+  six hours while it is online, each Meshtastic binary checked against the release's `SHA256SUMS` (about 17 MB).
+  `/workbench` opened on its own, as the site's Connect opens it, lands on `/#data/workbench`. USB still needs the page
+  on localhost or https, as before.
+
+- **Set up › Packs lists every pack a node could run, and installs a wild one from the page.** The core packs and the
+  wild packs on the disk are all there with their switches, a pack switched off included: it used to drop off the page,
+  so it could only be turned back on from the terminal. Under them are the packs on the wild list this node does not
+  have, each with an Install button. Install shows who wrote the pack, its repository and commit, what it reads,
+  whether it runs code here and the libraries it adds, before anything is fetched. Then the node fetches it, builds
+  it in and restarts, and the card says each step. Only the admin token can install, never a screen on the network
+  and never an agent. A crontab line (`planetai packs cron`, added by the installer and by this update) picks the
+  request up within a minute and installs only that commit of a listed pack. A pack new on the wild list is told to
+  the household once, like a new release. Decision: `docs/decisions/2026-10-27-pack-install-from-the-page.md`.
+
+- **The radio docs and `/workbench` no longer say a PM sensor needs 5 V.** Seeed rates the Grove HM3301 for 3.3 V or
+  5 V, and its Grove SEN54 and SEN55 carry a regulator for 3.3 V. The Tracker section now says to try one PM sensor
+  before a batch, and the workbench's "no sensor" and "PM reads 0" hints stop sending people to measure 5 V.
+
+- **`/workbench`: the sensors workbench from planetai.fab.city/sensors, served by the node.** The site's Network
+  tab told people to open their node's address followed by /workbench, and no node served it: they got a 404, or
+  the error again. A browser does not let planetai.fab.city read a node on the house network, with a token or
+  without, so the site's Connect button now opens this route in a new tab. It is the same page, reading the node's
+  own /health, /sensors, /readings and /nodes, and it asks for the token when a read is refused. `/tester`, the
+  older copy of Making Sense Bali's test page, now redirects here. `app/static/workbench.html` is a copy of
+  `sensors/index.html` in fabcity/planetai.
+
+- **The workbench looks like the node, not the website.** It came with planetai.fab.city's menu and footer, dark by
+  default, so opening it from the node felt like leaving for another site. Served by the node it now has the node's own
+  bar: its name, the five doors, Paper and Dark, the docs and Set up. It follows the register you chose on the other
+  pages, and its title is the size of a door's. It is the Data door's sixth tab, after API, and on the workbench Data
+  is the open door with its tabs under the bar. Set up › Sources links to it too. The file is still the site's copy;
+  `app/static/workbench-node.html` is the only part that belongs to the node.
+
+- **Set up's side menu tells its headings from its sections.** Every line in it was the same small capitals between
+  the same rules, so the category names looked like something to press. Now a category is a grey label on a black
+  rule, and a section is a word that underlines when the pointer is on it. Data's tabs are the same menu and changed
+  with it.
+
+- **`planetai packs add` installs the whole pack in one run.** It used to record the Python libraries and settings of
+  the packs the running node had loaded, which cannot include a pack fetched a second before, so a new wild pack came
+  without them. And on a node whose packs were chosen in Set up, the new pack stayed off without a word. Now its
+  `pip:` and `env:` lines go in with the rest, and it joins the Set up list (or the command prints how to switch it on).
+
+## v0.90.0 — 2026-10-24 — The core and the packs, apart
+
+- **An agent is no longer offered a pack's `routes.py` as a script.** Since packs serve their own routes, each
+  `routes.py` was listed among the scripts an agent may run; the node mounts it and nobody runs it.
+
+- **The source registry is pinned at `cd90289`.** awesome-fabcity-data #100: the adapter check lives in this node's
+  lint now, so the registry stopped checking out node main; the BMKG entry's notes say so. Still 283 entries.
+
+- **Set up is easier to read.** The menu groups its twelve sections under five headings (this place, what it
+  reads, how it speaks, who can see it, the machine). Point at a section, or tab to it, and it says what it is for
+  and which settings it holds. Under Packs each pack is one line, its switch, its name and how many settings it has;
+  + opens what it does and all its settings, and "Open all packs" opens every one, remembered by that browser.
+
+- **Grafana is in Set up.** Set up › System says whether Grafana is running, at which address, whether its password
+  is set (never the password), how to open it from a laptop, and links to its docs page. Its three keys are read at
+  start, so they are changed in `.env` and `planetai grafana`, as before.
+
+- **The alert ledger draws an act at full weight again.** On a node that sends alerts (not events), Act's rows are
+  drawn at full weight when a rule's latest ask is level act and quieter otherwise; `/issues` published the asks
+  without their level, so every row was drawn quiet. Each ask carries `level` now. The doors read it too, on a screen
+  without a token, where the asks stand in for `/alerts`.
+
+- **A station's hourly series carries the metrics the page can show, at two decimals.** `/issues` sent every metric
+  every station reported, a radio's channel load and a sensor's raw counts included: 215 kB of node #1's 510 kB. The
+  dashboard's notes for the stations section look each one up in the page's metric list, so a radio's
+  `lora_channel_pct` threw there and the notes vanished with no word on node #1. Now `series` holds the same metrics as
+  `read`, rounded like it.
+
+- **Answers are gzipped.** A screen that asks for it (every browser does) gets JSON, script and styles above 1 kB
+  compressed: `GET /issues` went out as 510 kB on node #1 and is about 88 kB now, for every screen, the doors and the
+  phone page included. Level 5, which costs node #1 20 ms on that body where Starlette's default 9 costs 95. Left as
+  they were: `/mcp`, the `/ask` event stream, the backups, the photos and map images, and the vector tiles (already
+  gzipped). The compression is the last thing a response passes through, so a screen without a key still gets the
+  house's rooms relabelled first. This is docs/SPEC_mobile.md §9's v1.1.
+
+- **`GET /issues` answers in about a third of the time, `/issues/days` in under a third.** Measured on node #1:
+  `/issues` took 6 to 11 s, mostly re-reading files. Every pack.yaml, rules.yml, cells.yml and issue.yml was parsed
+  223 times a request with the pure-Python YAML loader; `packs.read_yaml()` now parses each once per change of the
+  file, with libyaml. The six footprint coverings are computed once per radius instead of once per request (1.4 s of
+  h3). Three reads were rewritten to stop sorting rows they then threw away, each checked row for row against the
+  old one on node #1 and in `tests/test_views_pg.py`: the `observations` view walks the readings index (221 ms →
+  5 ms), the `stats` view aggregates before it joins (320 → 133 ms, and the rules read it every poll), and the
+  stations gone quiet are found without grouping 30 days of readings (300 → 27 ms). `/issues/days` tested each
+  hourly row's metric after asking where it stands, 130,524 times; now it asks the metric first (1.7 → 0.5 s).
+
+- **Grafana, for the keeper.** `planetai grafana` starts Grafana (profile `grafana`, off by default) on loopback
+  port 3000, beside the dashboard: your own panels over the node's readings. It reads the database as
+  `planetai_grafana`, a member of `planetai_ro` (every table but `settings` and the household's own: pictures,
+  things, learnings, digests, who lives there), read-only, 30 s per query, four
+  connections, in `NODE_TZ`; a one-shot `grafana-role` container makes the login and keeps its password in a
+  volume, so nothing goes in `.env` and Grafana is handed no secret of the node's. A starter dashboard, "keeper's
+  view · no provenance", fills itself from the node's sensors: every room hourly, a room by hour of day, a room
+  against outside, when each sensor was heard, every outdoor station with the model, and the radios, with the alert
+  events drawn over them. Every query stops at `now()` (the forecast's rows are dated ahead) and every line breaks
+  at a silence. `planetai grafana off` drops the login. New page: docs/site/grafana.md, with what Grafana will not
+  tell you. This answers the Grafana question in docs/NEXT_RELEASE.md as its keeper's surface, and is §5 of
+  docs/SPEC_dashboard_figures.md, built. Proven on a copy of node #1's database.
+
+- **The registry's adapter check runs in `make lint`, against the pin.** `tools/check_registry.py` fails
+  when a pack reads an entry that names no `adapter`, or when an `adapter` names a pack or a core function
+  this tree does not have. It was the registry's `scripts/wired.py`, which read this repository's live
+  main, so it went red on the registry with no commit there every time a reader left the core. Now the move
+  and its re-pin are one node PR.
+
+- **The source registry is pinned at `a3f5cae`.** awesome-fabcity-data #99 names `pack:air-quality` as what reads
+  the Open-Meteo CAMS entry, since the reader moved there in #344, and the pin also picks up #98: Copernicus DEM
+  GLO-30 names `pack:terrain`. Still 283 entries.
+
+- **The CAMS model and the EPA 2021 correction are the air-quality pack's.** `openmeteo_air` and the correction left
+  `app/sources.py`, and the 92-day first-start history left `app/bootstrap.py`, for `packs/air-quality/adapter.py`,
+  unchanged: the same `cams-point` sensor, `open-meteo-cams` source and metrics. The pack runs it on
+  `OPENMETEO_ENABLED`, the key that ran it in the core, and `planetai update` adds `air-quality` where a node lists
+  its packs and has that key on (step 5b). AirGradient and PurpleAir borrow the correction even where the pack is
+  off. A CAMS error is now named `air-quality` in the log and in Data sources. This finishes Phase 2's decision
+  table (docs/decisions/2026-10-21-core-and-packs.md).
+
+- **Presence is announced a minute after an update, not half an hour.** `planetai update` starts the app and the
+  Reticulum bridge together; the bridge's first `GET /presence` found no node and it waited `RETICULUM_ANNOUNCE_S`
+  (30 min) to ask again. It now asks every 30 s, ten times at most. `RETICULUM_REF` moves to planetai-reticulum
+  `b84c24f`.
+
+- **Naming `water` in `NODE_ISSUES` now turns the terrain pack on.** On a node that lists its packs, `planetai
+  update` adds the pack that ships each issue it draws (step 5d). Water was missing from that list, so naming it
+  drew nothing on such a node, node #1 included. The registry is pinned to awesome-fabcity-data `7d645f3` (283
+  entries, up from 275), which carries Copernicus DEM GLO-30, and `terrain` names it in `sources:`.
+
+- **`planetai run forecast verify` no longer fails right after a fetch.** It asked the pack's poll clock, which says
+  "not due" for `FORECAST_POLL_HOURS` after every fetch, so "the adapter returns" failed with the forecast stored. At
+  a due moment it touched the clock and stored nothing, and the node then skipped its own forecast for six hours. It
+  now reads the forecast directly and leaves the clock alone.
+
+- **A new pack, `terrain`, and a new issue, `water`: where the next day's rain goes.** `planetai run terrain fetch`
+  reads the node's own 10 km square of Copernicus DEM GLO-30 once, about half a megabyte, fills its hollows and
+  routes water downhill. Each poll then multiplies the ground draining through the node's point by the next 24 hours
+  of forecast rain, from BMKG if it has rows, else Open-Meteo, never both. Add `water` to `NODE_ISSUES` to see it.
+  It is context: readouts, no line and no alert, and no hero until there is a water sign. At 30 m and on a surface
+  model with roofs and trees in it, it sees the street, not the yard. Your own DEM goes in `TERRAIN_DEM_PATH`.
+  `docs/SPEC_terrain.md` has why there is no wetness index.
+
+- **Captures, the image model and species are a pack, `eyes`.** Every `/captures` route, `POST /captures/{id}/describe`
+  and `GET /species` moved out of `app/main.py` into `packs/eyes/routes.py`, unchanged, with the weekly reads of this
+  country's introduced and invasive species (GRIIS) and of others' open records in the node's cells, which the node's
+  timers now run only while the pack is on. The table, the pictures and the settings stay where they were. With the
+  pack off the routes answer 404 and the Data door says so; `planetai update` adds `eyes` wherever a node lists its
+  packs. A route of a pack that is off answers `the <pack> pack is off on this node`.
+
+- **The things a home keeps are a pack.** `GET`/`POST /things`, `PATCH`/`DELETE /things/{id}` and `GET /offers` moved
+  out of `app/main.py` into `packs/things/routes.py`, unchanged, as things and offers are a category a node watches
+  (docs/decisions/2026-10-21-core-and-packs.md). The table stays in `init.sql` and the private role on the counts
+  stays the core's. `/offers` keeps its place on every share level through `share: {"off": [...]}` in the pack's
+  `pack.yaml`, a key that has to be quoted because YAML reads a bare `off` as false. With the pack off the routes
+  answer 404 and the export carries no offers; `planetai update` adds `things` wherever a node lists its packs.
+
+- **The Reticulum bridge has its own repository.** `reticulum_bridge.py`, its Dockerfile and its config template moved
+  to [fabcity/planetai-reticulum](https://github.com/fabcity/planetai-reticulum), Apache-2.0, so the core never
+  imports `RNS` or `LXMF` (decision 2 of `docs/decisions/2026-10-23-reticulum-licence.md`). `planetai reticulum`
+  downloads it at the commit `RETICULUM_REF` pins in `bin/planetai`, with curl and tar like `packs add`, and builds it
+  on the node; nobody publishes an image with `rns` in it. `planetai update` fetches and rebuilds it where the bridge
+  is on, which it never did before. The service and its `reticulum` volume keep their names, so a node keeps its LXMF
+  address. `tests/test_peers_persist.py` moved with it (88 suites); `test_shipped.py` now fails if anything here
+  imports `RNS` or `LXMF`.
+
+- **Tomas decided what Reticulum is for.** The optional bridge under a non-open licence is acceptable; it leaves the
+  core before the AGPL relicence; parent links run on HTTPS over the tailnet, and Reticulum carries discovery and
+  messages to people only. Recorded in `docs/decisions/2026-10-23-reticulum-licence.md` and SPEC_fablab §7.
+
+- **Reticulum's licence is read, and the bridge is pinned.** `rns` 1.5.4, `lxmf` 1.1.1 and `httpx` 0.28.1, the versions
+  node #1 runs; they were unpinned. `rns` and `lxmf` are under the Reticulum License, MIT with two conditions (no system
+  able to purposefully harm people, no use in making an AI training dataset), which is not an open licence. The
+  channels page says so before an operator turns the bridge on; `docs/decisions/2026-10-23-reticulum-licence.md` reads
+  each condition against the node and lists what Tomas decides.
+
+- **Presence on Reticulum has a module of its own.** `GET /presence`, the floor no announced cell may be finer than
+  (`PRESENCE_RES_FLOOR`), and the thread that asks the bridge whom it has heard moved out of `app/main.py` into
+  `app/presence.py`, unchanged. The dashboard now says the floor is in `app/presence.py`.
+
+- **What the house learned, and who lives in it, have a module of their own.** `GET /learned`, `/learned/place`,
+  `/learned/search` and `GET`/`PUT /household` moved out of `app/main.py` into `app/household.py`, unchanged; the
+  morning report and the alert line read the household from there.
+
+- **The machine and storage routes have a module of their own.** `GET /machine` and `GET /storage` moved out of
+  `app/main.py` into `app/machine.py`, unchanged.
+
+- **The place and map-workbench routes have a module of their own.** `GET /place/geojson`, `/geo/grid`, `/geo/cell`,
+  `/geo/measure`, `/geo/planet` and `/geo/rings` moved out of `app/main.py` into `app/geo.py`, unchanged, mounted
+  where they were so no route changes order. The docs and page checks read every core router now, not one by name.
+
+- **The ground map's routes have a module of their own.** `GET /ground/meta`, `/ground/wind`, `/ground/glyphs/...` and
+  `/ground/{layer}/{z}/{x}/{y}` moved out of `app/main.py` into `app/basemap.py`, unchanged, the first of the route
+  groups the architecture review takes out of `main.py`. They stay in the core: they serve the place pack's map, the
+  earth-engine pack's imagery and the forecast pack's wind.
+
+- **The earth routes are their packs'.** `GET /earth`, `/earth/change.png` and `/earth/year.png` moved into
+  `packs/earth/routes.py`, and `GET /earth/frame.png` into `packs/earth-engine/routes.py`, each answering 404 while its
+  pack is off and sharing itself from its `pack.yaml`. The earth routes read the square through the pack's own
+  `cache()` and `changes()`, so the copy of that rule `app/main.py` kept is gone. `/earth` lists the Sentinel-2 and
+  Landsat years only while earth-engine is on, and `/issues` reads the land record from the earth pack. `/ground/*`
+  stays in the core, because it serves three packs' files.
+
+- **A pack serves its own routes.** `GET /forecast` and `GET /nearby` moved out of `app/main.py` into
+  `packs/forecast/routes.py` and `packs/nearby/routes.py`, unchanged. The node mounts each official pack's router at
+  start and answers 404 while that pack is off, and a pack puts its paths on the `open` share list with
+  `share: {open: [...]}` in its `pack.yaml`, where they were written into `app/auth.py`. `q()` lives in `app/db.py`
+  now, so a pack's routes read the database without importing main.
+
+- **A pack draws its own footprint.** The sea, the square the earth pack keeps and the kilometre the place pack draws
+  were written out in `app/issues/geometry.py`. Each is a `footprint:` in its pack's `pack.yaml` now (the setting that
+  holds the radius, its unit, shape and grain), read while the pack is on, so a node without the place pack no
+  longer draws the place pack's kilometre. On every other node the claims are the same, cell for cell.
+
+- **The core stopped naming the air and heat packs.** Which pack an issue's alerts belong to, what they are judged
+  on, what a learning calls them and the line the report names were four maps in `app/events_pg.py`, `app/learn.py`
+  and `app/report.py`. They are read from the packs now: the issue's pack and `metric` from its `issue.yml`
+  (`issues.owners()`), a learning's name from a rule's `name:` or the issue's `alert:`, and the report's line from a
+  rule's `line: {value, label}`. Nothing a household reads changes; a new domain pack gets all of it by declaring it.
+
+- **An issue ships in the pack that watches it.** Air, heat, coast and land moved from `app/issues/` into
+  `packs/air-quality/issue.yml`, `packs/heat/issue.yml`, `packs/coast/issue.yml` and `packs/earth/issue.yml`,
+  unchanged but for a `key:` line, and the node reads each one while its pack is on. A node that does not watch the
+  coast now has no coast issue, and a new issue is a pack with an `issue.yml`; `app/issues/` keeps only the engine.
+  `planetai update` adds the pack of each issue a node draws to a listed `PACKS_ENABLED`, so no node loses a page.
+
+- **The briefing's leftovers are gone.** `GET /briefing`, a redirect kept for a dashboard left open through v0.38,
+  and the start-up step that moved the old `BRIEFINGS` and `BRIEF_*` keys onto the report schedule. Every node has
+  started on v0.38 or later since September, so both had nothing left to do. A node updating straight from before
+  v0.38 would start on the default report schedule, six and six, instead of its old briefing hours.
+
+- **A pack the node does not load runs nothing.** An agent could still run the scripts of a pack left out of
+  `PACKS_ENABLED`, or refused by its `requires:`, and the report and `/issues` still imported its code: the nearest
+  fab lab was worded by `packs/make` on a node that had switched `make` off. `packs.module()` and `run_pack_script`
+  now answer only for packs the node loads, and say so when one is not. `planetai packs install` builds `pip:` and
+  adds `env:` for those packs only, read from `GET /packs`, and from every folder only when the node is down. A pack
+  is `code` whenever it ships Python, so `nearby` and `season`, which ship scripts, now say so.
+
+- **Trust is core, and the trust card stopped calling a working sensor frozen at night.** The three rules that
+  say whether the node's own sensors can be believed moved out of the `trust` pack to the end of `config/rules.yml`, with
+  the same ids (`trust/channel_dead`, `trust/coverage_low`, `trust/peer_disagreement`), so every alert already sent
+  keeps its cooldown and its history. `GET /trust` kept its own copy of the frozen test, still the old six flat hours
+  out of 24, and on node #1 it called Backyard (SCK)'s light channel frozen after ten dark hours; it now runs
+  `trust/channel_dead`'s own SQL, so the card and the alert say the same. `planetai update` takes `trust` out of a
+  listed `PACKS_ENABLED`, unless it was the only pack listed. The section moved from Packs that ship to Alerts.
+  Twenty-two packs ship.
+
+- **AirGradient and PurpleAir are read again, as packs.** Their readers were core adapters until v0.16, which dropped
+  them from the poll by accident while `AIRGRADIENT_HOSTS`, `PURPLEAIR_HOSTS`, `SENSOR_INDOOR` and the installer's
+  `--airgradient` and `--purpleair` stayed, so a node that listed a monitor read nothing from it. They are
+  `packs/airgradient` and `packs/purpleair` now, moved unchanged from `app/sources.py`: the same `ag-` and `pa-` ids,
+  the same EPA 2021 correction with the raw value kept. Each is on whenever its hosts are set, and `planetai update`
+  adds it to `PACKS_ENABLED` wherever a node lists its packs and has those hosts. Twenty-three packs ship.
+
+- **The kits that publish straight to the node are read by the Smart Citizen pack too.** The `device/sck/#` parser,
+  what it keeps per device, the forward to smartcitizen.me (`SC_FORWARD`) and `/health`'s `direct` key moved out of
+  `app/main.py` and `app/sources.py` into `packs/smartcitizen/hooks.py`, unchanged, so the `sck-` ids and the
+  `smartcitizen-direct` source carry on. The core names no Smart Citizen topic now. A pack's `hooks.py` can
+  declare `MQTT_TOPICS`; the node subscribes to them and hands each message to the pack's `on_mqtt`, and merges its
+  `status()` into `/health`. The direct path ran whenever a broker was set, so the pack's switch adds `MQTT_HOST`, and
+  `planetai update` adds `smartcitizen` to a listed `PACKS_ENABLED` on a node with a broker and no kit.
+
+- **The source registry is pinned at `f57237f`.** awesome-fabcity-data #91 changed Smart Citizen's entry to
+  `adapter: pack:smartcitizen`, after the cloud adapter became a pack (#316), and #92 AirGradient's to
+  `adapter: pack:airgradient`, after #319. The snapshot in `data/sources/` follows; 275 entries, nothing else changed.
+
+- **Smart Citizen is a pack.** Reading this node's own kits from api.smartcitizen.me moved out of `app/sources.py`
+  into `packs/smartcitizen`, unchanged: the same `sc-<kit>` ids, the same source, the same metrics, so every node's
+  history carries on. It has no on/off key of its own, so it runs on the condition the core used, a kit configured:
+  a pack's `switch:` can now be a list of keys, on when any is set and not 0. `planetai update` adds `smartcitizen` to
+  `PACKS_ENABLED` wherever a node lists its packs and has `SC_USER` or `SC_DEVICES` set, the same step as Home
+  Assistant and Bali Air Dispatch, which now reads any key set and not 0 as on. Kits that publish straight to the node's
+  broker are still read by the core, and move next.
+
+- **Home Assistant is a pack.** The discovery entities and the latest-alert sensor moved out of the core into
+  `packs/home-assistant`, unchanged, as the first step of making vendor and integration code packs
+  (docs/decisions/2026-10-21-core-and-packs.md). A pack can now hear the node at two points, in `hooks.py`:
+  `on_readings` after every batch it stores and `on_alert` with every alert it records; a hook that fails never stops
+  the node. The switch is still `HA_DISCOVERY`, still declared by the core so Set up marks it as outward. Nothing a node
+  sends changes, and no node loses it: `planetai update` adds `home-assistant` to `PACKS_ENABLED` wherever a node lists
+  its packs and has `HA_DISCOVERY=1`, the same step that kept Bali Air Dispatch on, now one loop for both.
+  `planetai packs add` counts a pack with `hooks.py` as a code pack and warns as it does for `adapter.py`.
+
+- **The ways an alert leaves have a module of their own.** `notify()` (Telegram, the LoRa mesh, the Reticulum bridge),
+  the Home Assistant discovery and alert sensor, and the state they keep moved from `app/main.py` into
+  `app/channels.py`, word for word. Home Assistant becomes a pack next (docs/decisions/2026-10-21-core-and-packs.md);
+  until then it sits with the other channels. Nothing a node sends changes.
+
+- **Tokens and share levels have a module of their own.** The `SHARE_LEVEL` allowlists, the node's tokens and the
+  checks every route calls (`_admin`, `_pull_ok`, `_shows_private`, the constant-time `_bearer_ok`, `_is_local`) moved
+  from `app/main.py` into `app/auth.py`, word for word, so a router in another module can check a token without
+  importing the whole app. The two middlewares stay in `main.py` beside the app. Nothing a node answers changes.
+
+- **The node keeps its database connections open.** Every request, rule, poll and MQTT message opened a new
+  connection and closed it: 12.8 ms each on node #1, against 0.26 ms for one already open, and `/issues` alone opened
+  five or more. `app/db.py` now keeps four open and hands them out, each carrying the same session settings as before
+  (`NODE_TZ`, the node's coordinates); a busier moment, or a database that is down, gets a direct connection as
+  before, so nothing ever waits on the pool and a node whose database is down still fails at once. It opens on first
+  use and closes when the app stops. The
+  image adds `psycopg-pool`, the psycopg project's own companion package, through `psycopg[binary,pool]`.
+
+- **Hourly means without regrouping every reading.** `readings_1h` was a view that grouped every reading the node had
+  ever stored each time anything read it: 434 ms on node #1 for the last two hours, 2.7 s for the ninety days
+  `/issues/days` draws. The finished hours now sit in a table, `readings_1h_done`, filled by the app (the last 26 hours
+  every hour, all of it on start and once a day), and the view reads that table and groups only the hours after it,
+  live. On a copy of node #1: 55 ms to under 1 ms for two hours, 283 ms to 20 ms for ninety days. The view keeps its
+  name and columns, so no pack's SQL changes, and it is complete whatever the table's state: an empty table only
+  makes it slower. `readings` gains an index on `ts` for that live half.
+
+- **The quarter-hour view takes a tenth of the time.** `recent_15m`, which the kinded rules read about nine times a
+  minute, joined its own result to itself to put temperature and humidity side by side for `apparent`. Postgres
+  guessed one sensor where node #1 has 31, chose a nested loop and compared 2.57 million pairs for 1,604 rows: 645 ms
+  on a copy of node #1's database. Both values now come from one grouping, with no join, and the same 12,116 rows
+  take 57 ms.
+
+- **Importing the app starts nothing.** The first-start bootstrap, the channel roles, the MQTT client and the ten
+  timer loops ran when `app/main.py` was imported. So a second import ran a second node inside the first, and its
+  MQTT client, with the same client id, knocked node #1 off its broker on 28 September. They run once now, from the
+  app's lifespan, when uvicorn starts it. A test, a pack script or `python -c "import main"` loads the code and
+  starts no thread. Nothing changes for a running node.
+
+- **What is core and what is a pack, decided.** `docs/decisions/2026-10-21-core-and-packs.md` records Tomas's
+  answers: `place` and `trust` are core; species, things and offers are domains like air and heat, each a pack with
+  its own issue; Home Assistant, Smart Citizen, AirGradient and PurpleAir become packs, while MQTT, Meshtastic,
+  CKAN, `POST /readings` and the alert channels stay in the core; raw readings are kept forever. No code moves in
+  this change.
+
+- **The docs say what the node does after #302 to #306.** The Architecture page named a model setting,
+  `UPSTREAM_MODEL_URL`, that no code ever read; it now names `AGENT_REMOTE_URL` and `AGENT_ONLINE_URL`, says a
+  regional cluster joins the tailnet to count as the household's own, and says how a job already runs on another
+  machine (a pack script that writes files under `out/`). The Spec's TimescaleDB line said "swap the image", which
+  would land on the collation trap the compose file warns about; it now says dump and restore. The Spec also
+  admitted nothing about `main.py` naming metrics it is not meant to name, and now lists them. The API, concepts,
+  configuration, ask, bot and Wall pages and `.env.example` say that a child sends only its own sensors, that a
+  remote model at a public address counts as online, and that the Wall's story rolls when it is longer than its box.
+
+- **The Wall writes its story again.** Node #1's remote model, gemma4:26b, thought for about 12,700 tokens before
+  writing the Wall's paragraph, three minutes and more, so the request ran past the node's four-minute limit and
+  the Wall showed nothing. The Wall tells its story from the facts it is handed and needs no tools, so it is
+  offered none now, and a request with no tools to choose goes without thinking, as an answer after a tool result
+  already did. The same paragraph came back in 2.5 seconds. A story longer than its box was cut, its start lost
+  above the top once typing ended; now it rolls up, a line every three seconds, in a loop that brings the start
+  round again. Under reduced motion it stands still at its start.
+
+- **`private` never uses a model at a public address.** Since the last change the node named such a remote model
+  online and kept the house's learnings, settings and bundles from it, but still sent it every question. With
+  `AGENT_PREFER=private`, the default, it is now left off the ladder, and the log says which and why: the remote
+  box is for a machine of yours, and a city's or a rented server waits for `fallback` or `strongest`, the same
+  choice an online key needs.
+
+- **`/health` sends only what it says it sends.** It copied the timers' whole working state into its answer, so every
+  screen polling it, at every share level and with no token, also got the programme's node list, the Telegram bot's
+  username and, with `SPECIES_MATCH=on`, about 12 kB of GBIF maps, every 20 seconds. Node #1's answer was 13.8 kB, 12
+  of them nobody read. It now names its keys, the list on the API page, and the gap note there is gone.
+
+- **A model at a public address counts as online, whatever box it was typed into.** The remote rung is for a bigger
+  model on a machine of yours, and the node took that on trust: a city's GPU server in that box was called "your
+  network", agents read what the house learned and who lives in it under `AGENT_PREFER=private`, and the Telegram bot
+  handed it the node's settings, the report bundle and the day's export. The node now reads the rung's address.
+  Loopback, a private or tailnet address and a name only a home network knows (no dot, `.local`, `.ts.net`) stay
+  home; anything else is online. Such a rung is named online on the pane, gets the pane's narrower set of tools on
+  Telegram, and closes `/learned`, `/learned/search` and `/household` to agents. A tool the bot's model names
+  without having been offered it is refused now, where before it ran.
+
+- **A parent counts only its children's own sensors, and keeps each hour complete.** The hourly push sent every
+  row that was not private, so a child's Bali Air Dispatch stations and its Open-Meteo point went up beside its
+  own kits, and the parent, which files everything it receives as its children's, would have counted them as the
+  district's measurement. Node #1 would have pushed 178 rows of other people's numbers next to its 94. The push now
+  sends custody rows only, with `indoor` on each, so a kitchen kit stays out of the parent's outdoor means. The
+  parent also kept the first mean it got for each hour, which is the hour in progress, and dropped the complete
+  one an hour later; it keeps the later one now. `tests/test_custody.py` runs the push on a database with a peer
+  in it and fails if the peer goes up.
+
+- **Ask the node, on the doors, works like a chat box again, and learn mode follows the doors.** The pane sits on its
+  own grey again, as it did on the classic dashboard, so the page's paper is only ever the data; the doors had drawn
+  it on the page's ground. Enter asks (Shift and Enter for a new line), where only the ASK button did. The questions
+  under the box are the node's own, written from tonight's figures, and they read the way a household asks: "What
+  should I know about the heat today?", "Is the air worse than usual for this hour?", never an alert number. Learn
+  mode has a mark for every part of every door, 45 new ones, each quoting the section of these docs that describes
+  that part, and the pane shows that quote first. The classic dashboard keeps its own marks. The Bahasa Indonesia
+  questions have not yet been read by a native speaker. The box is a composer now, the arrow inside it and a line
+  under it saying Enter asks, with the questions above it. With no model set up, it searches the docs:
+  `GET /docs/search` ranks sections by the words of a question, the rare ones weighing most, where it matched only the
+  whole query as one phrase.
+
+- **The install and preflight lines say `https://`.** `curl -fsSL planetai.fab.city/install | bash` made its first
+  request in clear text, so anyone on the path could hand `bash` a different script before the redirect to HTTPS.
+  Every page, the README, the skills and the CLI's own hints now print `curl -fsSL https://planetai.fab.city/install
+  | bash`.
+
+- **The docs, read again from the code and rewritten.** Every page of planetai.fab.city/docs was checked against main
+  and rewritten to say what the node does now, once, in plain words: version history, internal dates and names, PR
+  numbers and node #1's diary are gone from the pages (this file keeps them), and the long pages are about a third
+  shorter (the API page went from 16,000 words to 6,000). Facts that were wrong are fixed, among them the release check
+  and the node list being read hourly, ρ counting sent events, the firmware address, nineteen core packs, and the
+  routes, flags and settings that were missing. The sidebar has ten groups and 40 pages: Index coverage, What node #1
+  can tell you and Pack ideas left it, their lasting parts folded into Concepts, First ten minutes and Packs. The
+  pages carry eight diagrams and six screenshots of node #1 (`docs/site/img/`, drawn inline on the page's own tokens,
+  left out of the tarball), and `tools/ship.sh` builds the docs from empty so a retired page leaves the site. The docs
+  header links planetai.fab.city, where it linked the old node0 page. `build_docs.py --check` now fails on a raw HTML tag in a
+  rendered page: a placeholder outside backticks, such as `<script>` in a code span broken across two lines, had
+  turned the rest of the changelog page into an unclosed script.
+
+- **Mesh readings are filed under the radio that measured them, by its name, with the right metric** (node #1,
+  20 Oct, read against firmware 2.7.26's serializer and its 41 sensor drivers). The firmware's MQTT JSON sets `sender`
+  to the gateway, and the node read it first: from 5 Sep to 19 Oct every radio's readings and texts went under
+  `msh-8f491db0`. It reads `from` now; those old rows are left as they are. A radio's telemetry no longer renames it
+  "mesh !id" every 15 minutes over the name its nodeinfo gave it, and the gateway says the names it holds for itself
+  and the fleet's radios when it starts (its own nodeinfo never comes up USB). The sensor profile turns air-quality
+  telemetry on (`airQualityEnabled`, every 900 s): the firmware has it off, so a PM, CO2 or formaldehyde sensor on a
+  radio sent nothing; provision a sensor radio again to get it. New metrics: `pm4`, `hcho`, `distance`, `weight`,
+  `radiation`, `rainfall_24h`, `white_light`, `current`; a SEN5x's VOC and NOx index arrive as `tvoc_index` and
+  `nox_index` (the node looked for field names no firmware sends), and `rainfall_1h` arrives from the host gateway at
+  all. The gateway names the telemetry block, so an INA219's voltage is `voltage`, not `battery_v`. A meshtastic
+  `gas_resistance` is kΩ, not ohms. An MLX90632 is not filed apart from air temperature, because nothing in the
+  packet says what it points at; docs/MESHTASTIC.md says not to fit one.
+
+- **The radio gateway restarts when its radio is unplugged.** It noticed the port go and then slept on, a live process
+  holding a dead port, so launchd and systemd had nothing to restart: node #1's gateway heard nothing after a replug
+  until it was restarted by hand (20 Oct). It now exits on meshtastic's `connection.lost` and the service starts it
+  again. Also: an empty `.env` value (`MQTT_USER=`) crashed `envget`, which `tests/test_radio_gateway.sh` sets and CI
+  skips for want of mosquitto; both are checked there now.
+
+## v0.83.0 — 2026-10-20 — Bali Air Dispatch as a pack, and the map as a setup step
+
+- **ρ asks only what was sent.** On `ALERT_ENGINE=events` the packs the event engine replaced still write `alerts`
+  rows that are never sent, and ρ counted them: node #1 read 289 asks in 30 days for 9 messages that went out, ρ 0.028,
+  which the programme page was about to publish (20 Oct). `index.rho()` and its funnel now leave a replaced pack's rows
+  out from the engine's first sent message on, and count each act-level event it sent once, answered by an `actions`
+  row with its `event_id`. A rules node reads exactly what it read before. `tests/test_rho_pg.py` runs on a real
+  Postgres in CI.
+- **The source registry is re-pinned to awesome-fabcity-data `db77fcc` (275 entries, was 269 at `851b8db`).** Bali Air
+  Dispatch's entry now names its reader `pack:bali-air-dispatch`, and the pin brings the entries merged upstream since
+  12 Oct: OECD TiVA, FAO AQUASTAT and Landsat C2 surface temperature, with updated notes on four more. `planetai sources`
+  and `GET /sources` answer from it.
+- **Bali Air Dispatch is a pack, `bali-air-dispatch`, and the core names no network of public stations** (Tomas,
+  19 Oct: "it should be a pack"). Nothing changes on a Bali node: the stations keep their ids (`bad-…`), their history
+  and their settings (`BAD_ENABLED`, `BAD_RADIUS_KM`, …, now in the pack's card under Set up › Packs). `planetai update`
+  adds the pack to a node's `PACKS_ENABLED` list when the node keeps one and has `BAD_ENABLED=1`. It runs without
+  `PACKS_ALLOW_CODE`: an official pack that names its own switch runs its code when that switch is on (the first step
+  of decision A in the sensors spec); a wild pack still needs the flag. Outside Bali the pack is off and "Air stations
+  nearby" in `planetai doctor` and Set up no longer names Bali; inside Bali's box with it off, the fix names the pack.
+  `GET /nearby`, the ring on the map and its footprint read whichever pack declares `stations:`. Set up draws any
+  pack's `…_ENABLED` key as a switch.
+
+- **The map of this place is a setup step.** Tomas, 19 Oct: "how to add the open street maps tiles? I dont find how
+  to set it up, it should be one of the basic setup steps." The street map (`planetai run place basemap`) was written
+  down only in the packs reference, so a new node's Place door and Wall drew no streets and nothing said why. Now
+  `planetai doctor`, Set up and `GET /health/sources` list **The map of this place**: a tick with the day it was
+  fetched, or a cross whose fix is the command. Install and update (in a terminal, never with `--yes`, from cron or by
+  an agent) and `planetai setup` offer to fetch it, saying first that build.protomaps.com and OpenAerialMap learn
+  roughly where the node is. The Place door names the command where the street map would be. Install, first ten
+  minutes, dashboard, CLI and API pages say so.
+
+## v0.82.3 — 2026-10-19 — Radios that keep their settings, and every node told a release is out
+
+- **A provisioned radio holds its profile, and the check reads the radio, not a copy.** On firmware 2.7.26 (node #1,
+  19 Oct) `planetai radio provision` left the first LoRa sensor with region unset, role CLIENT, no pin and no
+  telemetry, and the gateway on its old slot and key for a day, while the check said all was well: `--configure` and
+  the settings transaction were lost when the port closed, and the check read the Meshtastic API's cached copy on the
+  same connection. Provision now writes one settings section per CLI call, 25 s apart, then reboots the radio (a new
+  frequency is not on air before), waits for its boot count to rise, and compares every setting, both channels' keys
+  (by their one-byte hash, never the key) and the pin from a new connection. Any difference is listed and the command
+  exits non-zero. `--fixed -8.8,115.1` works as written: a south latitude was read as an option on Python 3.9.
+  An nRF52 board (Tracker L1, T1000-E) never raises its boot count, so its reboot is proven by its USB port dropping.
+  What did not hold is written again, alone, and read back again, at most twice: on one XIAO a channel 0 write
+  emptied channel 1.
+- **The household channel carries full position** (Tomas, 19 Oct). `planetai radio init` writes `position_precision:
+  32` for the primary `planetai` channel (`fabcity` stays 13); before, the URL carried 0, which sends no position on
+  channel 0, so a sensor never said where it stood. Existing fleets: add the line to `config/radio/fleet.yaml` and
+  provision again. Provision writes both channels by index after the URL and checks both precisions on the readback.
+
+- **A newer release is said at the top of the page, within the hour** (Tomas, 18 Oct: "can the node dashboard get a
+  message if there is a new version? somewhere in the top as a small notification"). The bar carries one small line,
+  "v0.83.0 is out", only while `/health.release.newer` is true; it opens Set up › Updates. On a phone it is its own
+  44 px row under the bar. Until now only the foot and a "new" tag in Set up said so. The node asks planetai.fab.city
+  every hour instead of once a day (`RELEASE_EVERY`): one line of text. Telegram is still told once per version.
+
+## v0.82.2 — 2026-10-18 — Radios, step by step, and the sensor bench on the node
+
+- **Radios, step by step (Tomas, 18 Oct: "I am not sure how to make the radios work").** `planetai radio` on its own is
+  now the guide: the packages, the broker, the fleet, the gateway radio, the gateway as a service, the other radios,
+  each ticked or not, the radios on USB right now, and the one command that comes next with its port filled in. It
+  runs before the packages are installed and names them as the first step. `planetai radio url` tells a person how to
+  put a phone on the mesh (the app, Bluetooth pairing, the link, a QR when `qrencode` is there); `--json` keeps the
+  decoded settings. `provision` without `--port` lists the radios it can see; `gateway --install` loads the service
+  itself instead of printing `launchctl` lines; every step ends with "Next step: planetai radio". urllib3's LibreSSL
+  warning no longer prints over the output on Apple's Python. docs/MESHTASTIC.md opens with the same steps, each with
+  what you should see.
+- **`planetai radio provision` reaches the radio.** It looked for the `meshtastic` script, which `pip install --user`
+  puts in `~/Library/Python/3.9/bin` on a Mac, on nobody's PATH; the "not installed" that followed was retried as a
+  radio that "did not come back after a reboot", though no command had reached it (node #1, 18 Oct). Every call is now
+  `python3 -m meshtastic` from the same interpreter, and a missing package says so.
+- **A provisioned radio has both channels.** On node #1's XIAO (firmware 2.7.26) the channel URL inside
+  `--configure` set the region but left the old primary key and no `fabcity` channel; the check caught it. `provision`
+  now writes both channels in one settings transaction through the Meshtastic API after `--configure`, and provisioning
+  a radio again replaces its entry in the fleet instead of listing it twice.
+- **The guide never offers the gateway's port for another radio.** With the gateway running, the only radio on USB is
+  the gateway; step 6 used to name its port for the next sensor, which would have rewritten it. The guide now marks it
+  "the gateway, keep it plugged in" and asks for the next radio on another port. The Meshtastic library's INFO lines no
+  longer print over `provision`.
+
+- **A node joins every map within the hour.** Each node read `registry.json` every 6 hours, so `larsbcn` (Barcelona,
+  merged 18 Oct 12:20 UTC) was missing from node #1's map until a read at 17:25. It reads the file every hour now:
+  one small public file, 24 requests a day (`REGISTRY_EVERY`).
+- **`/tester`: the sensor bench, served by the node** (Tomas, 17 Oct: "a tool to see if the sensor is working via serial
+  usb … also a visualizer of devices in a lan network, with layers"). The same file as makingsense.fablabbali.com/test/;
+  here it reads the node's own /health, /sensors, /readings and /nodes and draws every device the node knows, by layer
+  (mesh, WiFi pods, LAN, Smart Citizen, stations & models, other nodes, indoors/outdoors). USB works on this machine
+  (localhost is a secure context), not from across the LAN. Answers at every SHARE_LEVEL like /ui; the reads behind it
+  stay gated and the page asks for the token when one is refused. `app/static/tester.html` is a copy.
+
+## v0.82.1 — 2026-10-17 — The radio command runs on a real node, and the old key retires
+
+- **`planetai radio` runs on a real node.** It looked for `tools/radio.py` beside the `~/.local/bin` link, so it
+  failed after its packages were in (node #1, 17 Oct); it now runs the node's own copy. Its install hint is
+  `python3 -m pip install --user …`, for the same interpreter that runs it, and on Apple's Python 3.9 it pins pyobjc
+  below 12, which does not build there (`tests/test_radio_cli.sh`).
+- **`planetai radio init` never guesses a region.** It read `.env` itself and kept the inline comment of the
+  shipped `NODE_CITY=bali  # pilot key …` line, so it found no region and fell back to EU_868: an 868 MHz fleet for
+  node #1 in Bali, where the band is 920–923 MHz. Inline comments are stripped as docker compose strips them, and a
+  city with no known region now refuses and asks for `--region`.
+- **The retired release key is no longer trusted.** v0.82.0 shipped with both signer lines so v0.81.0 still verified;
+  the 19 September key's line is now gone from all four copies (docs/SIGNING.md §5). A node on v0.82.0 already trusts
+  the new key.
+
+## v0.82.0 — 2026-10-16 — The pre-launch audit: what a household reads, and what it never sees
+
+- **A new release key (17 Oct).** The passphrase of the key issued on 19 September was lost, so v0.82.0 is the first
+  release signed with a new one, `SHA256:OrUQK/jsjNjpei1U8B5tyuEWY36/gwYWXrgVF+5ycIY` (SECURITY.md, `planetai
+  version`). The old line stays in `tools/allowed_signers` for one release, so v0.81.0 still verifies, and goes in the
+  next. **A node installed from a tarball before v0.82.0 trusts only the old key and refuses this update: reinstall
+  it with the short way (docs/site/install.md); its data stays.** Nodes that are a git checkout update as before.
+
+- **`planetai radio`: one command per radio, the node as their gateway, nodes federated** (Tomas, 16 Oct: "a tool to
+  easily program any mesh nodes … and the node as a broker and gateway to connect other nodes globally via mqtt").
+  `tools/radio.py` and five role profiles (sensor, relay, shelf, gateway-wifi, gateway-host) replace
+  `tools/mesh-provision.sh`: one DeviceProfile per radio applied in one settings transaction instead of six reboots;
+  `--fixed LAT,LON` for a XIAO sensor node, which has no GPS. The fleet is two keyed channels, `planetai` (primary,
+  the household's) and `fabcity` (secondary, what crosses, position capped at 2.9 km), in `config/radio/fleet.yaml`.
+  **Bali's frequency slot is pinned inside Indonesia's 920–923 MHz**; SG_923 spans 917–925 and the slot hashed from
+  the channel name could fall outside. `planetai radio gateway` makes any radio on the node's USB the gateway,
+  nRF52 boards included, publishing the same JSON an ESP32 gateway does, so `app/` changes by zero lines.
+  `planetai radio federate` bridges brokers over the tailnet carrying `fabcity/` only: text and alerts, never a
+  reading. Existing radios are re-provisioned once. Spec: `docs/SPEC_radio.md`. Firmware now comes from
+  `makingsense.fablabbali.com/flash`, which `docs/MESHTASTIC.md` points to. Two suites, both skip where the
+  meshtastic package or mosquitto is absent. **Not yet run against a radio.**
+- **The Wall's narration no longer covers its page** (found on node #1, 16 Oct). The page keeps its height and the
+  narration takes the room left under it; on a scale whose page leaves too little, it waits for the next scale. The
+  gate's Wall pass now asks the rig's model for a full-length narration and fails when the box covers the page.
+- **The Wall walks out from the house** (Tomas, 16 Oct: "more interactivity, maybe similar to the phone version and have
+  an automatic change of time and scale"; option A of three). The map is framed on one scale's own H3 cell at a time,
+  house, street, ring and region, as the phone's walk is, and steps by itself: each scale's day is replayed an hour at a
+  time, then the next scale. Nothing moves under reduced motion; pressing a scale's name holds it. Beside the map,
+  that scale's page: the house's figures and day; the street's day against what the node learned is usual outside;
+  the land within 1 km as a hundred squares (satellite) and the places mapped there, counted (OpenStreetMap); and what
+  the satellites and models see around: fires, the ground's heat, the sky, the sea, and floods said to be not watched.
+  Every figure carries its time and one provenance word, and no sensor's name. The narration stays, under the page.
+  The hour strip and its window buttons are gone.
+- **GET /learned/place**: the place's usual hours (the holding `usual` learnings of scope place), on the `open` list,
+  for the Wall. The house's learnings stay behind `GET /learned`.
+- The visual gate walks the Wall (`measure.mjs wallwalk`): each scale one screen at 1920×1080, the type floor, every
+  figure dated and worded, no names, still under reduced motion, stepping with motion on, 44 px scale names on a phone.
+- **The Wall no longer shows answers to alerts** (Tomas, 16 Oct). The row "This house answered N of M alerts" and its
+  rings are gone, and so are the rings around the house on the map and the alert and answer marks on its hour strip.
+  The Wall still says what is asked now.
+
+- **The daily export names no room.** `/export` is CC BY and `planetai ipfs` pins it, but its alert lines kept the
+  house's room and sensor names whenever the request carried a token (the nightly backup on a node run natively).
+  They now read Room A / Sensor 1 like every untrusted answer (`tests/test_share.py`).
+- **Nothing tells a newcomer to add a sensor the node does not read.** The doctor's "your own sensors" step and the
+  installer's closing line offered AirGradient and PurpleAir; they say a Smart Citizen kit until the `air-sensors`
+  pack reads the others. The first start's history is ~4,400 rows, not ~2,200.
+- **The pages keep to the layer (pre-launch audit PR 5, 15–16 Oct).**
+  - Red is never a fill: an hour over the line in the week strips (the Now figure and the week rows) is an ink cell
+    with a red tick on top.
+  - The reader's register is remembered: Paper or Dark is saved on this screen (`planetai_theme`), and with nothing
+    saved the doors follow the system's setting, as the phone did. The Wall stays dark.
+  - Contrast and structure: `--dim` is #6F6963 (5.0:1 on paper, was 4.14:1); a state on a selected ink row reads in
+    paper (was 2.62:1); no doors type under 12 px; the Now headline is the page's h1; the day figure has its own name;
+    a "Skip to the content" link is the first thing a keyboard reaches.
+  - Every figure carries its date and its word: the Data tiles say when their 15-minute medians are from, Place's
+    yearly rows the date of their value, and the Index cells table when the node computed it.
+  - The Data tiles no longer tween in: motion only where the datum has a cadence.
+  - The phone: no hue outside the layer. The house, street and ring lines are ink told apart by dash and weight
+    (solid, dashed, dotted), the gap between them an ink shade, stations one dot each, the map's stations ink and its
+    cells blue; red stays the line itself. The heading reads the node's name, then its place. Units are µg/m³ in mono,
+    never upper-cased (the decide line printed "MG/M³"). Chips and buttons show a focus ring; no type under 12 px.
+  - The phone has a Paper / Dark switch in its foot (saved as on the doors, the system's setting until chosen), and
+    its map follows it.
+  - The phone's "Walk out" sits in the page at the foot of the first screen and no longer covers the unlock link;
+    the walk's chapters are as tall as what they hold, so a scale with no reading is one line, not a blank screen.
+    Map flights and the boot blink keep still under reduced motion.
+  - The Wall: a station over the line is an ink disc with a red stroke, never a red fill, and every station is one
+    size (its figure says the value). The replay steps an hour at a time (`WALL_TIME.HOUR_STEP`, from
+    `--motion-replay-loop`) instead of tweening; each alert and answer of that hour is one still ring around the house;
+    under reduced motion the wind is one still frame.
+  - The Wall on a phone, a portrait screen or a small TV stacks its columns with the map first; on a touch screen its
+    controls show without hover and are 44 px targets; no Wall type under 12 px; a station's figure that would cover
+    another mark, the house or the clock is not drawn, and the house's label moves above the house when below would
+    hide a station.
+- **Place, option A: the map full width, layers as a strip, labels in a margin (Tomas, 15 Oct).** The map is the
+  content's full width (1060 × 560 at 1440); the fourteen layers are five group buttons above it, each opening its rows
+  in a drop-down, with the base map's state at the right; nothing is labelled on the house: marks leave on leader lines
+  to a ruled margin with their distance (on a phone, the list Around the house), off-map stations sit on the edge with
+  theirs, and without a token the house's rows say withheld in their place. The inspector is one line under the map;
+  below it, three columns: where the readings come from, the species, what is changing. `tests/test_doors.py` and the
+  visual gate's doors pass hold the layout.
+- **First run (pre-launch audit, 15 Oct).** The installer's question 4 offered AirGradient and PurpleAir, which the
+  node never read: an operator who picked one got no reading and no first alert. It offers Smart Citizen until the
+  `air-sensors` pack reads the others. A chat not in `TELEGRAM_CHAT_IDS` is told once, with its own id, that the node
+  answers its household only and who can add it; it heard nothing before. The install page opens with the six
+  commands of the short way.
+
+- **What the family reads names no command, token, model tag or exception.** The bot, the morning message, the
+  image reader's errors and the coast, land, trust, cold-start, nearby and heat texts now say what happened and who can
+  fix it ("I can't answer questions right now. Alerts and the morning report still work."); the admin detail moved to
+  the log and stays in each health check's `fix` on Node › Running. The morning's health line is its own sentence per
+  check and names a quiet sensor by its room, never its id. Trust alerts name the metric ("fine dust (PM2.5)", not
+  `pm25`), the heat danger alert is sentence case, and the nearby alert's Spanish says tú (pre-launch audit, 15 Oct).
+- **Rooms stay in the house (Tomas, 15 Oct).** A screen without a token read the rooms and sensor names at
+  `SHARE_LEVEL=open` (`/issues`, `/stats`, `/sensors`, `/trust`, `/nearby`, `/report/latest`, alert texts). The sharing
+  middleware now swaps the house's labels for "Room A" / "Sensor 1" in every untrusted JSON answer, once, and the
+  sentences of past alerts (written under older names) are left out of `/alerts` and `/issues`. A token reads the
+  real names. `tests/test_share.py` holds both.
+- **The house's sensors stand at the house.** Without a token, each of the house's own sensors was drawn at the centre
+  of its own res-8 cell; node #1 sits on a cell's edge, so its kits stood ~700 m from "This house" on Place and Now.
+  They now stand at the house's published point, the cell `/health` names; a child's rows keep their own cell.
+
+- **The pages speak to the household (pre-launch audit, 15 Oct).**
+  - Data links every sensor and every model to where its source publishes it, in a new tab (Tomas, 15 Oct); a Smart
+    Citizen kit links to its own kit page.
+  - One table of the household's words in doors-load.js, for the doors and the phone: the engine's states (act now,
+    worth a look, fine, background) and event kinds (a sudden rise, high for an hour…) instead of `notable`/`spike`.
+  - A locked screen pressing Done reads "This screen can't answer yet…", never `Authorization: Bearer <ACT_TOKEN>`;
+    a dropped request reads "The node did not answer…", never the browser's "Failed to fetch".
+  - The Wall at `SHARE_LEVEL=off` draws one line, not a token form; its narration never prints `UI_ASK` or
+    `planetai agent local`.
+  - A screen without a key: no version or schema in the header or the phone's Node, no `SHARE_LEVEL=`, no
+    coordinates on Place, no "+ Add an image" it cannot use, and "locked on this screen" where Place said "no node".
+  - "Raw readings stay on this machine. Only hourly averages, … leave it." replaces a sentence that said readings never
+    leave and then that hourly means travel. The loading screen says "Finding this place", not H3 glyphs.
+  - The footer drops the classic dashboard link (`?layout=classic` still works), says what the node is in one line,
+    and links "Fab City".
+- **Numbers you can trust (pre-launch audit, 15 Oct).**
+  - When the bot cannot reach the node, `/stack` said "Nothing is wrong with your air; this is me" at exactly the
+    moment it could not know. It now says it can't say how the air is.
+  - "The air is clean now … past the WHO line until 10:47" at 10:47 read as still over: an hour still running is
+    said as "until a few minutes ago" (`day.at`/`day.recent` in air and heat, three languages).
+  - Now's Around-the-house card showed the running hour's mean (17) beside a title and legend saying the live
+    reading (10); at the present hour it shows the live reading. The map's "this house · 5" says "5 sensors".
+  - Node's flow counted "0 answers in 24 h" beside today's Done: answers left on alert events are counted too.
+  - Urgent air alerts (an hour unhealthy, danger) name the US EPA's unhealthy level, 35.5 µg/m³, as decided on
+    14 Oct; the others keep the WHO line. The morning report's model clause said "the WHO's first interim target,
+    35 µg/m³", which is the annual target; it now compares against and names the EPA's 35.5, and calls CAMS the
+    European air model rather than "the satellites".
+- **A child node is another household, not a member of this one.** `AGGREGATE_TOKEN` made a request trusted by
+  the sharing check, and every child holds it, so a child read its parent's sensor rooms, point, building plan and
+  notes as if it lived there. The token now passes only `POST /aggregates` and `POST /events`, which check it
+  themselves; everything else it asks is answered as to a stranger on the network. Found by the pre-launch audit
+  (15 Oct). `tests/test_share.py` holds it.
+
+- **One sentence when nothing is asked.** Now said "Nothing to do now." where the Wall and the phone said "Nothing is
+  asked now."; all three say "Nothing is asked now." (Tomas, 15 Oct). The Wall keeps "clean-air line" for the WHO line.
+
+- **The forecast pack asks every `FORECAST_POLL_HOURS`, as its settings always said.** Nothing read the key: the pack
+  ran in the core 300 s loop, so with `FORECAST_OPENMETEO=1` the 65-point wind field went to Open-Meteo ~275 times a
+  day, and node #1's whole public IP hit the free tier's 10,000-a-day limit at ~06:15 UTC every day from 9 Oct, which
+  silenced `om-point` until midnight UTC. `fetch()` now asks only when `out/forecast.last` is older than the setting,
+  and touches it on every attempt, so neither a restart nor a 429 asks again early. `planetai run forecast fetch`
+  still asks now. Forecast rows are never overwritten, so nothing is lost. `tests/test_forecast.py` counts the calls.
+- **Place and Node, after the design review (Tomas, 14–15 Oct).** Place: the species confirmed here are a table
+  below the map (GBIF link, rank, times seen here, where in words, GBIF's open records in the seven cells; token only)
+  and a filled mark on the map under Images, its row saying "1 confirmed · …"; five layers on by default, the other
+  groups collapsed with a count, no inner scroller, and on a phone the list is a sheet under a "Layers 5" button; the
+  house is named on the map; without WebGL the map is drawn still (the cell, the stations, the rings) and the list and
+  facts still draw, where before nothing did; the tools are 44 px, the active one says its word, Measure ends on Done,
+  and From the house is one tap; one figure per fact ("497 m edge · 0.64 km²", never "about 531 m" or "64.0 ha");
+  Changes by the year moved below the map. Node: a verdict first ("Working. Last reading 19:19; 6 of 6 sensors, 10 of
+  20 stations heard in the last hour.", or "Needs a look" and why); the flow is vertical under 700 px instead of an
+  840 px drawing scrolled sideways; the diary shows 14 entries and the rest on a press; the nodes' list comes before a
+  globe a third of the screen high; the five refusals in plain words, each linked to its proof.
+- **The doctor names the node's fundamental sources, and install and update end with what is left to set up**
+  (Tomas, 15 Oct: "the user should be guided to have the fundamental data sources of the node running"). Six sources
+  every node needs, in one place (`app/fundamentals.py`), most important first: your own sensors (one reporting in
+  the last hour, inside and ideally outside), alerts on your phone (Telegram connected and not refused), air stations
+  nearby (Bali Air Dispatch; does not apply outside Bali yet), weather (Open-Meteo), satellite air (CAMS) and the
+  nightly backup. New `GET /health/sources` (token) says each one's state, its last reading's age and, when it is not
+  running, the one thing to do, with the Set up section or the `planetai` command that does it. `planetai doctor`
+  prints them as a **Data sources** block; `install.sh`, `update.sh` and `planetai setup` now all end with the doctor
+  and a **To finish setting up** list, and in a terminal install and update offer to do the first step (never with
+  `--yes`, cron or an agent: then they only print). The Set up page shows the same list at the top, and the MCP
+  `health_check` returns it as `sources`. Telegram and the backup's age moved from the doctor's checks into the
+  sources, so they no longer make a new node's doctor red; *a backup exists* (which read `./backups` whatever
+  `BACKUP_DIR` said) is gone. Before the first poll after a start, a configured source is a dash, not a cross.
+- **Data is tabs, and Set up asks before anything leaves (design review, 14 Oct; Tomas: tables by default, cards
+  only as pop-ups).** Data was one scroll of nine sections, about 21,900 px at 1440 and 36,600 px on a phone. It is
+  now one pane at a time, routed `#data/<tab>`: Readings, Models and satellite, Home, Ledger and API, with Set up's list
+  as the tab bar (sticky; on a phone a wrapping strip of 44 px targets instead of one that clipped "MODELS AND SATELL"
+  and scrolled away). The models are one table, a row per source with its cadence in words and a unit column, without
+  "years cached" or forecast lead hours, and the 20 empty model tiles left the kinds grid. The ledger collapses a run
+  of the same answer ("decided ×10"), says the day and the time on one line, names who answered in words instead of
+  `gui` or `local-model/telegram`, and filters by stage. API routes are one line each. The Index cells table moved to
+  Node, under the flow. Every old anchor (`#data/d-images`, `#data/perday`, a station's id, `#data/cells`,
+  `#data/d-learned`) lands on its tab or on Node. Side by side, numeric columns no longer run together, and the usual
+  day's hour labels are about 10 px on a phone, not 6. In Set up, a change that sends something beyond the machine
+  (`outward`) or runs code (`runs_code`, new in `GET /settings`: `PACKS_ALLOW_CODE`, and a code pack switched on) opens
+  a **Before this is saved** panel in the page with the setting's own help, Back and Save anyway; `MAP_TILES` is now
+  declared outward. What is read at start is one table with its instruction said once; the section list, switches
+  and buttons are 44 px; the gear is filled while Set up is open. `tests/test_doors.py` renders each tab, the old
+  anchors, the ledger and the consequences step; `measure.mjs doors`, in the visual gate, walks every tab and section at
+  390 and 1440, paper and dark, locked and unlocked.
+- **Fires, a new source (Tomas, 15 Oct).** `packs/fire` reads NASA FIRMS active fire detections (VIIRS 375 m,
+  CC0) from the public regional files, no key needed, and counts the burning places of the last day in a local ring
+  (`FIRE_LOCAL_KM`, 25 km) and a regional one (`FIRE_REGION_KM`, 150 km): how many, their fire radiative power, the
+  nearest and its compass bearing, and how many lie within 45° of where the wind comes from, by the node's own wind
+  (a local kit, the core Open-Meteo point, or the forecast bounded to `ts <= now()`). Three rules say where, as a
+  distance and a direction from the house: `info` a fire in the local ring, `warn` one upwind, and `act` only when
+  25 or more are upwind in the region AND the air outside is rising past the WHO line, 15 µg/m³. Five numbers are a
+  declared section with `wall: true`; a core pack's section now stays out of `/issues` until the node holds a row of
+  it, so nodes that never turn fires on show nothing. Off until `FIRE_ENABLED=1` (and `PACKS_ALLOW_CODE=1`), for the bandwidth: 1 to 2 MB a
+  satellite per changed file for South East Asia; FIRMS ignores conditional requests, so the pack asks with HEAD
+  first, at most every three hours. An optional `FIRMS_MAP_KEY` reads only the ring's box. The 25 is a first guess
+  from one day on the Bukit (14 Oct: nothing within 50 km, the nearest 75 km north-west, 51 places within 150 km).
+  New id and es copy is assistant-written. `tests/test_fire.py` (77 suites).
+- **The Wall says more, and only what anyone may read (Tomas, 15 Oct: "Generated text in the wall should be richer
+  since we now have much more data").** The Wall's narration (`POST /ask`, `prompt: wall`) no longer reads the
+  pane's context. It reads its own: short labelled facts with their unit and `live`, `model` or `satellite` — the day
+  sentence, the WHO line, the values by distance, how many public stations nearby are over the line, what is usual
+  for the place, the next six hours of forecast, the land and the sea, and any pack section declared `wall: true`,
+  so a new pack's figures reach it with no code. The house's learnings, digests, things, alerts' words and who
+  answered never reach it. `WALL_ANGLES` grows from five to eleven (the day so far, the stations around, what is
+  usual here, the next hours, the land and the sea, fires around, the ground's heat) and an angle whose facts are
+  missing is skipped, not apologised for. The scrub now also cleans dict keys, and catches a coordinate written to
+  more decimals than the node's own rounds to (-8.8190 beside NODE_LAT -8.819).
+
+- **Pictures through the bot (Tomas, 15 Oct).** A photo or an image file sent to the bot from a household chat
+  is posted to the node's `POST /captures` with the caption as the note, the sender's name and `describe=1`, and the
+  bot answers "Kept. The image model on this machine is describing it; it will be in Data › Images in a minute." A
+  photo takes its largest size and the message's date; a file goes byte for byte, so its own date and GPS count. A
+  `#drone`, `#microscope`, `#camera` or `#balloon` in the caption sets the kind. A duplicate, a file that is not an
+  image, one over the Bot API's 20 MB and a refused token are each answered plainly. Strangers' pictures are ignored,
+  and the download's URL, which holds the bot token, never reaches a log line (`tests/test_bot_pictures.py`).
+- **The Wall reads from three metres (design review, 14 Oct).** Nothing on the doors' Wall is under 28 px at
+  1920×1080, scaled with the screen; what did not survive that floor was cut: the kicker's reason (it named who
+  answered), the "why" paragraph, the fragments row, the counts box ("alerts out 0 / 7"), the foot, the scale bar,
+  the countdown and the model's name. The map's caption says its red discs in words against the house ("This house is
+  under the clean-air line now; 3 stations nearby, in red, are over it"); what the node suggests is one line that ends
+  on a word, never "If somethin…"; ρ is said ("This house answered 23 of 274 alerts in 30 days") before larger rings.
+  The narration box is not drawn until a text arrives and keeps the last one while the next is written. The back
+  button, chips, hour strip and model note show only under a pointer or the keyboard. `tests/test_doors.py` holds the
+  floor, the hidden chrome and the collapsed box.
+- **Now reads in the order a household asks (Tomas, 14 Oct: "I am not happy with what is showing").** About ten
+  blocks of equal weight competed on the doors' first screen, and on a phone the headline sat under ~340 px of chrome.
+  Now is one bold block, the sentence and its day drawing, then the four distances in one quiet line, then **What to
+  do** (the Decide card framed, with its buttons, only while something is asked; otherwise "Nothing to do now." and
+  the hour it is usually worst), then **Did it work** and **Yesterday**, then **Around the house** (Air and Heat as
+  rows, the stations' map with a one-line caption). Heads are sentence case and name the question; the capitalised
+  engine stages are gone from Now. The res 2–12 scale strip left Now (Place has its own; the kicker links to the
+  cell). Land and Coast change yearly and moved to Place, under **Changes by the year**. Did it work no longer says
+  "the node is asking now" beside an event already answered. On a phone the bar is three rows of 44 px targets (the
+  headline at 237 px instead of 339) and the week is one tappable row a day.
+- **The ground around the house, from orbit: a `surface-heat` pack (Tomas, 15 Oct: "urban heat would be
+  interesting").** Once a day it asks Microsoft Planetary Computer, anonymously, for the newest clear Landsat 8/9
+  surface-temperature scene and works out the mean ground temperature of the node's own H3 res-8 cell, the mean of
+  the land 1 to 3 km around it, the difference and the cell's percentile among the ring's cells; and from MODIS, the
+  ground at the node's 1 km pixel at night and by day. Three readouts on the heat issue and a `ground` line in the
+  report bundle beside the house's own outdoor air at the same half hour. All `kind='model'`, stamped at the pass,
+  scene id in `meta`; no alert and no cell. It adds no library: the COGs are read with HTTP range requests and
+  `zlib`, half a megabyte of a 68 MB scene, each scene once. A code pack, so `PACKS_ALLOW_CODE=1`. On the earth
+  suite's Ungasan test point, 27 Sep 2026 at 10:29: ground 41.3 °C, 0.3 °C over the ring, 50th percentile of 24
+  cells. `tests/test_surface_heat.py` runs on two real 64×64 crops (one clear, one clouded over the cell); 77 suites.
+
+- **A refusing source is not the household's to-do.** The report's one thing to do skipped past what someone here
+  can act on to print a source's raw error, cut mid-URL (node #1, 14 Oct: Open-Meteo's daily limit). Source errors are
+  left to Node's Running section.
+- **One voice for the report, the alerts and the learnings (design review of node #1, 14 Oct).** Every line is named
+  with its owner and unit, never a bare number: "the WHO line is 15 µg/m³", "the US EPA's unhealthy level, 35.5
+  µg/m³", "this house's heat line, 35 °C feels-like" (`{line}` and `{peak}` now carry the issue's unit). One sign per
+  message: no emoji pairs in the air and heat rules, no 👉, no 👤, and no `ℹ️`/`🔴` put in front of a message that has
+  its own. Event messages say the story in words, then one reading: "📈 Smoke or dust in Kids and Living Room: 48
+  µg/m³; the WHO line is 15 µg/m³.", with the outside said once, as the action's reason, and no more "open the side
+  where it started" (the engine cannot know which room came first). The report reads headline, what happened per room
+  with its local time ("Kitchen went past the US EPA's unhealthy level, 35.5 µg/m³, at 15:00; it is back under now.",
+  "Studio was more humid than usual."), the one thing to do, then the morning memory, then the invitation, last. Every
+  `worked` learning carries `numbers.verdict` (helps, no clear difference, worse than leaving it, too early) from its
+  own numbers and leads with it in words, because node #1's air row said HOLDING while acting had made it worse;
+  `/learned` prints the alert's household name and the verdict first. New id and es copy is assistant-written.
+- **The diary is split between Now and Node (design review, 14 Oct).** Data was 21,900 px long and what the house
+  learned sat at its bottom. Now, under the decision, says **Yesterday** in a line or two from yesterday's entry and
+  **Did it work** for the issue on screen: the last ask, what was done, what happened inside after, and the node's
+  verdict on that alert (it helps, no clear difference, too early to say), which `GET /learned` now carries as
+  `numbers.verdict` so the page never judges for itself. Node gains **What it remembers**: the counts (`GET /learned`
+  `digests`), the diary as a table by day, week, month or year with each entry in a dialog (`GET /learned/search` now
+  returns each entry's `numbers`), what is usual, what worked as a table with its cases in a dialog, and who lives
+  here. Data keeps one line pointing there. All of it is the admin token's; without it Now shows nothing and Node only
+  where to unlock, and the Wall never reads it.
+
+- **The headline says the day, and one answer says what is asked (design review of node #1, 14 Oct).** At 19:00 Now
+  said "The air is clean, inside and out" beside "12 h over the line today" and a day drawn red until 11:00. When the
+  reading is back under the line after hours over it today, the title now says both, "The air is clean now, after a
+  dusty morning", and the tagline when and how long, "In the house it was past the WHO line for fine dust until 12:00,
+  12 hours today.", counted as the door counts them; a day with no hour over keeps the hour's title. In en, id and es
+  (id and es assistant-written, for a native reader). And Now's Decide card said "No event was open for air" while the
+  Wall showed an alert still open: each read its own list. `/issues` now carries `asking` per issue, the open event
+  while it asks and then the alerts still true, and Now, the Wall and the phone all read it. An alert from days ago
+  whose reading came back is still open and still in ρ, but it no longer reads as asked now.
+- **The WHO line in every PM2.5 drawing (Tomas, 14 Oct).** Now's day, Data's every source and seven days, What is
+  usual's PM2.5 day, and the phone walk's house, street, stations, ring and region each draw the air's own line red and
+  dashed (`.linep`, now the day figure's 6 4 at 1.5) and label it `WHO 15`: the value is `/issues`' own, the name comes
+  from the line's source, so heat keeps `line 35.0`. Before, the walk drew it in ink, Data drew it unlabelled, and What
+  is usual and three of the walk's drawings had none. Alert words and the 35.5 urgent threshold are unchanged. `tests/test_doors.py` renders each drawing on node #1's
+  capture.
+- **Rooms in the household's words.** Set up › Rooms names the room each of the home's sensors is in, and the node
+  makes that the sensor's name in the database (schema 0.61, a trigger on `sensors`), whatever a poll or a pack writes
+  after. Every alert, the report, the stats and the pages then say "Kids", not "K ROOM - BAYU HOLES" (Tomas, 14 Oct:
+  node #1's K, L and S are Kids, Living Room and Studio). The platform's name is kept in `source_name`; the Wall never
+  shows a room; a reader without a token never sees which room is which. `PATCH /sensors/{sid}`, admin.
+
+- **The report tells what was sent.** On `ALERT_ENGINE=events` the heat and air rules still record alerts that
+  nobody receives, and the report read them: node #1's 19:00 report on 14 Oct opened "It is hot inside" from a heat
+  row never sent, while the page said the heat was bearable. The report now leaves those rows out and takes heat from
+  the engine's open episodes that were sent. The things a home keeps are no longer a sensor that "has stopped
+  sending", and a metric with no household word (`bme_iaq`) is never named in "What changed".
+- **Thirteen fixes from the design review of node #1 (14 Oct).** (1) Times are the node's own: the doors and the phone
+  page sliced UTC strings as if they were local, so node #1 read "as of 11:52" beside "at 19:00" in Bali; every time
+  is now read in `/health`'s zone. (2) The mono the frozen theme asks for at `/static/fonts/jetbrains-mono-latin.woff2`
+  404'd on every page; that one path now answers. (3) A screen without a token no longer asks the token-only routes
+  (`/aggregates`, `/actions`, `/alerts`, `/geo/*`, `/things`, `/learned`, `/captures` and the rest) and logs a 403 for
+  each; with a token nothing changes. (4) Node's "readings kept" was the readings since the restart; with the token it
+  is now `/storage`'s count, without it it says "since the restart". What this home offers leaves (`/offers`, open at
+  every share level and in the export), so it is now one of the links out and in the caption. (5) "Alerts, to a phone"
+  counted every alerts row, including the ones the event engine records and never sends; `/issues` now carries
+  `events.sent_24h`, what was sent, and the door shows that. (6) Place's land-change and Index rows said the pack had
+  nothing while node #1 held 6 of 20 Index values and nine years compared; they now say how many and where they are
+  drawn. (7) The Wall printed `stale` always, and the names of the house's sensors ("K ROOM - BAYU HOLES") and an
+  alert's text naming the room; it now says `stale` only when the last poll is over 15 minutes old, and names nothing:
+  inside, outside, a public station by its distance, an ask in the engine's words. (8) Pressure is stored in kPa and
+  `/issues` called it hPa, so Data read "99.8 hPa" beside the model's 996; it says kPa. (9) The household form shared
+  the `.who` class of the page's name and drew its boxes 20 px bold. (10) A left-aligned column after a number ran
+  into it ("HOW MANY USED"); it has its gap now. (11) "Unlock this screen under Node" pointed to the wrong door; it is a
+  link to Set up › This screen. (12) A phone unlocked with the admin token said "locked"; it reads either token.
+  (13) Without a token the ledger showed who answered each alert and what the alert said; it now shows stages and times
+  only, and `/issues` itself gives a tokenless reader no names and no notes (Tomas, 14 Oct).
+
+- **Data: Images and Things are tables.** Each image is a row: a thumbnail, when and who, what took it, the note,
+  what the image model saw and whether somebody here confirmed it. A row opens that image in a dialog, the picture
+  beside its fields, to edit, describe again, confirm or delete; *See all images* opens every card at once. Things are
+  a row each (what, class, how many, how often used, state, offer), and *Add a thing* or *Edit* opens the form in a
+  dialog. Species confirmed is a table. Cards stay, only as dialogs someone opens (Tomas, 14 Oct). The thumbnails
+  come from `GET /captures/{cid}/file?w=96`, so a table of drone pictures does not fetch 11 MB a row.
+
+- **The morning memory.** The first report the household gets each day now carries, in Telegram only, what the node
+  remembers: yesterday's diary entry, last week's on a Monday, last month's on the 1st, last year's on 1 January, and
+  every learning whose status changed that day, in its own words. One message, not four. On by default (Tomas, 14
+  Oct); `LEARN_PUSH` = `all`, `week` or `off`. Never in the stored report, `/report/latest`, Home Assistant or the mesh.
+  `/learned day`, `week`, `month` or `year` prints the newest entry of that size. Schema 0.60: `learnings.status_since`
+  and `reports.memory`, so a restart never sends it twice. The diary no longer counts test alerts (`_test/…`,
+  `gui/test`) as alerts; every entry is written again once (digest v3).
+
+- **Four fixes before the new data is shown anywhere else.** (1) The diary counted alerts nobody got: on
+  `ALERT_ENGINE=events` node #1's 13 October entry said "15 alerts, 0 acted on" for rows the engine replaced and never
+  sent. Digests now count the episodes that were sent, by issue, and every digest written before is written again
+  once (`learn.DIGEST_V`). (2) Learnings and digests ran 20 hours after their last pass, drifting round the clock; they
+  now run in the first hour of each local day, so the morning finds yesterday written. (3) `/stats` answered the
+  house's `private` counts (things kept, idle, needing repair) to anyone the page answered, which at
+  `SHARE_LEVEL=open` is the whole network, and to a parent's or a backup's token; a readout now gives them to the
+  household's admin or act token or this machine only. (4) The ask pane, open on the network at `SHARE_LEVEL=open`,
+  and the Wall's narration could read what the house learned whenever `AGENT_PREFER=private`; the `learned` tool is
+  now offered only to a request with the household's token or from this machine, and never to the Wall.
+
+- **Learnings on an events node count what was sent.** On `ALERT_ENGINE=events` the heat and air-quality rules still
+  write alert rows that are never sent, and "what worked" and "alerts that may not fit" were counting them: node #1's
+  page said the heat alert "rings about 6 times a day" when 4 heat messages had gone out since 5 October. Rows of a
+  replaced pack after the engine's first message are now left out; such a rule says it no longer sends here; and the
+  engine's sent episodes are learned from as `air-quality/events` and `heat/events`. Heat's "left unanswered" on node
+  #1 drops from 198 to 145, the ones that were sent.
+- **heat: "too hot" once a room a day.** `heat_stress_now` keeps its 35 °C line and its cooldown goes from 240 to
+  1440 minutes. Over node #1's last 30 days the hot room felt 35 °C or more in 44% of hours and the rule fired 171
+  times, 5.7 a day, 21 at night, two acted on; replayed at 1440 it fires 1.9 a day and never at night. The signal
+  was right and the repetition was the problem, so the line is not raised (packs/heat/README.md has the table).
+  `heat_danger` (40 °C, 120 minutes) is unchanged, and nodes on `ALERT_ENGINE=events` already send one message per
+  episode.
+
+- **Who is in the house, in the alert.** An act-level heat or air alert that weighs on someone ticked in Data › What
+  worked now ends, in the household's Telegram, with one line: "👤 This matters more here: you said there is a child
+  under five." (Indonesian and Spanish too, in `ALERT_LOCALE`). People ignore alerts mostly because they do not feel
+  at risk; this says who is (Tomas, 14 Oct). Both engines, act level only. It rides the Telegram message alone: never
+  the mesh, Reticulum, Home Assistant or the stored alert text that `/alerts` serves, and a profile that cannot be read
+  never stops an alert. The page and "what leaves" say so.
+
+- **Who is in the house (SPEC_learn step 4).** Data › What worked opens with five yes-or-no boxes: someone over 65, a
+  child under five, someone with asthma or another lung condition, someone pregnant, someone who works outdoors. Kept
+  in one private row (`household`, schema 0.59; `GET`/`PUT /household`, admin; an agent reads it only while
+  `AGENT_PREFER=private` and never writes it), never a name, an age or a count. Each learning now says who in this
+  house it matters most to ("Matters here: a child under five"), heat for the old, the very young, pregnancy and
+  outdoor work, fine particles for lungs, the very young, the old and pregnancy, and those come first, on the page,
+  in `/learned` and in the `learned` tool. It changes no threshold and no alert.
+
+- **The diary, and asking it (SPEC_learn step 3).** Once a day the node writes an entry for every completed day,
+  week, month and year it has not written yet, back to its first reading, in its own time zone: each group's mean
+  and highest hour (air inside and outside, the feels-like temperature inside), the alerts and how many were acted
+  on, what was done in the household's own words (each once, with a count), and the change since the entry before.
+  A new `digests` table (schema 0.58, full-text indexed, revoked from pack SQL, never exported or deleted).
+  `GET /learned/search` searches it and the learnings by any of the words; the `learned` tool takes `query` and
+  `scale`, so the ask pane and the bot can answer "was this October smokier than September?" from the node's own
+  sentences, still only while `AGENT_PREFER=private`. Telegram's `/learned smoke` searches with no model. Data ›
+  **Diary** lists the entries and searches them. Node #1 begins with 42 days, 6 weeks and September.
+
+- **What is usual here, and the alerts that may not fit (SPEC_learn step 2).** The daily check also writes, from
+  the house's own sensors and up to a year of hourly means, one row per group (PM2.5 inside, the feels-like
+  temperature inside, PM2.5 outside): the hour it is usually highest and lowest, weekends against weekdays, this
+  week against the three before, and from 60 days a trend. Outside is marked as being about the place, inside as
+  the house's. And one row per act-level alert raised five or more times in 30 days: how often it was acted on,
+  dismissed or left unanswered, when, and, where seven in ten go unanswered, what would change it (a night line, a
+  longer pause between repeats, a higher line). The node says it and changes nothing. Data › **What is usual**
+  draws the day as a 24-hour strip. Node #1's first read: inside air worst around 07:00, outside around 18:00, and
+  the heat alert ringing about six times a day with 2 of 171 acted on.
+
+- **What worked here (SPEC_learn step 1).** Once a day the node takes every act-level alert on one sensor that someone
+  acted on, and every one nobody answered, and compares the metric the rule watches (PM2.5, or the feels-like
+  temperature for heat) in the hour before with a window after (1–2 h for air, 3–6 h for heat), on that sensor and on
+  the street's outdoor sensors. One row per rule in a new `learnings` table (schema 0.57, revoked from pack SQL, never
+  exported or deleted): the medians, up to 30 cases each with the household's note, a status (`too early` under five
+  acted cases, `holding`, `weakening`, `gone`), and a sentence the node writes from its own numbers. Data › **What
+  worked** shows it with every case; `GET /learned` (admin) and the `learned` agent tool serve it, the tool only while
+  `AGENT_PREFER=private`; Telegram's `/learned` prints it with no model. It says what changed, not why: the street
+  and the unanswered alerts are beside it, and the page says it is not an experiment.
+
+- **Offers (SPEC_inventory step 4).** A thing the household marks "Would lend it" or "Would give it away" becomes
+  public: `GET /offers` (open at every `SHARE_LEVEL`) and the daily export's new `offers` carry its class, name,
+  condition and count at the node's own res-8 cell, and nothing else. Each offer's `ask` link opens the node's
+  Telegram bot (Tomas: "option 1, the Telegram bot"). Whoever opens it writes one message, and the bot passes it to
+  every household chat with their Telegram name and @username so the household can write back. One message per chat
+  an hour; any other message from a stranger is still ignored; the household's chat ids never show. The node learns
+  its bot's username from Telegram once a day. The Data door's Things now say what an offer publishes.
+  `export-v0` gains the top-level key `offers` (`tests/data/wire/export-v0.json`).
+
+- **A thing from a photo (SPEC_inventory step 3).** Once an image's findings are confirmed, each one in a class a home
+  keeps (tool, appliance, furniture, electronics, garment, textile, micromobility, vehicle, part, goods) has a
+  **+ … as a thing** button in Data › Images, so a photo of a shelf becomes several things in a few presses. The thing
+  keeps the photo's id and its card says "from image N"; a finding already added says "in Things". Only on a screen
+  holding the admin token, like Things itself. Deleting the image keeps the things and clears the link.
+
+- **The things a home keeps (SPEC_inventory step 2).** The Data door has a **Things** section, for a screen holding
+  the admin token: one card a thing with its class, name and count, how often it is used (every week, every month, a
+  few times a year, never), its state (works, needs a repair, broken) and whether the household would lend or give
+  it. The Now door says it in one line: "31 things, 9 idle, 2 need repair". `GET/POST/PATCH/DELETE /things`, admin
+  only, schema 0.56. Every change rewrites `stock.<class>`, `idle.<class>` and `repair.<class>` on the
+  `things:<node>` survey sensor, declared `private` by core, so rules and cells can read them and nothing sends them;
+  `/observations` now shows a private value to the admin token only. The table is revoked from pack SQL. `vehicle`
+  joins the classes (cars, motorbikes, trucks) and the image model files them there instead of under other. Nothing
+  is offered anywhere yet (step 4), and the report says nothing about them (SPEC_inventory §4).
+
+- **The `private` role (the pack design record, point 2 (A); SPEC_inventory step 1).** A pack can declare a metric
+  `role: private` in its `channels.yml`. Such a reading is used here like any other (readouts, sections, rules,
+  cells) and never leaves: one predicate, `packs.public_sql`, keeps it out of the daily export, the hourly push to a
+  parent and a parent's pull from `GET /aggregates`, and the report bundle a model writes reports from. `/readings`,
+  `/history`, `/series` and `/sparks` answer it to the admin token only, and an agent never reads it: every MCP read
+  now carries `X-Agent`, and the node leaves private rows out of any request that does, whatever token it holds.
+  `/stats`, a readout, is unchanged for the page. Home Assistant discovery, the household's own automation, still
+  receives it. Schema 0.55 widens `channel_roles`' CHECK. `tests/test_private.py` replays the predicate in duckdb
+  and checks every road out (72 suites).
+
+- **The species confirmed here (SPEC_species step 4).** `GET /species` counts the plants and animals a person here has
+  confirmed in images, per taxon (or per typed name, without GBIF): how many, in how many images and cells, with the
+  GRIIS mark and others' records beside each, and `?cell=` answers inside any cell up to res 10. The Data door lists
+  them above the images. A model's unconfirmed finding is not counted. It answers the images' own token only, and it
+  is not a reading, so nothing of it reaches the export or a parent: SPEC_species §4 is amended, and `seen.<class>.<key>`
+  readings wait for the `private` role so the household chooses whether its species travel. The Data door now says
+  others' records are "in this node's seven cells", not "here": node #1 showed a Serangan drone image, outside the
+  seven, claiming them.
+
+- **What others recorded here (SPEC_species step 3).** With **Name species with GBIF** on, the node counts once a week
+  GBIF's open records (CC0 and CC BY only; iNaturalist's CC BY-NC ones are left out) in each of its seven res-8
+  cells, per species, genus and family. A matched finding says "recorded here by others 3×", or "no open record of it
+  here yet". Only counts are kept: no record, observer or point. The request sends each cell's shape, so GBIF learns
+  the area the node is in, about 2 km across; Set up and "what leaves" say so. Read live on 13 Oct for node #1: 748
+  open records across the seven cells.
+
+- **Introduced or invasive (SPEC_species step 2).** With **Name species with GBIF** on, the node reads its country's
+  GRIIS checklist (the Global Register of Introduced and Invasive Species, CC BY 4.0, on GBIF) once a week, and a
+  matched species is marked `invasive` or `introduced` "in Indonesia" on its finding and in the Data door. The country
+  comes from `NODE_TZ` and the system's zone tables, offline; the read tells GBIF the country and nothing else. Both
+  GRIIS formats are read (the profile's `isInvasive`, and the 2022 `degreeOfEstablishment`); a synonym is looked up
+  under its accepted name. A species not on the list is unmarked, never "native". A country with no checklist says so
+  on the finding. Read live on 13 Oct: Indonesia 388 taxa (302 invasive), Spain 881, Singapore 681, the United States
+  8,472.
+
+- **A finding names its species (SPEC_species step 1).** A `plant` or `animal` finding carries `scientific`, its
+  scientific name at the rank the image model is sure of (a species, a genus, or a family such as Arecaceae for "a
+  palm"), and the Data door shows it and lets anyone here type or change it. With **Name species with GBIF**
+  (`SPECIES_MATCH`, Set up › Sharing, off by default, outward) the node asks GBIF's Backbone which taxon that name is,
+  strictly and only in the right kingdom, and keeps `taxon` `{key, name, rank, match}`, linked to gbif.org in the
+  Data door. Only the name is sent: never the picture, never the point. The rank is GBIF's, never the model's claim.
+  An edit asks again only for a name that changed, and a taxon sent in the body is ignored. Without the yes, the
+  typed name stands, with no key.
+
+- **The eyes, step 1: the capture tier (SPEC_eyes).** A household chooses a picture from its phone's library on the phone page
+  (**Add an image** in Now, on an unlocked phone, opens the library and asks the details once one is chosen; a
+  locked phone reads "Unlock this phone to add images").
+  The node keeps the file in `CAPTURES_DIR` — any storage, a NAS share included — cleaned of EXIF and GPS on
+  arrival, and records the capture: when (the picture's own date when it carries one), its res-10 cell, its
+  kind, who, and the exact point it was taken from, kept token-only (12 Oct, Tomas: a tree or a dump is worth
+  its precise position). `outside` and `at_home` are computed once on arrival. `POST /captures`, `GET /captures`
+  (a `?cell=` at any resolution, which is how the walk asks) and `GET /captures/{id}/file` answer this machine
+  or the act token only: on no `SHARE_LEVEL` list at any level, the read-only backup token is refused by the
+  routes, and no capture is in `/export`, `/exports`, `/aggregates`, `/readings` or any parent push —
+  `tests/test_captures.py` greps those roads for the table's name. A duplicate sha256 answers the existing row;
+  a missing or unwritable folder is a clear 503, and `planetai doctor` goes red naming the fix. The walk counts
+  a scale's pictures at its step ("1 image here") and opens a small grid of them, token only. The Place door
+  shows them too (Tomas, 12 Oct): one map layer per kind, a square per image that opens its card, and
+  **+ Add an image** beside the views opens a dialog that takes a file picked or dropped. The Data door lists every
+  image with its facts, edits its kind, note and key: value lines (`PATCH /captures/{id}`, act token) and deletes
+  it, file and row (`DELETE /captures/{id}`, admin token). A picture's own GPS becomes its
+  point (a library pick lands where it was taken), and the phone's picker opens the library, not the camera (Tomas). Set up shows the **Pictures folder**; `planetai storage set captures <dir>` moves it.
+
+- **`planetai hello` lists a node on every node's map.** It shows the household exactly what will be public (the
+  node's name, its cell and the cell's centre, the place, who runs it, an optional contact), and on a yes opens the
+  pull request to `registry.json` with `gh`, or prints the entry and the link without it. The merge is the
+  approval; every node reads the list within six hours. `--remove` takes a node off. A node already listed is told
+  so: the listed place, operator and contact are the defaults, its first month is kept, and the same entry again
+  sends nothing. `sources` lists every source the node reads, by name (each sensor source and the map layers it
+  keeps), never a kit id.
+
+## v0.81.0 — 2026-10-12 — The phone walks out from the house
+
+- **A phone gets its own page, and it is one page: Now, the walk out from the house, Node.** A coarse pointer
+  with a short screen side under 600 px is moved to `/?layout=mobile`, decided once before anything else loads; a
+  narrow desk window and a tablet stay on the doors, and "Phone view" / "Full dashboard" switch with the choice
+  remembered. Now fills the first screen (the engine's title and tagline, the reading, the Decide card with its
+  three buttons, the other issues), and an arrow at its foot points down. The walk is a map pinned under the bar and
+  a story under it, house → street → ring → region → planet, the camera framing each scale's own cell: the house's
+  day against its line, the street against the house with the gap shaded, the stations around as dots, every scale
+  on one axis, the listed nodes on a globe. It names no issue: every issue `/issues` carries is walked, at the
+  scales it has, so a pack's issue joins it with nothing changed. MapLibre and `walk.js` load once Now has drawn.
+  Node draws from `/health`, so it always draws; a locked phone at `SHARE_LEVEL=off` reads the node's own sentence
+  and the field for the act token. `/?layout=walk` opens the same page. The spec is `docs/SPEC_mobile.md`; the
+  visual gate measures the page (`measure.mjs mobile`).
+- **At `SHARE_LEVEL=open` a phone walks with the map and no token.** `/ground/*` and `/geo/cell` join the `open`
+  list; `/geo/cell` leaves out `is_node`, `cells_from_node`, `ring_polar` and `children_polar` for a caller without
+  a token, since asked cell by cell at res 15 they would find the house.
+- **A phone unlocks from a QR code.** Set up › This screen, unlocked with the admin token, shows "A phone": a QR
+  code of the phone page holding the token for closing a loop, so the phone can answer the node with nothing typed.
+  `GET /settings/phone` (admin only) hands the code its token; the phone keeps `#act=` and takes it out of the
+  address bar. QR Code Generator 1.4.4 (MIT) is vendored for it.
+- **The Node door draws the nodes the programme lists, not a list typed into the page.** The node reads
+  `registry.json` from the repository every 6 hours and serves it at `GET /nodes`, open at every share level, with
+  each other node's point to one decimal and no contact. The globe and the list say "listed" or "not listed"; a node
+  joins with a merged pull request, and a command that opens it comes next. `UPDATE_CHECK=off` reads nothing.
+- **A Decide card speaks about now, and stops asking once it is answered.** The action on an open event's card
+  is chosen again from the readings as they are, so it no longer tells a house to open up on the strength of last
+  night's outside reading; the message the bot sent keeps its words. Once somebody answers, the buttons go and the
+  card says who and when; after a Not now they come back when its three hours run out. `GET /issues` events gain
+  `asking`, and every page draws its buttons from it.
+- **A past hour says what it meant.** "The house was keeping the street's dust out", "Something in the house was
+  making the air dirty": each hour on the Now door's scrubber is read by the same six stories as the live title.
+- **The live sentence says which way it is going again.** The engine read the trend from the latest 24 hourly
+  buckets, and the forecast's hours (up to two days ahead) are among them: no sensor reads there, so every trend
+  came out "holding" and every issue's movement as zero. It now reads the 24 hours that have happened.
+- **Going back an hour on the Now door speaks the node's words.** Scrub back and the sentence now comes from
+  the node like the live one does, in every language: what the air or the heat was doing ("The air was clearing
+  in the house"), then the reading and whose line, smaller ("At 04:00 it read 8 µg/m³, under the WHO line.").
+  The page used to write that hour itself, in English only, with its own over-or-under arithmetic.
+  `GET /issues/days` gains `hours` per sensed issue, in the locale asked for (`?locale=`).
+- **The title says what it means for the house, and the line below says why.** "The house is keeping the heat
+  out", then smaller: "Inside it is under this house's own heat line, and the street is past it." Each issue's
+  sentence templates mark the split themselves (`title | tagline`), so the words live in the node, in every
+  language, and no page rewrites them. The list of every distance ("cooler than the street, the ring and the
+  region") is gone from the sentence; the figures are where they were, in the reading below.
+- **The Place door's scale buttons take the map to their scale.** On a landscape screen a press did nothing (the
+  map was asked to fit a cell inside a margin taller than itself), and elsewhere it landed one scale off. A button
+  now goes to the zoom the map itself reads as that scale.
+
+## v0.80.11 — 2026-10-10 — The seed in the middle, the labels in lanes, the wall follows the window
+
+- **The asking face's middle is never empty.** Before any script arrives, the measuring frame now carries
+  its own mark dead center — a small square outline, breathing (pure CSS, reduced-motion aware) — on both
+  faces of the node; `open()` removes it the moment the glyph globe wires in. The doors overlay also stops
+  capping its background at 1440 px: the paper now covers the whole window at any width, with the content
+  column unchanged (the cap moved from the element to its padding). The classic dashboard's asking
+  composition centers vertically instead of hugging the top.
+- **Event labels take lanes on the day figure.** Two events opening close together — node #1 had
+  "spike 02:32" and "spike 03:45" printing through each other this morning — are measured, kept inside the
+  frame's right edge, and stepped a row up when they would collide; the lanes are the top margin's own and
+  a label is never dropped. The answer rings and bars are unchanged.
+- **The wall's type follows the window, not just its width.** Every wall text that scaled by `vw` alone —
+  the sentence, the tagline, the node-writing narrative, the asks, the figures — now scales by
+  `min(vw, vh)`, tuned so 1920x1080 renders pixel-identical to before but a shorter or narrower window
+  shrinks the type instead of overflowing it.
+
 ## v0.80.10 — 2026-10-10 — The boot screen is the loading screen
 
 - **No dead shell before the asking face, on either face of the node.** The doors and the classic dashboard
@@ -39,6 +1225,9 @@
   waiting for.
 
 ## v0.80.7 — 2026-10-10 — The loop closes from the phone, and the card says whose answer it carries
+
+_Tagged, never shipped: CI held it on the wall overflow, and the tag was deleted on 11 Oct. Everything below
+shipped in v0.80.8._
 
 - **The answer carries the household's own words, and the page insists on a name.** The wire's `answer` now
   carries `note`, and the card draws it in quotes — `Doesn't fit · tomas · 13:20 — "opened the west side"` —
@@ -431,8 +1620,8 @@ the last three exchanges. Also: the source registry is synced again.*
 started from the terminal still read `.env` alone. It reads the saved settings now. Also: the source registry
 is synced again.*
 
-- **`planetai run` sees what Set up saved.** A pack script started with `planetai run <pack>
-  <script>` is a new process in the container, and it read only `.env`: `planetai run earth-engine verify`
+- **`planetai run` sees what Set up saved.** A pack script started with `planetai run <pack> <script>`
+   is a new process in the container, and it read only `.env`: `planetai run earth-engine verify`
   called `EE_PROJECT` missing while Set up held it. The command now loads the node's settings before the
   script starts, so a pack key saved from Set up, the CLI or an agent is in its environment, the same as for
   the pack's adapter. With the database down it falls back to `.env`, as before.

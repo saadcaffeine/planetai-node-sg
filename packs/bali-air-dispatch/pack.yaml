@@ -1,0 +1,46 @@
+id: bali-air-dispatch
+name: Bali Air Dispatch
+description: >-
+  The island's public air stations around this node, from Bali Air Dispatch: eight networks (Nafas, IQAir,
+  PurpleAir, AQICN, OpenAQ, AirGradient, Smart Citizen, Airly) in one key-free archive. Stored as other people's
+  stations, never as this house's own, so the node can tell the lane from the island. Bali only.
+author: PLANETAI core (official)
+version: 1.0.0
+requires: { node: ">=0.82.3" }
+kind: code
+domain: air
+metrics: [pm25, pm25_raw, pm10, pm1, temp, humidity, aqi]
+scales: [community]
+sources: [environmental/community/bali-air-dispatch]
+# The pack's own on-switch. An official pack that names one runs its adapter.py when the switch is 1, without
+# PACKS_ALLOW_CODE (docs/PACKS.md, "Code in official packs").
+switch: BAD_ENABLED
+# Public stations: what the node's "Air stations nearby" source, the /nearby ring and the ring's footprint read.
+# `box` is south, north, west, east: where this network has stations. A node inside it is told to turn the pack on.
+stations:
+  source: baliairdispatch
+  prefix: bad-
+  radius: BAD_RADIUS_KM
+  box: [-9.2, -8.0, 114.4, 115.8]
+  url: https://baliairdispatch.com/
+  attribution: ["Bali Air Dispatch, baliairdispatch.com"]
+env:
+  - "# bali-air-dispatch: 1 reads the island's public stations as this node's ring. Bali only; presets/bali.env turns it on"
+  - "BAD_ENABLED=0"
+  - "# bali-air-dispatch: how far out the ring of other people's stations reaches, in km"
+  - "BAD_RADIUS_KM=15"
+  - "# bali-air-dispatch: the ring is other people's stations. These three keep this node's own kit from entering it a"
+  - "# second time: how close a station may be before it is assumed to be our own hardware (m), station ids to drop"
+  - "# by hand, and 1 to keep stations the archive suspects are indoors"
+  - "BAD_MIN_SEPARATION_M=150"
+  - "BAD_EXCLUDE="
+  - "BAD_INCLUDE_INDOOR=0"
+needs:
+  - baliairdispatch.com
+thresholds: >-
+  None. The pack stores readings and raises no alert: peers never drive an alert (AGENTS.md). packs/nearby and
+  packs/season read what it stores.
+attribution: >-
+  Bali Air Dispatch, baliairdispatch.com, and the originating network named in each row's `source` field
+  (Nafas, IQAir, PurpleAir, AQICN, OpenAQ, AirGradient, Smart Citizen, Airly). Readings remain subject to
+  their own networks' terms.

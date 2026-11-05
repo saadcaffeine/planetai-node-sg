@@ -67,6 +67,10 @@ print("  open: danger > sustained > unusual; recent: 7 days, newest clear first"
 
 one = live["open"][1]
 assert one["action"] == {"id": "heat/open_up", "text": "Open up now: outside is 28.0 °C."}, one["action"]
+# since 14 Oct the action is the line under the story, with no 👉; messages sent before keep the old shape, and both read
+assert W._action_of("🥵 Hot inside.\nOpen up now: outside is 28.0 °C.") == "Open up now: outside is 28.0 °C."
+assert W._action_of("Hot inside.\n\n👉 Open up now: outside is 28.0 °C.") == "Open up now: outside is 28.0 °C."
+assert W._action_of("✅ Cooler again in Kids.") is None
 assert one["message"]["text"].startswith("Still hot") and one["message"]["sent"] is False, one["message"]
 assert one["line"] == 35.0 and one["rooms"] == ["K ROOM", "L ROOM"] and one["alerts"] == [571, 578]
 assert one["context"] == {"usual": 33.4, "outside": 29.1, "outside_metric": "temp", "outside_from": "outside"}
@@ -114,6 +118,10 @@ class FakeCur:
             raise RuntimeError("materialized view usual_by_hour has not been populated")
 
     def fetchone(self):
+        if "AS since FROM event_messages" in self.last:
+            return {"since": NOW - 5 * H}
+        if "count(*) AS n FROM event_messages" in self.last:
+            return {"n": 2}
         if "current_setting" in self.last:
             return {"tz": "Asia/Makassar", "hour": 15}
         if "usual_by_hour" in self.last:
@@ -122,13 +130,25 @@ class FakeCur:
                 "outside_source": "outside"}
 
     def fetchall(self):
+        if "SELECT rule_id, level, ts FROM alerts" in self.last:
+            return SENT_ROWS
         if "FROM alert_events" in self.last:
             return [ev(1, "heat", "sustained", NOW - 2 * H, action_id="heat/open_up")]
         if "FROM alerts" in self.last:
             return [{"id": 578}]
         return []
 
+# The Node door's "Alerts, to a phone": what was sent, not every row (14 Oct). On events, a heat row after the engine's
+# first message was recorded silently; an info row is under ALERT_LEVEL=act; the engine's two sent messages count.
+SENT_ROWS = [{"rule_id": "heat/heat_stress_now", "level": "act", "ts": NOW - H},            # silent: the engine speaks
+             {"rule_id": "heat/heat_stress_now", "level": "act", "ts": NOW - 10 * H},       # before it first spoke: sent
+             {"rule_id": "core/sensor_silent", "level": "act", "ts": NOW - 2 * H},           # not replaced: sent
+             {"rule_id": "trust/peer_disagreement", "level": "info", "ts": NOW - 3 * H}]     # under ALERT_LEVEL
+os.environ["ALERT_ENGINE"] = "events"
+assert W.live(FakeCur(), DECL, "en", NOW)["sent_24h"] == 2 + 2, "sent: two rows that went out and two engine messages"
 os.environ["ALERT_ENGINE"] = "shadow"
+assert W.live(FakeCur(), DECL, "en", NOW)["sent_24h"] == 3 + 2, "on shadow every act row of the old rules is sent"
+print("  sent_24h counts what reached a phone: no silent row, nothing under ALERT_LEVEL, and the engine's messages")
 got = W.live(FakeCur(), DECL, "en", NOW)
 assert got["engine"] == "shadow" and [e["id"] for e in got["open"]] == [1], got
 assert got["open"][0]["alerts"] == [578] and got["open"][0]["context"]["usual"] == 33.4, got["open"][0]
@@ -257,5 +277,36 @@ st, code, _ = heat(_block("events", recent=[naive]))
 assert (st, code) == ("notable", "event_cleared"), "a naive cleared_at (no offset) counts as UTC and does not raise"
 print("  state: an open act event is act until answered (danger stays act); answered or a spike is notable; "
       "a clear within a day is notable; rules unchanged")
+
+# The card asks only while nobody has answered, or once a Not now's hold has run out; it never asks for a cleared event.
+assert [e["asking"] for e in live["open"]] == [False, False, True], [e["asking"] for e in live["open"]]
+assert not any(e["asking"] for e in live["recent"]), "a cleared event asks nothing"
+later = W.build("events", EVENTS, MESSAGES, ANSWERS, COVERED, CONTEXTS, DECL, "en", NOW + 2 * H, BALI)
+assert [e["asking"] for e in later["open"] if e["id"] == 1] == [True], "the Not now held 3 h; after it, the card asks again"
+# The card's action is the present: chosen again from the context as it is now, never last night's message.
+NOWDECL = {**DECL, "heat": {**DECL["heat"], "dp": 1, "actions": [
+    {"id": "heat/keep_closed", "when": {}, "say": {"en": "Keep it closed: outside is {outside_temp}."}}]}}
+fresh = W.build("events", EVENTS, MESSAGES, ANSWERS, COVERED, CONTEXTS, NOWDECL, "en", NOW, BALI)
+assert fresh["open"][1]["action"] == {"id": "heat/keep_closed", "text": "Keep it closed: outside is 29.1 °C."}, \
+    fresh["open"][1]["action"]
+assert fresh["open"][1]["message"]["text"].startswith("Still hot"), "the sent message stays as it was sent"
+print("  the card asks until answered, again after a Not now's hold; its action follows the context as it is now")
+
+# A screen without a token never reads who answered (Tomas, 14 Oct 2026): /issues keeps each answer's stage and time and
+# drops the name and the note, in the asks ledger, on the event cards and in a reason that would name them. The route
+# does exactly this: the events block before compute, the body after it (app/issues/api.py).
+from issues.api import nameless  # noqa: E402
+cap = json.loads((ROOT / "app/issues/fixtures/node1-2026-10-06-figures.json").read_text())
+names = {x.get("actor") for x in cap["issues"]["asks"]["actions"]} | {(e.get("answer") or {}).get("actor")
+        for e in cap["issues"]["events"]["open"] + cap["issues"]["events"]["recent"]}
+names -= {None, ""}
+assert names, "the 10-06 capture has named answers; pick another fixture if it ever stops having them"
+named = engine.replay(json.loads(json.dumps(cap)), Settings(), DECLS)
+assert any(f'"{n}"' in json.dumps(named) for n in names), "with the token the names are there to drop"
+cap["issues"]["events"] = nameless(cap["issues"]["events"])
+locked = json.dumps(nameless(engine.replay(cap, Settings(), DECLS)))
+assert not any(f'"{n}"' in locked or f"by {n}" in locked for n in names), [n for n in names if f'"{n}"' in locked or f"by {n}" in locked]
+assert '"stage": "acted"' in locked and '"actor": null' in locked, "the stages and the times stay"
+print("  without the token /issues says every answer's stage and time, never who answered or what they wrote")
 
 print("events_wire: the open events, their actions as sent, answers and holds, the local day")

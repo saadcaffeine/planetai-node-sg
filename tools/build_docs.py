@@ -34,7 +34,7 @@ GITHUB = "https://github.com/fabcity/planetai-node"
 
 # slug · source (relative to repo root) · group. Order is the sidebar's order.
 NAV = [
-    ("Overview", [
+    ("Start here", [
         ("introduction", "docs/site/introduction.md"),
         ("how-it-works", "docs/site/how-it-works.md"),
         ("concepts", "docs/site/concepts.md"),
@@ -46,22 +46,22 @@ NAV = [
         ("revive-a-laptop", "docs/REVIVE_A_LAPTOP.md", "Revive a laptop"),
         ("mac-mini", "docs/MAC_MINI.md", "Mac mini"),
     ]),
-    ("Operate", [
+    ("Run a node", [
         ("cli", "docs/site/cli.md"),
         ("configuration", "docs/site/configuration.md"),
         ("updating", "docs/UPDATING.md"),
         ("storage", "docs/STORAGE.md", "Storage and backups"),
         ("networking", "docs/NETWORKING.md"),
-        ("radios", "docs/MESHTASTIC.md"),
+        ("sharing", "docs/site/sharing.md"),
         ("troubleshooting", "docs/TROUBLESHOOTING.md", "Troubleshooting"),
     ]),
     ("Sensors and sources", [
         ("sensors", "docs/site/sensors.md"),
+        ("radios", "docs/MESHTASTIC.md"),
         ("sources", "docs/site/sources.md", "The source registry"),
         ("before-a-sensor", "docs/PREFILL.md", "Before a sensor"),
-        ("use-cases", "docs/USE_CASES.md", "What node #1 can tell you"),
     ]),
-    ("Alerts, reports and ρ", [
+    ("Alerts and ρ", [
         ("alerts", "docs/site/alerts.md"),
         ("channels", "docs/site/channels.md"),
         ("report", "docs/site/report.md"),
@@ -71,11 +71,13 @@ NAV = [
         ("packs", "docs/site/packs.md"),
         ("packs-reference", "docs/site/packs-reference.md"),
         ("issues", "docs/DOMAINS.md", "Issues and domains"),
-        ("pack-ideas", "docs/PACK_IDEAS.md", "Pack ideas"),
     ]),
     ("Dashboard", [
         ("dashboard", "docs/site/dashboard.md"),
+        ("next-days", "docs/site/next-days.md"),
         ("wall", "docs/site/wall.md"),
+        ("design", "docs/site/design.md"),
+        ("grafana", "docs/site/grafana.md", "Grafana"),
     ]),
     ("Agents", [
         ("ask", "docs/site/ask.md"),
@@ -83,17 +85,10 @@ NAV = [
         ("mcp", "docs/site/mcp.md"),
         ("bot", "docs/site/bot.md"),
     ]),
-    ("Sharing and security", [
-        ("sharing", "docs/site/sharing.md"),
-    ]),
-    ("Design", [
-        ("design", "docs/site/design.md"),
-    ]),
     ("Reference", [
         ("api", "docs/site/api.md"),
         ("schema", "docs/site/schema.md"),
         ("federation", "docs/site/federation.md"),
-        ("coverage", "docs/COVERAGE.md", "Index coverage"),
     ]),
     ("Project", [
         ("architecture", "ARCHITECTURE.md", "Architecture"),
@@ -223,7 +218,53 @@ def dead_links(html_body, slug):
             if not m.group(1).startswith(("http:", "https:", "mailto:", "#", "/"))]
 
 
+IMG = SITE / "img"
+IMG_TAG = re.compile(r'<p>\s*<img alt="([^"]*)" src="([^"]+)"(?: title="([^"]*)")?\s*/?>\s*</p>')
+MISSING_IMAGES = []
+IMG_BASE = "assets/img/"   # where a build copies docs/site/img; main() sets it per mode
+
+
+# Tags the renderer and the pages are allowed to emit. Anything else in a page's HTML is a placeholder such as
+# `<name>` or `<script>` that sat outside backticks (often a code span broken across two lines), which a browser
+# takes for a real element: a stray <script> swallows the rest of the page.
+HTML_OK = set("""a abbr b blockquote br caption code dd del details div dl dt em figcaption figure h1 h2 h3 h4 h5 h6
+hr i img kbd li ol p pre s small span strong sub summary sup table tbody td tfoot th thead tr u ul svg""".split())
+
+
+class _Tags(__import__("html.parser").parser.HTMLParser):
+    def __init__(self):
+        super().__init__(); self.bad, self.svg = [], 0
+    def handle_starttag(self, tag, attrs):
+        if tag == "svg": self.svg += 1
+        elif not self.svg and tag not in HTML_OK: self.bad.append(tag)
+    def handle_endtag(self, tag):
+        if tag == "svg": self.svg -= 1
+
+
+def stray_tags(html_body):
+    p = _Tags(); p.feed(html_body); return sorted(set(p.bad))
+
+
+def figure(m, src):
+    """`![alt](img/x.svg "caption")` on a line of its own becomes a figure. An SVG is inlined, so it
+    draws with the page's own tokens and follows the theme toggle; a picture is copied with the assets.
+    The files live in docs/site/img, so GitHub shows the same figure from the markdown."""
+    alt, ref, caption = html.unescape(m.group(1)), m.group(2), m.group(3)
+    path = ((ROOT / src).parent / ref).resolve()
+    if path.parent != IMG.resolve() or not path.exists():
+        MISSING_IMAGES.append(f"{src}: image {ref} is not a file in docs/site/img")
+        return m.group(0)
+    cap = f"<figcaption>{caption}</figcaption>" if caption else ""
+    if path.suffix == ".svg":
+        svg = re.sub(r"<\?xml[^>]*>\s*", "", path.read_text(encoding="utf-8")).strip()
+        svg = svg.replace("<svg ", f'<svg role="img" aria-label="{html.escape(alt)}" ', 1)
+        return f'<figure class="fig diagram">{svg}{cap}</figure>'
+    return (f'<figure class="fig shot"><img src="{IMG_BASE}{path.name}" alt="{html.escape(alt)}" '
+            f'loading="lazy">{cap}</figure>')
+
+
 def postprocess(html_body, src, slug, mode, base, commit):
+    html_body = IMG_TAG.sub(lambda m: figure(m, src), html_body)
     # links
     def fix_href(m):
         return f'href="{html.escape(resolve_link(html.unescape(m.group(1)), src, mode, base, commit))}"'
@@ -317,7 +358,7 @@ TEMPLATE = """<!doctype html>
   <span class="chip version" title="built {built} from {commit}">{version}</span>
   <div class="search"><input id="q" type="search" placeholder="Search the docs" aria-label="Search the docs" autocomplete="off"><kbd>/</kbd><div id="results" hidden></div></div>
   <nav class="links">
-    <a href="https://planetai.fab.city/node0/">node0</a>
+    <a href="https://planetai.fab.city/">planetai.fab.city</a>
     <a href="{github}" rel="noopener">GitHub</a>
     <button class="theme" aria-label="Switch register">Dark</button>
   </nav>
@@ -419,6 +460,9 @@ def check():
         ids[slug] = set(ANCHOR.findall(body_html))
         for href in dead_links(body_html, slug):
             errs.append(f"{src}: links to {href}, which resolved to no page")
+        for tag in stray_tags(body_html):
+            errs.append(f"{src}: renders a raw <{tag}> element; put the placeholder inside backticks on one line")
+    errs += MISSING_IMAGES
     for slug, body_html in rendered.items():
         src = BY_SLUG[slug][0]
         for href in set(A_HREF.findall(body_html)):
@@ -467,8 +511,10 @@ def main():
         TITLES[slug] = (SHORT.get(slug, title), src)
         sources[slug] = body
 
+    global IMG_BASE
     for mode in (["multi"] if args.out else []) + (["single"] if args.single else []):
         base = args.base if mode == "multi" else ""
+        IMG_BASE = f"{base}assets/img/" if mode == "multi" else f"{Path(args.single).stem}_assets/img/"
         rendered = {}
         dead = []
         for slug, src, _ in PAGES:
@@ -479,6 +525,8 @@ def main():
             for href in dead_links(body_html, slug):
                 dead.append(f"{slug} ({src}) links to {href}, which resolved to nothing")
 
+        if MISSING_IMAGES:
+            sys.exit("missing images:\n  " + "\n  ".join(MISSING_IMAGES))
         if dead:
             sys.exit("dead markdown links — the renderer left these as they were written, so the "
                      "site would serve them:\n  " + "\n  ".join(dead)
@@ -494,6 +542,8 @@ def main():
                 shutil.copy(ROOT / src, assets_dir / dst)
             shutil.copy(THEME / "docs.css", assets_dir / "docs.css")
             shutil.copy(THEME / "docs.js", assets_dir / "docs.js")
+            if IMG.exists():
+                shutil.copytree(IMG, assets_dir / "img", dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.svg"))
             (assets_dir / "search.json").write_text(json.dumps(search_index(rendered, mode, base), ensure_ascii=False))
             for slug, src, _ in PAGES:
                 body_html, toc = rendered[slug]
@@ -522,6 +572,8 @@ def main():
                 shutil.copy(ROOT / src, adir / dst)
             shutil.copy(THEME / "docs.css", adir / "docs.css")
             shutil.copy(THEME / "docs.js", adir / "docs.js")
+            if IMG.exists():
+                shutil.copytree(IMG, adir / "img", dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.svg"))
             (adir / "search.json").write_text(json.dumps(search_index(rendered, mode, base), ensure_ascii=False))
             articles = "".join(article_html(s, rendered[s][0], rendered[s][1], mode, base, commit, TITLES[s][1])
                                for s in ORDER)

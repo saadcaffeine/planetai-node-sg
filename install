@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   curl -fsSL planetai.fab.city/install | bash
+#   curl -fsSL https://planetai.fab.city/install | bash
 #
 # The whole install, from a blank machine. Checks the machine, downloads the tarball and verifies its
 # published checksum, then hands off to `planetai setup`, which asks you four things and does the rest.
@@ -92,7 +92,7 @@ fi
 # asking the download to vouch for itself. `tools/allowed_signers` carries the same line, and
 # tests/test_release_consistency.sh fails if the copies drift.
 read -r -d '' ALLOWED_SIGNERS <<'SIGNERS' || true
-fabcity ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbgbaRosyOEVk7c4iBHc5iXn9H7F1s9QGwhXBGt+qay fabcity
+fabcity ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGvxokFMBrpVd/yz/zAhYzIMTp4MZTPp+y5ulSoDX71/ fabcity
 SIGNERS
 
 # Who built this tarball — which the checksum does not answer. SHA256 is served from the same origin as

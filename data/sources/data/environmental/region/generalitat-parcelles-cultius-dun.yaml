@@ -1,0 +1,57 @@
+name: Generalitat de Catalunya — Parcel·les i cultius de les explotacions (DUN) (uwe8-jqcu)
+url: https://analisi.transparenciacatalunya.cat/d/uwe8-jqcu
+description: |
+  Every agricultural parcel declared in Catalonia's annual farm declaration (DUN), 2023–2025, as
+  polygons with the declared crop, variety, irrigation, cover and net area. Published by the
+  Departament d'Agricultura, Ramaderia, Pesca i Alimentació.
+pillar: environmental
+scale: region
+status: candidate
+license: Llicència oberta d'ús d'informació – Catalunya (reuse, redistribution and derived works; cite the source and the date of last update; do not alter or distort; no sublicensing)
+api: https://analisi.transparenciacatalunya.cat/resource/uwe8-jqcu.json
+pilot_relevance: [barcelona]
+places: [barcelona]
+tags: [agriculture, crops, field-boundaries, land-use, irrigation, dun, sigpac, catalonia, socrata]
+added: 2026-10-13
+assisted_by: Claude Code
+auth: none
+feeds_cells: [Environmental|Region]
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-10-13, not yet read for a real territory.
+
+  LICENCE. The dataset's licence field says "See Terms of Use". It points to the Llicència oberta
+  d'ús d'informació – Catalunya (web.gencat.cat, Dades obertes > Llicències), the same licence as
+  generalitat-residus-municipals. It permits reuse, distribution and "la transformació de la
+  informació per fer-ne obres derivades, per a tot el món i sense cap limitació temporal". Its
+  conditions, read in full on 2026-10-13:
+  - do not alter or distort the information;
+  - cite "Generalitat de Catalunya. Departament d'Agricultura, Ramaderia, Pesca i Alimentació";
+  - state the date of last update (rows last updated 2026-03-05);
+  - "No s'autoritza el subllicenciament de les dades", so copies carry this licence, never CC-BY;
+  - pseudonymised data must carry a ban on reversing the pseudonymisation with other sources.
+    `id_exp` is a farm code, and a press report of the release calls the layer pseudonymised.
+  It sets no commercial restriction and forbids adding restrictions. It is not CC-BY.
+
+  ENDPOINT. Key-free Socrata (SoQL), with geometry as MultiPolygon in lon/lat. Rows per
+  `campanya`: 2023 1,756,770; 2024 1,778,981; 2025 1,790,293.
+  2025, all Catalonia:
+  - 43,943 distinct farms;
+  - 1,211,457.5 ha net (`sup_neta_h`) and 1,448,613.2 ha declared (`sup_dec_h`);
+  - largest `grup_nom` groups: CEREALS D'HIVERN 314,722 ha, NO ADMISSIBLE 251,270 ha,
+    PASTURES 225,672 ha, OLIVERAR 86,322 ha.
+  Barcelona municipality (`id_mun` 08900), 2025: 42 parcels, 6.10 ha. Barcelonès: 155 parcels,
+  33.21 ha. Baix Llobregat: 7,961 parcels, 3,701.08 ha.
+
+  WHY THIS CELL. Environmental|Region's row is land under each land-use class. This layer is the
+  agricultural part of that, parcel by parcel and by declared crop, for all of Catalonia. It is
+  measured from declarations, not modelled from satellite.
+
+  NOT THE OLDER MAP. yh94-j2n9 (Mapa de cultius amb origen DUN, 2016–2024) merges parcels by crop
+  and dry/irrigated within each municipality, so its polygons are crop blocks, not fields. The
+  Fields of the World mirror `es_cat` is that layer. Use this one for fields, and yh94-j2n9 only
+  for the trend before 2023.
+
+  WHAT IT DOES NOT CLAIM. It holds declared land only: farms that file no DUN are absent, and urban
+  gardens almost all are. "NO ADMISSIBLE" is land declared as ineligible for aid, not a crop.
+  Declared crop is what the farmer stated, not what was harvested, and area is not yield.

@@ -1,0 +1,93 @@
+# Fires the satellites saw in the last day, said as where they are from the house: a distance and a compass
+# direction, never a coordinate. All three read the adapter's latest set of readings, one timestamp, so a count and
+# the distance beside it always come from the same look; a set older than 12 hours says nothing.
+#
+# Not kinded, on purpose. The event engine's kinds (spike, unusual, sustained, danger) are about rooms, and the air
+# issue's event templates say "smoke or dust in {rooms}". A fire is not in a room. These rules send on every
+# ALERT_ENGINE, as the rules of a pack with no kinded rules always do (main.run_rules).
+#
+# {dir[en]}, {dir[id]}, {dir[es]}: the SQL returns `dir` as one JSON object holding the compass word in each language,
+# and each template picks its own. Rules run as planetai_ro, which cannot read ALERT_LOCALE from settings, and a
+# template set must share its placeholders (tests/test_packs.py), so one column carries all three.
+#
+# THE NUMBERS ARE A FIRST GUESS from one day, 14 Oct 2026, at Kuta Selatan; see README.md. The id and es strings are
+# ASSISTANT-WRITTEN.
+
+- id: fire_near
+  level: info
+  cooldown_minutes: 1440
+  sql: |
+    WITH last AS (SELECT max(ts) AS ts FROM readings
+                  WHERE sensor_id = 'firms-fires' AND metric = 'fires_local_24h' AND ts > now() - interval '12 hours'),
+         f AS (SELECT rd.metric, rd.value FROM readings rd, last WHERE rd.sensor_id = 'firms-fires' AND rd.ts = last.ts)
+    SELECT 'firms-fires' AS sensor_id, CAST(round(n.value) AS INTEGER) AS fires, CAST(round(k.value) AS INTEGER) AS km,
+           (SELECT round(CAST(meta->>'local_km' AS NUMERIC)) FROM sensors WHERE sensor_id = 'firms-fires') AS ring,
+           json_build_object(
+             'en', (ARRAY['north','north-east','east','south-east','south','south-west','west','north-west'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'id', (ARRAY['utara','timur laut','timur','tenggara','selatan','barat daya','barat','barat laut'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'es', (ARRAY['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1]) AS dir
+    FROM (SELECT value FROM f WHERE metric = 'fires_local_24h') n,
+         (SELECT value FROM f WHERE metric = 'fires_nearest_km') k,
+         (SELECT value FROM f WHERE metric = 'fires_nearest_bearing') b
+    WHERE n.value >= 1
+  message:
+    en: "🔥 Satellites saw fire {km} km {dir[en]} of the house in the last day ({fires} within {ring} km).\n\nNothing to do unless you smell smoke. If you do, shut the windows on that side."
+    id: "🔥 Satelit melihat api {km} km di sebelah {dir[id]} rumah dalam sehari terakhir ({fires} titik dalam {ring} km).\n\nTidak perlu berbuat apa-apa kecuali tercium asap. Kalau tercium, tutup jendela di sisi itu."
+    es: "🔥 Los satélites vieron fuego a {km} km al {dir[es]} de la casa en el último día ({fires} en {ring} km a la redonda).\n\nNo hace falta hacer nada salvo que huela a humo. Si huele, cierra las ventanas de ese lado."
+
+- id: fire_upwind_near
+  level: warn
+  cooldown_minutes: 720
+  sql: |
+    WITH last AS (SELECT max(ts) AS ts FROM readings
+                  WHERE sensor_id = 'firms-fires' AND metric = 'fires_local_24h' AND ts > now() - interval '12 hours'),
+         f AS (SELECT rd.metric, rd.value FROM readings rd, last WHERE rd.sensor_id = 'firms-fires' AND rd.ts = last.ts)
+    SELECT 'firms-fires' AS sensor_id, CAST(round(k.value) AS INTEGER) AS km,
+           json_build_object(
+             'en', (ARRAY['north','north-east','east','south-east','south','south-west','west','north-west'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'id', (ARRAY['utara','timur laut','timur','tenggara','selatan','barat daya','barat','barat laut'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'es', (ARRAY['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1]) AS dir
+    FROM (SELECT value FROM f WHERE metric = 'fires_local_upwind') n,
+         (SELECT value FROM f WHERE metric = 'fires_upwind_km') k,
+         (SELECT value FROM f WHERE metric = 'fires_upwind_bearing') b
+    WHERE n.value >= 1
+  message:
+    en: "🔥 A fire {km} km {dir[en]} of the house is upwind: the wind is blowing from it towards you. Satellites saw it in the last day.\n\nShut the windows and doors on that side, and run the purifier if you have one."
+    id: "🔥 Ada api {km} km di sebelah {dir[id]} rumah, dari arah datangnya angin: angin bertiup dari sana ke arah rumah. Satelit melihatnya dalam sehari terakhir.\n\nTutup jendela dan pintu di sisi itu, dan nyalakan pembersih udara kalau ada."
+    es: "🔥 Hay un fuego a {km} km al {dir[es]} de la casa, del lado del que sopla el viento: el aire va de allí hacia la casa. Los satélites lo vieron en el último día.\n\nCierra puertas y ventanas de ese lado, y enciende el purificador si tienes."
+
+# Act needs both halves: many fires on the side the wind comes from, AND the air outside rising past the WHO line.
+# Fires alone are not smoke here; a rise alone is not fires. Outside is the node's own and public outdoor sensors
+# when any reported in the last 8 hours, else the CAMS model (cams-point), never both averaged together. Rising is
+# the last 2 hours at least half again the 6 before them. 25 upwind is about half of everything the 150 km ring held
+# on 14 Oct 2026 (51 burning places, NOAA-20 and NOAA-21), when a south-east wind put 3 of them upwind.
+- id: smoke_arriving
+  level: act
+  cooldown_minutes: 1440
+  sql: |
+    WITH last AS (SELECT max(ts) AS ts FROM readings
+                  WHERE sensor_id = 'firms-fires' AND metric = 'fires_local_24h' AND ts > now() - interval '12 hours'),
+         f AS (SELECT rd.metric, rd.value FROM readings rd, last WHERE rd.sensor_id = 'firms-fires' AND rd.ts = last.ts),
+         x AS (SELECT r.bucket, r.mean, s.kind = 'sensor' AS measured
+               FROM readings_1h r JOIN sensors s ON s.sensor_id = r.sensor_id
+               WHERE r.bucket <= now() AND r.bucket > now() - interval '8 hours'
+                 AND ((r.metric = 'pm25' AND s.kind = 'sensor' AND NOT s.indoor)
+                      OR (r.sensor_id = 'cams-point' AND r.metric = 'pm25_model'))),
+         pick AS (SELECT bool_or(measured) AS m FROM x),
+         o AS (SELECT x.bucket, avg(x.mean) AS v FROM x, pick WHERE x.measured = pick.m GROUP BY x.bucket),
+         a AS (SELECT avg(v) FILTER (WHERE bucket > now() - interval '2 hours') AS recent,
+                      avg(v) FILTER (WHERE bucket <= now() - interval '2 hours') AS before
+               FROM o)
+    SELECT 'firms-fires' AS sensor_id, CAST(round(n.value) AS INTEGER) AS fires, CAST(round(k.value) AS INTEGER) AS km, CAST(round(a.recent) AS INTEGER) AS pm25,
+           json_build_object(
+             'en', (ARRAY['north','north-east','east','south-east','south','south-west','west','north-west'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'id', (ARRAY['utara','timur laut','timur','tenggara','selatan','barat daya','barat','barat laut'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1],
+             'es', (ARRAY['norte','noreste','este','sureste','sur','suroeste','oeste','noroeste'])[(CAST(round(b.value / 45) AS INTEGER) % 8) + 1]) AS dir
+    FROM (SELECT value FROM f WHERE metric = 'fires_region_upwind') n,
+         (SELECT value FROM f WHERE metric = 'fires_upwind_km') k,
+         (SELECT value FROM f WHERE metric = 'fires_upwind_bearing') b, a
+    WHERE n.value >= 25 AND a.recent >= 15 AND a.recent >= 1.5 * a.before
+  message:
+    en: "🔥 Smoke from fires is probably reaching the house. The air outside has risen to {pm25} µg/m³, past the WHO line of 15 µg/m³, and satellites saw {fires} fires in the last day on the side the wind comes from, the nearest {km} km {dir[en]}.\n\nShut windows and doors, run the purifier if you have one, and keep children, older people and anyone with asthma inside."
+    id: "🔥 Asap kebakaran kemungkinan sudah sampai ke rumah. Udara di luar naik ke {pm25} µg/m³, di atas batas WHO 15 µg/m³, dan satelit melihat {fires} titik api dalam sehari terakhir di arah datangnya angin, yang terdekat {km} km di sebelah {dir[id]}.\n\nTutup jendela dan pintu, nyalakan pembersih udara kalau ada, dan jaga anak-anak, orang tua, dan penderita asma tetap di dalam."
+    es: "🔥 Es probable que el humo de los incendios esté llegando a la casa. El aire de fuera ha subido a {pm25} µg/m³, por encima del límite de la OMS de 15 µg/m³, y los satélites vieron {fires} fuegos en el último día del lado del que sopla el viento, el más cercano a {km} km al {dir[es]}.\n\nCierra puertas y ventanas, enciende el purificador si tienes, y que los niños, los mayores y quien tenga asma se queden dentro."

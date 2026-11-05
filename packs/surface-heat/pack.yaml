@@ -1,0 +1,60 @@
+id: surface-heat
+name: Surface heat
+description: >-
+  How hot the ground in this node's own cell got, against the land 1 to 3 km around it, from Landsat's
+  surface temperature at 30 m; and how warm the ground stays at night, from MODIS at 1 km. Read once a day
+  from Microsoft Planetary Computer, anonymously. Public-domain satellite data, never a measurement here.
+author: PLANETAI core (official, prototype)
+version: 0.1.0
+requires: { node: ">=0.81.0" }
+kind: code
+domain: heat
+metrics: [lst, lst_ring, lst_delta, lst_pctile, lst_night, lst_day]
+scales: [city]
+# sources: the two registry entries are not in the vendored pin yet. When they are, this line becomes
+#   sources: [environmental/city/landsat-c2-surface-temperature, environmental/city/modis-lst-mod11a1]
+env:
+  # No padding after `=`: a value pasted after spaces makes the line `VAR= value`, which shell reads as a command.
+  - "# surface-heat: the outer edge of the ring the node's cell is compared with, in km. It starts at 1 km."
+  - "SURFACE_HEAT_RING_KM=3"
+  - "# surface-heat: the share of the cell, and of the ring, that must be clear land for a scene to count"
+  - "SURFACE_HEAT_MIN_CLEAR=0.5"
+needs: >-
+  Network to planetarycomputer.microsoft.com and its blob storage, once a day. No key, no account. About 1.5 MB
+  on the first day, half a megabyte on a day with a new Landsat scene, and a few hundred kB of MODIS a day.
+attribution: >-
+  Landsat Collection 2 Level-2 surface temperature courtesy of the U.S. Geological Survey; MODIS MOD11A1/MYD11A1
+  v061 from NASA LP DAAC. Both public domain. Read through Microsoft Planetary Computer.
+
+# The ground's heat on the Wall (its narration reads every `wall: true` section; Landsat and MODIS label it satellite).
+sections:
+  - id: surface-heat
+    stage: observe
+    title: { en: "The ground's heat, from Landsat and MODIS", id: "Panas permukaan tanah, dari Landsat dan MODIS", es: "El calor del suelo, según Landsat y MODIS" }
+    order: 46
+    wall: true
+    note:
+      en: The surface temperature of the ground seen from space at the last clear Landsat pass (about 10:30), in this node's cell and in the land 1 to 3 km around it; and the ground at night from MODIS. A roof or a road is hotter than the air a person breathes.
+      id: Suhu permukaan tanah yang terlihat dari luar angkasa pada lintasan Landsat cerah terakhir (sekitar pukul 10.30), di sel node ini dan di lahan 1 sampai 3 km di sekitarnya; serta permukaan tanah malam hari dari MODIS. Atap atau jalan lebih panas daripada udara yang dihirup orang.
+      es: La temperatura de la superficie del suelo vista desde el espacio en el último paso despejado de Landsat (hacia las 10:30), en la celda de este nodo y en el terreno de 1 a 3 km alrededor; y el suelo de noche según MODIS. Un tejado o una calle están más calientes que el aire que se respira.
+    readouts:
+      - { metric: lst, sensor_id: surface-cell, unit: °C, dp: 1,
+          label: { en: ground in this cell, id: permukaan tanah di sel ini, es: suelo en esta celda } }
+      - { metric: lst_ring, sensor_id: surface-cell, unit: °C, dp: 1,
+          label: { en: ground 1 to 3 km around, id: permukaan tanah 1 sampai 3 km di sekitar, es: suelo de 1 a 3 km alrededor } }
+      - { metric: lst_delta, sensor_id: surface-cell, unit: °C, dp: 1,
+          label: { en: this cell against around it, id: sel ini dibanding sekitarnya, es: esta celda frente a su entorno } }
+      - { metric: lst_night, sensor_id: surface-modis, unit: °C, dp: 1,
+          label: { en: ground at night, id: permukaan tanah malam hari, es: suelo de noche } }
+
+# The ground beside the air. Context on the heat issue, never its line: a roof at 45 °C is not a room at 45 °C.
+readouts:
+  heat:
+    - { metric: lst, sensor_id: surface-cell, unit: °C, dp: 1,
+        label: { en: Ground in this cell at the last clear Landsat pass, id: Permukaan tanah di sel ini saat lintasan Landsat cerah terakhir,
+                 es: Suelo de esta celda en el último paso despejado de Landsat } }
+    - { metric: lst_delta, sensor_id: surface-cell, unit: °C, dp: 1,
+        label: { en: "Ground in this cell, minus the land 1 to 3 km around", id: "Permukaan tanah di sel ini, dikurangi lahan 1 sampai 3 km di sekitarnya",
+                 es: "Suelo de esta celda, menos el terreno de 1 a 3 km alrededor" } }
+    - { metric: lst_night, sensor_id: surface-modis, unit: °C, dp: 1,
+        label: { en: Ground at night (MODIS 1 km), id: Permukaan tanah malam hari (MODIS 1 km), es: Suelo de noche (MODIS 1 km) } }

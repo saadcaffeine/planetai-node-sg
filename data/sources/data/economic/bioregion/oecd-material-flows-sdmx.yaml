@@ -28,3 +28,10 @@ notes: |
   both and prefer the IRP series for long time series, OECD for
   programmatic access. SLICING: SDMX key first position is ISO3 country.
   National only.
+  READ 2026-10-13 by fabcity/fci-index compute/materials.py as the materials half of the Index's country bracket: one
+  SDMX call on the public host, key <ISO3+...>.A.DEU+IMP+EXP+DMC+MF.T.TOT+BIO+MET+IND+FUEL, startPeriod 2019, csvfilewithlabels;
+  all 26 tracker countries answer, Bhutan, Ghana, Georgia and Tanzania included, to 2024 (EU countries to 2025).
+  Values in tonnes with UNIT_MULT 6; T_PS (per person) and USD_T rows sit in the same table. Domestic extraction over
+  DMC is the share extracted at home. Licence as the OECD terms state it (any use including commercial, credit the
+  OECD), not CC-BY: see oecd-tiva-sdmx.
+

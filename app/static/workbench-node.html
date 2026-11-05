@@ -1,0 +1,41 @@
+<!-- The node's layer over the workbench (app/main.py workbench() puts this in front of the site's nav). workbench.html
+     stays a byte copy of the site's sensors/index.html; this is the only part that is the node's.
+     The workbench is the Data door's Workbench tab (Tomas, 27 Oct 2026: "embeds in the same data menu", "a reduced
+     version of the full workbench"): doors-data.js draws this page in a frame under the Data tabs, so the doors are
+     the chrome and this page brings none. A page opened on its own (the site's Connect, a bookmark) goes to
+     /#data/workbench, at the same view. Reduced: the three views stay whole (flash every board, Bayu and Meshtastic;
+     test over USB; the network), and what the node already does, or what only the site needs, is hidden: the site's
+     nav, head and foot, Connect a node (this page is the node), the demo and the log replay, Keep for offline (the
+     node keeps the firmware itself), and the long explanations, which the full workbench on planetai.fab.city keeps.
+     The register is the doors' (planetai_theme), followed when the doors change it. -->
+<style>
+nav.top, header.ptitle, footer.foot, a.skip, #keep, #btnnode, #btndemo, label[for="filelog"], [data-act="demo"],
+#vflash .chap > p.lede, #vflash .board > p:not(.note), #vflash .chap:first-of-type .pair > .panel + .panel,
+[data-t="f2.after.p"], [data-t^="f2.why.p"] { display:none !important; }
+html { scroll-padding-top:0; }
+body { font-size:15px; background:var(--ground); min-height:0; }   /* the frame follows the body's height; 100vh would pin it */
+.bar { position:static; top:auto; }
+.wrap, .bar > div { padding-left:0; padding-right:0; max-width:none; }
+.chap { padding-top:18px; }
+.chap h2 { font-size:clamp(22px,2.4vw,30px); }
+#netsvg { height:min(64vh, 620px); }
+</style>
+<script>
+(function () {
+  if (window.parent === window) { location.replace('/#data/workbench' + (location.hash.length > 1 ? '/' + location.hash.slice(1) : '')); return; }
+  var root = document.documentElement;
+  var theme = function () {
+    var t = null; try { t = localStorage.getItem('planetai_theme'); } catch (e) { /* no storage here */ }
+    if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    root.setAttribute('data-theme', t);
+  };
+  theme();
+  // the doors' register switch writes planetai_theme; a frame of the same origin hears it as a storage event
+  addEventListener('storage', function (e) {
+    if (e.key !== 'planetai_theme') return;
+    theme();
+    if (typeof readPal === 'function') readPal();
+    if (typeof renderNet === 'function' && typeof VIEW !== 'undefined' && VIEW === 'net') renderNet();
+  });
+})();
+</script>

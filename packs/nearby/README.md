@@ -84,14 +84,15 @@ exactly these stations; a second number for the same thing with different proven
 exists to refuse. If a cell is wanted later it is a decision for the node's operator, and it lands with the
 `Environmental|City` question resolved, not before.
 
-**No channels.yml.** The pack adds no metric. Bali Air Dispatch's channels are already declared in
-`config/channels.yml`, and their roles are right as they stand: `pm25`, `pm10`, `pm1`, `temp` and `humidity` are
+**No channels.yml.** The pack adds no metric. Bali Air Dispatch's channels are declared by the
+`bali-air-dispatch` pack, and their roles are right as they stand: `pm25`, `pm10`, `pm1`, `temp` and `humidity` are
 `ambient` because that is what they *are* — the air at a place — and `aqi` is `index` because it is a vendor's
 composite. The role is not what keeps a neighbour's PM out of this node's ambient pool; `local` is, and every
 query that pools ambient joins on it. `verify` checks that no station is ever stored as `local`.
 
-**No adapter.** The fetch already lives in `app/sources.py` and has since v0.11. Adding a second one would have
-put every station in the node twice, which is the same disease as the duplicate kit, one layer up.
+**No adapter.** The fetch is the `bali-air-dispatch` pack's (in `app/sources.py` from v0.11 until the release
+after v0.82.3), and this pack's scripts call its `verdicts()`. Adding a second fetch would put every station in the
+node twice, which is the same disease as the duplicate kit, one layer up.
 
 ## What it assumes
 

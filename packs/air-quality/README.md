@@ -13,6 +13,11 @@ picture from Bali Air Dispatch. The burning pattern here peaks around 9am and cl
 sensors, else the three nearest public ones, else the CAMS model, and say which. Thresholds are US EPA / WHO 2021
 (35.5 µg/m³ unhealthy for sensitive groups, 55.5 µg/m³ unhealthy for everyone, 15 µg/m³ WHO 24h).
 
+**What it reads** — the Copernicus CAMS model at the node's point, through Open-Meteo, every poll while
+`OPENMETEO_ENABLED` is 1, and 92 days of it on the node's first start, so the third tier of "outside" is there before
+any sensor is. It is a model and lands as `kind='model'`, never `live`. The US EPA 2021 humidity correction lives here
+too, in `adapter.py`; the AirGradient and PurpleAir packs borrow it. Both were core until 24 Oct 2026.
+
 **Fork it.** The numbers that matter in Kerobokan are not the numbers that matter in Poblenou, and the sentence that
 gets someone to close a window is different in every language and every building. Copy this folder, change the
 thresholds and the wording, publish it as `planetai-pack-air-<yourplace>`.

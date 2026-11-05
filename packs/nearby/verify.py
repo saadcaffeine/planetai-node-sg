@@ -11,7 +11,12 @@ import psycopg
 from psycopg.rows import dict_row
 
 sys.path.insert(0, "/app")
+import packs  # noqa: E402
 import sources  # noqa: E402
+
+archive = packs.module("bali-air-dispatch")   # the archive's adapter: its endpoints and the one function that decides the ring
+if archive is None:
+    sys.exit("nearby: the bali-air-dispatch pack is not on this node; the ring reads what it stores")
 
 LAT, LON = float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"])
 SEP = float(os.getenv("BAD_MIN_SEPARATION_M", "150"))
@@ -40,21 +45,21 @@ cases = [
     ("one device, two networks", [dict(away, station_id="ag-1"), dict(away, station_id="oq-1")], set(), set(), "same device"),
 ]
 for label, rows, own, byhand, want in cases:
-    got = [v for _, v in sources.bad_verdicts(rows, LAT, LON, 15.0, own, byhand, SEP)]
+    got = [v for _, v in archive.verdicts(rows, LAT, LON, 15.0, own, byhand, SEP)]
     step(f"exclusion: {label}", any(want in v for v in got), f"{want} — got {got}")
 
 # and a plain neighbour is not excluded by any of them
-step("a neighbour survives", [v for _, v in sources.bad_verdicts([away], LAT, LON, 15.0, set(), set(), SEP)] == ["included"],
+step("a neighbour survives", [v for _, v in archive.verdicts([away], LAT, LON, 15.0, set(), set(), SEP)] == ["included"],
      "a station 5.5 km away with nothing wrong with it is in the ring")
 
 # ---- 2. the archive is reachable and this node's own hardware is out of its own ring
 try:
     hc = httpx.Client(timeout=60, headers={"user-agent": "planetai-node"})
-    latest = hc.get(sources.BAD_LATEST).json().get("readings", [])
+    latest = hc.get(archive.LATEST).json().get("readings", [])
     own = {f"sc-{i}" for i in sources.smartcitizen_account(hc, os.getenv("SC_USER", "").strip())} if os.getenv("SC_USER", "").strip() else set()
     own |= {f"sc-{x}" for x in os.getenv("SC_DEVICES", "").replace(" ", "").split(",") if x}
     byhand = {x for x in os.getenv("BAD_EXCLUDE", "").replace(" ", "").split(",") if x}
-    v = sources.bad_verdicts(latest, LAT, LON, float(os.getenv("BAD_RADIUS_KM", "15")), own, byhand, SEP)
+    v = archive.verdicts(latest, LAT, LON, float(os.getenv("BAD_RADIUS_KM", "15")), own, byhand, SEP)
     inc = [r for r, w in v if w == "included"]
     step("the archive answers", True, f"{len(latest)} stations, {len(inc)} in this node's ring")
     tooclose = [r["station_id"] for r in inc

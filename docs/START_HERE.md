@@ -48,20 +48,21 @@ A node wants a computer that stays on. In order:
    runtime for macOS has raised its floor in the last two years, and an Intel Mac will meet that wall.
 3. **Windows**, through WSL2 with Docker Desktop.
 
-`curl -fsSL planetai.fab.city/preflight | bash` reads the machine in four seconds and tells you which
+`curl -fsSL https://planetai.fab.city/preflight | bash` reads the machine in four seconds and tells you which
 case you are in. It installs nothing.
 
 ## Install
 
 ```bash
-curl -fsSL planetai.fab.city/install | bash
+curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 It asks four things: a name for the node, the place (type a town; it finds the coordinates), what the node is for (a
 home, a business, a lab, a district), and your sensor if you have one. Two minutes later it is running.
 
-The install ends with a checklist. A cross next to *telegram connected* is expected; that comes next. A cross next to
-*database* or *node answers* means something is wrong; see [When it breaks](#when-it-breaks).
+The install ends with a checklist, the node's data sources, and *To finish setting up*: Telegram and the first backup
+are on it on every new node, and a sensor if you have none yet; those come next. A cross next to *database* or
+*node answers* means something is wrong; see [When it breaks](#when-it-breaks).
 
 ## Your first ten minutes
 

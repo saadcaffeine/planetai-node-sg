@@ -81,11 +81,22 @@ def _fill(block, fields, locale) -> str:
         return raw
 
 
-def render(issue: dict, msg, ctx: dict, locale: str) -> tuple[str, str | None]:
-    e = msg.event
-    tpl = (issue.get("events") or {}).get(msg.reason if msg.reason == "clear" else e.kind) or {}
-    rooms = ", ".join(sorted(e.rooms))
+# How a message joins the rooms of one event: "Kids and Living Room", not "Kids, Living Room". The engine keeps rooms as
+# a sorted set, so the message never claims which came first.
+AND = {"en": " and ", "id": " dan ", "es": " y "}
+
+
+def rooms_said(rooms, locale: str) -> str:
+    r = sorted(rooms or [])
+    return ", ".join(r[:-1]) + (AND.get(locale) or AND["en"]) + r[-1] if len(r) > 1 else "".join(r)
+
+
+def _fields(issue: dict, rooms: str, peak, ctx: dict) -> dict:
+    """The figures a message or an action may name, in the issue's own dp and with their units. The peak and the line
+    carry the issue's unit too (Tomas, 14 Oct: one line per issue, always with its unit), so a template never says a
+    bare "15" and never types a unit of its own."""
     dp = int(issue.get("dp", 1))
+    unit = issue.get("unit") or ""
     line_v = (issue.get("line") or {}).get("value")
 
     def fmt(k, v):
@@ -94,19 +105,27 @@ def render(issue: dict, msg, ctx: dict, locale: str) -> tuple[str, str | None]:
         if v is None:
             return "—"
         if k == "peak":
-            return f"{float(v):.{dp}f}"
+            return f"{float(v):.{dp}f} {unit}".strip()
         if k.endswith("pm25"):
             return f"{float(v):.0f} µg/m³"
         if k.endswith("temp"):
             return f"{float(v):.1f} °C"
         return v
 
-    fields = {"rooms": rooms, "peak": e.peak,
+    fields = {"rooms": rooms, "peak": peak,
               "outside_temp": ctx.get("outside_temp"), "inside_temp": ctx.get("inside_temp"),
               "outside_pm25": ctx.get("outside_pm25"), "inside_pm25": ctx.get("inside_pm25"),
               "outside_source": ctx.get("outside_source") or "outside",
-              "line": f"{float(line_v):g}" if line_v is not None else "—"}
-    fields = {k: (v if k in ("rooms", "outside_source", "line") else fmt(k, v)) for k, v in fields.items()}
+              "line": f"{float(line_v):g} {unit}".strip() if line_v is not None else "—",
+              "unhealthy": f"{float(issue['unhealthy']):g} {unit}".strip() if issue.get("unhealthy") is not None else "—"}
+    return {k: (v if k in ("rooms", "outside_source", "line", "unhealthy") else fmt(k, v)) for k, v in fields.items()}
+
+
+def render(issue: dict, msg, ctx: dict, locale: str) -> tuple[str, str | None]:
+    e = msg.event
+    tpl = (issue.get("events") or {}).get(msg.reason if msg.reason == "clear" else e.kind) or {}
+    rooms = rooms_said(e.rooms, locale)
+    fields = _fields(issue, rooms, e.peak, ctx)
     # no template for this kind: say which issue and where, so a message never starts with an empty line
     text = _fill(tpl, fields, locale) or f"{_say(issue.get('name'), locale) or issue.get('key') or e.issue}: {rooms}"
     if msg.reason == "clear":
@@ -115,4 +134,14 @@ def render(issue: dict, msg, ctx: dict, locale: str) -> tuple[str, str | None]:
     line = _fill(a.get("say"), fields, locale) if a else ""
     if not line:
         return text, None
-    return f"{text}\n\n👉 {line}", a["id"]
+    # one sign per message, the story's own: the action is the line under it (events_wire.SENT_ACTION)
+    return f"{text}\n{line}", a["id"]
+
+
+def now_say(issue: dict, ctx: dict, locale: str, rooms, peak) -> dict | None:
+    """The action an open event's card shows: chosen again from the context as it is now, by the same rules that
+    chose the sent message's. The sent message stays what it was (it is history); the card is the present, so it
+    never tells a house to open up on the strength of last night's outside reading."""
+    a = choose(issue.get("actions") or [], ctx)
+    text = _fill(a.get("say"), _fields(issue, rooms_said(rooms, locale), peak, ctx), locale) if a else ""
+    return {"id": a["id"], "text": text} if text else None

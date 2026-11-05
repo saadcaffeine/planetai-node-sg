@@ -1,0 +1,293 @@
+{
+  "point": {
+    "lat": -8.8271,
+    "lon": 115.15709
+  },
+  "sources": [
+    {
+      "sensor_id": "forecast-bmkg",
+      "name": "BMKG forecast, Ungasan",
+      "lat": -8.82,
+      "lon": 115.16,
+      "issued": "2026-11-03T00:00:00+00:00",
+      "fetched": "2026-11-03T05:00:00+00:00",
+      "km_from_node": 1.2
+    }
+  ],
+  "hours": [
+    {
+      "ts": "2026-11-03T09:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-03T12:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-03T15:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-03T18:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-03T21:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T00:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T03:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    },
+    {
+      "ts": "2026-11-04T06:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    },
+    {
+      "ts": "2026-11-04T09:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T12:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T15:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T18:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-04T21:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T00:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T03:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    },
+    {
+      "ts": "2026-11-05T06:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    },
+    {
+      "ts": "2026-11-05T09:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T12:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T15:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T18:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-05T21:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-06T00:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 28,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 33.7
+    },
+    {
+      "ts": "2026-11-06T03:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    },
+    {
+      "ts": "2026-11-06T06:00:00+00:00",
+      "source": "forecast-bmkg",
+      "fc_temp": 32,
+      "fc_humidity": 78,
+      "fc_rain": 0.0,
+      "apparent": 40.2
+    }
+  ],
+  "attribution": [
+    "BMKG (Badan Meteorologi, Klimatologi, dan Geofisika), api.bmkg.go.id",
+    "Open-Meteo, open-meteo.com, CC-BY 4.0 (free tier: non-commercial use only)"
+  ],
+  "far_from_node": null,
+  "days": [
+    {
+      "date": "2026-11-03",
+      "part": "rest",
+      "rows": {
+        "heat": {
+          "value": 33.7,
+          "unit": "°C",
+          "metric": "apparent",
+          "of": "max",
+          "source": "forecast-bmkg",
+          "line": 35,
+          "state": "near",
+          "hours_over": 0,
+          "n": 9
+        },
+        "wind_rain": {
+          "gust": null,
+          "rain_mm": 0.0,
+          "rain_hours": null,
+          "source": "forecast-bmkg",
+          "n": 9
+        }
+      }
+    },
+    {
+      "date": "2026-11-04",
+      "part": "day",
+      "rows": {
+        "heat": {
+          "value": 40.2,
+          "unit": "°C",
+          "metric": "apparent",
+          "of": "max",
+          "source": "forecast-bmkg",
+          "line": 35,
+          "state": "over",
+          "hours_over": 6,
+          "n": 24
+        },
+        "wind_rain": {
+          "gust": null,
+          "rain_mm": 0.0,
+          "rain_hours": null,
+          "source": "forecast-bmkg",
+          "n": 24
+        }
+      }
+    },
+    {
+      "date": "2026-11-05",
+      "part": "day",
+      "rows": {
+        "heat": {
+          "value": 40.2,
+          "unit": "°C",
+          "metric": "apparent",
+          "of": "max",
+          "source": "forecast-bmkg",
+          "line": 35,
+          "state": "over",
+          "hours_over": 6,
+          "n": 24
+        },
+        "wind_rain": {
+          "gust": null,
+          "rain_mm": 0.0,
+          "rain_hours": null,
+          "source": "forecast-bmkg",
+          "n": 24
+        }
+      }
+    }
+  ],
+  "lines": [],
+  "openmeteo": false,
+  "schema": "forecast-v0"
+}

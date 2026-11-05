@@ -7,51 +7,44 @@ description: |
 pillar: environmental
 scale: bioregion
 status: candidate
+adapter: pack:fire
 license: CC0-1.0
-api: https://firms.modaps.eosdis.nasa.gov/api/area/
+api: https://firms.modaps.eosdis.nasa.gov/data/active_fire/
 pilot_relevance: [bali, santiago, barcelona, boston]
 places: [bali, barcelona, boston, santiago-de-chile]
 tags: [fire, wildfire, peat, land-cover, satellite, near-real-time, hazard, nasa]
 added: 2026-09-26
-auth: api-key
-feeds_cells: [Environmental|Bioregion]
-updated: 2026-09-26
+assisted_by: Claude Code
+auth: none
+feeds_cells: []
+updated: 2026-10-16
 upstream_listed_in: []
 notes: |
-  VERIFIED 2026-09-26, nothing read for a real territory yet.
+  VERIFIED 2026-10-15 (first 2026-09-26). Read live by node #1 (Bali) through pack:fire since 2026-10-15; no cell yet.
 
-  LICENCE. NASA's Earthdata data-use guidance: "Unless the content is marked with a
-  use restriction or license, data provided from a NASA-led mission are licensed as
-  Creative Commons Zero (CC0)", and users are "very strongly urged to cite". The
-  FIRMS FAQ asks image captions to say "NASA FIRMS" and gives a journal
-  acknowledgement. One carve-out: the FAQ marks a single derived map layer as "not
-  available for distribution". That is a display layer, not the fire-detection CSVs.
-  Ancillary layers FIRMS shows beside the fires (power plants, cement plants) are
-  third-party datasets under their own citations. The fire points are the entry.
+  LICENCE. NASA Earthdata data-use guidance, re-read 2026-10-15: "Unless the content is marked
+  with a use restriction or license, data provided from a NASA-led mission are licensed as
+  Creative Commons Zero (CC0)"; users are "very strongly urged to cite". Cite "NASA FIRMS". The
+  FAQ's one "not available for distribution" item is a display layer, not the fire CSVs.
 
-  ENDPOINT. `/api/area/csv/{MAP_KEY}/{SOURCE}/{west,south,east,north}/{days}` with
-  SOURCE one of VIIRS_NOAA20_NRT, VIIRS_NOAA21_NRT, VIIRS_SNPP_NRT, MODIS_NRT (plus
-  `_SP` standard-processing archives). The API answered 200 on 2026-09-26 and
-  rejected `DEMO_KEY` with "Invalid MAP_KEY", so a key is required. The key is free,
-  sent by email from /api/map_key/, and limited to 5000 transactions per 10-minute
-  interval. A multi-day request counts as several transactions. The API form offers
-  a day range of 1–5 per call (an optional date moves the window back), so a long
-  history is better taken from the archive download than a loop over the API.
+  ENDPOINTS. Two, and only the second needs a key, so `auth: none` and `api` is the first.
+  - Regional text files, no key:
+    `/data/active_fire/{noaa-20-viirs-c2|noaa-21-viirs-c2|suomi-npp-viirs-c2|modis-c6.1}/csv/`
+    `{J1_VIIRS_C2|J2_VIIRS_C2|SUOMI_VIIRS_C2|MODIS_C6_1}_<Region>_{24h|48h|7d}.csv`.
+    J1_VIIRS_C2_Europe_24h.csv answered 200 without a key on 2026-10-15: 35,256 bytes, text/csv,
+    with `last-modified` (so If-Modified-Since works). Columns: latitude, longitude, bright_ti4,
+    scan, track, acq_date, acq_time, satellite, confidence, version, bright_ti5, frp, daynight.
+    VIIRS confidence is spelled out (low/nominal/high). Its first row was 2026-10-13 13:36 UTC in
+    a file modified 2026-10-14 16:41 UTC: "24h" is not a strict window, filter on acq_date+acq_time.
+  - Area API, MAP_KEY required: `/api/area/csv/{MAP_KEY}/{SOURCE}/{w,s,e,n}/{days}`. DEMO_KEY
+    was rejected 2026-09-26. The key is free by email from /api/map_key/, 5,000 transactions per
+    10 min. It only buys a server-side bbox cut of the same points.
 
-  WHY THIS CELL. Environmental|Bioregion's natural-hazards category (added 2026-09-26) carries
-  "Active fire detections, count/yr (VIIRS 375 m hot pixels)". The unit names the sensor because a
-  MODIS 1 km count is a different number. Pilot relevance: peat and field burning around Bali, the
-  central-Chile wildfire season, Catalan summers. Fire radiative power, summed, is the obvious second
-  number and is not a minimum. It was filed first under the land-cover category, before hazards
-  existed.
+  NODE. The PLANETAI `fire` pack, being built on 2026-10-15, will read the regional files with no
+  key. Set `adapter: pack:fire` only once that pack is on the node's main.
 
-  WHAT IT DOES NOT CLAIM. A detection is a hot pixel, not a fire perimeter and not
-  burned area. Industrial flares, kilns and volcanoes show up too, and the static
-  "thermal anomaly" mask only partly removes them. Cloud and smoke hide fires.
-  375 m pixels cannot say whether a field burn is on one farm or the next. Burned
-  area needs MODIS MCD64A1, which is a separate product.
+  WHY THIS CELL. Environmental|Bioregion natural hazards: "Active fire detections, count/yr
+  (VIIRS 375 m hot pixels)". Summed fire radiative power is the obvious second number.
 
-  STILL MISSING. A MAP_KEY on a node, a first pull for one pilot bioregion, and a
-  decision on aggregation (count, sum of FRP, or both). Seen in use downstream: the
-  God's Eye View globe merges all four NRT sources over the last 24 h and caches for
-  30 minutes to stay inside the shared key's quota.
+  WHAT IT DOES NOT CLAIM. A detection is a hot pixel, not a perimeter or burned area (that is
+  MODIS MCD64A1). Flares, kilns and volcanoes show up too; cloud and smoke hide fires.

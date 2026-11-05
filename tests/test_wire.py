@@ -29,6 +29,14 @@ logging.disable(logging.NOTSET)
 import settings  # noqa: E402
 settings._cache = {"at": time.time() + 1e9, "rows": {"AGGREGATE_TOKEN": "agg-tok"}}
 import main  # noqa: E402
+import threading  # noqa: E402
+
+# Importing main starts nothing: the loops, the MQTT client and the bootstrap run from the app's lifespan (main.start).
+# A second import used to run a second node inside the first, and its MQTT client knocked node #1 off the broker.
+_started = sorted(t.name for t in threading.enumerate() if t.name in ("poll_sources", "run_rules", "mqtt", "sc-forward"))
+assert not _started and main._STARTED is False, f"importing main started {_started}"
+import db  # noqa: E402
+assert main.db is db.db and db._pool is None, "importing main opened the connection pool; it opens on first use"
 
 # ---------------------------------------------------------------- the emitters
 # The five constants exist and are the strings the documents carry. Read off the module rather than

@@ -21,7 +21,7 @@ to be wrong**, and two of them change what Phase 2 has to build.
 | 2 | `POST /actions` from anywhere else | `ACT_TOKEN` or `ADMIN_TOKEN` | whatever the body says |
 | 3 | MCP `act` (`app/agent.py`) | none — it posts to loopback | the `agent` argument |
 | 4 | Telegram `/act` (`app/agent_loop.py`) | via 3 | `local-model/telegram` |
-| 5 | LXMF `act <id>` (`app/reticulum_bridge.py`) | `ACT_TOKEN` | `lxmf:<source hash>` |
+| 5 | LXMF `act <id>` (the bridge, fabcity/planetai-reticulum) | `ACT_TOKEN` | `lxmf:<source hash>` |
 | 6 | `planetai act` (`bin/planetai`) | `ACT_TOKEN`/`ADMIN_TOKEN` | **`$(whoami)`** |
 
 `actor` is free text, truncated at 80 characters, and `POST /actions` has *"deliberately no

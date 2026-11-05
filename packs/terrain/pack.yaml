@@ -1,0 +1,33 @@
+id: terrain
+name: Terrain (where the rain goes)
+description: >-
+  This node's own square of elevation from Copernicus DEM, filled and routed here: how much ground drains through
+  the node's point, and how deep water would stand there before it runs on. Each poll multiplies that by the rain
+  the forecast puts on the next day. Read once on command; a surface model at 30 m, so a street block, never a yard.
+author: PLANETAI core (official, prototype)
+version: 0.1.0
+requires: { node: ">=0.76" }
+kind: code
+domain: water
+metrics: [terrain_upslope_ha, terrain_upslope_near_ha, terrain_hollow_m, rain_24h_mm, water_24h_m3]
+scales: [city]
+sources: [environmental/planet/copernicus-dem-glo30]
+pip: [rasterio, numpy]
+env:
+  # No padding after `=`: a value pasted after spaces makes the line `VAR= value`, which shell reads as a command.
+  - "# terrain: half-width of the square around the node, in metres. Water from further uphill than this is not counted."
+  - "TERRAIN_RADIUS_M=5000"
+  - "# terrain: a GeoTIFF of your own (a drone survey, a national LiDAR), used instead of Copernicus when set."
+  - "TERRAIN_DEM_PATH="
+  - "# terrain: that file's licence, in words. Blank means the node computes from it and shows nothing."
+  - "TERRAIN_DEM_LICENCE="
+attribution: >-
+  produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided
+  under COPERNICUS by the European Union and ESA; all rights reserved. The organisations in charge of the Copernicus
+  programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.
+needs: >-
+  Network to copernicus-dem-30m.s3.amazonaws.com (or -90m) on the fetch; nothing else, no key. About half a
+  megabyte for a 10 km square, kept as one small json. Every poll reads the forecast pack's rain from this node's
+  own database, so without the forecast pack there is terrain and no water figure.
+# No `footprint:`. The square is earth's own (same TERRAIN_RADIUS_M default, same centre), and a second claim of
+# the same 10 km would draw one square twice on the map. Add one if the two ever differ.

@@ -72,7 +72,7 @@ if [[ -d "$D" ]]; then bad "  piped, it did not remove the folder"; else ok "  a
 echo "remove: with docker down it does not pretend, and it hands over the names"
 mk; out="$(run y mahon1)"
 grep -q "docker is not running" <<<"$out" && ok "  says docker is not running" || bad "  silent about the daemon"
-for v in db mosquitto reticulum ipfsdata; do
+for v in db mosquitto reticulum ipfsdata grafana grafana-secret; do
   grep -q "docker volume rm planetai_$v" <<<"$out" \
     && ok "  gives the command for planetai_$v" || bad "  no way to delete planetai_$v later"
 done

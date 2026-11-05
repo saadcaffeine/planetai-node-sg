@@ -151,6 +151,8 @@ for f in sorted(glob.glob("config/rules.yml") + glob.glob("packs/*/rules.yml")):
                 if ph not in outs:
                     if ph == "line" and not r.get("kind") and has_watch:
                         continue          # engine-filled from watch.over in main.py, not a SQL column
+                    if ph == "act" and not r.get("kind"):
+                        continue          # main.py fills {act} with this alert's own act_hint once its row exists
                     errs.append(f"{where} [{lang}]: message wants {{{ph}}} but the SQL returns {sorted(outs)}")
 
 for f in sorted(glob.glob("packs/*/cells.yml")):

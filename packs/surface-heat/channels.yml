@@ -1,0 +1,8 @@
+# The ground's skin temperature from orbit. `ambient` because it is the land at a place, but never comparable with
+# an air temperature: a roof in the sun runs ten or twenty degrees above the air beside it, by physics, not by error.
+- { source: landsat-lst, metric: lst,        role: ambient, comparable: false, unit: "°C" }
+- { source: landsat-lst, metric: lst_ring,   role: ambient, comparable: false, unit: "°C" }
+- { source: landsat-lst, metric: lst_delta,  role: derived, comparable: false, unit: "°C" }
+- { source: landsat-lst, metric: lst_pctile, role: derived, comparable: false, unit: "percentile" }
+- { source: modis-lst,   metric: lst_night,  role: ambient, comparable: false, unit: "°C" }
+- { source: modis-lst,   metric: lst_day,    role: ambient, comparable: false, unit: "°C" }

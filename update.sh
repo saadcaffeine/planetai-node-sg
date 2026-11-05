@@ -42,7 +42,7 @@ GET="${PLANETAI_GET:-$SITE/get}"
 # asking the download to vouch for itself. `tools/allowed_signers` carries the same line, and
 # tests/test_release_consistency.sh fails if the copies drift.
 read -r -d '' ALLOWED_SIGNERS <<'SIGNERS' || true
-fabcity ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINbgbaRosyOEVk7c4iBHc5iXn9H7F1s9QGwhXBGt+qay fabcity
+fabcity ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGvxokFMBrpVd/yz/zAhYzIMTp4MZTPp+y5ulSoDX71/ fabcity
 SIGNERS
 
 # Who built this tarball — which the checksum does not answer. SHA256 is served from the same origin as
@@ -227,9 +227,101 @@ while IFS= read -r line; do
 done < .env.example
 [[ $NEW -eq 0 ]] && echo "   nothing new" || warn "${NEW} new setting(s) added with defaults — review .env"
 
+# 5b. a feature that left the core for a pack stays on where it was on (docs/decisions/2026-10-21-core-and-packs.md).
+# A node that lists its packs, in .env or in Set up (a `settings` row wins), gets the pack added to that list when the
+# pack is on, or it would lose the feature on this update. On means any of its keys is set and not 0. An empty list is
+# every pack and needs nothing.
+#   bali-air-dispatch  Bali Air Dispatch's ring, a pack after v0.82.3          BAD_ENABLED
+#   home-assistant     Home Assistant discovery, a pack after v0.83.0          HA_DISCOVERY
+#   smartcitizen       this node's own Smart Citizen kits, after v0.83.0      SC_USER, SC_DEVICES or MQTT_HOST
+#   airgradient        AirGradient monitors on the WiFi, after v0.83.0        AIRGRADIENT_HOSTS
+#   purpleair          PurpleAir sensors on the WiFi, after v0.83.0           PURPLEAIR_HOSTS
+#   air-quality        the CAMS model at this point, after v0.83.0            OPENMETEO_ENABLED
+pq() { docker compose exec -T db psql -U planetai -tAc "$1" planetai 2>/dev/null | tr -d '[:space:]'; }
+for moved in bali-air-dispatch:BAD_ENABLED home-assistant:HA_DISCOVERY smartcitizen:SC_USER,SC_DEVICES,MQTT_HOST \
+           airgradient:AIRGRADIENT_HOSTS purpleair:PURPLEAIR_HOSTS air-quality:OPENMETEO_ENABLED; do
+  pack="${moved%%:*}" on=""
+  IFS=, read -r -a keys <<< "${moved#*:}"
+  for key in "${keys[@]}"; do
+    v="$(pq "SELECT value FROM settings WHERE key = '${key}'")"
+    [[ -z "$v" ]] && v="$(sed -n "s/^${key}=\([^#[:space:]]*\).*/\1/p" .env | tail -1)"
+    [[ -n "$v" && "$v" != 0 ]] && on=1
+  done
+  [[ "$on" == 1 ]] || continue
+  pe="$(pq "SELECT value FROM settings WHERE key = 'PACKS_ENABLED'")"
+  if [[ -n "$pe" && ",$pe," != *",${pack},"* ]]; then
+    pq "UPDATE settings SET value = value || ',${pack}' WHERE key = 'PACKS_ENABLED'" >/dev/null
+    echo "   + ${pack} in the packs Set up lists (it is a pack now)"
+  fi
+  pe="$(sed -n 's/^PACKS_ENABLED=\([^#[:space:]]*\).*/\1/p' .env | tail -1)"
+  if [[ -n "$pe" && ",$pe," != *",${pack},"* ]]; then
+    sed -i.bak "s|^PACKS_ENABLED=${pe}|PACKS_ENABLED=${pe},${pack}|" .env && rm -f .env.bak
+    echo "   + ${pack} in PACKS_ENABLED in .env (it is a pack now)"
+  fi
+done
+
+# 5c. a pack that became core leaves the lists (docs/decisions/2026-10-21-core-and-packs.md): its rules run on every
+# node now, so a list that names it names nothing. A list that named only it stays, because emptied it would mean
+# every pack. trust, core after v0.83.0.
+without() { tr , '\n' <<< "$1" | { grep -vx "$2" || true; } | paste -sd , -; }
+for gone in trust; do
+  pe="$(pq "SELECT value FROM settings WHERE key = 'PACKS_ENABLED'")"
+  if [[ ",$pe," == *",${gone},"* && -n "$(without "$pe" "$gone")" ]]; then
+    pq "UPDATE settings SET value = '$(without "$pe" "$gone")' WHERE key = 'PACKS_ENABLED'" >/dev/null
+    echo "   - ${gone} out of the packs Set up lists (it is core now)"
+  fi
+  pe="$(sed -n 's/^PACKS_ENABLED=\([^#[:space:]]*\).*/\1/p' .env | tail -1)"
+  if [[ ",$pe," == *",${gone},"* && -n "$(without "$pe" "$gone")" ]]; then
+    sed -i.bak "s/^PACKS_ENABLED=.*/PACKS_ENABLED=$(without "$pe" "$gone")/" .env && rm -f .env.bak
+    echo "   - ${gone} out of PACKS_ENABLED in .env (it is core now)"
+  fi
+done
+
+# 5d. an issue ships in the pack that watches it since 23 Oct 2026 (packs/<id>/issue.yml), and is read only while
+# that pack is on. A node that lists its packs and names the issue in NODE_ISSUES (or leaves NODE_ISSUES empty, which
+# draws every issue) gets the pack added, or the issue would vanish from its page on this update.
+issues_named="$(pq "SELECT value FROM settings WHERE key = 'NODE_ISSUES'")"
+[[ -z "$issues_named" ]] && issues_named="$(sed -n 's/^NODE_ISSUES=\([^#[:space:]]*\).*/\1/p' .env | tail -1)"
+for owned in air:air-quality heat:heat coast:coast land:earth water:terrain; do
+  issue="${owned%%:*}" pack="${owned#*:}"
+  [[ -z "$issues_named" || ",$issues_named," == *",${issue},"* ]] || continue
+  pe="$(pq "SELECT value FROM settings WHERE key = 'PACKS_ENABLED'")"
+  if [[ -n "$pe" && ",$pe," != *",${pack},"* ]]; then
+    pq "UPDATE settings SET value = value || ',${pack}' WHERE key = 'PACKS_ENABLED'" >/dev/null
+    echo "   + ${pack} in the packs Set up lists (it carries the ${issue} issue now)"
+  fi
+  pe="$(sed -n 's/^PACKS_ENABLED=\([^#[:space:]]*\).*/\1/p' .env | tail -1)"
+  if [[ -n "$pe" && ",$pe," != *",${pack},"* ]]; then
+    sed -i.bak "s/^PACKS_ENABLED=.*/PACKS_ENABLED=${pe},${pack}/" .env && rm -f .env.bak
+    echo "   + ${pack} in PACKS_ENABLED in .env (it carries the ${issue} issue now)"
+  fi
+done
+
+# 5e. a feature that left the core with no switch of its own (docs/decisions/2026-10-21-core-and-packs.md) was on for
+# every node, so a node that lists its packs gets it added: it would otherwise lose it on this update. things (the
+# things a home keeps and its offers) and eyes (captures, the image model, species), both after v0.83.0.
+for always in things eyes; do
+  pe="$(pq "SELECT value FROM settings WHERE key = 'PACKS_ENABLED'")"
+  if [[ -n "$pe" && ",$pe," != *",${always},"* ]]; then
+    pq "UPDATE settings SET value = value || ',${always}' WHERE key = 'PACKS_ENABLED'" >/dev/null
+    echo "   + ${always} in the packs Set up lists (it is a pack now)"
+  fi
+  pe="$(sed -n 's/^PACKS_ENABLED=\([^#[:space:]]*\).*/\1/p' .env | tail -1)"
+  if [[ -n "$pe" && ",$pe," != *",${always},"* ]]; then
+    sed -i.bak "s/^PACKS_ENABLED=.*/PACKS_ENABLED=${pe},${always}/" .env && rm -f .env.bak
+    echo "   + ${always} in PACKS_ENABLED in .env (it is a pack now)"
+  fi
+done
+
 # 6. rebuild and restart
 say "rebuilding"
 spin "building the image (pip installs; a minute or two)" docker compose build app || die "the image did not build; the node keeps running the version it had. See $ULOG"
+# The Reticulum bridge, where it is on, fetched again when bin/planetai pins a new commit and rebuilt, so the node runs
+# the bridge its release names. Before 23 Oct 2026 an update never rebuilt it. Its identity is in the `reticulum`
+# volume, so the address stays. A bridge that does not build is not a failed update: the old one keeps running.
+case ",$(envval COMPOSE_PROFILES)," in *,reticulum,*)
+  spin "building the Reticulum bridge" ./bin/planetai reticulum build || warn "the Reticulum bridge did not build; it keeps running the one it had. See $ULOG";;
+esac
 # stamp the version the node now runs, so /health and planetai status report it: from git in a clone, from the
 # VERSION file the tarball carries otherwise. After the build, not
 # before: a failed build must not leave .env claiming a version the containers never ran.
@@ -269,9 +361,17 @@ if grep -q "planetai packs install" <<< "$(./bin/planetai packs 2>/dev/null)"; t
   warn "a pack here declares Python libraries or settings this image does not have yet."
   warn "Run:  planetai packs install     (a rebuild, a few minutes)  then  planetai restart"
 fi
+# The crontab line Install on Set up › Packs needs (v0.91), on a node installed before it existed. Adds nothing twice.
+./bin/planetai packs cron 2>/dev/null || true
 if [[ -f config/rules.yml.before-update ]] && ! diff -q config/rules.yml config/rules.yml.before-update >/dev/null 2>&1; then
   warn "config/rules.yml changed in this update. Your previous copy: config/rules.yml.before-update"
   warn "If you had edited thresholds, re-apply them — or better, move them into a pack (docs/PACKS.md)."
 fi
 [[ $ok -eq 1 ]] || die "something is off: docker compose logs app | tail -40"
 say "updated. Nothing was lost: $(docker compose exec -T db psql -U planetai -tAc 'SELECT count(*) FROM readings' planetai | tr -d ' ') readings, $(docker compose exec -T db psql -U planetai -tAc 'SELECT count(*) FROM alerts' planetai | tr -d ' ') alerts, $(docker compose exec -T db psql -U planetai -tAc 'SELECT count(*) FROM actions' planetai | tr -d ' ') actions."
+
+# The whole doctor, with the node's data sources and what is still to do, most important first: an update is when a
+# keeper is at the terminal anyway. It never fails an update that has already succeeded, and with no terminal (cron,
+# an agent over ssh) it prints and asks nothing.
+echo
+./bin/planetai doctor --guide || true
