@@ -1,5 +1,5 @@
 # Turn an old laptop into a node
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page puts Linux on an old laptop so it can run a node. It is the route for a Mac that no container runtime
 supports any more, and for any x86_64 laptop from about 2015 on. A 2015 quad-core with 16 GB outruns the mini PC

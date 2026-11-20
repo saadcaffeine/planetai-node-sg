@@ -56,3 +56,6 @@ tests/visual/sizes.json
 # planetai radio: the fleet's channel keys, and the broker bridges' peer passwords. Credentials.
 config/radio/
 config/mosquitto/bridges/
+
+# tools/shots.py output, kept out of a repo households install from
+docs/design/shots/

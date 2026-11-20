@@ -129,7 +129,8 @@ def buckets_sql() -> str:
     src = inspect.getsource(index._buckets)
     m = re.search(r'cur\.execute\(\s*"""(.*?)"""', src, re.S)
     assert m, "app/index.py::_buckets no longer runs one triple-quoted statement — update this extractor"
-    return m.group(1)
+    import packs
+    return m.group(1) + packs.public_sql("r")       # the statement ends `AND ` and index.py adds the public-channel predicate
 
 
 BUCKETS = buckets_sql()

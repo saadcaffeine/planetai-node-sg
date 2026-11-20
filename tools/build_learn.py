@@ -107,7 +107,7 @@ MARKS = [
      "The request ledger below is this page confessing what it asked of the world while you looked "
      "at it. The offline plan asks nothing; Telegram is reached by the node, never by this page."),
     ("raw", "Raw readings stay", "how-it-works.md", "What leaves the machine, and what never does",
-     "Raw readings stay.", "under CC BY 4.0",
+     "Raw readings stay.", "chooses to share with it;",
      "The strips under Observe are hourly means, one cell an hour: the finest time step this "
      "page shows, and still not a raw reading."),
     ("levels", "Three levels, one floor", "alerts.md", "Levels",
@@ -297,11 +297,11 @@ MARKS = [
      "This part shows only with the admin token, because it is the house's own record. The whole diary "
      "and every case are on Node, under What it remembers."),
     ("now-rows", "Every issue, a row each", "dashboard.md", "Now",
-     "**Around the house.** A row for each issue", "moves the page to that issue.",
+     "**Around the house** opens the right column. A row for each issue", "moves the page to that issue.",
      "Each row carries the node's state word, the value now and today's hours over the line. Press one "
      "and the whole door moves to that issue."),
     ("now-bands", "A pack's own band", "dashboard.md", "Now",
-     "**A pack's own band.** A pack can declare a band", "`measure` under Did it work.",
+     "**A pack's own band.** A pack can declare a band", "`measure` at the foot of the right column.",
      "Each row is one reading the node holds. Its source, how it was got and how old it is are said once under the "
      "band's title, and again on a row only where they change. The pack's own note is folded under How this is read."),
     ("now-next", "The next three days", "dashboard.md", "Now",
@@ -309,43 +309,47 @@ MARKS = [
      "The rows are drawn from GET /forecast, asked when Now is drawn and kept for 30 minutes. Press a row for its 72 hours "
      "against the line. These are models: nothing on this part asks you to act or sends a message."),
     ("now-around", "The stations around the house", "dashboard.md", "Now",
-     "Under them, the map of the stations", "for a screen with the token.",
+     "**The air around it**, under Around the house", "the distance rings and cells.",
      "Press a station to open its readings in Data. Without WebGL the map is drawn as a rose of "
      "bearings and distances instead."),
     ("now-things", "What this home keeps", "dashboard.md", "Now",
      "With the admin token one line counts", "and opens Data › Home.",
      "The line counts the things, how many sit idle and how many need repair, and opens the list in "
      "Data › Home. Only a thing you mark to lend or give is ever published."),
-    ("place-head", "The ground around the house", "dashboard.md", "Place",
-     "The ground around the house.", "removes it)",
+    ("now-city", "Local production capacity in the city", "dashboard.md", "Now",
+     "**Local production capacity in the city**, under the map", "one lit for each cell measured.",
+     "The screen reads GET /index/place, the copy the index pack reads once a day, so Now never waits on "
+     "index.fab.city. The numbers are the Index's own; the node does not work them out."),
+    ("place-head", "The ground around the house", "place.md", "The head",
+     "The head gives", "removes it)",
      "The cell id is printed whole. Type a question in the line under it and the Ask pane opens with "
      "it; press / to get there from anywhere on this door. With UI_ASK off the line is not there."),
-    ("place-image", "Add an image", "dashboard.md", "Place",
-     "**+ Add an image** (token only)", "describes it.",
+    ("place-image", "The Image key", "place.md", "Images and species",
+     "**The Image key** (token only)", "**A new photo** on its own.",
      "The picture stays on this node, cleaned of EXIF and GPS, and lands on the map where its own GPS "
      "says it was taken, else in the node's cell."),
-    ("place-layers", "The layers", "dashboard.md", "Place",
-     "**What the place is made of.**", "the ground at the bottom.",
+    ("place-layers", "The layers", "place.md", "The layers",
+     "On the left is a list", "the ground at the bottom.",
      "What this place is made of, with the sky at the top and the ground at the bottom, and what the node does not hold yet. A filled "
      "dot is on, a hollow one off, and a dotted one is a layer the node cannot draw yet, named by its source."),
-    ("place-map", "The screen", "dashboard.md", "Place",
-     "**The screen.**", "and on the dark one.",
+    ("place-map", "The screen", "place.md", "The screen",
+     "In the middle is the map", "the dark one.",
      "Every distance on this door is measured by the node from its own point. Without the token the "
      "house's marks say withheld, because together they would place the house."),
-    ("place-tools", "The tools", "dashboard.md", "Place",
-     "**The tools.**", "sits in a pill while it is on.",
+    ("place-tools", "The tools", "place.md", "The tools",
+     "**Tools**, beside the ask line", "15 km rings from the node's point.",
      "The tools that run on this node today, and the ones still to come, marked not yet. Rings and "
      "distance draws the 2, 5 and 15 km rings from the node's own point. Without a token they stay quiet."),
-    ("place-orbit", "From orbit", "dashboard.md", "Place",
-     "the node's Sentinel-2 annual medians", "by its AlphaEarth record",
+    ("place-orbit", "From orbit", "place.md", "What changed",
+     "what changed year on year", "the buildings it counts",
      "Two of the node's own Sentinel-2 years side by side, from files it already holds. Nothing is "
      "fetched while you look."),
-    ("place-species", "Species confirmed here", "dashboard.md", "Place",
+    ("place-species", "Species confirmed here", "place.md", "Images and species",
      "**Species confirmed here**", "token only.",
      "Only what a person here confirmed in an image is counted. Where a picture was taken places the "
      "house, so the table needs the token."),
-    ("place-changing", "What is changing", "dashboard.md", "Place",
-     "**The place in figures**", "and the forecast).",
+    ("place-changing", "What is changing", "place.md", "What changed",
+     "**The place in figures**", "what is not here yet.",
      "Land and coast change yearly, so they are here and not on Now. What the node cannot read yet is "
      "named here as missing."),
     ("node-verdict", "Working, or needs a look", "dashboard.md", "Node",
@@ -419,24 +423,20 @@ MARKS = [
      "This tab lists every route on this node, one line each, with a search. The doors read the same "
      "routes a script or a spreadsheet can."),
     ("wall-never", "What the Wall never shows", "wall.md", "What the Wall never shows",
-     "Anyone in the room reads the Wall", "or a button to answer.",
-     "That is why this screen holds no token and no button. An answer belongs on Telegram, the radio or "
-     "the other doors."),
+     "Anyone in the room reads the Wall", "so the Wall leaves it out.",
+     "The house is never placed finer than its cell, public places like the lab are drawn where they are. "
+     "The screen holds no token and no button to answer, an answer belongs on Telegram, the radio or the other doors."),
     ("wall-sentence", "The time and the sentence", "wall.md", "What it shows",
-     "**The time and the sentence**", "\"Nothing is\n  asked now.\"",
+     "**The time and the sentence**", "\"Nothing is asked now.\"",
      "When the node's last poll is more than 15 minutes old, the time says the readings are old."),
-    ("wall-map", "The map", "wall.md", "What it shows",
-     "**The map**: the stations around the house", "red when it is over the line.",
-     "The caption under the map says in words what the red discs mean against the house, at the hour "
-     "they show."),
-    ("wall-walk", "The walk, a scale at a time", "wall.md", "The walk",
-     "Each scale holds while its day is replayed", "lets\nthe walk go on.",
-     "House, street, ring and region, each framed on its own cell. With reduced motion on, the Wall "
-     "holds the street at the last hour."),
-    ("wall-page", "The page for each scale", "wall.md", "The walk",
-     "Every figure says when it is from", "a sensor's name never appears.",
-     "At the house it draws each issue and the day inside, at the street what is usual outside, at the "
-     "ring the land within 1 km, and at the region what the satellites see."),
+    ("wall-map", "The map", "wall.md", "The three sizes",
+     "Each size holds one replayed day", "has fewer chapters.",
+     "The map walks out from the house, the base node's seven cells first, then the community's and the city's, "
+     "and then starts again. The wind and the swell move on it at the same hour."),
+    ("wall-strip", "The strip", "wall.md", "What it shows",
+     "**The strip**", "where the reading has one.",
+     "The swell and the wind each have a needle that points where they go, and the hour at the end of the "
+     "strip is the one the map shows."),
     ("wall-narration", "The node, thinking aloud", "wall.md", "The node, thinking aloud",
      "The node tells it to speak", "that anything is safe.",
      "A new text comes every ten minutes from the model chosen in Set up › Model, and the box says it "
@@ -624,6 +624,9 @@ QUESTIONS = {
     'now-things': {"en": ['Which of our things need repair?', 'What could we lend to a neighbour?'],
         "id": ['Barang kami mana yang perlu diperbaiki?', 'Apa yang bisa kami pinjamkan ke tetangga?'],
         "es": ['¿Qué cosas nuestras necesitan arreglo?', '¿Qué podríamos prestarle a un vecino?']},
+    'now-city': {"en": ['How is our city doing on the Fab City Index?', 'Why is this a range and not a number?'],
+        "id": ['Bagaimana kota kami di Fab City Index?', 'Mengapa ini rentang dan bukan satu angka?'],
+        "es": ['¿Cómo está nuestra ciudad en el Fab City Index?', '¿Por qué es un rango y no un número?']},
     'place-head': {"en": ['How big is the area this node covers?', 'What does the satellite show changed here?'],
         "id": ['Seberapa luas area yang dicakup node ini?', 'Menurut satelit, apa yang berubah di sini?'],
         "es": ['¿Qué tamaño tiene la zona que cubre este nodo?', '¿Qué cambió aquí según el satélite?']},
@@ -708,15 +711,12 @@ QUESTIONS = {
     'wall-sentence': {"en": ['Is anything being asked of us right now?', 'Are these readings fresh?'],
         "id": ['Apakah ada yang diminta dari kami sekarang?', 'Apakah bacaan ini masih baru?'],
         "es": ['¿Se nos está pidiendo algo ahora?', '¿Son recientes estas lecturas?']},
-    'wall-map': {"en": ['Which way is the wind blowing?', 'What do the red circles mean?'],
-        "id": ['Ke arah mana angin bertiup?', 'Apa arti lingkaran merah itu?'],
-        "es": ['¿Hacia dónde sopla el viento?', '¿Qué significan los círculos rojos?']},
-    'wall-walk': {"en": ['Why does the map keep moving out?', 'How do I keep it on our street?'],
-        "id": ['Mengapa peta terus bergerak menjauh?', 'Bagaimana agar peta tetap di jalan kami?'],
-        "es": ['¿Por qué el mapa se va alejando?', '¿Cómo lo dejo quieto en nuestra calle?']},
-    'wall-page': {"en": ['What is the land around us made of?', 'Are there fires nearby?'],
-        "id": ['Tanah di sekitar kami terdiri dari apa saja?', 'Apakah ada kebakaran di dekat sini?'],
-        "es": ['¿De qué está hecho el terreno de alrededor?', '¿Hay incendios cerca?']},
+    'wall-map': {"en": ['Why does the map keep zooming out?', 'What are the hexagons on the map?'],
+        "id": ['Mengapa petanya terus memperkecil?', 'Apa segi enam di peta itu?'],
+        "es": ['¿Por qué el mapa se sigue alejando?', '¿Qué son los hexágonos del mapa?']},
+    'wall-strip': {"en": ['Which way is the wind blowing?', 'Is the swell bigger than this morning?'],
+        "id": ['Ke arah mana angin bertiup?', 'Apakah ombaknya lebih besar dari tadi pagi?'],
+        "es": ['¿Hacia dónde sopla el viento?', '¿El oleaje es más grande que esta mañana?']},
     'wall-narration': {"en": ['What does the node suggest for today?', 'Which model writes this text?'],
         "id": ['Apa saran node untuk hari ini?', 'Model mana yang menulis teks ini?'],
         "es": ['¿Qué sugiere el nodo para hoy?', '¿Qué modelo escribe este texto?']},

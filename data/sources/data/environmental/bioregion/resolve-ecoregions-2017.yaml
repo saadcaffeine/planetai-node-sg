@@ -1,0 +1,42 @@
+name: RESOLVE Ecoregions 2017
+url: https://ecoregions.appspot.com/
+description: |
+  The world's 846 terrestrial ecoregions in 14 biomes and 8 realms (Dinerstein et al. 2017), with each one's Nature Needs
+  Half category. One shapefile, the revision of the 2001 WWF map. Names the ecoregion a place sits in.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: CC-BY-4.0
+api: https://storage.googleapis.com/teow2016/Ecoregions2017.zip
+pilot_relevance: [global]
+places: [bali, barcelona, charlotte, kamakura, puebla]
+tags: [ecoregions, biomes, realms, biodiversity, nature-needs-half, resolve, wwf, polygons, spatial-framework]
+added: 2026-11-08
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-08.
+
+  LICENCE. CC-BY-4.0. ecoregions.world and ecoregions.appspot.com label the shapefile "Licensed under CC-BY 4.0"; the
+  Earth Engine catalog (RESOLVE/ECOREGIONS/2017) gives "Terms of Use: CC-BY-4.0"; and every one of the 847 records in
+  the zip carries LICENSE = "CC-BY 4.0". The BioScience paper itself (doi:10.1093/biosci/bix014) is a separate work
+  under OUP's terms. Cite Dinerstein et al. (2017) BioScience 67(6): 534-545.
+
+  ENDPOINT. One 150 MB zip on Google Cloud Storage, no key; EPSG:4326, 847 polygons (846 ecoregions plus Rock and Ice,
+  ECO_ID 0). Fields ECO_NAME, BIOME_NAME, REALM, NNH, NNH_NAME, COLOR. No API and no point lookup. Reading the zip over
+  /vsicurl/ took 408 s, so download it once.
+
+  READ. Point lookups on the full shapes: Ungasan, Bali -> Eastern Java-Bali rain forests, Nature Imperiled; Barcelona
+  -> Northeast Spain and Southern France Mediterranean forests, Nature Could Recover; Charlotte -> Appalachian Piedmont
+  forests; Kamakura -> Taiheiyo evergreen forests; Puebla -> Trans-Mexican Volcanic Belt pine-oak forests. fci-index
+  compute/bioregions.py places all 61 Fab City centres and the 26 countries in it for index.fab.city's map and pages.
+
+  WHY THIS ENTRY. It names the bioregion a place belongs to, which no other entry does. No cell: it is a frame for the
+  Environmental|Bioregion row, not an indicator.
+
+  WHAT IT DOES NOT CLAIM. An ecoregion is potential natural vegetation drawn at continental scale. The Bukit at Ungasan
+  is dry limestone inside a "rain forest" polygon. NNH_NAME comes from forest loss 2000-2015 and WDPA 2016 and has not
+  changed since; under the Index's age discount it would count close to nothing. The data spells one category "Nature
+  Could Reach Half Protected" where the paper says "Nature Could Reach Half".

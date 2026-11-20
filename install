@@ -51,7 +51,7 @@ if [[ "${PLANETAI_PREFLIGHT:-1}" == 1 ]]; then
   if [[ -r "$pf_dir/tools/preflight.sh" ]]; then
     pf=0; bash "$pf_dir/tools/preflight.sh" || pf=$?   # `; pf=$?` would abort under set -e
   else
-    pf_src="$(curl -fsSL "${REPO/github.com/raw.githubusercontent.com}/${REF}/tools/preflight.sh")" \
+    pf_src="$(curl -fsSL --retry 3 "${REPO/github.com/raw.githubusercontent.com}/${REF}/tools/preflight.sh")" \
       || die "could not reach the network to check this machine. Are you online?"
     pf=0; bash -c "$pf_src" || pf=$?
   fi
@@ -109,7 +109,7 @@ verify_signature() {
    Debian/Ubuntu:  sudo apt-get install -y openssh-client
    Arch:           sudo pacman -S openssh
    Then run the same line again. (macOS already has it.)"; }
-  curl -fsSL "${GET}/planetai-node.tar.gz.sig" -o "$d/n.sig" \
+  curl -fsSL --retry 3 "${GET}/planetai-node.tar.gz.sig" -o "$d/n.sig" \
     || { rm -rf "$d"; die "could not fetch ${GET}/planetai-node.tar.gz.sig, so it is not known who built this download. Nothing was installed."; }
   printf '%s\n' "$ALLOWED_SIGNERS" > "$d/allowed_signers"
   # -n planetai-node is the namespace: a valid signature made for anything else does not verify here.
@@ -123,13 +123,14 @@ verify_signature() {
 fetch_tarball() {
   local url="${GET}/planetai-node.tar.gz" tmp
   tmp="$(mktemp -d)"
+  # --retry 3: GitHub answers a release download with a 504 now and then (CI, 9 Nov). curl retries 408, 429 and 5xx.
   say "downloading the node from ${SITE}"
-  curl -fsSL "$url" -o "$tmp/n.tar.gz" || { rm -rf "$tmp"; die "could not download $url"; }
+  curl -fsSL --retry 3 "$url" -o "$tmp/n.tar.gz" || { rm -rf "$tmp"; die "could not download $url"; }
   # The checksum is not optional. This used to skip silently when `shasum` was missing (it is macOS's name;
   # Debian ships `sha256sum`), so on some machines the tarball was simply trusted. It is the only path now.
   local sum=""; command -v shasum >/dev/null && sum="shasum -a 256"; [[ -n "$sum" ]] || { command -v sha256sum >/dev/null && sum="sha256sum"; }
   [[ -n "$sum" ]] || { rm -rf "$tmp"; die "no shasum or sha256sum on this machine, so the download cannot be verified. Install one, then run this again."; }
-  curl -fsSL "${GET}/SHA256" -o "$tmp/sha" || { rm -rf "$tmp"; die "could not fetch ${GET}/SHA256, so the download cannot be verified."; }
+  curl -fsSL --retry 3 "${GET}/SHA256" -o "$tmp/sha" || { rm -rf "$tmp"; die "could not fetch ${GET}/SHA256, so the download cannot be verified."; }
   local want got; want="$(tr -d '[:space:]' < "$tmp/sha")"; got="$($sum "$tmp/n.tar.gz" | awk '{print $1}')"
   [[ "$want" == "$got" ]] || { rm -rf "$tmp"; die "the download does not match its published checksum. Try again; if it repeats, tell us."; }
   say "checksum verified"

@@ -1,5 +1,5 @@
 {
-  "_what_this_is": "A stand-in for GET /earth, /trust and /forecast, written by hand for tests/visual/gate.sh. It is NOT a capture from any node — no node has ever had all three populated at once for a script to capture. It exists only so measure.mjs has something plausible to serve when PAI_RICH=1, so the satellite strip, the AlphaEarth record, the trust card and the forecast card can be looked at populated at least once. Keep it small: this is a fixture for a rendering test, not sample data.",
+  "_what_this_is": "A stand-in for GET /earth, /trust, /forecast and /energy, written by hand for tests/visual/gate.sh. It is NOT a capture from any node — no node has ever had all three populated at once for a script to capture. It exists only so measure.mjs has something plausible to serve when PAI_RICH=1, so the satellite strip, the AlphaEarth record, the trust card and the forecast card can be looked at populated at least once. Keep it small: this is a fixture for a rendering test, not sample data.",
 
   "earth": {
     "node": "bayu-2", "enabled": true, "years": [2019, 2022, 2025], "bytes": 201326592,
@@ -12,6 +12,8 @@
     "attribution": "The AlphaEarth Foundations Satellite Embedding dataset is produced by Google and Google DeepMind. CC BY 4.0.",
     "hint": "3 year(s) cached, nothing compared yet: planetai run earth change"
   },
+
+  "energy": {"grid": "bali", "kind": "estimated", "method": "capacity-factors", "months": null, "share": {"low": 0.8419, "high": 0.9896, "value": null, "now": null, "stale": false, "as_of": "2026-11-08T06:00:00+00:00"}, "bar": [{"label": "gas", "fossil": true, "share": 0.56, "hatched": false}, {"label": "coal", "fossil": true, "share": 0.42, "hatched": false}, {"label": "Java–Bali 150 kV submarine cables", "fossil": true, "share": null, "hatched": true, "note": "share not published"}, {"label": "solar", "fossil": false, "share": 0.02, "hatched": false}], "sources": [{"name": "GIS Pecatu", "kind": "substation", "fuel": null, "mw": null, "km": 2.4, "ring": "city", "fossil": null}, {"name": "PLTDG Pesanggaran", "kind": "plant", "fuel": "gas", "mw": 336.0, "km": 12.0, "ring": "city", "fossil": true}, {"name": "PLTU Celukan Bawang", "kind": "plant", "fuel": "coal", "mw": 380.0, "km": 77.0, "ring": "region", "fossil": true}, {"name": "Java–Bali 150 kV submarine cables", "kind": "link", "fuel": null, "mw": null, "km": 95.8, "ring": "beyond", "fossil": true}], "today": {"sun_kwh_m2": 5.4, "roof_kwh": 3.8, "use_kwh": null, "measured": false}, "household": null, "attribution": ["© OpenStreetMap contributors, ODbL, via Overpass", "Ember Yearly Electricity Data (CC BY 4.0)"]},
 
   "trust": [
     { "sensor_id": "sc-1234", "name": "Front porch", "coverage_7d": 42, "frozen_channels": 0, "age_hours": 900 },

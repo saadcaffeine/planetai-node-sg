@@ -352,7 +352,8 @@ def ask_status():
             # True when the question and the page's context may leave the house: an online rung is in the
             # order, which only AGENT_PREFER fallback or strongest allows.
             "leaves": any(r.leaves for r in order),
-            "tools": [{"name": n, "class": TOOL_CLASS[n]} for n in sorted(agent_loop.PANE_TOOLS)],
+            "tools": [{"name": n, "class": TOOL_CLASS[n]} for n in sorted(agent_loop.PANE_TOOLS)]
+                     + [{"name": n, "class": "page"} for n in sorted(agent_loop.PANE_PAGES)],
             "stored": False}
 
 
@@ -376,6 +377,9 @@ def _proposal(p: dict, loc: str) -> dict:
         # The id only. A note is the person's own sentence about what they did; a model's draft of it on the card
         # would be words put in their mouth, and ρ is built out of those sentences. The card asks them to write it.
         out["args"] = {"alert_id": (p.get("args") or {}).get("alert_id")}
+    if p.get("tool") == "place_report":
+        # the register only, and Paper unless the person asked for the black one; the address is the page's own
+        out["args"] = {"register": "screen" if (p.get("args") or {}).get("register") == "screen" else "paper"}
     if p.get("tool") == "settings_set":
         changes = (p.get("args") or {}).get("changes") or {}
         key = next(iter(changes), None)
@@ -414,7 +418,7 @@ def _sse(event: str, data: dict) -> str:
 # carrying the household's own token (admin or act) or this machine itself, and never to the Wall, which is read by
 # whoever walks past. /ask is on the SHARE_LEVEL=open allowlist, so without this a stranger on the network could ask
 # the pane what the household did and when.
-HOUSE_TOOLS = frozenset({"learned"})
+HOUSE_TOOLS = frozenset({"learned", "place_report"})   # the report draws the house's map, which only the token shows (SPEC_place_report §6)
 
 
 def _house(request: Request) -> bool:

@@ -1,5 +1,5 @@
 # Concepts
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The words the other pages use, each with what it means in the code. Several come in pairs that sound alike
 and are not (`local` and `custody`, domain and issue, `kind` and `scale`, decided and acted). Most of them
@@ -25,14 +25,14 @@ kilometre: 497 m for node #1's cell, measured from the cell itself. The page pri
 fifteen-character id such as `8895a4c843fffff`, with its edge length beside it. Resolution 8 is coarser than
 the three-decimal rounding of the node's position, so publishing the cell does not put the position back.
 
-**The ladder.** The same place at eleven rungs, resolution 2 to 12, opening at 8, on the dashboard and on
-the wall. Each rung carries one cell's size and how many stations fall in it. The node publishes its own resolution 8 cell, in `/health`,
+**The ladder.** The same place at eleven rungs, resolution 2 to 12, opening at 8, on the classic dashboard and
+its wall. The Wall on the doors walks three sizes of node instead ([Wall mode](wall.md)). Each rung carries one cell's size and how many stations fall in it. The node publishes its own resolution 8 cell, in `/health`,
 the export and the node list, and announces nothing finer than resolution 6 over Reticulum. Rungs finer than about
 110 m are finer than the node says where it is, because `/health` rounds its position to three decimals. The
 node computes the whole table and the page draws it.
 
-**Issue.** What a household calls a quality of its place: `air`, `heat`, `land`, `coast`, `water`, with noise
-and energy designed. Declared one file each, an `issue.yml` in the pack that watches it, ordered by `NODE_ISSUES`, the keeper's
+**Issue.** What a household calls a quality of its place: `air`, `heat`, `land`, `coast`, `water`, `energy`, with noise
+designed. Declared one file each, an `issue.yml` in the pack that watches it, ordered by `NODE_ISSUES`, the keeper's
 order, most important first. An issue is *sensed* when it has eyes on it and rules that can ask for
 something, *context* when it informs and never asks. See [Issues](issues.md).
 
@@ -50,8 +50,9 @@ with the core; in a pack's `adapter.py` for a code pack. The contract is on the 
 never reassigned.
 
 **`local`.** Two facts at once: an adapter says whether a sensor is *yours*, and the node checks whether it
-is *here*, within `LOCAL_RADIUS_M` (500 m) of the node. A kit on your account 1.2 km away is yours and is
-not this node's measurement. A sensor with no coordinates that arrives over your own gateway stays local.
+is *here*, in one of the node's own cells: the resolution-8 cell it stands in and the neighbours you claimed
+on [Place](place.md#the-seven-cells). A kit on your account outside them is yours and is not this node's
+measurement. A sensor with no coordinates that arrives over your own gateway stays local.
 
 **`indoor`.** Carried on every sensor and honoured by every rule. An indoor sensor measures a room and never
 enters an ambient average.
@@ -86,7 +87,7 @@ they are casa · calle · alrededores · región. The keys stay as they are on t
 place that is not a column. A distance says whose instrument it is and has no scale: nothing maps a distance
 to an H3 resolution.
 
-**Registry.** A pinned snapshot of `awesome-fabcity-data`, 284 entries at `7bf12a4`, served at `/sources` and
+**Registry.** A pinned snapshot of `awesome-fabcity-data`, 296 entries at `d106bb8`, served at `/sources` and
 listed by `planetai sources`. Most entries are things this place could measure; some are places to go and
 designs to build. See [The source registry](sources.md).
 
@@ -111,7 +112,7 @@ is an *open alert*.
 sensor until its cooldown has passed.
 
 **Action.** A row in `actions`: `alert_id`, `stage`, `actor`, `note`, and `choice`, the button pressed. `SPEC.md` calls this table "the
-Index's instrument, not an app feature", and ρ is computed from it and nowhere else. A row has one of six
+Index's instrument, not an app feature", and ρ is computed from it and nowhere else. A row has one of seven
 stages:
 
 | stage | means |
@@ -122,6 +123,7 @@ stages:
 | `measured` | the outcome was checked; the schema allows it, nothing writes it, and the funnel derives it instead |
 | `settings` | an audit row for a setting change, with no alert |
 | `dismissed` | an alert event's advice did not fit the house |
+| `place` | an audit row for a drawing, a change, a download or a share on Place, with no alert |
 
 `POST /actions` takes `acknowledged`, `acted` or `decided` for an alert, and `acknowledged`, `acted` or
 `dismissed` for an alert event. A `choice` replaces the stage: the button sets it.
@@ -213,14 +215,14 @@ boundary conditions, context published downward and never rolled up, which is th
 `/presence`, `/llms.txt`, the daily export, the programme's node list at `/nodes`, `/offers` while the
 `things` pack is on, and `/settings` reduced to
 the layout and the sharing level. At `open` it is the whole read API, which is what a wall screen without a
-token needs, plus the map's public layers under `/ground/*` and `/geo/cell` without its node-relative fields.
+token needs, plus the map's public layers under `/ground/*`, `/geo/cell` without its node-relative fields and `/wall`, the Wall's map, cut round the centre of the house's cell.
 Two more levels, `cell` and `means`, are named and refused. Every untrusted JSON answer names the house's rooms
 and sensors only as "Room A" and "Sensor 1". See [Sharing](sharing.md).
 
 **Tokens.** `ADMIN_TOKEN` unlocks every write and the agent surface. `BACKUP_TOKEN` is read-only, for a NAS
 pulling dumps and the report bundle. `ACT_TOKEN` closes a loop, from a phone or from the dashboard's **I did
 this**, and can read no secret. `AGGREGATE_TOKEN` is what this node demands from its children; it opens only
-`POST /aggregates` and `POST /events`, and anything else a child asks is answered as to a stranger.
+`POST /aggregates`, `POST /events` and the two routes that take a shared Place map and its photos, and anything else a child asks is answered as to a stranger.
 `PARENT_TOKEN` is what it presents to its parent. All travel as `Authorization: Bearer <token>`.
 
 **Loopback.** A request from `127.0.0.1` inside the container (the node's own MCP tools, a shell in the
@@ -228,7 +230,7 @@ container) is trusted without a token. A browser on the host machine arrives fro
 not loopback.
 
 **Parent and child.** A child posts the hourly means of its own sensors to its parent's `/aggregates` and alert timestamps to
-`/events`; the parent stores the means under `<child>/<sensor_id>` with `kind='child'`. Raw never travels the
+`/events`, and a Place map the household shares to `/place/maps/received`; the parent stores the means under `<child>/<sensor_id>` with `kind='child'`. Raw never travels the
 link. See [Federation](federation.md).
 
 **The tailnet.** Tailscale, joined with `planetai mesh`. The node is reachable by its MagicDNS name,

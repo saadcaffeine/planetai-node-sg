@@ -8,7 +8,7 @@ description: |
 pillar: environmental
 scale: bioregion
 status: live
-license: HydroSHEDS license — free for scientific, educational and commercial use with attribution
+license: "LicenseRef-HydroSHEDS-v1 (WWF licence agreement; not open: no stand-alone redistribution). Same polygons CC-BY-4.0 via hydroatlas-basinatlas"
 api: null
 pilot_relevance: [global]
 tags: [watershed, basin-boundaries, hydrosheds, pfafstetter, spatial-framework, geospatial]
@@ -23,6 +23,10 @@ notes: |
   environmental row and to spatially join every point dataset. Pairs
   directly with Caravan (already listed), with Aqueduct's sub-basin units,
   and with the TFDD transboundary basin layer in the governance row.
-  Commercial use is explicitly permitted, which is rare across this
-  harvest and makes it safe as the index's public boundary layer. Static
-  reference layer, v1, no update cadence.
+  CORRECTED 2026-11-08: the product page says "free for scientific,
+  educational and commercial use", but the licence agreement it defers
+  to (HydroSHEDS TechDoc v1.4, Appendix A) only lets a licensee
+  distribute the data inside Derivative Works under an end-user licence
+  "at least as protective", and "in no event ... as a stand-alone
+  product". Show or redistribute basins under hydroatlas-basinatlas
+  (CC-BY 4.0, same polygons). Static reference layer, v1.

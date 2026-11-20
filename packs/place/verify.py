@@ -33,7 +33,10 @@ try:
     import satellite as S
     ee = S.init_ee(); step(4, True, "Earth Engine credentials accepted")
     t0 = time.time(); n, conf = S.footprints(ee, con, lat, lon, radius); step(5, True, f"Open Buildings V3: {n} footprints, mean confidence {conf:.2f}, {time.time()-t0:.0f}s")
-    t0 = time.time(); ys = S.yearly(ee, lat, lon, radius); step(6, True, f"Open Buildings Temporal: {', '.join(f'{y}: {round(c)} bld, {h:.1f} m' if h else f'{y}: {round(c)} bld' for y, c, h in ys)} ({time.time()-t0:.0f}s)")
+    # both count the same circle: a last year several times off the footprints is the count band misread (satellite.py yearly)
+    t0 = time.time(); ys = S.yearly(ee, lat, lon, radius); ok = not ys or n / 3 <= ys[-1][1] <= n * 3
+    step(6, ok, f"Open Buildings Temporal: {', '.join(f'{y}: {round(c)} bld, {h:.1f} m' if h else f'{y}: {round(c)} bld' for y, c, h in ys)} ({time.time()-t0:.0f}s)"
+                + ("" if ok else f" — the last year is several times off the {n} footprints, so the series is misread and must not be shown"))
 except Exception as e:
     step(4, False, f"Earth Engine / Open Buildings: {type(e).__name__}: {str(e)[:160]}. Configure the earth-engine pack first; the place pack reuses its key.")
 print("\nNext: planetai run place gaps  — the mapping briefing.")

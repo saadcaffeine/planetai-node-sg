@@ -16,7 +16,8 @@ case "\$*" in
   */registry.json*) [ -e "$D/listed" ] && cat "$D/listed" || echo '{"nodes": []}';;
   */sensors*) echo '[{"sensor_id": "sck-1", "source": "smartcitizen"}, {"sensor_id": "om", "source": "open-meteo"}, {"sensor_id": "sck-2", "source": "smartcitizen"}]';;
   */ground/meta*) echo '{"on_disk": {"vector": true, "drone": false, "imagery": true}}';;
-  *) echo '{"node": "mahon1", "position": "cell", "lat": 39.889, "lon": 4.265, "cell": {"id": "8839a1b2c3fffff", "res": 8}}';;
+  *) if [ -e "$D/key" ]; then echo '{"node": "mahon1", "position": "cell", "lat": 39.889, "lon": 4.265, "cell": {"id": "8839a1b2c3fffff", "res": 8}, "node_id": "cc5gqlek2e2rhfy6", "node_key": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc="}';
+     else echo '{"node": "mahon1", "position": "cell", "lat": 39.889, "lon": 4.265, "cell": {"id": "8839a1b2c3fffff", "res": 8}}'; fi;;
 esac
 S
 # fabcity's main is a bare repo: an old commit that still lists a node since gone, then today's registry. The fork
@@ -77,6 +78,12 @@ out="$(run "" "" "")"
 [[ "$out" == *"already listed, since 2026-09"* && "$out" == *"[Mahon, Menorca, ES]"* && "$out" == *"[Lucas]"* && "$out" == *"[l@x.es]"* ]] \
   && ok "a listed node is told so, and its listed place, operator and contact are the defaults" || bad "the listing was not offered: $out"
 [[ "$out" == *"Nothing to send"* && ! -e "$D/pr" && ! -d "$D/fork.git" ]] && ok "the same entry again sends nothing" || bad "an unchanged listing was sent again: $out"
+
+# a node that got its key after it was listed: the key is news, and the entry carries the id (docs/SPEC_identity.md §6)
+touch "$D/key"
+out="$(run "" "" "" n)"
+[[ "$out" == *"id        cc5gqlek2e2rhfy6"* && "$out" != *"Nothing to send"* ]] && ok "a key the list does not have yet is sent, with its id" || bad "the new key was not offered: $out"
+rm -f "$D/key"
 
 out="$(run "" "" "new@x.es" n)"
 [[ "$out" == *"since     2026-09"* && "$out" == *"new@x.es"* && ! -e "$D/pr" ]] \

@@ -1,5 +1,37 @@
 [
   {
+    "added": "2026-11-05",
+    "api": "https://data.bts.gov/resource/r495-tyji.json",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Economic|Bioregion",
+    "description": "Monthly passengers, freight and mail carried by every airline on every\nUS airport pair, domestic and international, from the Bureau of\nTransportation Statistics.\n",
+    "feeds_cells": [
+      "Economic|Bioregion"
+    ],
+    "license": "US public domain: data.bts.gov, BTS's own catalogue, lists it as Public Domain U.S. Government. bts.gov's own pages could not be read (403).",
+    "name": "BTS T-100 Air Carrier Statistics (freight by airport)",
+    "notes": "VERIFIED 2026-11-05. T-100 Market (All Carriers), keyless TranStats\ndownload form, ORIGIN/DEST = CLT (Charlotte Douglas), freight only. 2019:\nenplaned 150,554,735 lb (68,290 t), deplaned 195,595,274 lb (88,721 t).\n2024: enplaned 156,686,752 lb (71,072 t), deplaned 233,850,402 lb (106,073\nt), of which international enplaned 14.3 M lb and deplaned 61.5 M lb. The\nSocrata summary r495-tyji (T100 segment by origin airport) matches segment\nsums exactly.\n\nLICENCE. data.bts.gov metadata: \"Public Domain U.S. Government\"\n(usa.gov/government-works). bts.gov returned 403 to scripts, so the agency\npage itself was not read; a reviewer with a browser should confirm it.\n\nWHY THIS CELL. Economic|Bioregion asks for goods through the territory's\nports and airports in tonnes, inwards and outwards separately, as Eurostat\navia_gooa gives Barcelona and Hamburg.\n\nWHAT IT DOES NOT CLAIM. Air only: road and rail, which carry most of\nCharlotte's freight, are not here (FAF5 zone 371 has them, but no licence\nstatement was found for it). Use the Market series: Segment counts freight\npassing through on multi-stop flights.\n",
+    "pillar": "economic",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "economic/bioregion/bts-t100-air-freight",
+    "status": "candidate",
+    "tags": [
+      "air-freight",
+      "airports",
+      "trade-flows",
+      "united-states",
+      "bts"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.transtats.bts.gov/Tables.asp?QO_VQ=EEE"
+  },
+  {
     "added": "2026-09-09",
     "api": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/cei_srm030",
     "cell": "Economic|Bioregion",
@@ -480,6 +512,38 @@
     ],
     "upstream_listed_in": [],
     "url": "https://opendata-ajuntament.barcelona.cat/data/api/action/package_show?id=evolucio-despeses-per-capitols-i-articles"
+  },
+  {
+    "added": "2026-11-05",
+    "api": "https://apps.bea.gov/regional/zip/CAGDP1.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Economic|City",
+    "description": "The US Bureau of Economic Analysis's gross domestic product for every\ncounty, 2001 onwards, current and chained dollars, by industry. Keyless\nzip downloads; the API needs a UserID.\n",
+    "feeds_cells": [
+      "Economic|City"
+    ],
+    "license": "US public domain: BEA states its web information is in the public domain unless stated otherwise; a citation is requested.",
+    "name": "BEA GDP by County and Metropolitan Area (CAGDP)",
+    "notes": "VERIFIED 2026-11-05. CAGDP1.zip (file CAGDP1__ALL_AREAS_2001_2024.csv),\nGeoFIPS 37119 Mecklenburg County, the county that holds Charlotte:\ncurrent-dollar GDP $123,644,347k in 2019 and $186,113,840k in 2024; real\nGDP 117,741,850 and 146,152,496 thousand chained 2017 dollars. CAGDP2.zip\n(by industry) also downloads keyless.\n\nLICENCE. bea.gov/help/faq/147: \"Unless stated otherwise, the information\nposted on this web site is in the public domain and may be used or\nreproduced without specific permission.\" A citation is requested.\n\nWHY THIS CELL. Economic|City asks for gross domestic product. GDP stops at\nthe county; there is no city figure, so Mecklenburg stands in for\nCharlotte (903,844 of the county's 1,154,681 people, ACS 2020-2024).\n\nWHAT IT DOES NOT CLAIM. It is not the city of Charlotte alone, and it is\nin current US dollars, not PPP. The metro area (MSA 16740) has no keyless\nfile: MAGDP1.zip returns an HTML page and BEA's download list has no MAGDP\ntable, so the official MSA figure needs the API key. Summing the eleven\nMSA counties in current dollars gives $277.1 bn for 2024, but that is our\nsum, not BEA's, and chained dollars do not add.\n",
+    "pillar": "economic",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "city",
+    "slug": "economic/city/bea-gdp-by-county",
+    "status": "candidate",
+    "tags": [
+      "gdp",
+      "regional-accounts",
+      "county",
+      "united-states",
+      "bea"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://apps.bea.gov/regional/downloadzip.htm"
   },
   {
     "added": "2026-09-09",
@@ -1709,7 +1773,7 @@
   },
   {
     "added": "2026-10-23",
-    "api": "s3://overturemaps-us-west-2/release/2026-10-21.0/theme=places/type=place/",
+    "api": "https://stac.overturemaps.org/catalog.json",
     "assisted_by": "Claude Code",
     "auth": "none",
     "cell": "Economic|Community",
@@ -1719,14 +1783,15 @@
     ],
     "license": "CDLA-Permissive-2.0 AND Apache-2.0 AND CC0-1.0, per source; see notes",
     "name": "Overture Maps Places",
-    "notes": "VERIFIED 2026-10-23, release 2026-10-21.0 (schema v2.0.0).\n\nLICENCE. Places only. Overture's other themes (buildings, transportation, base, divisions) are ODbL and are not\nthis entry. Read on Overture's attribution page: Places has no theme-wide licence, it is licensed per source.\nMeta, Microsoft, BrightQuery, Uberall, PinMeTo, DAC, OpenTravel and others: \"Available under CDLA Permissive 2.0.\"\nFoursquare: \"Copyright 2024 Foursquare Labs, Inc. All rights reserved. Available under Apache 2.0\", with a\nNOTICE.txt. AllThePlaces: \"Available under CC0 1.0.\" All three are open, with no share-alike. Records carry\nsources[].dataset and sources[].license, and every source row in both boxes read had both. The schema makes\nsources[].license optional, so where it is absent go by the attribution page or ask the provider.\n\nENDPOINT. Anonymous S3, us-west-2, no key. Read with DuckDB 1.5.5 over httpfs, filtering on the bbox column.\nThe release notes give 88,418,121 places, up 8.55 % on September.\n\nREAD. Barcelona, a 2 x 2 km box round Plaça de Catalunya (2.158-2.182 E, 41.378-41.396 N): 25,821 places,\n11,905 with confidence >= 0.7. operating_status: 16,488 open, 1,204 permanently_closed, 2 temporarily_closed,\n8,127 not stated. Making and repair, by taxonomy.primary: 91 IT and computer repair, 36 automotive repair, 36\nhardware stores, 33 manufacturers, 20 industrial equipment makers, 19 furniture makers, 19 phone repair.\nDenpasar, a 2.5 x 2.3 km box round Puputan square (115.205-115.228 E, 8.646-8.667 S): 3,775 places, 1,142 with\nconfidence >= 0.7. 19 textile makers, 18 motorcycle repair, 14 industrial equipment makers, 9 IT repair,\n1 metal fabricator. Only these two places were read.\n\nTHE TRAP. Status is near-empty outside the sources that carry it: in Denpasar 3,768 of 3,775 places have no\noperating_status, so a count there is a count of listings, open or not. In Barcelona 31,203 source rows are\nBrightQuery's, which the release notes say reached Spain this month, so its coverage may move again. Read confidence and status before counting anything as a door.\n\nWHY THIS CELL. \"Businesses per km2 within the radius\" and repair access for Economic|Community, with permissive\nlicences where OSM's ODbL would bind what a node publishes. WHAT IT DOES NOT CLAIM. A listing is not an open\ndoor, and no fab lab is identified as one: there is no makerspace category in either box.\n",
+    "notes": "VERIFIED 2026-10-23, release 2026-10-21.0 (schema v2.0.0).\n\nLICENCE. Places only. Overture's other themes (buildings, transportation, base, divisions) are ODbL and are not\nthis entry. Read on Overture's attribution page: Places has no theme-wide licence, it is licensed per source.\nMeta, Microsoft, BrightQuery, Uberall, PinMeTo, DAC, OpenTravel and others: \"Available under CDLA Permissive 2.0.\"\nFoursquare: \"Copyright 2024 Foursquare Labs, Inc. All rights reserved. Available under Apache 2.0\", with a\nNOTICE.txt. AllThePlaces: \"Available under CC0 1.0.\" All three are open, with no share-alike. Records carry\nsources[].dataset and sources[].license, and every source row in both boxes read had both. The schema makes\nsources[].license optional, so where it is absent go by the attribution page or ask the provider.\n\nENDPOINT. Anonymous S3, us-west-2, no key. Only the last two monthly releases stay in the bucket (60 days), so `api`\nis the STAC catalog, whose `latest` names the current path (release/<id>/theme=places/type=place/). Read with DuckDB 1.5.5 over httpfs, filtering on the bbox column.\nThe release notes give 88,418,121 places, up 8.55 % on September.\n\nREAD. Barcelona, a 2 x 2 km box round Plaça de Catalunya (2.158-2.182 E, 41.378-41.396 N): 25,821 places,\n11,905 with confidence >= 0.7. operating_status: 16,488 open, 1,204 permanently_closed, 2 temporarily_closed,\n8,127 not stated. Making and repair, by taxonomy.primary: 91 IT and computer repair, 36 automotive repair, 36\nhardware stores, 33 manufacturers, 20 industrial equipment makers, 19 furniture makers, 19 phone repair.\nDenpasar, a 2.5 x 2.3 km box round Puputan square (115.205-115.228 E, 8.646-8.667 S): 3,775 places, 1,142 with\nconfidence >= 0.7. 19 textile makers, 18 motorcycle repair, 14 industrial equipment makers, 9 IT repair,\n1 metal fabricator. Only these two places were read.\n\nTHE TRAP. Status is near-empty outside the sources that carry it: in Denpasar 3,768 of 3,775 places have no\noperating_status, so a count there is a count of listings, open or not. In Barcelona 31,203 source rows are\nBrightQuery's, which the release notes say reached Spain this month, so its coverage may move again. Read confidence and status before counting anything as a door.\n\nWHY THIS CELL. \"Businesses per km2 within the radius\" and repair access for Economic|Community, with permissive\nlicences where OSM's ODbL would bind what a node publishes. WHAT IT DOES NOT CLAIM. A listing is not an open\ndoor, and no fab lab is identified as one: there is no makerspace category in either box.\n\nCHARLOTTE, read 2026-11-05 (release 2026-10-21.0, DuckDB over anonymous S3, 22 s): 103,388 places in a box\naround Mecklenburg County. There is no makerspace category; by name, \"MakerSpace Charlotte\"\n(a0d1170b-a306-473f-a1fd-e49441b45115, confidence 0.99) and \"Hackerspace Charlotte\"\n(1dc89547-0df2-4996-8ac8-f51c30908aac, 0.98).\n",
     "pillar": "economic",
     "pilot_relevance": [
       "global"
     ],
     "places": [
       "barcelona",
-      "bali"
+      "bali",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "community",
@@ -2584,6 +2649,39 @@
     "url": "https://www.cbs.nl/nl-nl/cijfers/detail/83641NED"
   },
   {
+    "added": "2026-11-05",
+    "api": "https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23co.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Economic|Region",
+    "description": "Annual establishments, mid-March employment and payroll for every US\ncounty by NAICS industry, from the Census Bureau's Business Register.\n",
+    "feeds_cells": [
+      "Economic|Region"
+    ],
+    "license": "No named licence. US federal work, no domestic copyright; the Bureau names no licence of its own (same position as us-census-acs).",
+    "name": "US Census County Business Patterns (CBP)",
+    "notes": "VERIFIED 2026-11-05 from the keyless county flat files cbp23co.zip and\ncbp19co.zip on www2.census.gov (fipstate 37, fipscty 119, Mecklenburg).\n2023: manufacturing (naics 31----) 29,929 employees in 773 establishments;\nall industries 732,418 employees in 36,472 establishments. 2019:\nmanufacturing 26,362 in 756; all industries 655,533 in 33,186. 2023 is the\nlatest on www2 (cbp24co.zip is 404).\n\nENDPOINT. The CBP API (api.census.gov/data/2023/cbp) redirects to\nmissing_key.html without a key, like the ACS. The flat files need none.\n\nLICENCE. No licence statement was found on the census.gov pages read. As\nwith us-census-acs, the basis is that US federal works carry no domestic\ncopyright; the Bureau does not say so itself.\n\nWHY THIS CELL. Economic|Region asks for persons employed in manufacturing\nand enterprises per 1000 inhabitants; CBP gives both numerators at county\nlevel (establishments, with population from the ACS).\n\nWHAT IT DOES NOT CLAIM. Establishments are not enterprises, employment is\na mid-March count, and the self-employed, government and farm work are out\nof scope.\n",
+    "pillar": "economic",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "region",
+    "slug": "economic/region/census-county-business-patterns",
+    "status": "candidate",
+    "tags": [
+      "establishments",
+      "employment",
+      "manufacturing",
+      "naics",
+      "county",
+      "united-states"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.census.gov/programs-surveys/cbp.html"
+  },
+  {
     "added": "2026-09-26",
     "api": null,
     "auth": "none",
@@ -2594,13 +2692,14 @@
     ],
     "license": "US public domain (Census Bureau work, 17 USC 105)",
     "name": "US Census exports by metropolitan area",
-    "notes": "VERIFIED 2026-09-26, not yet read for a real territory. Filed for #42. It is Boston's only openly readable trade figure below the national level.\n\nLICENCE. There is no licence text. The data is Census Bureau work and so a US Government work, public domain under 17 USC 105. It was formerly published by ITA, whose page trade.gov/metropolitan-area-exports now returns 404.\n\nENDPOINT. `census.gov/foreign-trade/statistics/state/metroq42025.xlsx` answered 200 with no key on 2026-09-26, and editions run to Q1 2026. Boston-Cambridge-Newton, MA-NH exported 30,541.3 million USD in 2025 and 29,935.6 million in 2024.\n\nWHY THIS CELL. Economic|Region's external-trade row, exports half.\n\nWHAT IT DOES NOT CLAIM. Exports only: no imports are published at metro level. Exports are attributed to the exporter of record's location, not to where goods were made. The state series (`intltrade/*/statehs`, imports and exports by HS code) needs a free API key, which the harvest pipeline does not hold; it redirects to `missing_key.html` without one. No Massachusetts state dataset was found, since MOITI republishes the federal figures.\n",
+    "notes": "VERIFIED 2026-09-26, not yet read for a real territory. Filed for #42. It is Boston's only openly readable trade figure below the national level.\n\nLICENCE. There is no licence text. The data is Census Bureau work and so a US Government work, public domain under 17 USC 105. It was formerly published by ITA, whose page trade.gov/metropolitan-area-exports now returns 404.\n\nENDPOINT. `census.gov/foreign-trade/statistics/state/metroq42025.xlsx` answered 200 with no key on 2026-09-26, and editions run to Q1 2026. Boston-Cambridge-Newton, MA-NH exported 30,541.3 million USD in 2025 and 29,935.6 million in 2024.\n\nWHY THIS CELL. Economic|Region's external-trade row, exports half.\n\nWHAT IT DOES NOT CLAIM. Exports only: no imports are published at metro level. Exports are attributed to the exporter of record's location, not to where goods were made. The state series (`intltrade/*/statehs`, imports and exports by HS code) needs a free API key, which the harvest pipeline does not hold; it redirects to `missing_key.html` without one. No Massachusetts state dataset was found, since MOITI republishes the federal figures.\n\nCHARLOTTE, read 2026-11-05: \"Charlotte-Concord-Gastonia, NC-SC\", exports 13,892.4 M USD in 2019\n(metroq42019.xlsx; 13,862.8 revised in the 2020 edition) and 10,234.4 M USD in 2024 (metroq42024.xlsx).\nmetrohistory.xlsx has 2021-2023. Charlotte is absent from metroq42025 and metroq12026, which list about 60\nmetros, so there is no 2025 value.\n",
     "pillar": "economic",
     "pilot_relevance": [
       "boston"
     ],
     "places": [
-      "boston"
+      "boston",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "region",
@@ -3366,7 +3465,7 @@
     ],
     "license": "CC-BY-4.0",
     "name": "Metroverse (Harvard Growth Lab)",
-    "notes": "No public API; bulk download via the site's research portal.\nCrucially does NOT cover Denpasar / Bali — for the Bali pilot,\nAsian KLEMS is the closest available substitute.\nDirect successor to Atlas of Economic Complexity at the city scale.\n",
+    "notes": "No public API; bulk download via the site's research portal.\nCrucially does NOT cover Denpasar / Bali — for the Bali pilot,\nAsian KLEMS is the closest available substitute.\nDirect successor to Atlas of Economic Complexity at the city scale.\n\nCHARLOTTE, read 2026-11-05: cityId 707 through the keyless GraphQL at metroverse.hks.harvard.edu/graphql\n(cityIndustryYearList), 2024: 157,592 employees across 69,400 companies. Metroverse's Charlotte is its own\nurban extent (population 428,278), smaller than the city (903,844) or the OECD FUA; never compare them as\none unit.\n",
     "pillar": "economic",
     "pilot_relevance": [
       "barcelona",
@@ -3376,7 +3475,8 @@
     "places": [
       "barcelona",
       "boston",
-      "santiago-de-chile"
+      "santiago-de-chile",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "region",
@@ -3491,7 +3591,7 @@
     ],
     "license": "OECD Terms and Conditions (last updated 1 July 2024) — reuse for any purpose including commercial, with attribution that must be passed on to sub-licensees. An open permission, not a named licence. See notes.",
     "name": "OECD Regional and Metropolitan Database",
-    "notes": "LICENCE, read from the OECD's own Terms & Conditions §3 \"Data\" 2026-09-22. The\npermission is broad, verbatim: \"you can extract from, download, copy, adapt,\nprint, distribute, share and embed Data for any purpose, even for commercial\nuse. You must give appropriate credit to the OECD by using the citation\nassociated with the relevant Data\". It is not a named open licence — there is\nno SPDX id and no Creative Commons anywhere on the page — so this entry cites\nthe instrument rather than inventing a label.\n\nTWO CONDITIONS THAT TRAVEL, and both matter for an Index built on this.\n\nThe attribution is **viral**: \"When sharing or licensing work created using\nthe Data, you agree to include the same acknowledgment requirement in any\nsub-licenses that you grant, along with the requirement that any further\nsub-licensees do the same.\" Anything derived from this has to carry the\nrequirement downstream, which is a thing to decide once and honour, not to\ndiscover later.\n\nAnd the OECD does not warrant it owns the data: §3 says Data \"may be subject\nto restrictions beyond the scope of these Terms\", that third parties may own\nsome of it, and that it is \"the user's responsibility to verify ... whether\nthe Data is fully or partially owned by third parties\" per dataset. So the\nlicence above is the floor for OECD-owned series and has to be re-checked for\nany specific table before it is relied on.\n\n\"Availability of Data\" additionally reserves the right to throttle: the OECD\n\"may monitor your use\" and \"modify the amount of Data you may request in a\nsingle query\" and the number of queries over time. Cache; do not poll.\n\nENDPOINT VERIFIED 2026-09-22, no key and no account. The SDMX service at\n`sdmx.oecd.org/public/rest/` answers; `GET /dataflow/OECD.CFE.EDS?format=\njson-structure-2.0.0` lists 133 dataflows for regions and cities, and\n`GET /data/OECD.CFE.EDS,DSD_FUA_ECO@DF_ECONOMY,1.1/all?startPeriod=2021&\nformat=csvfilewithlabels` returns labelled CSV. Two traps cost a request each\nand are written down so they do not cost another: `format=jsondata` is\nrejected with the acceptable values listed, and **the dataflow version is part\nof the path** — the same query at `1.0` 404s with \"Could not find Dataflow\nand/or DSD\", which reads like the flow does not exist. Read the version off\nthe dataflow listing first.\n\nSPATIAL: OECD territorial codes, not national register codes — `FR062F`\nMamoudzou, `USA62F` Hidalgo, with a `TERRITORIAL_LEVEL` dimension carrying\nTL2, TL3 or FUA. These are stable, official OECD codes and the OECD publishes\ncorrespondence to NUTS and national units, so this is federatable *through a\npublished crosswalk* rather than directly — better than a raster with no code\nat all, weaker than Urban Audit's LAU-aligned city codes.\n\nCADENCE: annual, with a lag of two to three years on economic series; the\neconomy flow answered for 2021 in September 2026.\n\nINDICATOR: regional GDP and labour — the economic-pillar region row, and the\nonly source here that gives a functional urban area rather than an\nadministrative city, which is the right unit for a commuting economy. I could\nnot read the landing plan's Table 2 in this session, so this names the\nindicator in plain words rather than a row id.\n\nPromotes to live when somebody pulls one series for one partner region —\nCatalonia, Massachusetts, a Chilean región — and confirms the OECD territorial\ncode maps to that region's own official code, because everything downstream\ndepends on that crosswalk being real rather than assumed.\n",
+    "notes": "LICENCE, read from the OECD's own Terms & Conditions §3 \"Data\" 2026-09-22. The\npermission is broad, verbatim: \"you can extract from, download, copy, adapt,\nprint, distribute, share and embed Data for any purpose, even for commercial\nuse. You must give appropriate credit to the OECD by using the citation\nassociated with the relevant Data\". It is not a named open licence — there is\nno SPDX id and no Creative Commons anywhere on the page — so this entry cites\nthe instrument rather than inventing a label.\n\nTWO CONDITIONS THAT TRAVEL, and both matter for an Index built on this.\n\nThe attribution is **viral**: \"When sharing or licensing work created using\nthe Data, you agree to include the same acknowledgment requirement in any\nsub-licenses that you grant, along with the requirement that any further\nsub-licensees do the same.\" Anything derived from this has to carry the\nrequirement downstream, which is a thing to decide once and honour, not to\ndiscover later.\n\nAnd the OECD does not warrant it owns the data: §3 says Data \"may be subject\nto restrictions beyond the scope of these Terms\", that third parties may own\nsome of it, and that it is \"the user's responsibility to verify ... whether\nthe Data is fully or partially owned by third parties\" per dataset. So the\nlicence above is the floor for OECD-owned series and has to be re-checked for\nany specific table before it is relied on.\n\n\"Availability of Data\" additionally reserves the right to throttle: the OECD\n\"may monitor your use\" and \"modify the amount of Data you may request in a\nsingle query\" and the number of queries over time. Cache; do not poll.\n\nENDPOINT VERIFIED 2026-09-22, no key and no account. The SDMX service at\n`sdmx.oecd.org/public/rest/` answers; `GET /dataflow/OECD.CFE.EDS?format=\njson-structure-2.0.0` lists 133 dataflows for regions and cities, and\n`GET /data/OECD.CFE.EDS,DSD_FUA_ECO@DF_ECONOMY,1.1/all?startPeriod=2021&\nformat=csvfilewithlabels` returns labelled CSV. Two traps cost a request each\nand are written down so they do not cost another: `format=jsondata` is\nrejected with the acceptable values listed, and **the dataflow version is part\nof the path** — the same query at `1.0` 404s with \"Could not find Dataflow\nand/or DSD\", which reads like the flow does not exist. Read the version off\nthe dataflow listing first.\n\nSPATIAL: OECD territorial codes, not national register codes — `FR062F`\nMamoudzou, `USA62F` Hidalgo, with a `TERRITORIAL_LEVEL` dimension carrying\nTL2, TL3 or FUA. These are stable, official OECD codes and the OECD publishes\ncorrespondence to NUTS and national units, so this is federatable *through a\npublished crosswalk* rather than directly — better than a raster with no code\nat all, weaker than Urban Audit's LAU-aligned city codes.\n\nCADENCE: annual, with a lag of two to three years on economic series; the\neconomy flow answered for 2021 in September 2026.\n\nINDICATOR: regional GDP and labour — the economic-pillar region row, and the\nonly source here that gives a functional urban area rather than an\nadministrative city, which is the right unit for a commuting economy. I could\nnot read the landing plan's Table 2 in this session, so this names the\nindicator in plain words rather than a row id.\n\nPromotes to live when somebody pulls one series for one partner region —\nCatalonia, Massachusetts, a Chilean región — and confirms the OECD territorial\ncode maps to that region's own official code, because everything downstream\ndepends on that crosswalk being real rather than assumed.\n\nCHARLOTTE, read 2026-11-05: FUA USA28F in DF_ECONOMY 1.1, GDP 177,688 M USD PPP in 2023 (80,924 per person).\nThe flow now reaches 2023.\n",
     "pillar": "economic",
     "pilot_relevance": [
       "barcelona",
@@ -3503,7 +3603,8 @@
       "barcelona",
       "boston",
       "hamburg",
-      "santiago-de-chile"
+      "santiago-de-chile",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "region",
@@ -4047,10 +4148,13 @@
     ],
     "license": "CC-BY-4.0",
     "name": "ESA WorldCover",
-    "notes": "Verified 2026-09-09. Effectively frozen: only 2020 (v100) and 2021\n(v200) exist, no annual continuation announced. Treat as a high-\nresolution snapshot, not a time series. Access via open S3 (s3://esa-\nworldcover-s1, s3://esa-worldcover-s2), Terrascope, or Zenodo DOI.\nExcellent slicing: COGs allow HTTP range requests so you can read only\nthe bytes covering a bioregion without downloading the tile; 10 m\nresolves individual field boundaries, so this is usable at community\nscale as well as bioregion. Attribution string: (c) ESA WorldCover\nproject [year] / Contains modified Copernicus Sentinel data ([year])\nprocessed by ESA WorldCover consortium.\n",
+    "notes": "Verified 2026-09-09. Effectively frozen: only 2020 (v100) and 2021\n(v200) exist, no annual continuation announced. Treat as a high-\nresolution snapshot, not a time series. Access via open S3 (s3://esa-\nworldcover-s1, s3://esa-worldcover-s2), Terrascope, or Zenodo DOI.\nExcellent slicing: COGs allow HTTP range requests so you can read only\nthe bytes covering a bioregion without downloading the tile; 10 m\nresolves individual field boundaries, so this is usable at community\nscale as well as bioregion. Attribution string: (c) ESA WorldCover\nproject [year] / Contains modified Copernicus Sentinel data ([year])\nprocessed by ESA WorldCover consortium.\n\nCHARLOTTE, read 2026-11-05: tile N33W081 (2021 v200), central box 35.18-35.27N 80.90-80.79W: tree cover\n53.5%, built-up 35.3%, grassland 9.1%.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "global"
+    ],
+    "places": [
+      "charlotte"
     ],
     "reviews": [],
     "scale": "bioregion",
@@ -4223,14 +4327,85 @@
     "url": "https://data-api.globalforestwatch.org/datasets"
   },
   {
+    "adapter": "pack:hydro",
+    "added": "2026-11-08",
+    "api": null,
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Bioregion",
+    "description": "HydroBASINS sub-basins at all 12 Pfafstetter levels, each with 281 hydro-environmental attributes (climate, land\ncover, soils, population, ecoregion). The same basin polygons as HydroBASINS, released under CC-BY 4.0.\n",
+    "feeds_cells": [],
+    "license": "CC-BY-4.0",
+    "name": "HydroATLAS — BasinATLAS v1.0",
+    "notes": "VERIFIED 2026-11-08, licence and documentation only; the data were not downloaded.\n\nLICENCE. The HydroATLAS page: \"licensed under a Creative Commons Attribution (CC-BY) 4.0 International License\".\nThe technical documentation (HydroATLAS_TechDoc_v10_1.pdf, section 4.1) calls it a Collective Database, CC-BY 4.0\nas a whole, with each attribute column under CC-BY 4.0 or ODbL 1.0 as listed in the BasinATLAS catalog. Cite Linke\net al. (2019) Scientific Data 6: 283, doi:10.1038/s41597-019-0300-6.\n\nWHY IT MATTERS. HydroBASINS' own download carries the HydroSHEDS v1 licence agreement, which is not open (see\nhydrosheds-hydrobasins). BasinATLAS publishes the same polygons under CC-BY 4.0, so it is the route to showing or\nredistributing basins. index.fab.city's river-basin layer (fci-index compute/bioregions.py, HydroBASINS level 4)\nrests on this licence.\n\nENDPOINT. figshare (ndownloader files 20082137 and 20087237 to 20087486, linked from the HydroATLAS page). Several\nGB, as a geodatabase or a shapefile, and it refused scripted downloads on 2026-11-08, so it was not read. No API.\n\nWHAT IT DOES NOT CLAIM. Basins have no names, only HYBAS_ID and PFAF_ID. The attributes are modelled or overlaid\nfrom global layers, each with its own date.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [
+      "global"
+    ],
+    "places": [],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "environmental/bioregion/hydroatlas-basinatlas",
+    "status": "candidate",
+    "tags": [
+      "watershed",
+      "basin-boundaries",
+      "hydrosheds",
+      "hydroatlas",
+      "pfafstetter",
+      "spatial-framework",
+      "attributes",
+      "geospatial"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.hydrosheds.org/hydroatlas"
+  },
+  {
+    "adapter": "pack:hydro",
+    "added": "2026-11-08",
+    "api": "https://data.hydrosheds.org/file/HydroRIVERS/",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Bioregion",
+    "description": "The world's rivers as 8.5 million reaches, wherever 10 km2 drains or 0.1 m3/s flows, with long-term discharge,\nStrahler order, upstream area and distance to the sea; RiverATLAS adds 281 attributes per reach. CC-BY 4.0.\n",
+    "feeds_cells": [],
+    "license": "CC-BY-4.0",
+    "name": "HydroATLAS — RiverATLAS v1.0 (HydroRIVERS)",
+    "notes": "VERIFIED 2026-11-08.\n\nLICENCE. The HydroATLAS page: \"licensed under a Creative Commons Attribution (CC-BY) 4.0 International License\";\nthe technical documentation (section 4.1) calls it a Collective Database, CC-BY 4.0 as a whole, each attribute\ncolumn CC-BY 4.0 or ODbL 1.0. RiverATLAS carries the HydroRIVERS geometry. Cite Linke et al. (2019) Scientific Data\n6: 283 and Lehner & Grill (2013) Hydrological Processes 27: 2171-2186.\n\nTRAP. HydroRIVERS' own download (the api above) is \"freely available for scientific, educational and commercial\nuse\" under the HydroSHEDS v1 licence agreement, which forbids distribution \"as a stand-alone product\" (TechDoc v1.4,\nAppendix A). Show and pass on rivers under RiverATLAS's CC-BY 4.0. RiverATLAS itself sits on figshare (several GB)\nand refused scripted downloads on 2026-11-08, so a node reads the HydroRIVERS geometry and attributes from\ndata.hydrosheds.org and keeps only its own square (Tomas Diez accepted this reading for the basins the same day).\n\nENDPOINT. One shapefile zip per region, no key: HydroRIVERS_v10_<af|ar|as|au|eu|gr|na|sa|si>_shp.zip, 49 MB (au)\nto 108 MB (af). Python's default User-Agent gets 403; a named one (planetai-node/hydro) gets 200. Fields HYRIV_ID,\nNEXT_DOWN, MAIN_RIV, LENGTH_KM, DIST_DN_KM, UPLAND_SKM, DIS_AV_CMS, ORD_STRA, ORD_FLOW, ENDORHEIC, HYBAS_L12.\n\nREAD. 50 km square round node #1, Ungasan: 25 reaches; nearest 5.0 km away, 0.125 m3/s, order 1, reaching the sea\nthere; largest 23 km away, 10.6 m3/s, 304 km2 upstream. 50 km square round Collserola, Barcelona: 91 reaches; the\nlargest 10.9 km away, 34.8 m3/s from 5,000 km2 (the Llobregat).\n\nWHAT IT DOES NOT CLAIM. Traced from a 15 arc-second (about 500 m) surface: canals, subak channels and small streams\nare not in it. DIS_AV_CMS is a model's long-term average (WaterGAP), not a gauge.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [
+      "global"
+    ],
+    "places": [
+      "bali",
+      "barcelona"
+    ],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "environmental/bioregion/hydroatlas-riveratlas",
+    "status": "candidate",
+    "tags": [
+      "rivers",
+      "river-network",
+      "discharge",
+      "stream-order",
+      "hydrosheds",
+      "hydroatlas",
+      "hydrorivers",
+      "vector"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.hydrosheds.org/hydroatlas"
+  },
+  {
     "added": "2026-09-09",
     "api": null,
     "cell": "Environmental|Bioregion",
     "description": "Global vector polygons of sub-basin boundaries, hierarchically nested\nacross 12 levels with Pfafstetter coding and upstream/downstream\ntopology. About 1.0 million sub-basin polygons covering 135 million\nsquare kilometres.\n",
     "feeds_cells": [],
-    "license": "HydroSHEDS license — free for scientific, educational and commercial use with attribution",
+    "license": "LicenseRef-HydroSHEDS-v1 (WWF licence agreement; not open: no stand-alone redistribution). Same polygons CC-BY-4.0 via hydroatlas-basinatlas",
     "name": "HydroSHEDS — HydroBASINS",
-    "notes": "Verified 2026-09-09. THIS IS THE SLICING INFRASTRUCTURE, NOT AN\nINDICATOR. It is what makes 'bioregion' a computable object: pick a\nPfafstetter level (4-6 is typically bioregion-sized, 5-8 for a Fab City\ncatchment), take the polygon, and use it to clip every raster in the\nenvironmental row and to spatially join every point dataset. Pairs\ndirectly with Caravan (already listed), with Aqueduct's sub-basin units,\nand with the TFDD transboundary basin layer in the governance row.\nCommercial use is explicitly permitted, which is rare across this\nharvest and makes it safe as the index's public boundary layer. Static\nreference layer, v1, no update cadence.\n",
+    "notes": "Verified 2026-09-09. THIS IS THE SLICING INFRASTRUCTURE, NOT AN\nINDICATOR. It is what makes 'bioregion' a computable object: pick a\nPfafstetter level (4-6 is typically bioregion-sized, 5-8 for a Fab City\ncatchment), take the polygon, and use it to clip every raster in the\nenvironmental row and to spatially join every point dataset. Pairs\ndirectly with Caravan (already listed), with Aqueduct's sub-basin units,\nand with the TFDD transboundary basin layer in the governance row.\nCORRECTED 2026-11-08: the product page says \"free for scientific,\neducational and commercial use\", but the licence agreement it defers\nto (HydroSHEDS TechDoc v1.4, Appendix A) only lets a licensee\ndistribute the data inside Derivative Works under an end-user licence\n\"at least as protective\", and \"in no event ... as a stand-alone\nproduct\". Show or redistribute basins under hydroatlas-basinatlas\n(CC-BY 4.0, same polygons). Static reference layer, v1.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "global"
@@ -4258,7 +4433,7 @@
     "feeds_cells": [],
     "license": "CC-BY-4.0",
     "name": "ISRIC SoilGrids 2.0",
-    "notes": "Verified 2026-09-09. REST API IS DEGRADED - do not rely on it. Three\ncalls to rest.isric.org/soilgrids/v2.0/properties/query with different\ncoordinates all returned well-formed JSON with values.mean = null, and\nISRIC's own site carries a notice that the REST API is unavailable due\nto technical issues. Use the file services instead: WCS at\nmaps.isric.org (designed for bounding-box subsetting and the recommended\npath for modelling pipelines) or WebDAV/VRT at\nfiles.isric.org/soilgrids/latest/data/. Full downloads are ~5 GB per map\nand ~120 GB per property, so WCS subsetting is not optional.\nMETHODOLOGICAL CAVEAT: these are model predictions, not measurements,\nwith no time dimension. The framework's 'soil health index' implies\nobserved condition and trend; SoilGrids gives a static modelled property\nsurface. It is a proxy and the index should say so.\n",
+    "notes": "Verified 2026-09-09, corrected 2026-11-05. The REST point query at\nrest.isric.org/soilgrids/v2.0/properties/query works: Collserola,\nBarcelona (2.10 E, 41.42 N) gave soc 0-5cm mean 713 dg/kg on 5 Nov (it returned only nulls in Sep,\nwith an outage notice on ISRIC's site). A null can also be SoilGrids'\nown no-data: at Ungasan, Bali\n(115.165 E, 8.825 S) the VRT pixel is -32768 too, while 300 m east it\nreads soc 450 dg/kg, pH 5.6. For areas use the WCS at maps.isric.org or\nthe VRTs at files.isric.org/soilgrids/latest/data/; full downloads are\n~5 GB per map, so subset.\nMETHODOLOGICAL CAVEAT: these are model predictions, not measurements,\nwith no time dimension. The framework's 'soil health index' implies\nobserved condition and trend; SoilGrids gives a static modelled property\nsurface. It is a proxy and the index should say so.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "global"
@@ -4365,6 +4540,83 @@
     "url": "https://open-meteo.com/en/docs/marine-weather-api"
   },
   {
+    "added": "2026-11-05",
+    "api": "https://stac.opengeohub.org/v1/cat/openlandmap",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Bioregion",
+    "description": "OpenGeoHub's global soil maps for Land & Carbon Lab: organic carbon, pH, bulk density, texture and soil type at\n30 m, three depths to 1 m, in five steps from 2000 to 2022. Machine-learned, Cloud-Optimized GeoTIFFs, read anonymously.\n",
+    "feeds_cells": [],
+    "license": "CC-BY-4.0",
+    "name": "OpenLandMap-soildb (30 m soil properties, 2000 to 2022)",
+    "notes": "VERIFIED 2026-11-05.\n\nLICENCE. CC-BY-4.0 in the `license` field of each soildb STAC collection (e.g. oc_iso.10694.1995_go) and on the\nZenodo record 10.5281/zenodo.15535756 (\"cc-by-4.0\", v20250204). TRAP: the portal's about text says the data are\n\"CC BY-SA and/or ODbL\" and usable \"without restrictions\". 16 of its 75 collections really are CC-BY-SA-4.0,\nincluding the older 250 m and 1 km OLM soil layers, so read the field on each collection, not the paragraph.\nThe \"Copyright and License page\" it links (opengeohub.org/about-landgis/) is a 404, so the licence rests on\nOpenGeoHub's own STAC and Zenodo fields.\n\nENDPOINT. Collection list at openlandmap.org/api/v1/rasters/collections/ (the trailing slash is needed, 404\nwithout). COGs on ceph.opengeohub.org/arco/soildb/, e.g. soildbpc_cdmgcm3_m_30m_bg0..30cm_20200101_20221231_go01\n_epsg4326_v1.2.0_srl04.tif, read point by point with rasterio, no key.\n\nREAD, 0-30 cm, 30 m mean. Ungasan, Bali (115.165 E, 8.825 S): SOC density 11.2 kg/m3 (2000-05), 9.6 (2020-22);\nSOC 15.8 g/kg; pH 5.4. Collserola, Barcelona (2.10 E, 41.42 N): SOC density 11.2, SOC 18.6 g/kg, pH 7.5 (2020-22).\nISRIC WoSIS holds 0 measured profiles in Bali (WFS, 5 Nov), so the Bali figures rest on no local sample.\n\nWHAT IT DOES NOT CLAIM. Model predictions, not measurements; every pixel has a value, houses and roads included\n(SoilGrids leaves the Ungasan pixel blank). The 5-year steps are not a trend at one point: at Ungasan SOC density\nfell while SOC content rose. Open question for OpenGeoHub: the STAC text says \"trained on harmonized EU\" data,\nZenodo says global.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [],
+    "places": [
+      "bali",
+      "barcelona"
+    ],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "environmental/bioregion/openlandmap-soildb",
+    "status": "candidate",
+    "tags": [
+      "soil",
+      "soil-organic-carbon",
+      "ph",
+      "texture",
+      "bulk-density",
+      "openlandmap",
+      "opengeohub",
+      "raster-30m",
+      "modelled",
+      "cog",
+      "stac"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://openlandmap.org/"
+  },
+  {
+    "added": "2026-11-08",
+    "api": "https://storage.googleapis.com/teow2016/Ecoregions2017.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Bioregion",
+    "description": "The world's 846 terrestrial ecoregions in 14 biomes and 8 realms (Dinerstein et al. 2017), with each one's Nature Needs\nHalf category. One shapefile, the revision of the 2001 WWF map. Names the ecoregion a place sits in.\n",
+    "feeds_cells": [],
+    "license": "CC-BY-4.0",
+    "name": "RESOLVE Ecoregions 2017",
+    "notes": "VERIFIED 2026-11-08.\n\nLICENCE. CC-BY-4.0. ecoregions.world and ecoregions.appspot.com label the shapefile \"Licensed under CC-BY 4.0\"; the\nEarth Engine catalog (RESOLVE/ECOREGIONS/2017) gives \"Terms of Use: CC-BY-4.0\"; and every one of the 847 records in\nthe zip carries LICENSE = \"CC-BY 4.0\". The BioScience paper itself (doi:10.1093/biosci/bix014) is a separate work\nunder OUP's terms. Cite Dinerstein et al. (2017) BioScience 67(6): 534-545.\n\nENDPOINT. One 150 MB zip on Google Cloud Storage, no key; EPSG:4326, 847 polygons (846 ecoregions plus Rock and Ice,\nECO_ID 0). Fields ECO_NAME, BIOME_NAME, REALM, NNH, NNH_NAME, COLOR. No API and no point lookup. Reading the zip over\n/vsicurl/ took 408 s, so download it once.\n\nREAD. Point lookups on the full shapes: Ungasan, Bali -> Eastern Java-Bali rain forests, Nature Imperiled; Barcelona\n-> Northeast Spain and Southern France Mediterranean forests, Nature Could Recover; Charlotte -> Appalachian Piedmont\nforests; Kamakura -> Taiheiyo evergreen forests; Puebla -> Trans-Mexican Volcanic Belt pine-oak forests. fci-index\ncompute/bioregions.py places all 61 Fab City centres and the 26 countries in it for index.fab.city's map and pages.\n\nWHY THIS ENTRY. It names the bioregion a place belongs to, which no other entry does. No cell: it is a frame for the\nEnvironmental|Bioregion row, not an indicator.\n\nWHAT IT DOES NOT CLAIM. An ecoregion is potential natural vegetation drawn at continental scale. The Bukit at Ungasan\nis dry limestone inside a \"rain forest\" polygon. NNH_NAME comes from forest loss 2000-2015 and WDPA 2016 and has not\nchanged since; under the Index's age discount it would count close to nothing. The data spells one category \"Nature\nCould Reach Half Protected\" where the paper says \"Nature Could Reach Half\".\n",
+    "pillar": "environmental",
+    "pilot_relevance": [
+      "global"
+    ],
+    "places": [
+      "bali",
+      "barcelona",
+      "charlotte",
+      "kamakura",
+      "puebla"
+    ],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "environmental/bioregion/resolve-ecoregions-2017",
+    "status": "candidate",
+    "tags": [
+      "ecoregions",
+      "biomes",
+      "realms",
+      "biodiversity",
+      "nature-needs-half",
+      "resolve",
+      "wwf",
+      "polygons",
+      "spatial-framework"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://ecoregions.appspot.com/"
+  },
+  {
     "added": "2026-10-31",
     "api": "https://planetarycomputer.microsoft.com/api/stac/v1/collections/sentinel-2-l2a",
     "assisted_by": "Claude Code",
@@ -4438,7 +4690,7 @@
     ],
     "license": "US public domain (USGS-authored data)",
     "name": "USGS Earthquake Catalog (ComCat) — real-time feeds and FDSN event API",
-    "notes": "VERIFIED 2026-09-26, nothing read for a real territory yet.\n\nLICENCE. The USGS copyrights page says \"USGS-authored or produced data and\ninformation are considered to be in the U.S. Public Domain\". That sentence covers\nwhat USGS authored, and ComCat is an aggregator. Each event carries a `sources`\nfield naming the networks that contributed. Outside the US most solutions come\nfrom USGS's own NEIC (`us`), but check `sources` before assuming a record is\nUSGS's. For Chile the national authority is the Centro Sismológico Nacional, and\nfor Indonesia it is BMKG. Their catalogues are more complete locally, and their\nlicences have not been checked here.\n\nENDPOINTS. Summary feeds are at\n`/earthquakes/feed/v1.0/summary/{significant|4.5|2.5|1.0|all}_{hour|day|week|month}.geojson`\nand are updated every minute. `all_day` returned 200 and 145 KB on 2026-09-26.\n`/fdsnws/event/1/count` and `/query` take `starttime`, `minmagnitude` and a\nlat/lon box or radius. The Bali box (114.3,-9.2 to 116,-7.9) counted 4 events\nsince 2026-01-01, with maxAllowed 20000 per query. The feed life-cycle policy\npromises at least 6 months for any production feed and 30 days' notice before\ndeprecation.\n\nWHY THIS CELL. Environmental|Bioregion's natural-hazards category (added 2026-09-26) carries\n\"Earthquakes of magnitude 4.5 and above, count/yr\". M4.5 is the threshold because that is where\nglobal completeness holds; below it, the count measures the local network as much as the ground.\nSeismic exposure matters to two pilots, Santiago and Bali. Until that row existed this entry had\n`feeds_cells: []` and bent the candidate rule, because no cell had a hazards row.\n\nWHAT IT DOES NOT CLAIM. Global completeness is only about M4.5 and above. Below\nthat the catalogue is only as complete as the local network that feeds it. An\nevent count is not risk: risk needs exposure, meaning buildings and people, which\nthis source does not carry. The ShakeMap and PAGER products do carry them, for\nsignificant events only.\n",
+    "notes": "VERIFIED 2026-09-26, nothing read for a real territory yet.\n\nLICENCE. The USGS copyrights page says \"USGS-authored or produced data and\ninformation are considered to be in the U.S. Public Domain\". That sentence covers\nwhat USGS authored, and ComCat is an aggregator. Each event carries a `sources`\nfield naming the networks that contributed. Outside the US most solutions come\nfrom USGS's own NEIC (`us`), but check `sources` before assuming a record is\nUSGS's. For Chile the national authority is the Centro Sismológico Nacional, and\nfor Indonesia it is BMKG. Their catalogues are more complete locally, and their\nlicences have not been checked here.\n\nENDPOINTS. Summary feeds are at\n`/earthquakes/feed/v1.0/summary/{significant|4.5|2.5|1.0|all}_{hour|day|week|month}.geojson`\nand are updated every minute. `all_day` returned 200 and 145 KB on 2026-09-26.\n`/fdsnws/event/1/count` and `/query` take `starttime`, `minmagnitude` and a\nlat/lon box or radius. The Bali box (114.3,-9.2 to 116,-7.9) counted 4 events\nsince 2026-01-01, with maxAllowed 20000 per query. The feed life-cycle policy\npromises at least 6 months for any production feed and 30 days' notice before\ndeprecation.\n\nWHY THIS CELL. Environmental|Bioregion's natural-hazards category (added 2026-09-26) carries\n\"Earthquakes of magnitude 4.5 and above, count/yr\". M4.5 is the threshold because that is where\nglobal completeness holds; below it, the count measures the local network as much as the ground.\nSeismic exposure matters to two pilots, Santiago and Bali. Until that row existed this entry had\n`feeds_cells: []` and bent the candidate rule, because no cell had a hazards row.\n\nWHAT IT DOES NOT CLAIM. Global completeness is only about M4.5 and above. Below\nthat the catalogue is only as complete as the local network that feeds it. An\nevent count is not risk: risk needs exposure, meaning buildings and people, which\nthis source does not carry. The ShakeMap and PAGER products do carry them, for\nsignificant events only.\n\nCHARLOTTE, read 2026-11-05: fdsnws count, M4.5+, 300 km around 35.227,-80.843: 0 in 2026, 1 since 2000\n(M5.1, 2020-08-09, Sparta NC, se60324281). Zero is a reading here, not a gap.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "santiago",
@@ -4447,7 +4699,8 @@
     ],
     "places": [
       "bali",
-      "santiago-de-chile"
+      "santiago-de-chile",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "bioregion",
@@ -4475,10 +4728,13 @@
     ],
     "license": "Creative Commons (variant not specified on the source page - verify before publishing derived values)",
     "name": "WRI Aqueduct 4.0 — Global Water Risk Atlas",
-    "notes": "Verified 2026-09-09. Direct download:\nhttps://files.wri.org/aqueduct/aqueduct-4-0-water-risk-data.zip.\nMethodology DOI 10.46830/writn.23.00061. BEST BIOREGION JOIN IN THE\nENVIRONMENTAL ROW: Aqueduct is published on hydrological sub-basin units\nplus country and province aggregates, so a bioregion defined as a\nwatershed maps almost directly onto Aqueduct polygons - join on basin ID\nor spatial intersect. The native unit is already a hydrological unit,\nwhich no other source in this row can say. Caveat on water quality:\nAqueduct's quality indicators are coefficient-of-variation and\nuntreated-wastewater proxies, not measured concentrations - pair with\nGEMStat for actual measurements. Baseline period roughly 1979-2019;\nmajor-version releases rather than continuous updates.\n",
+    "notes": "Verified 2026-09-09. Direct download:\nhttps://files.wri.org/aqueduct/aqueduct-4-0-water-risk-data.zip.\nMethodology DOI 10.46830/writn.23.00061. BEST BIOREGION JOIN IN THE\nENVIRONMENTAL ROW: Aqueduct is published on hydrological sub-basin units\nplus country and province aggregates, so a bioregion defined as a\nwatershed maps almost directly onto Aqueduct polygons - join on basin ID\nor spatial intersect. The native unit is already a hydrological unit,\nwhich no other source in this row can say. Caveat on water quality:\nAqueduct's quality indicators are coefficient-of-variation and\nuntreated-wastewater proxies, not measured concentrations - pair with\nGEMStat for actual measurements. Baseline period roughly 1979-2019;\nmajor-version releases rather than continuous updates.\n\nCHARLOTTE, read 2026-11-05: basin pfaf_id 732406, baseline water stress 0.727, \"High (40-80%)\", through the\nResource Watch Carto mirror (table aq4baselineannual), which is being sunset. Not yet checked against WRI's\nown zip.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "global"
+    ],
+    "places": [
+      "charlotte"
     ],
     "reviews": [],
     "scale": "bioregion",
@@ -4626,6 +4882,38 @@
     ],
     "upstream_listed_in": [],
     "url": "https://datosretc.mma.gob.cl/dataset/generacion-municipal-de-residuos-no-peligrosos"
+  },
+  {
+    "added": "2026-11-05",
+    "api": "https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_2025.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|City",
+    "description": "Annual and daily summaries from every regulatory air monitor in the US,\nexported from EPA's Air Quality System as yearly zip files. Keyless.\n",
+    "feeds_cells": [
+      "Environmental|City"
+    ],
+    "license": "US public domain: EPA data is in the public domain by default under 17 U.S.C. 105 unless otherwise specified.",
+    "name": "US EPA AirData pre-generated files (AQS)",
+    "notes": "VERIFIED 2026-11-05. annual_conc_by_monitor_2025.zip and\ndaily_88101_2025.zip (and the 2024 files), state 37, county 119. Three\nPM2.5 sites: 0041 Garinger High School, 0045 Remount, 0048 Friendship\nPark. 2025 annual means in ug/m3: Garinger 8.02 (24-hour sampler) and 7.59\n(24-hr block average of the continuous monitor), Remount 9.30, Friendship\nPark 7.82. 2024: Garinger 8.00 and 7.53, Remount 9.16, Friendship Park\n7.44. Days with a 24-hour mean over 15 ug/m3 at any county monitor: 34 in\n2024, 24 in 2025 (1-hour rows excluded).\n\nLICENCE. edg.epa.gov/EPA_Data_License.html: \"Unless otherwise specified,\nall data produced by the U.S EPA is by default in the public domain and is\nnot subject to domestic copyright protection under 17 U.S.C. 105.\"\n\nWHY THIS CELL. Environmental|City asks for the PM2.5 annual mean and the\ndays over the WHO 24-hour guideline; these are the regulatory monitors\nthat sit in Charlotte. This replaces OpenAQ for Charlotte, which needs a\nkey since v3 (401 without one; v2 answers 410).\n\nWHAT IT DOES NOT CLAIM. Three sites do not describe exposure across the\ncity, and these are county monitor ids, not a city boundary. Remount's\n2025 row is the \"Events Included\" one. Files lag: the 2025 annual file was\nlast modified 13 Jul 2026.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "city",
+    "slug": "environmental/city/epa-airdata",
+    "status": "candidate",
+    "tags": [
+      "air-quality",
+      "pm25",
+      "regulatory-monitors",
+      "united-states",
+      "epa"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://aqs.epa.gov/aqsweb/airdata/download_files.html"
   },
   {
     "added": "2026-09-26",
@@ -5308,10 +5596,13 @@
     ],
     "license": "CC-BY-4.0 (data) + custom open (hardware)",
     "name": "AirGradient",
-    "notes": "Strong fit for the Community-tier indoor environment signal that\nSmart Citizen does not cover well (Smart Citizen focuses outdoor).\nAirGradient kits are commonly deployed in schools, offices, and homes.\nCombined with Smart Citizen they form a complementary indoor + outdoor\ncommunity sensing layer.\n",
+    "notes": "Strong fit for the Community-tier indoor environment signal that\nSmart Citizen does not cover well (Smart Citizen focuses outdoor).\nAirGradient kits are commonly deployed in schools, offices, and homes.\nCombined with Smart Citizen they form a complementary indoor + outdoor\ncommunity sensing layer.\n\nCHARLOTTE, read 2026-11-05: the keyless world/locations/measures/current endpoint lists 2,919 locations; 2\nreport from inside the city, 74055 \"Treehouse\" (35.181,-80.849) and 58947 \"Charlotte\" (35.2271,-80.8431).\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "global"
+    ],
+    "places": [
+      "charlotte"
     ],
     "reviews": [],
     "scale": "community",
@@ -6070,6 +6361,38 @@
     "url": "https://wis2-gdc.weather.gc.ca/collections/wis2-discovery-metadata/items/urn:wmo:md:id-bmkg:surface-based-observations"
   },
   {
+    "added": "2026-11-05",
+    "api": "https://www.eia.gov/electricity/data/eia923/xls/f923_2025.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Region",
+    "description": "Net generation and fuel use for every US power plant above 1 MW, monthly\nand annual, from the US Energy Information Administration. Joined to\nEIA-860 for each plant's county.\n",
+    "feeds_cells": [
+      "Environmental|Region"
+    ],
+    "license": "US public domain: EIA states US government publications are in the public domain and not subject to copyright protection.",
+    "name": "EIA-923 Power Plant Operations Report (with EIA-860 plant locations)",
+    "notes": "VERIFIED 2026-11-05. f923_2025.zip (final 2025 data, released 14 Sep\n2026), sheet Page 1 Generation and Fuel Data, joined to eia8602025.zip\n2___Plant_Y2025.xlsx for the county. Renewable = fuel codes SUN, WND, WAT\n(pumped storage excluded), WDS, WDL, BLQ, AB, OBS, OBL, OBG, LFG, MSB,\nGEO, SLW. 2025 net generation: Mecklenburg County 26.7 GWh renewable (all\nlandfill gas) of 19,532 GWh; the eleven counties of MSA 16740 1,642.9 GWh\nrenewable (solar 753.1, hydro 746.0, landfill gas 143.9) of 49,805.7 GWh;\nNorth Carolina 18,577.2 GWh of 134,695.6 GWh.\n\nLICENCE. eia.gov/about/copyrights_reuse.php: \"U.S. government publications\nare in the public domain and are not subject to copyright protection.\"\n\nWHY THIS CELL. Environmental|Region asks for renewable electricity\ngeneration in GWh/yr; this is the plant-level record of it, summable to\nany set of counties.\n\nWHAT IT DOES NOT CLAIM. Plants under 1 MW and rooftop solar are not\nreported plant by plant, so Mecklenburg shows no solar at all. It is\ngeneration located in the territory, not electricity used there. The state\ntotals were not checked for EIA's state-level imputation rows.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "region",
+    "slug": "environmental/region/eia-923-plant-generation",
+    "status": "candidate",
+    "tags": [
+      "electricity",
+      "renewable-energy",
+      "power-plants",
+      "united-states",
+      "eia"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.eia.gov/electricity/data/eia923/"
+  },
+  {
     "added": "2026-10-13",
     "api": "https://analisi.transparenciacatalunya.cat/resource/uwe8-jqcu.json",
     "assisted_by": "Claude Code",
@@ -6151,7 +6474,7 @@
     ],
     "license": "CC-BY-4.0",
     "name": "Global Power Plant Database v1.3.0 (WRI)",
-    "notes": "VERIFIED 2026-09-29, nothing read for a real territory yet. Found while reading\nResource Watch, which carries an archive banner; filed from the publisher, not\nfrom RW's 2018 Carto copy (powerwatch_data_20180102).\n\nLICENCE. README of github.com/wri/global-power-plant-database: \"The latest\ndatabase release (v1.3.0) is available in CSV format [at datasets.wri.org] under\na Creative Commons-Attribution 4.0 (CC BY 4.0) license.\" The WRI Data Explorer\nrecord (CKAN id 53623dfd-3df6-4f15-a091-67457cdb571f, metadata_modified\n2025-10-06) says license_id cc-by. The code is MIT; the data licence is the\nCC BY sentence above.\n\nENDPOINT. The Data Explorer's three ZIP resources sit under /private-admin/ and\nanswered 302 then 403 on 2026-09-29, so the publisher's own download is broken.\nThe CSV that works is the repo's output_database/global_power_plant_database.csv\n(12.0 MB, no key); DATABASE_VERSION beside it reads 1.3.0. Read today: 34,936\nrows; columns country, name, gppd_idnr, capacity_mw, latitude, longitude,\nprimary_fuel, commissioning_year, owner, source, year_of_capacity_data,\ngeneration_gwh_2013..2019, estimated_generation_gwh_2013..2017. Country totals:\nESP 829 plants / 79,035 MW; USA 9,833 / 1,204,638; CHL 315 / 22,476;\nIDN 178 / 48,751. Pilot reads by bounding box, because the file carries no admin\ncode; a real read clips to the region polygon, and a box spills over borders\n(the Massachusetts one catches Millstone in Connecticut). Renewable here means\nprimary_fuel in Solar, Wind, Hydro, Geothermal, Biomass, Wave and Tidal.\n  Catalonia box 40.5-42.9N 0.15-3.35E: 107 plants, 10,778 MW, 3,414 MW renewable\n    (Asco 1,990.5 MW nuclear 1983; Besos 5 1,670.8 MW gas 2010; source\n    Red Electrica de Espana).\n  Massachusetts box 41.2-42.9N 69.9-73.5W: 637 plants, 27,647 MW, 3,538 MW\n    renewable (388 solar sites; Mystic 2,375.6 MW gas; source US EIA,\n    capacity year 2019).\n  Region Metropolitana box 32.9-34.3S 69.8-71.8W: 51 plants, 4,051 MW, 1,329 MW\n    renewable (Nehuenco 874.7 MW gas; source Energia Abierta, capacity year 2016).\n  Bali island box 8.05-8.95S 114.4-115.75E: 8 plants, 980 MW, 0 MW renewable\n    (Celukan Bawang 381 MW coal 2015; PLTG Pesanggaran 122 MW gas).\n\nWHY THIS CELL. Environmental|Region lists \"renewable energy capacity\" as an\nindicator category, and its notes say no source in this list published installed\ncapacity at region scale. This one does: every plant is a point with capacity_mw\nand primary_fuel, so capacity by fuel inside any region polygon is a spatial join,\nand generation_gwh_2019 gives the cell's minimum (renewable generation, GWh/yr)\nwhere a plant reported it. The same clip would serve Environmental|City for a\ncity that hosts plants; Barcelona's box holds four (Besos, Port de Barcelona,\nGarraf landfill gas, Seat al Sol). Not claimed here.\n\nWHAT IT DOES NOT CLAIM. The list stops around 2019: the README says \"This project\nis not currently maintained by WRI. There are no planned updates as of this time\n(early 2022).\" Everything built since, most of it solar and wind, is missing, so\na renewable share read from it is a floor, not a figure. Rooftop and small\ndistributed solar were never in scope. Reported generation exists for a minority\nof plants (EIA, Energia Abierta); the rest is model-estimated, and the estimate\ncolumns end in 2017. year_of_capacity_data is blank for Spain and Indonesia.\nCoordinates come from mixed sources (the geolocation_source field says which),\nand a plant a few hundred metres over a border lands in the wrong region.\n\nSTILL MISSING. A read against a real region polygon (Catalonia first: ICAEN\npublishes current capacity to compare against), a decision whether a 2019\nvintage can feed a cell or only anchor a baseline, and a look at Global Energy\nMonitor's trackers as the maintained successor for anything built after 2019.\n",
+    "notes": "VERIFIED 2026-09-29, nothing read for a real territory yet. Found while reading\nResource Watch, which carries an archive banner; filed from the publisher, not\nfrom RW's 2018 Carto copy (powerwatch_data_20180102).\n\nLICENCE. README of github.com/wri/global-power-plant-database: \"The latest\ndatabase release (v1.3.0) is available in CSV format [at datasets.wri.org] under\na Creative Commons-Attribution 4.0 (CC BY 4.0) license.\" The WRI Data Explorer\nrecord (CKAN id 53623dfd-3df6-4f15-a091-67457cdb571f, metadata_modified\n2025-10-06) says license_id cc-by. The code is MIT; the data licence is the\nCC BY sentence above.\n\nENDPOINT. The Data Explorer's three ZIP resources sit under /private-admin/ and\nanswered 302 then 403 on 2026-09-29, so the publisher's own download is broken.\nThe CSV that works is the repo's output_database/global_power_plant_database.csv\n(12.0 MB, no key); DATABASE_VERSION beside it reads 1.3.0. Read today: 34,936\nrows; columns country, name, gppd_idnr, capacity_mw, latitude, longitude,\nprimary_fuel, commissioning_year, owner, source, year_of_capacity_data,\ngeneration_gwh_2013..2019, estimated_generation_gwh_2013..2017. Country totals:\nESP 829 plants / 79,035 MW; USA 9,833 / 1,204,638; CHL 315 / 22,476;\nIDN 178 / 48,751. Pilot reads by bounding box, because the file carries no admin\ncode; a real read clips to the region polygon, and a box spills over borders\n(the Massachusetts one catches Millstone in Connecticut). Renewable here means\nprimary_fuel in Solar, Wind, Hydro, Geothermal, Biomass, Wave and Tidal.\n  Catalonia box 40.5-42.9N 0.15-3.35E: 107 plants, 10,778 MW, 3,414 MW renewable\n    (Asco 1,990.5 MW nuclear 1983; Besos 5 1,670.8 MW gas 2010; source\n    Red Electrica de Espana).\n  Massachusetts box 41.2-42.9N 69.9-73.5W: 637 plants, 27,647 MW, 3,538 MW\n    renewable (388 solar sites; Mystic 2,375.6 MW gas; source US EIA,\n    capacity year 2019).\n  Region Metropolitana box 32.9-34.3S 69.8-71.8W: 51 plants, 4,051 MW, 1,329 MW\n    renewable (Nehuenco 874.7 MW gas; source Energia Abierta, capacity year 2016).\n  Bali island box 8.05-8.95S 114.4-115.75E: 8 plants, 980 MW, 0 MW renewable\n    (Celukan Bawang 381 MW coal 2015; PLTG Pesanggaran 122 MW gas).\n\nWHY THIS CELL. Environmental|Region lists \"renewable energy capacity\" as an\nindicator category, and its notes say no source in this list published installed\ncapacity at region scale. This one does: every plant is a point with capacity_mw\nand primary_fuel, so capacity by fuel inside any region polygon is a spatial join,\nand generation_gwh_2019 gives the cell's minimum (renewable generation, GWh/yr)\nwhere a plant reported it. The same clip would serve Environmental|City for a\ncity that hosts plants; Barcelona's box holds four (Besos, Port de Barcelona,\nGarraf landfill gas, Seat al Sol). Not claimed here.\n\nWHAT IT DOES NOT CLAIM. The list stops around 2019: the README says \"This project\nis not currently maintained by WRI. There are no planned updates as of this time\n(early 2022).\" Everything built since, most of it solar and wind, is missing, so\na renewable share read from it is a floor, not a figure. Rooftop and small\ndistributed solar were never in scope. Reported generation exists for a minority\nof plants (EIA, Energia Abierta); the rest is model-estimated, and the estimate\ncolumns end in 2017. year_of_capacity_data is blank for Spain and Indonesia.\nCoordinates come from mixed sources (the geolocation_source field says which),\nand a plant a few hundred metres over a border lands in the wrong region.\n\nSTILL MISSING. A read against a real region polygon (Catalonia first: ICAEN\npublishes current capacity to compare against), a decision whether a 2019\nvintage can feed a cell or only anchor a baseline, and a look at Global Energy\nMonitor's trackers as the maintained successor for anything built after 2019.\n\nCHARLOTTE, read 2026-11-05 (v1.3.0, capacity year 2019): McGuire nuclear USA0006038, 2,440.6 MW, and Cowans\nFord hydro USA0002722, 350 MW, in Mecklenburg.\n",
     "pillar": "environmental",
     "pilot_relevance": [
       "barcelona",
@@ -6163,7 +6486,8 @@
       "bali",
       "barcelona",
       "boston",
-      "santiago-de-chile"
+      "santiago-de-chile",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "region",
@@ -6213,6 +6537,38 @@
     "updated": "2026-09-09",
     "upstream_listed_in": [],
     "url": "https://www.data.gouv.fr/datasets/panorama-des-energies-renouvelables"
+  },
+  {
+    "added": "2026-11-05",
+    "api": "https://www.mrlc.gov/geoserver/mrlc_download/wcs",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Environmental|Region",
+    "description": "30 m land cover for the conterminous US in 16 classes from Landsat, by\nthe Multi-Resolution Land Characteristics consortium led by USGS.\nServed as bulk downloads and through a keyless WCS.\n",
+    "feeds_cells": [
+      "Environmental|Region"
+    ],
+    "license": "US public domain: MRLC describes NLCD as public domain information on the nation's land cover; the WCS declares no fees and no access constraints.",
+    "name": "USGS National Land Cover Database (NLCD), MRLC",
+    "notes": "VERIFIED 2026-11-05. WCS 2.0.1 GetCoverage on coverage\nmrlc_download__NLCD_2021_Land_Cover_L48, clipped to Mecklenburg's box in\nEPSG:5070 as an ASCII grid (8.3 MB), masked by the TIGERweb county polygon\n(GEOID 37119). The masked total, 1,414.3 km2, matches TIGER land plus\nwater (1,356.2 + 58.1 km2). NLCD 2021 in km2: developed open space 354.0,\nlow 311.0, medium 196.3, high 89.1; deciduous forest 152.4, mixed 99.6,\nevergreen 51.5; pasture/hay 61.0; open water 51.3.\n\nLICENCE. www.mrlc.gov/about: NLCD aims to provide \"public domain\ninformation on the Nation's land cover\". The WCS capabilities document\nstates Fees NONE and AccessConstraints NONE.\n\nWHY THIS CELL. Environmental|Region asks for land under each land-use\nclass in km2.\n\nWHAT IT DOES NOT CLAIM. It is land cover, not land use, from 30 m pixels.\nAnnual NLCD's per-year land cover is not on the WCS; the 2024 CONUS bundle\nis a 1.44 GB zip and was not read.\n",
+    "pillar": "environmental",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "region",
+    "slug": "environmental/region/usgs-nlcd-land-cover",
+    "status": "candidate",
+    "tags": [
+      "land-cover",
+      "landsat",
+      "raster-30m",
+      "united-states",
+      "usgs"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.mrlc.gov/data"
   },
   {
     "added": "2026-05-04",
@@ -8192,6 +8548,38 @@
     "url": "https://www.data.go.kr/data/15077871/openapi.do"
   },
   {
+    "added": "2026-11-05",
+    "api": "https://www.nconemap.gov/api/feed/dcat-us/1.1.json",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Governance|Region",
+    "description": "North Carolina's statewide geospatial data portal (ArcGIS Hub), run by\nthe State's Center for Geographic Information and Analysis. 455 datasets\nfrom state agencies, counties and municipalities, under a free and\nunrestricted use policy.\n",
+    "feeds_cells": [
+      "Governance|Region"
+    ],
+    "license": "NC OneMap terms: free and unrestricted use, no release agreement required or issued. No named licence; quoted in notes.",
+    "name": "NC OneMap",
+    "notes": "VERIFIED 2026-11-05. The DCAT-US feed above answered 200 with no key and\nlists 455 datasets; 53 were modified in the 90 days before 2026-11-05.\nThe largest publishers in the feed are NC OneMap / State (209), NC DEQ\n(28), the NC General Assembly (27) and NCDOT (25). Charlotte sits in\nMecklenburg County, FIPS 37119.\n\nLICENCE, from the portal's own terms page (www.nconemap.gov/pages/terms,\nHub page item e60514c3b78542ef9902e3d7f7a671c1), read 2026-11-05: \"By\nsharing their content, all partner organizations understand this free\nand unrestricted use policy\", and \"Written release agreements to\nauthorize use of the geospatial data, web services, and applications\nfound on the NC OneMap website are not required and will not be issued.\"\nMost dataset records point their licence field at that page; 69 leave it\nblank. These terms are the portal's, and they differ from the nc.gov\nwebsite terms (non-commercial, no alteration) that govern NC DEQ, LINC\nand OpenBudget. Do not read one as the other.\n\nWHY THIS CELL. Governance|Region counts open datasets published and the\nshare updated in the last 90 days; the feed gives both directly.\n\nWHAT IT DOES NOT CLAIM. It holds no contracts or procurement awards. NC\neVP lists awarded solicitations as HTML only, with no export (checked\n2026-11-05). It has no state-wide non-spatial catalogue either:\ndata.nc.gov does not resolve.\n",
+    "pillar": "governance",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "region",
+    "slug": "governance/region/nc-onemap",
+    "status": "candidate",
+    "tags": [
+      "open-data-portal",
+      "arcgis-hub",
+      "geospatial",
+      "north-carolina",
+      "dcat"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.nconemap.gov"
+  },
+  {
     "added": "2026-09-11",
     "api": "https://open.canada.ca/data/api/3/action/package_search",
     "auth": "none",
@@ -8320,6 +8708,38 @@
     "updated": "2026-09-11",
     "upstream_listed_in": [],
     "url": "https://www.find-tender.service.gov.uk/Developer/Documentation"
+  },
+  {
+    "added": "2026-11-05",
+    "api": "https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2025_Gazetteer/2025_Gaz_aiannh_national.zip",
+    "assisted_by": "Claude Code",
+    "auth": "none",
+    "cell": "Social|Bioregion",
+    "description": "Land and water area and an internal point for every federally and\nstate-recognised American Indian, Alaska Native and Native Hawaiian\narea, from the Census Bureau's TIGER geography.\n",
+    "feeds_cells": [
+      "Social|Bioregion"
+    ],
+    "license": "No named licence. US federal work, no domestic copyright; the Bureau names no licence of its own (same position as us-census-acs).",
+    "name": "US Census Gazetteer, American Indian / Alaska Native / Native Hawaiian Areas",
+    "notes": "VERIFIED 2026-11-05. 2025_Gaz_aiannh_national.zip (the 2024 file gives the\nsame values): GEOID 0525, Catawba Reservation and Off-Reservation Trust\nLand, ALAND 4,176,988 m2 (4.18 km2), AWATER 0, internal point 34.907982,\n-80.881111, near Rock Hill SC, about 35 km south of central Charlotte in\nthe shared Catawba-Wateree basin. The LandMark v202509 polygon layer\nagrees: \"Catawba\", acknowledged by government, 417.59 ha, from BIA.\n\nLICENCE. As us-census-acs: no licence statement from the Bureau; US\nfederal works carry no domestic copyright.\n\nWHY THIS CELL. Social|Bioregion asks for recognised indigenous or\ncommunity land area in km2. Charlotte's bioregion is read as the Catawba-\nWateree basin, which runs from the Blue Ridge across the NC-SC line.\n\nWHAT IT DOES NOT CLAIM. It counts the recognised land base only, not the\nCatawba Nation's traditional territory. Which basin is Charlotte's\nbioregion is a reading, not a fact in the source.\n",
+    "pillar": "social",
+    "pilot_relevance": [],
+    "places": [
+      "charlotte"
+    ],
+    "reviews": [],
+    "scale": "bioregion",
+    "slug": "social/bioregion/census-gazetteer-aiannh",
+    "status": "candidate",
+    "tags": [
+      "indigenous-lands",
+      "tiger",
+      "gazetteer",
+      "united-states",
+      "census"
+    ],
+    "upstream_listed_in": [],
+    "url": "https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html"
   },
   {
     "added": "2026-09-09",
@@ -8712,14 +9132,15 @@
     ],
     "license": "CC BY, version not stated; see notes",
     "name": "Kontur Population (400 m H3 hexagons)",
-    "notes": "VERIFIED 2026-10-23.\n\nLICENCE. Read on Kontur's own dataset page: \"Kontur Population is available under Creative Commons Attribution\nInternational (CC BY) license. You can use it for any purpose, even commercially.\" The page names no version,\nand HDX's licence field for every Kontur package read (global, Indonesia, Spain) is an unversioned cc-by.\n\"International\" points at the 4.0 suite, but nobody has confirmed it, so `license` records no version.\nEvery CC BY version allows any use with attribution, so criterion 1 is met either way. Attribution to Kontur; the sources it fuses (GHSL CC BY 4.0,\nOSM ODbL among them) are Kontur's to answer for, and Kontur publishes the fusion under CC BY.\n\nENDPOINT. HDX CKAN API, no key. The global file kontur_population_20231101.gpkg.gz is 2.44 GB on Kontur's S3\n(geodata-eu-central-1-kontur-public). Per-country packages are kontur-population-<country>: Spain 22 MB, Indonesia\n64 MB gzipped. Each GeoPackage holds one table `population` (fid, geom in EPSG:3857, h3 TEXT, population REAL).\nSpain: 286,702 hexagons, 47,551,642 people. Indonesia: 874,919 hexagons, 277,542,182 people.\n\nREAD, with h3 4.5.0, cells at resolution 8. Barcelona, Plaça de Catalunya, cell 88394460e5fffff: 18,262 people\nin 0.716 km2; its ring of 7 sums 103,615; the 91-cell disk at k=5 has 75 cells present and sums 918,712. Denpasar,\nPuputan square, cell 8895a4c2edfffff: 4,928 in 0.642 km2; ring of 7 sums 35,563; k=5 has all 91 and sums 421,701.\nThose are the only two places read, so they are the only two in places.\n\nABSENCE. Only hexagons with people are stored. The 16 Barcelona cells missing from that disk are sea. A missing\nhexagon means zero people modelled, never no data: a reader must fill 0, not leave a gap.\n\nVINTAGE. The newest release is 2023-11-01, and HDX has listed nothing newer since. It inherits GHSL and HRSL\nepochs underneath, so read it as a circa-2020 picture, older than its file date.\n\nWHY THIS CELL. Population density for Social|City, already on the H3 grid, so it needs no raster-to-cell step.\nWHAT IT DOES NOT CLAIM. A model, not a register. Where it disagrees with the municipal padron, the padron wins.\nA review should sum it inside one real municipal boundary and record the gap to the census. Like any entry, it\ngoes live only with a usable review in reviews/ or an adapter.\n",
+    "notes": "VERIFIED 2026-10-23.\n\nLICENCE. Read on Kontur's own dataset page: \"Kontur Population is available under Creative Commons Attribution\nInternational (CC BY) license. You can use it for any purpose, even commercially.\" The page names no version,\nand HDX's licence field for every Kontur package read (global, Indonesia, Spain) is an unversioned cc-by.\n\"International\" points at the 4.0 suite, but nobody has confirmed it, so `license` records no version.\nEvery CC BY version allows any use with attribution, so criterion 1 is met either way. Attribution to Kontur; the sources it fuses (GHSL CC BY 4.0,\nOSM ODbL among them) are Kontur's to answer for, and Kontur publishes the fusion under CC BY.\n\nENDPOINT. HDX CKAN API, no key. The global file kontur_population_20231101.gpkg.gz is 2.44 GB on Kontur's S3\n(geodata-eu-central-1-kontur-public). Per-country packages are kontur-population-<country>: Spain 22 MB, Indonesia\n64 MB gzipped. Each GeoPackage holds one table `population` (fid, geom in EPSG:3857, h3 TEXT, population REAL).\nSpain: 286,702 hexagons, 47,551,642 people. Indonesia: 874,919 hexagons, 277,542,182 people.\n\nREAD, with h3 4.5.0, cells at resolution 8. Barcelona, Plaça de Catalunya, cell 88394460e5fffff: 18,262 people\nin 0.716 km2; its ring of 7 sums 103,615; the 91-cell disk at k=5 has 75 cells present and sums 918,712. Denpasar,\nPuputan square, cell 8895a4c2edfffff: 4,928 in 0.642 km2; ring of 7 sums 35,563; k=5 has all 91 and sums 421,701.\nThose are the only two places read, so they are the only two in places.\n\nABSENCE. Only hexagons with people are stored. The 16 Barcelona cells missing from that disk are sea. A missing\nhexagon means zero people modelled, never no data: a reader must fill 0, not leave a gap.\n\nVINTAGE. The newest release is 2023-11-01, and HDX has listed nothing newer since. It inherits GHSL and HRSL\nepochs underneath, so read it as a circa-2020 picture, older than its file date.\n\nWHY THIS CELL. Population density for Social|City, already on the H3 grid, so it needs no raster-to-cell step.\nWHAT IT DOES NOT CLAIM. A model, not a register. Where it disagrees with the municipal padron, the padron wins.\nA review should sum it inside one real municipal boundary and record the gap to the census. Like any entry, it\ngoes live only with a usable review in reviews/ or an adapter.\n\nCHARLOTTE, read 2026-11-05: kontur_population_US_20231101.gpkg (294 MB). The 1,237 H3 r8 cells whose centres\nfall in the TIGERweb boundary of place 3712000 sum to 934,495 people, against ACS 903,844.\n",
     "pillar": "social",
     "pilot_relevance": [
       "global"
     ],
     "places": [
       "barcelona",
-      "bali"
+      "bali",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "city",
@@ -8809,14 +9230,15 @@
     ],
     "license": "No named licence. Published as open data under OMB M-10-06 and EO 13642; the API terms require a specific attribution notice, quoted in notes. US federal works carry no domestic copyright, which is the usual basis — but the Bureau names no licence of its own.",
     "name": "US Census Bureau American Community Survey (ACS) API",
-    "notes": "LICENCE, and the honest shape of it. The Census Bureau's API Terms of Service,\nread 2026-09-23, **name no licence at all**. They impose an attribution\nrequirement, verbatim: services using the API \"should display the following\nnotice prominently within the application: *This product uses the Census\nBureau Data API but is not endorsed or certified by the Census Bureau*\", and\nforbid modifying or falsely representing content while still claiming the\nBureau as source. Separately the Bureau publishes to data.gov \"in accordance\nwith OMB Memorandum M-10-06 [and] Executive Order 13642 on open data\".\n\nSo this is open by policy rather than by licence. The usual basis for calling\nit public domain is that US federal government works carry no domestic\ncopyright — which is true and is *not* something the Bureau says on these\npages, so this entry does not put the words in its mouth. Criterion 1 is met\nin substance; a reviewer who needs a named licence will not find one.\n\n**A KEY IS NOW REQUIRED FOR DATA, and this changed.** `GET\napi.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E&for=place:*&in=state:25`\nwithout a key returns an HTML page titled **\"Missing Key\"**, not JSON. The\nlong-standing behaviour of 500 keyless queries a day is gone. Keys are issued\non request without review, hence `auth: api-key` rather than `registration`.\n\nThe split is worth knowing: **metadata is still keyless.** `/data.json` and\n`/data/2024/acs/acs5/variables.json` both answered 200 with no key, so a node\ncan discover variables and vintages anonymously and only needs the key to\nfetch values. Anything that probes the API to check it is alive should probe\nmetadata.\n\nVINTAGE: acs5 variable endpoints answered for 2022, 2023 and **2024**, so the\n2024 five-year release is live. Five-year estimates pool 2020–2024, which is\nthe thing to say out loud when comparing to a single-year figure from\nelsewhere: an ACS 5-year value is not a 2024 measurement.\n\nSPATIAL, and this is the best in Tier A or B. Geography is **FIPS/GEOID**\nnatively — `for=place:*&in=state:25` is every place in Massachusetts — through\nstate, county, county subdivision, place, tract and block group. No crosswalk,\nno name matching, no invented identifier. Boston is a FIPS place code and\njoins to every other US federal dataset on it.\n\nINDICATOR: city population, income and housing — the social-pillar city row\nfor the Boston pilot, at a resolution no other source in this list reaches.\nI could not read the landing plan's Table 2 in this session, so this names the\nindicator in plain words rather than a row id.\n\nPromotes to live when somebody registers a key, pulls one variable for Boston\nby FIPS place code, and confirms the attribution notice is displayed wherever\nthe value surfaces — the notice is a condition of use, not a courtesy, and an\nIndex that shows ACS numbers without it is out of terms.\n",
+    "notes": "LICENCE, and the honest shape of it. The Census Bureau's API Terms of Service,\nread 2026-09-23, **name no licence at all**. They impose an attribution\nrequirement, verbatim: services using the API \"should display the following\nnotice prominently within the application: *This product uses the Census\nBureau Data API but is not endorsed or certified by the Census Bureau*\", and\nforbid modifying or falsely representing content while still claiming the\nBureau as source. Separately the Bureau publishes to data.gov \"in accordance\nwith OMB Memorandum M-10-06 [and] Executive Order 13642 on open data\".\n\nSo this is open by policy rather than by licence. The usual basis for calling\nit public domain is that US federal government works carry no domestic\ncopyright — which is true and is *not* something the Bureau says on these\npages, so this entry does not put the words in its mouth. Criterion 1 is met\nin substance; a reviewer who needs a named licence will not find one.\n\n**A KEY IS NOW REQUIRED FOR DATA, and this changed.** `GET\napi.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E&for=place:*&in=state:25`\nwithout a key returns an HTML page titled **\"Missing Key\"**, not JSON. The\nlong-standing behaviour of 500 keyless queries a day is gone. Keys are issued\non request without review, hence `auth: api-key` rather than `registration`.\n\nThe split is worth knowing: **metadata is still keyless.** `/data.json` and\n`/data/2024/acs/acs5/variables.json` both answered 200 with no key, so a node\ncan discover variables and vintages anonymously and only needs the key to\nfetch values. Anything that probes the API to check it is alive should probe\nmetadata.\n\nVINTAGE: acs5 variable endpoints answered for 2022, 2023 and **2024**, so the\n2024 five-year release is live. Five-year estimates pool 2020–2024, which is\nthe thing to say out loud when comparing to a single-year figure from\nelsewhere: an ACS 5-year value is not a 2024 measurement.\n\nSPATIAL, and this is the best in Tier A or B. Geography is **FIPS/GEOID**\nnatively — `for=place:*&in=state:25` is every place in Massachusetts — through\nstate, county, county subdivision, place, tract and block group. No crosswalk,\nno name matching, no invented identifier. Boston is a FIPS place code and\njoins to every other US federal dataset on it.\n\nINDICATOR: city population, income and housing — the social-pillar city row\nfor the Boston pilot, at a resolution no other source in this list reaches.\nI could not read the landing plan's Table 2 in this session, so this names the\nindicator in plain words rather than a row id.\n\nPromotes to live when somebody registers a key, pulls one variable for Boston\nby FIPS place code, and confirms the attribution notice is displayed wherever\nthe value surfaces — the notice is a condition of use, not a courtesy, and an\nIndex that shows ACS numbers without it is out of terms.\n\nCHARLOTTE, read 2026-11-05. The API still wants a key (302 to missing_key.html), but the ACS table-based\nSummary File on www2.census.gov is keyless and carries the same 2024 five-year (2020-2024) values:\nsummary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b01003.dat gives Charlotte city (1600000US3712000)\n903,844 ±208, Mecklenburg County (0500000US37119) 1,154,681, MSA 16740 2,768,407. With the 2024 Gazetteer\nland area (city 807.05 km2) that is 1,120 people/km2. B25070: 49.8% of city renter households pay 30% or\nmore of income on rent.\n",
     "pillar": "social",
     "pilot_relevance": [
       "boston",
       "global"
     ],
     "places": [
-      "boston"
+      "boston",
+      "charlotte"
     ],
     "reviews": [],
     "scale": "city",
@@ -9179,10 +9601,13 @@
     ],
     "license": "CC-BY-4.0",
     "name": "WorldPop",
-    "notes": "LICENCE, from the provider's own hub 2026-09-22: \"Creative Commons Attribution\n4.0 International License\", linking creativecommons.org/licenses/by/4.0/.\nCriterion 1 is met. Note that worldpop.org and hub.worldpop.org are the same\nproject and the licence statement lives on the hub — the marketing site does\nnot carry it, which is why this entry's `url` is the hub.\n\nENDPOINT VERIFIED 2026-09-22, no key and no account: `GET\nhub.worldpop.org/rest/data` returns the product catalogue as JSON, and\n`/rest/data/pop/wpgp?iso3=IDN` returns 21 records for Indonesia with DOI,\ndescription and a GeoTIFF link each. `www.worldpop.org/rest/...` 301s to the\nhub; follow redirects or use the hub host directly.\n\nVINTAGE, and it is the thing to know before anyone builds on this: the\nunconstrained global series `wpgp` covers **2000–2020** at 100 m and the\nIndonesian records were published 2018-11-01. There is no 2021+ year in this\ncatalogue. For a 2026 question this is a five-year-old estimate of a\nfast-moving denominator, which is defensible for a rural bioregion and not for\na city that has been building.\n\nSPATIAL: raster, 3 arc-second (~100 m at the equator), WGS84, one file per\ncountry selected by ISO 3166-1 alpha-3. That is the only code in the payload.\nThere is no ISO 3166-2, no NUTS, no BPS or INE code on anything. **Not\nfederatable without a crosswalk** below the country: a node wanting a\nprovince's population must bring that province's own boundary and sum the\ngrid inside it. Same shape as economic/social/city/jrc-ghsl and worth reading\nthe two together — GHSL models built-up surface, this one redistributes census\ncounts, and they disagree in exactly the places that matter.\n\nINDICATOR: population for a region or a city, as the denominator under\nper-capita anything. I could not read the landing plan's Table 2 in this\nsession, so this names the indicator in plain words rather than a row id.\n\nPromotes to live when somebody sums the grid inside one real administrative\nboundary — a Chilean región, a Balinese kabupaten — and compares the total to\nthat territory's own published figure for the same year, and records the gap.\nA population denominator nobody has checked against the local census is the\nkind of number that quietly makes every rate wrong.\n",
+    "notes": "LICENCE, from the provider's own hub 2026-09-22: \"Creative Commons Attribution\n4.0 International License\", linking creativecommons.org/licenses/by/4.0/.\nCriterion 1 is met. Note that worldpop.org and hub.worldpop.org are the same\nproject and the licence statement lives on the hub — the marketing site does\nnot carry it, which is why this entry's `url` is the hub.\n\nENDPOINT VERIFIED 2026-09-22, no key and no account: `GET\nhub.worldpop.org/rest/data` returns the product catalogue as JSON, and\n`/rest/data/pop/wpgp?iso3=IDN` returns 21 records for Indonesia with DOI,\ndescription and a GeoTIFF link each. `www.worldpop.org/rest/...` 301s to the\nhub; follow redirects or use the hub host directly.\n\nVINTAGE, and it is the thing to know before anyone builds on this: the\nunconstrained global series `wpgp` covers **2000–2020** at 100 m and the\nIndonesian records were published 2018-11-01. There is no 2021+ year in this\ncatalogue. For a 2026 question this is a five-year-old estimate of a\nfast-moving denominator, which is defensible for a rural bioregion and not for\na city that has been building.\n\nSPATIAL: raster, 3 arc-second (~100 m at the equator), WGS84, one file per\ncountry selected by ISO 3166-1 alpha-3. That is the only code in the payload.\nThere is no ISO 3166-2, no NUTS, no BPS or INE code on anything. **Not\nfederatable without a crosswalk** below the country: a node wanting a\nprovince's population must bring that province's own boundary and sum the\ngrid inside it. Same shape as economic/social/city/jrc-ghsl and worth reading\nthe two together — GHSL models built-up surface, this one redistributes census\ncounts, and they disagree in exactly the places that matter.\n\nINDICATOR: population for a region or a city, as the denominator under\nper-capita anything. I could not read the landing plan's Table 2 in this\nsession, so this names the indicator in plain words rather than a row id.\n\nPromotes to live when somebody sums the grid inside one real administrative\nboundary — a Chilean región, a Balinese kabupaten — and compares the total to\nthat territory's own published figure for the same year, and records the gap.\nA population denominator nobody has checked against the local census is the\nkind of number that quietly makes every rate wrong.\n\nCHARLOTTE, read 2026-11-05: the stats service (services/stats?dataset=wpgppop&year=2020) over a simplified\ncity polygon returned 958,417 for 2020. The reply wraps its JSON in PHP deprecation HTML, and the full\npolygon gets 414, so simplify it first.\n",
     "pillar": "social",
     "pilot_relevance": [
       "global"
+    ],
+    "places": [
+      "charlotte"
     ],
     "reviews": [],
     "scale": "region",

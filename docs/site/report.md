@@ -1,5 +1,5 @@
 # The report
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The report is the node telling the household what the ground is doing, in their language, on a schedule. The node
 writes it itself, with SQL against its own tables, so a node with no model reachable anywhere still gets it. With
@@ -68,10 +68,11 @@ what happened first and only then where somebody could act on it:
 Nearest place to make or fix something: {lab}, {distance} km ({up to three capabilities}).
 ```
 
-The distance reads `<0.1` for a node inside a lab, and the capabilities are in the report's language. The row
-comes from the `make` pack, which is off unless both `MAKE_ENABLED=1` and `PACKS_ALLOW_CODE=1` are set, and which
-stores only the labs within `MAKE_RADIUS_KM` (50) that publish coordinates. The same line is offered on the alerts
-in `GET /issues`, as `asks.where`. The line adds to the hundred words.
+The distance is measured from the middle of the node's res-8 cell, so the line says the same wherever in the cell
+the house stands, and anyone can read it at `SHARE_LEVEL=open`. It reads `<0.1` for a node inside a lab, and the
+capabilities are in the report's language. The row comes from the `make` pack, which is off unless both
+`MAKE_ENABLED=1` and `PACKS_ALLOW_CODE=1` are set, and which stores only the labs within `MAKE_RADIUS_KM` (50) that
+publish coordinates. The same line is offered on the alerts in `GET /issues`, as `asks.where`. The line adds to the hundred words.
 
 > **Careful.** The Fab Lab Network directory the pack reads is not openly licensed: each lab keeps copyright in its
 > own record, and no data licence is published. Fab City Foundation's permission to read it covers the Foundation,

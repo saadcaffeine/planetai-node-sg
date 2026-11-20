@@ -1,5 +1,5 @@
 # MCP server and tools
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This is the surface an agent holds. Any client that speaks MCP can read what the node read, ask how the place is
 doing in the household's own words, and record that somebody acted, in that person's words. Nothing an agent does
@@ -89,7 +89,7 @@ Start with `health_check`, then `status`.
 | `settings_set` | `changes: {KEY: value}`, `agent="agent"` | writes: changes runtime settings, live within 20 seconds; a blank returns the key to `.env` |
 | `run_pack_script` | `pack`, `script`, `args?`, `agent="agent"` | runs code: `packs/<pack>/<script>.py` inside the container (15-minute limit), and returns exit code, stdout, stderr and `by`. Every script of a core pack runs. A wild pack's script runs only if its `pack.yaml` lists it under `agent_scripts:`, otherwise the answer is an `error` pointing to `planetai run <pack> <script>` on the node's terminal. A pack's `adapter.py` is never a script here, and a pack the node does not load (left out of `PACKS_ENABLED`, or refused by its `requires:`) runs nothing |
 
-> **Gap in v0.91.0.** `readings` answers with its error for every sensor. It looks the sensor up at the top level of
+> **Gap in v0.92.0.** `readings` answers with its error for every sensor. It looks the sensor up at the top level of
 > `/sparks`, and the hourly means sit under `series`. Use `series` or `history` instead.
 
 `act` refuses a blank note and the placeholders that stand in for a person's words (`acted`, `acknowledged`, `done`,

@@ -1,0 +1,45 @@
+name: NC OneMap
+url: https://www.nconemap.gov
+description: |
+  North Carolina's statewide geospatial data portal (ArcGIS Hub), run by
+  the State's Center for Geographic Information and Analysis. 455 datasets
+  from state agencies, counties and municipalities, under a free and
+  unrestricted use policy.
+pillar: governance
+scale: region
+status: candidate
+license: "NC OneMap terms: free and unrestricted use, no release agreement required or issued. No named licence; quoted in notes."
+api: https://www.nconemap.gov/api/feed/dcat-us/1.1.json
+pilot_relevance: []
+places: [charlotte]
+tags: [open-data-portal, arcgis-hub, geospatial, north-carolina, dcat]
+added: 2026-11-05
+assisted_by: Claude Code
+auth: none
+feeds_cells: [Governance|Region]
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. The DCAT-US feed above answered 200 with no key and
+  lists 455 datasets; 53 were modified in the 90 days before 2026-11-05.
+  The largest publishers in the feed are NC OneMap / State (209), NC DEQ
+  (28), the NC General Assembly (27) and NCDOT (25). Charlotte sits in
+  Mecklenburg County, FIPS 37119.
+
+  LICENCE, from the portal's own terms page (www.nconemap.gov/pages/terms,
+  Hub page item e60514c3b78542ef9902e3d7f7a671c1), read 2026-11-05: "By
+  sharing their content, all partner organizations understand this free
+  and unrestricted use policy", and "Written release agreements to
+  authorize use of the geospatial data, web services, and applications
+  found on the NC OneMap website are not required and will not be issued."
+  Most dataset records point their licence field at that page; 69 leave it
+  blank. These terms are the portal's, and they differ from the nc.gov
+  website terms (non-commercial, no alteration) that govern NC DEQ, LINC
+  and OpenBudget. Do not read one as the other.
+
+  WHY THIS CELL. Governance|Region counts open datasets published and the
+  share updated in the last 90 days; the feed gives both directly.
+
+  WHAT IT DOES NOT CLAIM. It holds no contracts or procurement awards. NC
+  eVP lists awarded solicitations as HTML only, with no export (checked
+  2026-11-05). It has no state-wide non-spatial catalogue either:
+  data.nc.gov does not resolve.

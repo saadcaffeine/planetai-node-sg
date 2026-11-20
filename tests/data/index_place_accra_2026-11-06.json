@@ -1,0 +1,902 @@
+{
+ "format": "fci-api-v0",
+ "generated": "2026-11-05T05:52:20.275Z",
+ "registry_generated": "2026-11-05",
+ "registry_commit": "8099744c119da4e670d2d677fbf1812f3b44fc21",
+ "tracker_harvested": "2026-09-11",
+ "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/fabcity-index-2019.json",
+ "method": "https://index.fab.city/method#worked",
+ "licence": "Scores: CC BY 4.0, Fab City Foundation. Each input keeps its own licence, named where it is used.",
+ "place": {
+  "slug": "accra",
+  "name": "Accra",
+  "country": "Ghana",
+  "territory": "City"
+ },
+ "score": {
+  "status": "simulated",
+  "status_label": "Simulated",
+  "status_says": "no cell is measured yet, so the index is a range from 0 to DIDO",
+  "fci": null,
+  "fci_range": [
+   0,
+   0
+  ],
+  "dido": 0,
+  "one_minus_pito": null,
+  "rho": 1,
+  "rho_measured": false,
+  "cells_total": 20,
+  "cells_open": 0,
+  "cells_measured": 0,
+  "scored_in": 2026,
+  "dido_weight": [
+   0,
+   12.4
+  ],
+  "pito_weight_measured": [
+   0,
+   7.6
+  ]
+ },
+ "actions": [
+  {
+   "kind": "measure",
+   "title": "Measure one cell",
+   "text": "Nothing is measured for Accra yet, so its index is a range. One measured cell turns it into a number. The one most places can reach is Economic × Region: what the region makes against what its households buy.",
+   "href": "https://github.com/fabcity/awesome-fabcity-data/issues/42"
+  },
+  {
+   "kind": "add",
+   "title": "Add a source for the 20 empty cells",
+   "text": "Each empty cell holds Accra's DIDO down. An open dataset that covers one lifts it.",
+   "href": "https://github.com/fabcity/awesome-fabcity-data/blob/main/CONTRIBUTING.md"
+  },
+  {
+   "kind": "use",
+   "title": "Use the data as it is",
+   "text": "Download the scores and sources, print the report, or build on the API. Cite the Fab City Index and each source's licence.",
+   "href": "https://index.fab.city/api/v0/places/accra.json"
+  }
+ ],
+ "blocked": null,
+ "cells": [
+  {
+   "cell": "Environmental|Community",
+   "pillar": "Environmental",
+   "scale": "Community",
+   "w_dido": 0.5,
+   "w_pito": 0.5,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|City",
+   "pillar": "Environmental",
+   "scale": "City",
+   "w_dido": 0.3,
+   "w_pito": 0.7,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Region",
+   "pillar": "Environmental",
+   "scale": "Region",
+   "w_dido": 0.2,
+   "w_pito": 0.8,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Bioregion",
+   "pillar": "Environmental",
+   "scale": "Bioregion",
+   "w_dido": 0.1,
+   "w_pito": 0.9,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Planet",
+   "pillar": "Environmental",
+   "scale": "Planet",
+   "w_dido": 0,
+   "w_pito": 1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Community",
+   "pillar": "Social",
+   "scale": "Community",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|City",
+   "pillar": "Social",
+   "scale": "City",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Region",
+   "pillar": "Social",
+   "scale": "Region",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Bioregion",
+   "pillar": "Social",
+   "scale": "Bioregion",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Planet",
+   "pillar": "Social",
+   "scale": "Planet",
+   "w_dido": 0.8,
+   "w_pito": 0.2,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Community",
+   "pillar": "Economic",
+   "scale": "Community",
+   "w_dido": 0.7,
+   "w_pito": 0.3,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|City",
+   "pillar": "Economic",
+   "scale": "City",
+   "w_dido": 0.5,
+   "w_pito": 0.5,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Region",
+   "pillar": "Economic",
+   "scale": "Region",
+   "w_dido": 0.4,
+   "w_pito": 0.6,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Bioregion",
+   "pillar": "Economic",
+   "scale": "Bioregion",
+   "w_dido": 0.2,
+   "w_pito": 0.8,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Planet",
+   "pillar": "Economic",
+   "scale": "Planet",
+   "w_dido": 0,
+   "w_pito": 1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Community",
+   "pillar": "Governance",
+   "scale": "Community",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|City",
+   "pillar": "Governance",
+   "scale": "City",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Region",
+   "pillar": "Governance",
+   "scale": "Region",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Bioregion",
+   "pillar": "Governance",
+   "scale": "Bioregion",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Planet",
+   "pillar": "Governance",
+   "scale": "Planet",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  }
+ ],
+ "indicators": [],
+ "boundaries": [],
+ "country_bracket": {
+  "iso": "GHA",
+  "name": "Ghana",
+  "places": 2,
+  "trade": {
+   "reads_as": "The country each place sits in, as the Atlas of Economic Complexity records its goods trade: what the whole country exports and imports, by sector, in current US dollars. Exports over imports is a trade balance written as a ratio, NOT the share of consumption met by local production: a country that exports cars and imports food can sit at 1.00 and feed nobody. Re-exports are inside the figures (a gateway country like the Netherlands most of all). A country's figure says nothing about its cities; it is the bracket a place's own trade sits inside.",
+   "source": "Atlas of Economic Complexity, Growth Lab at Harvard University: International Trade Data (HS 92), doi:10.7910/DVN/T4CHWJ, version 18 (2026-04-22), tables hs92_country_year, hs92_country_product_year_1 and _2; Classifications doi:10.7910/DVN/3BAL1O",
+   "licence": "CC0 1.0 (the Dataverse record); goods trade only, services are a separate Atlas table",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/atlas-country.json",
+   "year": 2024,
+   "exports_usd": 13104901924,
+   "imports_usd": 20710375767,
+   "exports_over_imports": 0.63,
+   "eci": -1.138,
+   "sectors": {
+    "Chemicals and plastics": {
+     "exports_usd": 314467366,
+     "imports_usd": 3448740348,
+     "exports_over_imports": 0.09
+    },
+    "Electronics": {
+     "exports_usd": 10998960,
+     "imports_usd": 1512245067,
+     "exports_over_imports": 0.01
+    },
+    "Machinery and instruments": {
+     "exports_usd": 29297962,
+     "imports_usd": 3225518347,
+     "exports_over_imports": 0.01
+    },
+    "Metals": {
+     "exports_usd": 316597559,
+     "imports_usd": 1984232387,
+     "exports_over_imports": 0.16
+    },
+    "Minerals, fuels, ores and salts": {
+     "exports_usd": 3980838979,
+     "imports_usd": 1943605659,
+     "exports_over_imports": 2.05
+    },
+    "Other": {
+     "exports_usd": 208896401,
+     "imports_usd": 236698789,
+     "exports_over_imports": 0.88
+    },
+    "Stone, glass and ceramics": {
+     "exports_usd": 4866439038,
+     "imports_usd": 366746585,
+     "exports_over_imports": 13.27
+    },
+    "Textiles, garments, footwear and furniture": {
+     "exports_usd": 97143778,
+     "imports_usd": 2507048020,
+     "exports_over_imports": 0.04
+    },
+    "Transport vehicles": {
+     "exports_usd": 13355683,
+     "imports_usd": 1671467133,
+     "exports_over_imports": 0.01
+    },
+    "Vegetables, animals, wood and paper": {
+     "exports_usd": 3266866198,
+     "imports_usd": 3814073432,
+     "exports_over_imports": 0.86
+    }
+   },
+   "imports_in_net_export_chapters_share": 0.09,
+   "hs2_chapters_net_exported": 15,
+   "hs2_chapters_reported": 97,
+   "series": [
+    {
+     "year": 1995,
+     "exports_usd": 1310600070,
+     "imports_usd": 1907125829,
+     "exports_over_imports": 0.69
+    },
+    {
+     "year": 1996,
+     "exports_usd": 1479008983,
+     "imports_usd": 2481027308,
+     "exports_over_imports": 0.6
+    },
+    {
+     "year": 1997,
+     "exports_usd": 1371353778,
+     "imports_usd": 2776712203,
+     "exports_over_imports": 0.49
+    },
+    {
+     "year": 1998,
+     "exports_usd": 1479992863,
+     "imports_usd": 2718523817,
+     "exports_over_imports": 0.54
+    },
+    {
+     "year": 1999,
+     "exports_usd": 1548691281,
+     "imports_usd": 2626807334,
+     "exports_over_imports": 0.59
+    },
+    {
+     "year": 2000,
+     "exports_usd": 1812383335,
+     "imports_usd": 2569918650,
+     "exports_over_imports": 0.71
+    },
+    {
+     "year": 2001,
+     "exports_usd": 1670365909,
+     "imports_usd": 2475072257,
+     "exports_over_imports": 0.67
+    },
+    {
+     "year": 2002,
+     "exports_usd": 1803366132,
+     "imports_usd": 2695521893,
+     "exports_over_imports": 0.67
+    },
+    {
+     "year": 2003,
+     "exports_usd": 2245854279,
+     "imports_usd": 3399925944,
+     "exports_over_imports": 0.66
+    },
+    {
+     "year": 2004,
+     "exports_usd": 2148188749,
+     "imports_usd": 3842346873,
+     "exports_over_imports": 0.56
+    },
+    {
+     "year": 2005,
+     "exports_usd": 2626441924,
+     "imports_usd": 4930437467,
+     "exports_over_imports": 0.53
+    },
+    {
+     "year": 2006,
+     "exports_usd": 3112682202,
+     "imports_usd": 6094271604,
+     "exports_over_imports": 0.51
+    },
+    {
+     "year": 2007,
+     "exports_usd": 3493053715,
+     "imports_usd": 7979574807,
+     "exports_over_imports": 0.44
+    },
+    {
+     "year": 2008,
+     "exports_usd": 4327682393,
+     "imports_usd": 10436396196,
+     "exports_over_imports": 0.41
+    },
+    {
+     "year": 2009,
+     "exports_usd": 3933434308,
+     "imports_usd": 8164675811,
+     "exports_over_imports": 0.48
+    },
+    {
+     "year": 2010,
+     "exports_usd": 4119011575,
+     "imports_usd": 9953093493,
+     "exports_over_imports": 0.41
+    },
+    {
+     "year": 2011,
+     "exports_usd": 13490281686,
+     "imports_usd": 14501621842,
+     "exports_over_imports": 0.93
+    },
+    {
+     "year": 2012,
+     "exports_usd": 11700203112,
+     "imports_usd": 17786863140,
+     "exports_over_imports": 0.66
+    },
+    {
+     "year": 2013,
+     "exports_usd": 11816115353,
+     "imports_usd": 16732943519,
+     "exports_over_imports": 0.71
+    },
+    {
+     "year": 2014,
+     "exports_usd": 13200781814,
+     "imports_usd": 15414737416,
+     "exports_over_imports": 0.86
+    },
+    {
+     "year": 2015,
+     "exports_usd": 11235049489,
+     "imports_usd": 15231065015,
+     "exports_over_imports": 0.74
+    },
+    {
+     "year": 2016,
+     "exports_usd": 10864695904,
+     "imports_usd": 14057583415,
+     "exports_over_imports": 0.77
+    },
+    {
+     "year": 2017,
+     "exports_usd": 12345442104,
+     "imports_usd": 14223837817,
+     "exports_over_imports": 0.87
+    },
+    {
+     "year": 2018,
+     "exports_usd": 14935173596,
+     "imports_usd": 14039812658,
+     "exports_over_imports": 1.06
+    },
+    {
+     "year": 2019,
+     "exports_usd": 15145451564,
+     "imports_usd": 15818680186,
+     "exports_over_imports": 0.96
+    },
+    {
+     "year": 2020,
+     "exports_usd": 11381045272,
+     "imports_usd": 16800968144,
+     "exports_over_imports": 0.68
+    },
+    {
+     "year": 2021,
+     "exports_usd": 13813759318,
+     "imports_usd": 20427376321,
+     "exports_over_imports": 0.68
+    },
+    {
+     "year": 2022,
+     "exports_usd": 16558874930,
+     "imports_usd": 19171953600,
+     "exports_over_imports": 0.86
+    },
+    {
+     "year": 2023,
+     "exports_usd": 15492898721,
+     "imports_usd": 20188838397,
+     "exports_over_imports": 0.77
+    },
+    {
+     "year": 2024,
+     "exports_usd": 13104901924,
+     "imports_usd": 20710375767,
+     "exports_over_imports": 0.63
+    }
+   ]
+  },
+  "food": {
+   "reads_as": "The country each place sits in, as FAO's Food Balance Sheets record its food: for each commodity group, production against production plus imports minus exports, FAO's own self-sufficiency ratio. Above 1 the country grows more than it keeps; below 1 it eats what others grow. The summary weights each group's ratio, capped at 1, by the group's share of the diet's calories, and says how much of the diet the covered groups are. A country figure, never a city's: it is the bracket a place's own food system sits inside.",
+   "source": "FAO, FAOSTAT Food Balance Sheets (2010-), bulk file https://bulks-faostat.fao.org/production/FoodBalanceSheets_E_All_Data.zip (FoodBalanceSheets_E_All_Data_NOFLAG.csv), elements 5511, 5611, 5911 and 664, years [2010, 2023]; country codes from the Atlas classification (M49)",
+   "licence": "CC BY 4.0 (FAO Statistical Database Terms of Use), which also bars use in conjunction with the promotion of a commercial enterprise; cite FAO, FAOSTAT Food Balance Sheets",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/food-country.json",
+   "year": 2023,
+   "kcal_per_person_day": 3124.99,
+   "self_supply_kcal_weighted": 0.9,
+   "kcal_weight_covered_share": 0.96,
+   "groups_measured": 15,
+   "groups": {
+    "Cereals": {
+     "production_kt": 5772,
+     "imports_kt": 2231,
+     "exports_kt": 53,
+     "kcal_per_person_day": 853.04,
+     "ssr": 0.73,
+     "state": "measured"
+    },
+    "Starchy roots": {
+     "production_kt": 38888,
+     "imports_kt": 22,
+     "exports_kt": 58,
+     "kcal_per_person_day": 1291.89,
+     "ssr": 1,
+     "state": "measured"
+    },
+    "Sugar crops": {
+     "production_kt": 157,
+     "imports_kt": 0,
+     "exports_kt": 0,
+     "kcal_per_person_day": 3.81,
+     "ssr": 1,
+     "state": "measured"
+    },
+    "Sugar and sweeteners": {
+     "production_kt": null,
+     "imports_kt": 431,
+     "exports_kt": 50,
+     "kcal_per_person_day": 108.03,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Pulses": {
+     "production_kt": 501,
+     "imports_kt": 2,
+     "exports_kt": 0,
+     "kcal_per_person_day": 47.4,
+     "ssr": 1,
+     "state": "measured"
+    },
+    "Tree nuts": {
+     "production_kt": 226,
+     "imports_kt": 3,
+     "exports_kt": 948,
+     "kcal_per_person_day": 0.41,
+     "ssr": null,
+     "state": "not covered: nothing kept"
+    },
+    "Oilcrops": {
+     "production_kt": 4522,
+     "imports_kt": 384,
+     "exports_kt": 172,
+     "kcal_per_person_day": 136.11,
+     "ssr": 0.96,
+     "state": "measured"
+    },
+    "Vegetable oils": {
+     "production_kt": 575,
+     "imports_kt": 186,
+     "exports_kt": 174,
+     "kcal_per_person_day": 172.15,
+     "ssr": 0.98,
+     "state": "measured"
+    },
+    "Vegetables": {
+     "production_kt": 799,
+     "imports_kt": 310,
+     "exports_kt": 57,
+     "kcal_per_person_day": 18.55,
+     "ssr": 0.76,
+     "state": "measured"
+    },
+    "Fruits": {
+     "production_kt": 6195,
+     "imports_kt": 72,
+     "exports_kt": 206,
+     "kcal_per_person_day": 285.68,
+     "ssr": 1.02,
+     "state": "measured"
+    },
+    "Stimulants": {
+     "production_kt": 654,
+     "imports_kt": 10,
+     "exports_kt": 715,
+     "kcal_per_person_day": 0.42,
+     "ssr": null,
+     "state": "not covered: nothing kept"
+    },
+    "Spices": {
+     "production_kt": 113,
+     "imports_kt": 4,
+     "exports_kt": 0,
+     "kcal_per_person_day": 27.64,
+     "ssr": 0.97,
+     "state": "measured"
+    },
+    "Alcoholic beverages": {
+     "production_kt": 833,
+     "imports_kt": 78,
+     "exports_kt": 25,
+     "kcal_per_person_day": 27.05,
+     "ssr": 0.94,
+     "state": "measured"
+    },
+    "Miscellaneous": {
+     "production_kt": null,
+     "imports_kt": 86,
+     "exports_kt": 26,
+     "kcal_per_person_day": 5.87,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Meat": {
+     "production_kt": 319,
+     "imports_kt": 268,
+     "exports_kt": 0,
+     "kcal_per_person_day": 72.74,
+     "ssr": 0.54,
+     "state": "measured"
+    },
+    "Offals": {
+     "production_kt": 21,
+     "imports_kt": 37,
+     "exports_kt": null,
+     "kcal_per_person_day": 5.73,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Animal fats": {
+     "production_kt": 6,
+     "imports_kt": 1,
+     "exports_kt": 2,
+     "kcal_per_person_day": 4.57,
+     "ssr": 1.2,
+     "state": "measured"
+    },
+    "Milk": {
+     "production_kt": 51,
+     "imports_kt": 186,
+     "exports_kt": 22,
+     "kcal_per_person_day": 9.74,
+     "ssr": 0.24,
+     "state": "measured"
+    },
+    "Eggs": {
+     "production_kt": 50,
+     "imports_kt": 0,
+     "exports_kt": 0,
+     "kcal_per_person_day": 3.68,
+     "ssr": 1,
+     "state": "measured"
+    },
+    "Fish and seafood": {
+     "production_kt": 482,
+     "imports_kt": 388,
+     "exports_kt": 69,
+     "kcal_per_person_day": 50.48,
+     "ssr": 0.6,
+     "state": "measured"
+    },
+    "Other aquatic products": {
+     "production_kt": null,
+     "imports_kt": 0,
+     "exports_kt": 0,
+     "kcal_per_person_day": null,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    }
+   }
+  },
+  "goods": {
+   "not_measured": "Ghana has no row in the OECD TiVA tables"
+  },
+  "energy": {
+   "reads_as": "The country each place sits in, as the World Bank reads its energy: of the energy the country uses, the share it produces itself, which is one minus its net energy imports as a share of use. Above 1 the country produces more than it uses and exports the rest. Net imports are imports less exports, so a country that imports oil and exports gas can read as self-supplied; gross imports are not published here. A country figure, never a city's.",
+   "source": "World Bank WDI API v2, EG.IMP.CONS.ZS (net energy imports, % of energy use) and EG.USE.PCAP.KG.OE (energy use, kg of oil equivalent per person), 2015-2024, database last updated 2026-10-08",
+   "licence": "World Bank World Development Indicators, CC BY-4.0 (the series' own License_Type, read 2026-10-13), compiled by the World Bank from IEA energy statistics; cite The World Bank: World Development Indicators, EG.IMP.CONS.ZS and EG.USE.PCAP.KG.OE",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/energy-country.json",
+   "year": 2024,
+   "net_imports_share_of_use": -0.051,
+   "made_at_home": 1.051,
+   "position": "net exporter",
+   "energy_use_kg_oe_per_person": 395,
+   "energy_use_year": 2024,
+   "series": [
+    {
+     "year": 2015,
+     "net_imports_share_of_use": -0.077,
+     "made_at_home": 1.077
+    },
+    {
+     "year": 2016,
+     "net_imports_share_of_use": 0.054,
+     "made_at_home": 0.946
+    },
+    {
+     "year": 2017,
+     "net_imports_share_of_use": -0.34,
+     "made_at_home": 1.34
+    },
+    {
+     "year": 2018,
+     "net_imports_share_of_use": -0.311,
+     "made_at_home": 1.311
+    },
+    {
+     "year": 2019,
+     "net_imports_share_of_use": -0.403,
+     "made_at_home": 1.403
+    },
+    {
+     "year": 2020,
+     "net_imports_share_of_use": -0.333,
+     "made_at_home": 1.333
+    },
+    {
+     "year": 2021,
+     "net_imports_share_of_use": -0.248,
+     "made_at_home": 1.248
+    },
+    {
+     "year": 2022,
+     "net_imports_share_of_use": -0.222,
+     "made_at_home": 1.222
+    },
+    {
+     "year": 2023,
+     "net_imports_share_of_use": -0.094,
+     "made_at_home": 1.094
+    },
+    {
+     "year": 2024,
+     "net_imports_share_of_use": -0.051,
+     "made_at_home": 1.051
+    }
+   ]
+  },
+  "materials": {
+   "reads_as": "The country each place sits in, as the OECD's material flow accounts read it: of the materials the country consumes, in tonnes, the share it extracted inside its own borders. Above 1 the country extracts more than it keeps and exports the rest. Tonnes weigh sand and copper alike; the four groups in the place's JSON tell them apart. The material footprint beside it counts the raw materials embodied in what the country consumes wherever they were dug. A country figure, never a city's.",
+   "source": "OECD, Material resources: economy-wide material flow accounts, DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES, measures DEU, IMP, EXP, DMC, MF in tonnes, groups TOT, BIO, MET, IND, FUEL, 2019-2025: https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES,1.0/",
+   "licence": "OECD Terms and Conditions, Data, Permitted Use (read 2026-10-13): any purpose including commercial, credit the OECD, same acknowledgment in sub-licences. Cite: OECD (2025), Material resources (economy-wide material flow accounts), https://sdmx.oecd.org/public/rest/dataflow/OECD.ENV.EPI/DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES/1.0 (accessed on 2026-10-13)",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/materials-country.json",
+   "year": 2024,
+   "made_at_home": 1.032,
+   "position": "net exporter",
+   "domestic_extraction_mt": 322.2,
+   "imports_mt": 6.5,
+   "exports_mt": 16.5,
+   "domestic_material_consumption_mt": 312.2,
+   "material_footprint_mt": 213.3,
+   "imports_share_of_consumption": 0.021,
+   "footprint_over_consumption": 0.68,
+   "groups": {
+    "biomass": {
+     "made_at_home": 0.989,
+     "domestic_material_consumption_mt": 139.1
+    },
+    "metals": {
+     "made_at_home": 1.054,
+     "domestic_material_consumption_mt": 96.7
+    },
+    "non_metallic_minerals": {
+     "made_at_home": 0.979,
+     "domestic_material_consumption_mt": 73.8
+    },
+    "fossil_energy_materials": {
+     "made_at_home": 4.052,
+     "domestic_material_consumption_mt": 2.6
+    }
+   },
+   "series": [
+    {
+     "year": 2019,
+     "made_at_home": 1.037
+    },
+    {
+     "year": 2020,
+     "made_at_home": 1.036
+    },
+    {
+     "year": 2021,
+     "made_at_home": 1.032
+    },
+    {
+     "year": 2022,
+     "made_at_home": 1.032
+    },
+    {
+     "year": 2023,
+     "made_at_home": 1.033
+    },
+    {
+     "year": 2024,
+     "made_at_home": 1.032
+    }
+   ]
+  },
+  "water": {
+   "reads_as": "The country each place sits in, as FAO's AQUASTAT reads its water: of the renewable water the country has in a year, the share that originates inside its own borders (one minus the dependency ratio, the share flowing in from other countries). Beside it, the share of what it has that it withdraws. Water is not bought abroad like goods; this says whose rain it lives on. Resources are long-term averages repeated each year. A country figure, never a city's.",
+   "source": "FAO AQUASTAT dissemination system, BigQuery endpoint with the published query (variables 4192, 4157, 4182, 4188, 4263, years 2018-2022): https://api.data.apps.fao.org/api/v2/bigquery",
+   "licence": "CC BY 4.0 under FAO's Statistical Database Terms of Use, whose Annex 1 names AQUASTAT, with the clause against use in the promotion of a commercial enterprise (decided by Tomas Diez, 2026-10-14; FAO's data catalogue labels the dissemination dataset CC BY-NC-SA 4.0, read as a catalogue default). Cite FAO, AQUASTAT, https://data.apps.fao.org/aquastat/",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/water-country.json",
+   "year": 2022,
+   "made_at_home": 0.539,
+   "dependency_ratio": 0.461,
+   "internal_renewable_km3": 30.3,
+   "external_renewable_km3": 25.9,
+   "total_renewable_km3": 56.2,
+   "freshwater_withdrawal_km3": 0.12675,
+   "withdrawal_year": 2022,
+   "withdrawal_share_of_renewable": 0.002,
+   "symbols": {
+    "dependency_ratio": "I",
+    "internal_renewable_km3": "I",
+    "external_renewable_km3": "I",
+    "total_renewable_km3": "I",
+    "freshwater_withdrawal_km3": "A"
+   }
+  }
+ },
+ "region_bracket": {
+  "reads_as": "For every tracker place: whether a national figure may be split down to it, and why. Refused for a seaport or a national capital (the check says how wrong that would be), not possible without a NUTS2 code, allowed otherwise. The modelled rows are the NUTS2 region that holds the place, not the place: Schwaben for Augsburg, Bretagne for Brest. They are modelled, never measured, and carry the error bar the check measured for a region that makes things.",
+  "registry_commit": "e4684fb34ec5a07ff1020b00604a620c07ed4f9b",
+  "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/downscale-check.json",
+  "not_modelled": "refused: customs attribute trade to head offices (the check: Île-de-France 2x under)"
+ },
+ "planet": {
+  "source": "Richardson, K. et al. (2023), Earth beyond six of nine planetary boundaries, Science Advances 9(37), eadh2458",
+  "boundaries": [
+   {
+    "label": "Climate change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Biosphere integrity",
+    "status": "transgressed"
+   },
+   {
+    "label": "Land-system change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Freshwater change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Biogeochemical flows (nitrogen, phosphorus)",
+    "status": "transgressed"
+   },
+   {
+    "label": "Novel entities",
+    "status": "transgressed"
+   },
+   {
+    "label": "Ocean acidification",
+    "status": "close to the boundary"
+   },
+   {
+    "label": "Atmospheric aerosol loading",
+    "status": "within, regional exceedances"
+   },
+   {
+    "label": "Stratospheric ozone depletion",
+    "status": "within"
+   }
+  ]
+ },
+ "links": {
+  "page": "https://index.fab.city/city?locality=accra",
+  "report": "https://index.fab.city/report?locality=accra",
+  "json": "https://index.fab.city/api/v0/places/accra.json"
+ }
+}

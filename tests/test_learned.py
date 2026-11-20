@@ -82,7 +82,7 @@ assert learn.alert_name("air-quality/some_new_rule") == "an air alert" and learn
 # The names and the pack of each issue come from the packs since 23 Oct 2026: a rule's `name:`, its issue's `alert:`,
 # the pack that ships the issue. The core keeps no map naming air-quality or heat.
 assert learn.alert_name("air-quality/indoor_pm25_high") == "unhealthy air inside" and learn.alert_name("heat/events") == "a heat alert"
-assert learn._issue_packs() == {"air": "air-quality", "heat": "heat", "coast": "coast", "land": "earth", "water": "terrain"}, learn._issue_packs()
+assert learn._issue_packs() == {"air": "air-quality", "heat": "heat", "coast": "coast", "land": "earth", "water": "terrain", "energy": "energy"}, learn._issue_packs()
 assert learn._metric("air-quality") == "pm25" and learn._metric("heat") == "apparent" and learn._metric("nearby") is None
 import events_pg as _epg, report as _rep  # noqa: E402
 for _mod, _gone in ((learn, ("PACK_METRIC", "ISSUE_PACK", "ALERT_NAMES")), (_epg, ("PACK_ISSUE",)), (_rep, ("THRESHOLDS",))):

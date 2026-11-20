@@ -16,6 +16,7 @@ from fastapi import HTTPException
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "app"))
 import buttons  # noqa: E402
+import events_pg  # noqa: E402 — the DECISION_REQUIRED check action() asks (events_pg.decision_first)
 
 tree = ast.parse((ROOT / "app" / "main.py").read_text())
 fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "action")
@@ -59,7 +60,8 @@ def run(body, *, alert="open", existing=None, decided=False, required=0):
     class Settings:
         num = staticmethod(lambda key, default: required)
 
-    NS.update(db=db, settings=Settings)
+    events_pg.settings = Settings
+    NS.update(db=db, settings=Settings, events_pg=events_pg)
     try:
         out = action(body, None, "")
     except HTTPException as e:

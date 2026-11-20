@@ -1,5 +1,5 @@
 # Packs
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 A pack is how a place teaches its node what to watch and what to say about it. The core names no metric: what
 `pm25` means, which line matters in this house, and the sentence a person should read at 9 pm are all written in a
@@ -9,7 +9,7 @@ There are two tiers:
 
 | | core | wild |
 |---|---|---|
-| lives in | `packs/` in the node's repository, twenty-five of them | its author's own repository, or a folder in [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) |
+| lives in | `packs/` in the node's repository, twenty-eight of them | its author's own repository, or a folder in [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs) |
 | reaches a node | with every release | Install in Set up › Packs, or `planetai packs add` |
 | checked by | the node's `make lint` and tests, on every commit | the wild-packs repository's CI, against the node's `main`, every week |
 | kept by | the node's maintainers | its author |
@@ -90,7 +90,7 @@ Because blank `PACKS_ENABLED` means every pack, a pack that must stay off by def
 waits for `MAKE_ENABLED=1`, because it reads a directory that is not openly licensed, and `fire` for
 `FIRE_ENABLED=1`, for the bandwidth; both also need `PACKS_ALLOW_CODE=1`. `bali-air-dispatch` names `BAD_ENABLED` as
 its `switch:`, and a core pack with a switch runs its adapter and hooks when the switch is `1`, without
-`PACKS_ALLOW_CODE`; `air-quality`, `home-assistant`, `smartcitizen`, `airgradient` and `purpleair` have one too.
+`PACKS_ALLOW_CODE`; `air-quality`, `home-assistant`, `smartcitizen`, `airgradient`, `purpleair` and `index` have one too.
 
 A `pack.yaml`, `rules.yml`, `cells.yml` or adapter that does not parse is logged and skipped, and the rest of the
 node carries on. Every installed pack's `env:` keys, enabled or not, appear in Set up → Packs with their help text
@@ -191,7 +191,7 @@ raw template, braces and all.
 | `sources: [environmental/community/bali-air-dispatch]` | the registry ids of the data sources it reads. `make lint` runs `tools/check_registry.py`, which fails and names any id that is not an entry in the registry the node carries. See [The source registry](sources.md) |
 | `pip: [earthengine-api]` | libraries `planetai packs install` builds into the image, once, as the union of the lists of the packs this node loads (every folder, when the node is down) |
 | `footprint:` | where the pack's word reaches, drawn on the page as the cells that cover it: `key`, `name`, `what`, the `setting` that holds the radius with its `default` and `unit` (`km` or `m`), `shape` (`circle` or `square`), `base_res`, and `native_m` when the source has a grain of its own (earth's 10 m). Read while the pack is on; coast, earth and place declare one |
-| `share: {open: [/path]}` | the paths this pack's `routes.py` serves that join the `open` share list, or with `"off"` (quoted, since YAML reads a bare `off` as false) every share level. A wild pack's are ignored. `forecast`, `nearby`, `earth` and `earth-engine` declare `open`, `things` declares `"off"` |
+| `share: {open: [/path]}` | the paths this pack's `routes.py` serves that join the `open` share list, or with `"off"` (quoted, since YAML reads a bare `off` as false) every share level. A wild pack's are ignored. `forecast`, `nearby`, `earth`, `earth-engine`, `energy` and `index` declare `open`, `things` declares `"off"` |
 | `env: ["# comment", "KEY=default"]` | settings `planetai packs install` appends to `.env` under a dated marker when the key is absent; a comment line travels with the key under it. No space after `=` |
 | `secrets: [CAMERA_WYZE_BRIDGE_TOKEN]` | which of its `env` keys are secrets. Set up and the agent's `settings_get` mask them once saved, like the node's own tokens; a key not listed here is shown to anyone holding the admin token |
 | `switch: BAD_ENABLED` | the pack's own on-switch, usually one of its `env` keys. A core pack that names one runs its `adapter.py` and `hooks.py` when the switch is `1`, without `PACKS_ALLOW_CODE`; a wild pack still needs the flag. It may be a list of keys, on when any is set and not 0 (`smartcitizen`: `[SC_USER, SC_DEVICES, MQTT_HOST]`). Set up draws any pack's `…_ENABLED` key as a switch |
@@ -207,7 +207,7 @@ raw template, braces and all.
 
 ## Rules
 
-YAML only. A rule's SQL runs every 60 seconds as the read-only role `planetai_ro`: every table but `settings`, and
+YAML only. A rule's SQL runs every 60 seconds as the read-only role `planetai_ro`: every table but `settings`, `captures`, `things`, `learnings`, `digests`, `household` and the two `place_photo_asks` tables, and
 no writes, so a rule cannot read a token into an alert or change a row. Postgres does the maths, `corr()`
 included. The first rule in `packs/air-quality/rules.yml`, with its message shortened:
 
@@ -311,6 +311,10 @@ Roles are `ambient`, `enclosure`, `device_health`, `derived`, `index` and `priva
 [sensors](sensors.md) page. The core's `config/channels.yml` is read first; a pack may not redeclare a pair the core
 already claimed, and the duplicate is logged and dropped. A pack that adds no metric may ship `channels.yml` as `[]`
 to say so.
+
+A source that does not allow republishing says so on its sensor row: `meta.licence` set to `non-commercial` keeps that
+sensor out of the daily export and the report bundle, and the page and the bot still show it. The `energy` pack sets it
+on the Balearic grid's mix, which comes from Red Eléctrica.
 
 ## Code packs: adapters
 

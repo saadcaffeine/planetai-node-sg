@@ -1,0 +1,541 @@
+{
+ "core": [
+  {
+   "id": "air-quality",
+   "name": "Air quality",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm10",
+    "pm1",
+    "humidity",
+    "pm25_model",
+    "pm10_model",
+    "dust",
+    "aod",
+    "co",
+    "no2",
+    "o3",
+    "uv_index"
+   ],
+   "description": "PM2.5 rules and Index cells: the indoor/outdoor decision, WHO exceedance days, and the daily air line, and the CAMS model at the node's point, now and for its first 92 days. The first domain pack, and the template for th",
+   "tier": "core"
+  },
+  {
+   "id": "airgradient",
+   "name": "AirGradient",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm25_raw",
+    "pm10",
+    "pm1",
+    "co2",
+    "temp",
+    "humidity",
+    "tvoc_index",
+    "nox_index"
+   ],
+   "description": "This node's own AirGradient ONE and Open Air monitors, read on the household's WiFi at http://<host>/measures/current, no cloud. PM2.5 is corrected with EPA 2021 from the raw Plantower reading, which is kept beside it as",
+   "tier": "core"
+  },
+  {
+   "id": "bali-air-dispatch",
+   "name": "Bali Air Dispatch",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm25_raw",
+    "pm10",
+    "pm1",
+    "temp",
+    "humidity",
+    "aqi"
+   ],
+   "description": "The island's public air stations around this node, from Bali Air Dispatch: eight networks (Nafas, IQAir, PurpleAir, AQICN, OpenAQ, AirGradient, Smart Citizen, Airly) in one key-free archive. Stored as other people's stat",
+   "tier": "core"
+  },
+  {
+   "id": "coast",
+   "name": "Coast",
+   "domain": "coast",
+   "metrics": [
+    "wave_height_m",
+    "wave_direction",
+    "wave_period_s",
+    "swell_height_m",
+    "swell_period_s",
+    "sea_surface_temp"
+   ],
+   "description": "Waves, swell and sea-surface temperature at the nearest ocean grid cell, from Open-Meteo Marine. Free, key-free, global. Context for coastal nodes: fishers, surf schools, a warung on the beach.",
+   "tier": "core"
+  },
+  {
+   "id": "cold-start",
+   "name": "Cold start",
+   "domain": "cross-domain",
+   "metrics": [],
+   "description": "Makes a node useful on day one with no hardware: a modelled air-quality line, a \"how does today compare with normal\" reading against 40 years of satellite climatology, and \u2014 once a sensor arrives \u2014 how far it sits from t",
+   "tier": "core"
+  },
+  {
+   "id": "earth",
+   "name": "Earth (AlphaEarth)",
+   "domain": "land",
+   "metrics": [
+    "land_change_yoy",
+    "land_change_since_2017",
+    "years_cached"
+   ],
+   "description": "This node's own copy of Google's AlphaEarth Satellite Embedding layers for its square of the planet, and the year-over-year change computed here from them: how different the land within a few kilometres looks from one ye",
+   "tier": "core"
+  },
+  {
+   "id": "earth-engine",
+   "name": "Earth Engine context",
+   "domain": "land",
+   "metrics": [
+    "tree_frac",
+    "built_frac",
+    "crop_frac",
+    "water_frac",
+    "ndvi_median",
+    "night_lights"
+   ],
+   "description": "What the land within a kilometre of the node did this year, from Google Earth Engine's public catalog: tree cover and built-up fraction (Dynamic World), vegetation (Sentinel-2 NDVI) and night lights (VIIRS). Land change ",
+   "tier": "core"
+  },
+  {
+   "id": "example-cooking-hours",
+   "name": "Cooking hours",
+   "domain": null,
+   "metrics": [],
+   "description": "Don't shout about indoor PM2.5 during normal cooking hours \u2014 say it once, after.",
+   "tier": "core"
+  },
+  {
+   "id": "eyes",
+   "name": "Eyes",
+   "domain": "species",
+   "metrics": [],
+   "description": "The pictures a household takes of its own place (microscope, phone, camera, drone, balloon), cleaned on arrival and kept on its own disk; what the node's own image model sees in them, as findings in the flows classes; th",
+   "tier": "core"
+  },
+  {
+   "id": "fire",
+   "name": "Fire and smoke",
+   "domain": "air",
+   "metrics": [
+    "fires_local_24h",
+    "fires_region_24h",
+    "frp_local_mw",
+    "frp_region_mw",
+    "fires_nearest_km",
+    "fires_nearest_bearing",
+    "fires_local_upwind",
+    "fires_region_upwind",
+    "fires_upwind_km",
+    "fires_upwind_bearing",
+    "fire_wind_from_deg"
+   ],
+   "description": "Fires that satellites saw in the last day near this node, from NASA FIRMS: how many, how far, in which direction, and whether they lie where the wind is coming from. It says when a fire is near, when one is upwind, and, ",
+   "tier": "core"
+  },
+  {
+   "id": "forecast",
+   "name": "Forecast",
+   "domain": "weather",
+   "metrics": [
+    "fc_temp",
+    "fc_humidity",
+    "fc_wind_speed",
+    "fc_wind_direction",
+    "fc_cloud",
+    "fc_rain",
+    "fc_wind_gusts",
+    "fc_rain_prob",
+    "fc_shortwave",
+    "fc_et0",
+    "fc_soil_moisture",
+    "fc_pm25",
+    "fc_uv",
+    "fc_wave_m",
+    "fc_swell_m",
+    "fc_swell_s",
+    "fc_swell_dir",
+    "fc_lead_hours",
+    "fc_temp_gap",
+    "fc_wind_speed_gap"
+   ],
+   "description": "Official and model weather for this point, as context for reading the node's own air: where the wind is coming from and when rain is expected, over the next three days. It fetches; it does not predict, and it never sends",
+   "tier": "core"
+  },
+  {
+   "id": "heat",
+   "name": "Heat & comfort",
+   "domain": "heat",
+   "metrics": [
+    "temp",
+    "humidity"
+   ],
+   "description": "Apparent temperature from temperature and humidity, heat-stress hours, and nights that never cool. Works with any sensor the node already reads that reports both. Pure SQL.",
+   "tier": "core"
+  },
+  {
+   "id": "home-assistant",
+   "name": "Home Assistant",
+   "domain": null,
+   "metrics": [],
+   "description": "This house's own sensors as Home Assistant entities, and the latest alert as one text sensor, over MQTT discovery. The node publishes; Home Assistant automates. It never addresses a device.",
+   "tier": "core"
+  },
+  {
+   "id": "insight",
+   "name": "Insight",
+   "domain": "cross-domain",
+   "metrics": [],
+   "description": "What your sensors say about each other, the street, and the model. A richer digest every few hours, and a daily note on how well the satellite model, the nearby outdoor sensors and your own indoor air agree. All of it is",
+   "tier": "core"
+  },
+  {
+   "id": "make",
+   "name": "Make",
+   "domain": "make",
+   "metrics": [],
+   "description": "Where somebody can go to make or fix something. The nearest active fab labs to this node, from the Fab Lab Network directory, with what each one can do. Display-only: it is a list of places, never a measurement, never a ",
+   "tier": "core"
+  },
+  {
+   "id": "nearby",
+   "name": "Nearby",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm25_raw",
+    "pm10",
+    "pm1",
+    "temp",
+    "humidity"
+   ],
+   "description": "The ring: other people's air sensors around this node, from Bali Air Dispatch. One kit cannot tell a fire in the lane from a haze over the whole island. The ring can. Three rules \u2014 the cause is here, the cause is everywh",
+   "tier": "core"
+  },
+  {
+   "id": "open-data-health",
+   "name": "Open data health",
+   "domain": "governance",
+   "metrics": [],
+   "description": "Turns a CKAN portal's maintenance state into a Governance|City cell: how much of a city's open data was touched in the last 90 days. A portal nobody updates is an archive, not open data.",
+   "tier": "core"
+  },
+  {
+   "id": "place",
+   "name": "Place",
+   "domain": "place",
+   "metrics": [
+    "sat_buildings",
+    "sat_confidence",
+    "osm_building_coverage",
+    "sat_buildings_yearly",
+    "sat_height_m_yearly",
+    "buildings",
+    "built_share",
+    "commercial_share",
+    "businesses_per_km2",
+    "poi_food",
+    "poi_retail",
+    "poi_education",
+    "poi_health",
+    "poi_worship",
+    "poi_lodging",
+    "poi_services",
+    "roads_km",
+    "green_share",
+    "nearest_school_m",
+    "nearest_health_m",
+    "nearest_market_m",
+    "nearest_worship_m"
+   ],
+   "description": "What is around the node, from OpenStreetMap: buildings and how much ground they cover, shops and warungs, schools, clinics, temples, roads, green space, and the walk to the nearest of each. Structure and change, not beha",
+   "tier": "core"
+  },
+  {
+   "id": "purpleair",
+   "name": "PurpleAir",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm25_raw",
+    "pm10",
+    "temp",
+    "humidity",
+    "pressure",
+    "channel_disagreement"
+   ],
+   "description": "This node's own PurpleAir sensors, read on the household's WiFi at http://<ip>/json?live=true, no cloud. PM2.5 is EPA 2021 on the mean of the two laser channels, kept raw beside it; a large gap between the channels is st",
+   "tier": "core"
+  },
+  {
+   "id": "season",
+   "name": "Season",
+   "domain": "air",
+   "metrics": [
+    "pm25"
+   ],
+   "description": "The record: is the air around this node worse than it has been? The ring answers where the smoke is; this answers whether the year has turned. One paired comparison \u2014 the same stations' last seven days against their own ",
+   "tier": "core"
+  },
+  {
+   "id": "smartcitizen",
+   "name": "Smart Citizen",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "pm10",
+    "pm1",
+    "temp",
+    "humidity",
+    "pressure",
+    "bme_iaq",
+    "gas_resistance",
+    "noise",
+    "light",
+    "eco2",
+    "tvoc"
+   ],
+   "description": "This node's own Smart Citizen kits, read from api.smartcitizen.me: the ones listed by id, and the ones in the household's account that published in the last three days. And the kits and DIY nodes that publish straight to",
+   "tier": "core"
+  },
+  {
+   "id": "surface-heat",
+   "name": "Surface heat",
+   "domain": "heat",
+   "metrics": [
+    "lst",
+    "lst_ring",
+    "lst_delta",
+    "lst_pctile",
+    "lst_night",
+    "lst_day"
+   ],
+   "description": "How hot the ground in this node's own cell got, against the land 1 to 3 km around it, from Landsat's surface temperature at 30 m; and how warm the ground stays at night, from MODIS at 1 km. Read once a day from Microsoft",
+   "tier": "core"
+  },
+  {
+   "id": "terrain",
+   "name": "Terrain (where the rain goes)",
+   "domain": "water",
+   "metrics": [
+    "terrain_upslope_ha",
+    "terrain_upslope_near_ha",
+    "terrain_hollow_m",
+    "rain_24h_mm",
+    "water_24h_m3"
+   ],
+   "description": "This node's own square of elevation from Copernicus DEM, filled and routed here: how much ground drains through the node's point, and how deep water would stand there before it runs on. Each poll multiplies that by the r",
+   "tier": "core"
+  },
+  {
+   "id": "thingdata",
+   "name": "ThingData",
+   "domain": "repair",
+   "metrics": [
+    "things_total",
+    "guides_total",
+    "stories_total",
+    "things_documented_pct",
+    "knowledge_fresh_90d_pct"
+   ],
+   "description": "Reads a ThingData server \u2014 the reuse-city repair-knowledge protocol \u2014 and turns its catalogue into observations: how many things are described, how many have a repair guide, and whether anyone is still writing. A repair ",
+   "tier": "core"
+  },
+  {
+   "id": "things",
+   "name": "Things a home keeps",
+   "domain": "things",
+   "metrics": [],
+   "description": "The things this home keeps, one row each with how often it is used and whether it works, three private counts per class written as readings so readouts, rules and cells can use them, and the ones the household offers to ",
+   "tier": "core"
+  }
+ ],
+ "wild": [
+  {
+   "id": "wyze-camera",
+   "name": "Wyze cameras",
+   "domain": "",
+   "metrics": [],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "Wyze cameras through docker-wyze-bridge: records motion events and saves snapshots on this node's own disk, in",
+   "tier": "wild"
+  },
+  {
+   "id": "singapore-beach",
+   "name": "Singapore beach water quality",
+   "domain": "coast",
+   "metrics": [
+    "beach_band",
+    "beach_band_nearest",
+    "beach_stretches_elevated",
+    "beach_advisory"
+   ],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "NEA's weekly Enterococcus banding of Singapore's recreational beaches (Band 1 Normal, Band 2 Elevated, Band 3 High),",
+   "tier": "wild"
+  },
+  {
+   "id": "bmkg-synop",
+   "name": "BMKG station reports (WIS2)",
+   "domain": "heat",
+   "metrics": [
+    "temp",
+    "dewpoint",
+    "humidity",
+    "pressure",
+    "wind_speed",
+    "wind_direction",
+    "cloud",
+    "visibility",
+    "rainfall_1h",
+    "rai"
+   ],
+   "sections": true,
+   "ahead": false,
+   "readouts": true,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "The hourly report of one BMKG synoptic station, as BMKG publishes it to WMO's WIS2: air temperature, dew point,",
+   "tier": "wild"
+  },
+  {
+   "id": "tuya-indoor",
+   "name": "Tuya / Smart Life room sensors",
+   "domain": "heat",
+   "metrics": [
+    "temp",
+    "humidity"
+   ],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "Indoor temperature and humidity from Tuya / Smart Life sensors, read through the Tuya Cloud API, one named room",
+   "tier": "wild"
+  },
+  {
+   "id": "singapore-nea",
+   "name": "Singapore NEA and PUB open data",
+   "domain": "weather",
+   "metrics": [],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "\"NEA and PUB open data from data.gov.sg for Singapore nodes - air and PSI, temperature, humidity, rainfall, wind, UV, WBGT heat stress, flood alerts, dengue clusters, and the 2-hour, 24-hour and 4-day forecasts.\"",
+   "tier": "wild"
+  },
+  {
+   "id": "fire-smoke",
+   "name": "Fire and smoke",
+   "domain": "air",
+   "metrics": [
+    "fires_24h",
+    "fires_prev_24h",
+    "fires_250km_24h",
+    "fires_frp_mw_24h",
+    "fires_nearest_km"
+   ],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "Satellite-detected fires within a few hundred kilometres of this node, counted by the compass direction they lie in,",
+   "tier": "wild"
+  },
+  {
+   "id": "xiaomi-air",
+   "name": "Xiaomi air purifiers (LAN)",
+   "domain": "air",
+   "metrics": [
+    "pm25",
+    "temp",
+    "humidity",
+    "filter_life"
+   ],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "Xiaomi / Mi Home air purifiers read directly on the LAN over the miio/MIoT protocol \u2014 PM2.5, temperature,",
+   "tier": "wild"
+  },
+  {
+   "id": "posidonia",
+   "name": "Posidonia",
+   "domain": "coast",
+   "metrics": [
+    "sea_surface_temp"
+   ],
+   "sections": false,
+   "ahead": false,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-packs",
+   "description": "Thermal stress on Posidonia oceanica, the seagrass meadow that holds the Balearic coast together,",
+   "tier": "wild"
+  },
+  {
+   "id": "surf",
+   "name": "Surf, two days",
+   "domain": "coast",
+   "metrics": [
+    "surf_good",
+    "surf_kw",
+    "surf_from_h",
+    "surf_to_h",
+    "surf_swell_m",
+    "surf_period_s",
+    "surf_swell_dir",
+    "surf_mixed"
+   ],
+   "sections": false,
+   "ahead": true,
+   "readouts": false,
+   "issue": false,
+   "from": "planetai-wild-surfahead",
+   "description": "At five in the evening, up to three spots for each of the next two days where surf could be good, each with its best",
+   "tier": "wild"
+  },
+  {
+   "id": "paddy",
+   "name": "Rice around this node (Sentinel-2)",
+   "domain": "land",
+   "metrics": [
+    "rice_ha",
+    "rice_lost_ha",
+    "rice_bare_pct",
+    "clear_days",
+    "months_read"
+   ],
+   "sections": true,
+   "ahead": false,
+   "readouts": true,
+   "issue": false,
+   "from": "planetai-wild-surfahead",
+   "description": "How many hectares of a square the keeper chooses still go through rice seasons, and how many were green a year ago",
+   "tier": "wild"
+  }
+ ],
+ "note": "core: packs.manifests() of planetai-node at v0.91; wild: pack.yaml of every pack in the local planetai-wild-packs checkouts, 6 Nov 2026"
+}

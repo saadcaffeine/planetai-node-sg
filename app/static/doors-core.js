@@ -19,6 +19,13 @@ const plain = s => String(s ?? '').replace(/[\p{Extended_Pictographic}\u{FE0F}\u
 const SAT = y => `/earth/frame.png?year=${y}&source=sentinel`;
 const km = ([lon1, lat1], [lon2, lat2]) => d3.geoDistance([lon1, lat1], [lon2, lat2]) * 6371;
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* OP-XY's header ramp (evolution variation): pairs of [name, value, unit, second line under the name, second line under
+   the value], drawn as a name cell then a value cell, in even grey steps from black to white; the type turns ink where
+   the step passes the middle. Greys only: a ramp is not a colour. */
+/* Field Synthesizer variation: one cell a figure, as the export's readout strip: an etched label, the value, a line
+   under it. pairs: [label, value, unit, sub-label, sub-value, class on the cell (warm: over the line; sig: the signal)] */
+const rampHTML = pairs => pairs.map(([k, v, u, k2, v2, cls]) =>
+  `<div class="${cls || ''}"><span class="rk">${k}</span><span class="r1"><span class="rv">${v}</span>${u ? `<span class="ru">${u}</span>` : ''}</span><span class="r2">${[k2, v2].filter(Boolean).join(' · ') || '&nbsp;'}</span></div>`).join('');
 
 /* ---- the node's rules, as helpers (docs/site/design.md, tools/check_ui.py) ---- */
 const NODE = '/static/';                           // the node's own frozen layer: theme, tokens, signs, learn.json, fonts
@@ -30,7 +37,7 @@ const UNLOCK_AT = '<a href="#setup/screen">Set up › This screen</a>';
 const sign = (id, cls = '') => `<svg class="sg ${cls}" aria-hidden="true"><use href="${NODE}signs.svg#${id}"/></svg>`;
 // Provenance is ink only and square: the glyph, then one of the five words. Anything else is an absence, not a provenance.
 const PROV = ['live', 'partial', 'model', 'cached', 'example'];
-const prov = w => PROV.includes(w) ? `<span class="pill">${sign('sign-prov-' + w)}${w}</span>` : `<span class="gap">${esc(w)}</span>`;
+const prov = w => PROV.includes(w) ? `<span class="pill pv-${w}">${sign('sign-prov-' + w)}${w}</span>` : `<span class="gap">${esc(w)}</span>`;
 // Every numeral carries its comparison: data-num names it, data-cmp says against what (the visual gate reads both).
 const ago = m => m < 90 ? `${Math.round(m)} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`;   /* an age in minutes, said the way the Node door and Now's declared bands say it */
 const num = (key, v, cmp, inner) => `<span data-num="${esc(key)}" data-cmp="${esc(cmp)}">${inner ?? esc(v)}</span>`;
@@ -68,13 +75,13 @@ function lastRaw(id, metric) {
   const s = ((D.raw.series[id] || {})[metric]) || []; for (let i = s.length - 1; i >= 0; i--) if (s[i]) return s[i][0]; return null;
 }
 
-const DOORS = ['now', 'place', 'node', 'data', 'wall', 'setup'];   /* setup is a page, opened by the gear, not a door in the menu */
+const DOORS = ['now', 'place', 'node', 'data', 'wall', 'setup', 'p'];   /* setup is a page, opened by the gear, not a door in the menu; p is a page the household made (#p/<id>, round 4) */
 /* #data/<sensor-id> opens a door at one thing: the part after the slash is the door's to read */
 const view = () => { const d = location.hash.slice(1).split('/')[0]; return DOORS.includes(d) ? d : 'now'; };
 const VIEWS = {};
 /* the reader's register: what they chose last on this screen, else what their system asks for */
 let userTheme = (() => { try { const t = localStorage.getItem('planetai_theme'); if (t === 'light' || t === 'dark') return t; } catch (e) { /* no storage here */ }
-  return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; })();
+  return 'dark'; })();   /* Field Synthesizer variation: dark by default; the switch still offers paper */
 document.querySelectorAll('.bar .reg button').forEach(o => o.classList.toggle('on', o.dataset.r === userTheme));
 function route() {
   const v = view();
@@ -83,7 +90,7 @@ function route() {
   const gear = $('#gear'); if (v === 'setup') gear.setAttribute('aria-current', 'page'); else gear.removeAttribute('aria-current');   /* Set up is open */
   document.body.dataset.view = v;
   if (v !== 'wall' && typeof flowStop === 'function') { const w = $('#wfield'); w && flowStop(w); }
-  if (v !== 'wall' && typeof WALLMAP !== 'undefined' && WALLMAP.stop) WALLMAP.stop();
+  if (v !== 'wall' && typeof WALL !== 'undefined' && WALL.map) { WALL.map.destroy(); WALL.map = null; }   /* no WebGL context left running on another door */
   // the wall is the keeper's register: dark, always (Decision 15); every other door keeps the reader's choice
   document.documentElement.dataset.theme = v === 'wall' ? 'dark' : userTheme;
   const drawn = VIEWS[v]();
@@ -419,7 +426,7 @@ $('#qform').onsubmit = async ev => {
     const r = await fetch('/ask', { method: 'POST', headers: { 'content-type': 'application/json', ...DOORS_AUTH() },
       body: JSON.stringify({ messages: [{ role: 'user', content: q }], view: view(), mode: 'advanced', focus: null }) });
     if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).detail || `the node answered ${r.status}`);
-    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '', text = '';
+    const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '', text = '', reg = null;
     for (;;) {
       const { value, done } = await rd.read(); if (done) break;
       buf += dec.decode(value, { stream: true }); let cut;
@@ -427,12 +434,18 @@ $('#qform').onsubmit = async ev => {
         const block = buf.slice(0, cut); buf = buf.slice(cut + 2);
         const ev = (block.match(/^event: (.+)$/m) || [])[1], data = JSON.parse((block.match(/^data: (.+)$/m) || [])[1] || '{}');
         if (ev === 'token') { text += data.text; out.textContent = text; }
-        else if (ev === 'retry') { text = ''; }
+        else if (ev === 'retry') { text = ''; reg = null; }
+        else if (ev === 'proposal' && data.tool === 'place_report') reg = (data.args || {}).register || 'paper';
         else if (ev === 'error') throw new Error(data.message);
       }
     }
     if (!text) throw new Error('empty');
     out.innerHTML = `<p>${esc(text)}</p>`;
+    /* the model asked for the Place report (SPEC_place_report §9 step 3): a button that opens it; the person prints */
+    if (reg && window.placeReport) {
+      out.insertAdjacentHTML('beforeend', `<button type="button" class="aopen" data-open-report="${esc(reg)}">Open the Place report${reg === 'screen' ? ', Screen' : ''}</button>`);
+      out.querySelector('[data-open-report]').onclick = () => window.placeReport(reg);
+    }
     if (!(D.prompts || []).includes(q)) await docsAfter(q, out);   /* the node's own questions are about tonight's readings, not the docs */
     ASKED.add(q); TURN += 3;
   } catch (e) { await docsAnswer(q, 'The model did not answer, so here is what the docs say.', out); }

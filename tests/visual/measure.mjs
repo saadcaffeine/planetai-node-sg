@@ -4,7 +4,7 @@
  * ORIGIN. This file is the September UX review's skeleton script, moved into the repo it measures
  * and extended. It was written for Part 2 of that review and lived at
  * `planetai-design/design/audit/2026-09/ux-review/skeleton/measure.mjs` on branch
- * `ux-review-2026-09`; every number in `docs/design/UX_REVIEW_2026-09_skeleton.md` came out of it.
+ * `ux-review-2026-09`; every number in `planetai-design/node-docs/design/UX_REVIEW_2026-09_skeleton.md` came out of it.
  * Everything above the `TARGETS` section is that script, unchanged except where marked. There is
  * one of these and there must stay one of these: a second measuring script is two sets of numbers
  * that can disagree about the same page.
@@ -429,6 +429,19 @@ async function serveNodeAPI(route, u) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
     return true;
   }
+  /* GET /energy (packs/energy/routes.py): the hand-written Bali body under PAI_RICH, else the 404 a node with the
+     pack off answers; Now's energy panel then says it has no grid. */
+  if (u.pathname === '/energy') {
+    await (process.env.PAI_RICH === '1' && richFixture().energy
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(richFixture().energy) })
+      : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'the energy pack is off' }) }));
+    return true;
+  }
+  /* the Wall's one read: the hand-built node #1 body its tests use (tests/fixtures/wall-node1.json) */
+  if (u.pathname === '/wall') {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: fs.readFileSync(path.join(HERE, '..', 'fixtures', 'wall-node1.json'), 'utf8') });
+    return true;
+  }
   if (u.pathname === '/forecast') {
     const health = computeNodeData(FIXTURE).snapshot?.health;
     const body = process.env.PAI_RICH === '1' ? richForecast() : emptyForecast(health);
@@ -500,6 +513,13 @@ async function serveNodeAPI(route, u) {
     /* A model that takes its time, so the pane's waiting state can be looked at. */
     if (process.env.PAI_ASK_SLOW) await new Promise(r => setTimeout(r, Number(process.env.PAI_ASK_SLOW)));
     /* PAI_ASK_LONG=1: a narration as long as the Wall's model writes (six to eight sentences), for the Wall's box */
+    /* asked for the place report: the model reaches for place_report and the pane draws its button (SPEC_place_report §9) */
+    if (/place report/i.test(route.request().postData() || '')) {
+      await route.fulfill({ status: 200, contentType: 'text/event-stream', body: sse('proposal', { tool: 'place_report', args: { register: 'screen' } })
+        + 'Here is the place report.'.split(' ').map(w => sse('token', { text: w + ' ' })).join('')
+        + sse('done', { rung: 'local', model: process.env.PAI_ASK_MODEL || 'qwen3.5:4b', host: 'host.docker.internal', where: 'this machine' }) });
+      return true;
+    }
     const words = (process.env.PAI_ASK_LONG === '1' ? Array(8).fill('The air outside has stayed under the line all day and the house is a little cleaner still.').join(' ')
       : 'I have put MAP_TILES on a card. Nothing changed; you decide.').split(' ');
     await route.fulfill({ status: 200, contentType: 'text/event-stream', body:
@@ -851,6 +871,7 @@ const COLLECT = () => {
       ff: (cs.fontFamily || '').split(',')[0].replace(/["']/g, ''),
       tt: cs.textTransform, chars: s.length, nlines: rects.length, cpl,
       owner: (p.tagName + (p.id ? '#' + p.id : '') + (p.className && typeof p.className === 'string' ? '.' + p.className.split(/\s+/)[0] : '')),
+      wall: !!p.closest('#wallv'),       /* T7 calibrates on the Wall's own lines, never a 20 px line elsewhere on the page */
       text: s.slice(0, 90),
     });
   }
@@ -1634,7 +1655,7 @@ function aStack() {
  * that zero is the baseline T3 is measured against.
  */
 const ROLES = {
-  sentence: ['[data-component="sentence"]', '[data-role="sentence"]', '.hero p.big', '.wall p.big'],
+  sentence: ['[data-component="sentence"]', '[data-role="sentence"]', '.hero p.big', '.wall p.big', '.wsent'],
   /* The monument numeral. `b.mono` and not `p.big b`: ancestors are not checked, so a descendant
    * selector ending in a bare tag matched the header's own <b>. */
   numeral: ['[data-role="numeral"]', 'b.mono'],
@@ -1650,10 +1671,17 @@ const ROLES = {
   index: ['[data-component="index"]', '[data-role="index"]', '#index', '.index'],
   indexRow: ['[data-component="indexRow"]', '[data-role="index-row"]', '.index .row'],
   miniStack: ['[data-component="miniStack"]', '[data-role="mini-stack"]', '.stack.mini'],
-  wallIssueLine: ['[data-component="wallIndex"] .ln', '[data-role="wall-issue"]', '.wall .wi .ln'],
-  /* The readable part of the rho row is its caption: the row itself is a texture of signs, and
-   * a sign is measured against --sign-floor, not against a cap height. */
-  rho: ['[data-role="rho"]', '.rhocap', '[data-component="rhoRow"]'],
+  /* The Wall of 18 Nov 2026 (doors-wall.js): a column beside the map and a strip under both. Each role is a part T7
+   * reads at three metres. The size legend (.whex) is left out on purpose: it is the one text set under the floor, at
+   * .8 of it, as the mockup Tomas approved after he asked on 18 Nov for the text to be smaller ("too big, control
+   * that"); tests/test_doors.py names it and wallwalk exempts it. */
+  wallAsk: ['.wask'],
+  wallChapters: ['.wscale'],
+  wallChapterFig: ['.wchap .n'],
+  wallNarr: ['.wnarr'],
+  wallGauge: ['.wg'],
+  wallFig: ['.wg .wnum'],
+  wallClock: ['.wclock'],
 };
 
 /* Does any element in `d` match this role, and is its box inside the first viewport?
@@ -1827,22 +1855,34 @@ function aTargets() {
     let diverge = 0;
     for (let i = 0; i + 1 < byPos.length; i++) if (byPos[i].dom > byPos[i + 1].dom) diverge++;
 
-    /* T7 — the wall at three metres. 1 px = 0.63 mm at 1920 on a 55-inch 16:9 panel; the floor is
-     * about 3 mm of cap height per metre, so 9 mm. */
+    /* T7 — the Wall at three metres. 1 px = 0.63 mm at 1920 on a 55-inch 16:9 panel. The floor is the cap height of
+     * the Wall's own type floor, 20 px (--wf at 1920×1080; Tomas, 18 Nov 2026: the text "gets too big, control that"),
+     * which was 28 px and 9 mm. The cap ratio is read off the render's own 20 px lines inside #wallv, the canvas measurement COLLECT
+     * takes of "H" in each face, and the lowest face sets the floor. Only the doors' Wall has these parts (#wallv), so the
+     * classic wall_populated render has no T7 and `wallwalk` writes the render this reads (wallwalk_1920.json).
+     * T7 is a report: gate.sh never runs `targets`. The 20 px floor is enforced by wallwalk's own read() threshold. */
     let t7 = '—';
-    if (wall && w >= 1920) {
-      const MM = 0.63;
-      const want = [['sentence', sent], ['numeral', num], ['issue line', role(d, 'wallIssueLine')],
-        ['rho row', role(d, 'rho')]];
+    if (wall && w >= 1920 && d.els.some(e => e.id === 'wallv')) {
+      const MM = 0.63, FLOOR_PX = 20;
+      const ratio = Math.min(...d.lines.filter(l => l.wall && Math.abs(l.fs - FLOOR_PX) < .5 && l.cap).map(l => l.cap / l.fs));
+      const floor = FLOOR_PX * ratio * MM;
+      if (!isFinite(floor)) t7 = 'no 20 px line to calibrate';
+      else {
+      const want = [['sentence', sent], ['ask', role(d, 'wallAsk')], ['chapters', role(d, 'wallChapters')],
+        ['chapter figures', role(d, 'wallChapterFig')], ['narration', role(d, 'wallNarr')],
+        ['gauges', role(d, 'wallGauge')], ['strip figures', role(d, 'wallFig')], ['clock', role(d, 'wallClock')]];
       const parts = [];
       for (const [label, r] of want) {
+        /* a line belongs to a part when its centre is inside the part's box: a tight line-height (the sentence's 1.08)
+         * makes the line box taller than the paragraph's edges, so whole-box containment missed it */
         const caps = d.lines.filter(l => r.els.some(e => l.x >= e.x - 2 && l.x <= e.x + e.w + 2
-          && l.y >= e.y - 2 && l.y + l.h <= e.y + e.h + 2)).map(l => l.cap * MM);
+          && l.y + l.h / 2 >= e.y && l.y + l.h / 2 <= e.y + e.h)).map(l => l.cap * MM);
         if (!caps.length) { parts.push(`${label} **absent**`); continue; }
-        const lo = Math.min(...caps);
-        parts.push(`${label} ${lo.toFixed(1)}${lo < 9 ? ' **' : ' '}mm${lo < 9 ? '**' : ''}`);
+        const lo = Math.min(...caps), low = lo < floor - 0.05;
+        parts.push(`${label} ${lo.toFixed(1)}${low ? ' **' : ' '}mm${low ? '**' : ''}`);
       }
-      t7 = parts.join('; ');
+      t7 = `floor ${floor.toFixed(1)} mm: ` + parts.join('; ');
+      }
     }
 
     rows.push([n, w,
@@ -2229,7 +2269,7 @@ async function anchors() {
  * fixture from the 14 Sep prompt (1.4) and prove T8 still holds". Neither exists any more: the
  * 14 September prompt is not in this repository, not in `docs/`, and not anywhere on the machine
  * that wrote it, and with it went T8's definition — the target tables in
- * `docs/design/DIRECTIONS_2026-09.md` run T1, T1b, T2, T3, T4, T5, T6 and PICK adds T7 and T9.
+ * `planetai-design/node-docs/design/DIRECTIONS_2026-09.md` run T1, T1b, T2, T3, T4, T5, T6 and PICK adds T7 and T9.
  * There is no T8 to hold. So rather than invent a number and claim it was met, this proves the
  * thing that prompt and `DIRECTIONS` §"Where the new things land" were plainly about: the page
  * draws a section it has never heard of, and the targets survive it.
@@ -2955,8 +2995,9 @@ const docFor = u => {
   const layout = u.searchParams.get('layout');
   return layout === 'mobile' ? 'mobile.html' : layout === 'classic' ? 'index.html' : 'doors.html';
 };
-const openRig = async ({ w = 390, h = 844, touch = true, dark = false, token = null, mem = null, throttle = false, locked = false, wireDays = null, admin = null, sections = null, alerts = null, forecast = null } = {}) => {
-  const browser = await chromium.launch();
+const openRig = async ({ w = 390, h = 844, touch = true, dark = false, token = null, mem = null, throttle = false, locked = false, wireDays = null, admin = null, sections = null, alerts = null, forecast = null, gl = false, ground = null } = {}) => {
+  /* gl: software WebGL (SwiftShader), so Place draws its live map and the controls on it, which the still map has not */
+  const browser = await chromium.launch(gl ? { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] } : {});
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: touch, hasTouch: touch,
     deviceScaleFactor: 1, colorScheme: dark ? 'dark' : 'light', reducedMotion: 'reduce' });
   const reqs = [];
@@ -3005,12 +3046,19 @@ const openRig = async ({ w = 390, h = 844, touch = true, dark = false, token = n
     /* the node serves the documentation's index from data/ under this one name (main.py COMPANIONS) */
     if (file === 'docs_site.json') return route.fulfill({ status: 200, contentType: 'application/json', body: fs.readFileSync(path.join(ROOT, 'data', file)) });
     if (file) {
+      /* gl: the node serves MapLibre and deck.gl under /static/ from vendor/ (main.py); without gl they stay unserved,
+         as they always were here, so every other check keeps the still map it was written against */
       const p = file.includes('/') ? null
-        : fs.existsSync(path.join(STATIC, file)) ? path.join(STATIC, file) : path.join(STATIC, 'fonts', file);
+        : fs.existsSync(path.join(STATIC, file)) ? path.join(STATIC, file)
+        : gl && fs.existsSync(path.join(STATIC, 'vendor', file)) ? path.join(STATIC, 'vendor', file) : path.join(STATIC, 'fonts', file);
       if (p === null) return route.fulfill({ status: 404, body: 'the node serves a name, not a path' });
       if (fs.existsSync(p)) return route.fulfill({ status: 200, body: fs.readFileSync(p),
         headers: { 'content-type': MIME[path.extname(p)] || 'application/octet-stream' } });
     }
+    /* ground: this answer for /ground/meta, as a node holding a satellite layer and a drone flight; every other /ground/
+       file is not there, so the screen is black under its controls */
+    if (ground && u.pathname === '/ground/meta') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ground) });
+    if (ground && u.pathname.startsWith('/ground/')) return route.fulfill({ status: 404, body: '' });
     /* the locked phone: /issues answers exactly the 403 body app/main.py builds at SHARE_LEVEL=off */
     if (locked && u.pathname === '/issues')
       return route.fulfill({ status: 403, contentType: 'application/json', body: REFUSAL('/issues') });
@@ -3289,55 +3337,68 @@ async function mobile() {
   process.exit(1);
 }
 
-/* ------------------------------------------------------------------ the Wall's walk (16 Oct, option A)
- * The Wall walks out a scale at a time (doors-wall.js). Against the committed fixture, at 1920×1080 on a TV and at 390 on a
- * phone, this presses each scale on the rail and reads the drawing: one viewport, nothing under the 28 px floor outside
- * the chrome, every figure with its time and one of the five provenance words, no room or sensor name; under reduced
- * motion two reads 1.5 s apart are the same scale and hour and the walk's clock is not subscribed; with motion on and
- * the replay loop shortened to 2.4 s, the hours step and the scale moves on; on a touch phone the rail is 44 px. */
+/* ------------------------------------------------------------------ the Wall's walk (18 Nov 2026)
+ * The Wall walks a satellite map through the base, community and city sizes, with a column beside it and a strip of four
+ * gauges and the clock under both (doors-wall.js, doors-wallmap.js). The rig cannot load MapLibre (vendor/ is not served
+ * here), so this is the Wall a screen without a map draws: the column and the strip, and one line where the map would be.
+ * Against the committed fixture and /wall's, at 1920×1080 and 1440×900 on a TV and at 390 on a phone, with a model that
+ * answers at length: no page wider than its screen and, on a TV, no taller; nothing under the 20 px floor (Tomas, 18 Nov);
+ * every strip figure with its time and one of the five words; no room or sensor name; the narration inside the column,
+ * under its chapters and above its bottom; under reduced motion two reads 1.5 s apart are the same hour at the base size
+ * and no clock is subscribed; with motion on and the loop shortened to 2.4 s, the hours step and the sizes walk.
+ * PAI_WALL_SHOTS=1 writes wallwalk_<w>.png to PAI_OUT. */
 async function wallwalk() {
   const bad = [], ok = (c, what) => { if (!c) bad.push(what); };
   const fx = JSON.parse(fs.readFileSync(path.join(HERE, '..', '..', 'app', 'issues', 'fixtures', `${FIXTURE}.json`), 'utf8'));
   const names = (fx.sensors || []).filter(x => x.local && (x.name || '').trim().length > 3).map(x => x.name.trim());
-  const read = page => page.evaluate(([names]) => {
-    const W = document.querySelector('#wallv'), r = document.querySelector('.wr');
-    const txt = [...W.querySelectorAll('*')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && e.getClientRects().length && !e.closest('.wchrome'));
-    const figs = [...W.querySelectorAll('.wfig')].map(f => f.textContent);
-    return { sc: [...document.querySelectorAll('#wrail button.on')].map(b => b.dataset.sc), hour: WALK.hour, sub: CLOCK.subs.has('wall-walk'),
-      h: document.documentElement.scrollHeight, w: document.documentElement.scrollWidth, over: r ? r.scrollHeight - r.clientHeight : 0,
-      small: txt.filter(e => parseFloat(getComputedStyle(e).fontSize) < 27.5).map(e => `${e.tagName}.${e.className}`).slice(0, 3),
-      undated: figs.filter(f => !/\d\d:\d\d/.test(f) || !/(live|partial|model|cached|example)/.test(f)).slice(0, 2),
-      /* the narration under the page: drawn, and neither over the page nor past the screen */
-      narr: (n => n && n.getClientRects().length ? (() => { const a = n.getBoundingClientRect(), pg = document.querySelector('#wpage'), c = r.getBoundingClientRect();
-        return { over: Math.round(pg.getBoundingClientRect().top + pg.scrollHeight - a.top), past: Math.round(a.bottom - c.bottom) }; })() : null)(document.querySelector('#wnarr')),
-      words: [...W.querySelectorAll('.wpw')].map(e => e.textContent).filter(x => !['live', 'partial', 'model', 'cached', 'example'].includes(x)),
-      named: names.filter(n => W.textContent.includes(n)), rail: [...document.querySelectorAll('#wrail button')].map(b => { const q = b.getBoundingClientRect(); return [q.width, q.height]; }) };
-  }, [names]);
+  const read = (page, floor) => page.evaluate(([names, floor]) => {
+    const W = document.querySelector('#wallv'), FIVE = ['live', 'partial', 'model', 'cached', 'example'], box = q => { const e = document.querySelector(q); return e && !e.hidden ? e.getBoundingClientRect() : null; };
+    /* the size legend is the one size under the floor (the mockup's, 18 Nov); the chrome is read where it shows (a touch
+       screen), and only there */
+    const shown = e => { const c = e.closest('.wchrome'); return !c || +getComputedStyle(c).opacity > 0; };
+    const txt = [...W.querySelectorAll('*')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && e.getClientRects().length && !e.closest('[hidden],.whex') && shown(e));
+    const col = box('.wcol'), narr = box('#wnarr'), chap = box('#wscale');
+    return { hour: WALL.h, size: WALL.s, sub: [...CLOCK.subs.keys()], chrome: [...W.querySelectorAll('.wchrome')].filter(shown).length, h: document.documentElement.scrollHeight, w: document.documentElement.scrollWidth,
+      small: txt.filter(e => parseFloat(getComputedStyle(e).fontSize) < floor).map(e => `${e.tagName}.${e.className} ${getComputedStyle(e).fontSize}`).slice(0, 3),
+      undated: [...W.querySelectorAll('.wg .wrv')].map(v => v.textContent).filter(f => !(/\d\d:\d\d/.test(f) && FIVE.some(x => f.includes(x))) && !/not read/.test(f)).slice(0, 2),
+      over: [...W.querySelectorAll('.wover')].filter(e => !e.hidden && getComputedStyle(e).display !== 'none').map(e => e.id),
+      gauges: W.querySelectorAll('.wg').length, figs: W.querySelectorAll('.wg .wnum').length, nomap: (document.querySelector('.wnomap') || {}).textContent || '', rows: W.querySelectorAll('.wchap li').length,
+      narr: narr && { inCol: narr.bottom <= col.bottom + 1 && narr.right <= col.right + 1 && narr.left >= col.left - 1, belowChap: narr.top >= chap.bottom - 1, past: Math.round(narr.bottom - innerHeight) },
+      words: [...W.querySelectorAll('.wpw')].map(e => e.textContent).filter(x => !FIVE.includes(x)),
+      named: names.filter(n => W.innerHTML.includes(n)) };
+  }, [names, floor]);
   const was = [process.env.PAI_ASK_MODEL, process.env.PAI_ASK_LONG];
   process.env.PAI_ASK_MODEL = 'rig-model'; process.env.PAI_ASK_LONG = '1';      /* a model that answers, at length */
-  let narrSeen = 0;
-  for (const [w, h, touch] of [[1920, 1080, false], [390, 844, true]]) {
+  for (const [w, h, touch] of [[1920, 1080, false], [1440, 900, false], [390, 844, true]]) {
     const r = await openRig({ w, h, touch, dark: true });
     await r.page.goto(`${POP}/?fixture=${FIXTURE}#wall`, { waitUntil: 'domcontentloaded' });
-    await r.page.waitForSelector('#wpage .wfig', { timeout: 30000 }).catch(() => bad.push(`${w}: the Wall drew no page`));
-    for (let i = 0; i < 4; i++) {
-      await r.page.click(`#wrail button[data-sc="${i}"]`); await r.page.waitForTimeout(500);
-      const g = await read(r.page), tag = `${w} scale ${i}`;
-      if (process.env.PAI_WALL_SHOTS === '1') await r.page.screenshot({ path: path.join(OUT, `wallwalk_${w}_${i}.png`) });
-      ok(g.sc.length === 1 && g.sc[0] === String(i), `${tag}: the rail marks ${g.sc.join(',') || 'nothing'}`);
-      ok(g.w <= w, `${tag}: the page is ${g.w} px wide`);
-      if (!touch) { ok(g.h <= h, `${tag}: the Wall is ${g.h} px on a ${h} px screen`); ok(g.over <= 1, `${tag}: the page runs ${g.over} px past the screen`);
-        ok(!g.small.length, `${tag}: under the 28 px floor: ${g.small.join(', ')}`); }
-      ok(!g.undated.length, `${tag}: a figure with no time or word: ${g.undated.join(' | ')}`);
-      ok(!g.words.length, `${tag}: a provenance word that is not one of the five: ${g.words.join(', ')}`);
-      ok(!g.named.length, `${tag}: names a room or sensor: ${g.named.join(', ')}`);
-      if (!touch && g.narr) { narrSeen += 1; ok(g.narr.over <= 1 && g.narr.past <= 1, `${tag}: the narration covers the page by ${g.narr.over} px, runs ${g.narr.past} px past the screen`); }
-      if (touch) ok(g.rail.every(([a, b]) => a >= 44 && b >= 44), `${tag}: a rail button under 44 px: ${JSON.stringify(g.rail)}`);
-    }
-    if (!touch) {
-      ok(narrSeen >= 2, `the narration drew on ${narrSeen} of 4 scales`);
-      const a = await read(r.page); await r.page.waitForTimeout(1500); const b = await read(r.page);
-      ok(a.sc[0] === b.sc[0] && a.hour === b.hour && !b.sub, `reduced motion: the walk moved (${a.sc}/${a.hour} → ${b.sc}/${b.hour}, subscribed ${b.sub})`);
+    await r.page.waitForSelector('#wstrip .wg', { timeout: 30000 }).catch(() => bad.push(`${w}: the Wall drew no strip`));
+    await r.page.waitForSelector('#wnarr:not([hidden])', { timeout: 30000 }).catch(() => bad.push(`${w}: the narration never opened`));
+    ok(await r.page.waitForSelector('#asking:not(.on)', { state: 'attached', timeout: 8000 }).then(() => true, () => false), `${w}: the loading screen never closed`);
+    await r.page.evaluate(() => document.fonts.ready); await r.page.waitForTimeout(800);
+    if (process.env.PAI_WALL_SHOTS === '1') await r.page.screenshot({ path: path.join(OUT, `wallwalk_${w}.png`), fullPage: true });
+    if (w === 1920) fs.writeFileSync(path.join(OUT, 'wallwalk_1920.json'), JSON.stringify(await r.page.evaluate(COLLECT)));   /* what `targets` reads for T7 */
+    const g = await read(r.page, (touch ? 12 : Math.min(20, w * .010417, h * .018519)) - .5), tag = `${w}`;
+    ok(g.gauges === 4 && g.rows >= 1, `${tag}: the strip or the chapters are not drawn (${g.gauges} gauges, ${g.rows} rows)`);
+    /* the swell and the wind read /wall here. Dust and heat cannot: this fixture's snapshot carries no issues_days, so the
+       rig's page has no issue series at all (D.buckets is empty); a node's tokenless /issues/days has them, and
+       tests/test_doors.py checks that dust and heat read on the replayed capture */
+    ok(g.figs >= 2, `${tag}: ${g.figs} figures read in the strip`);
+    ok(g.over.join() === (touch ? 'wwhere,wcap' : 'wwhere,wcap,whex'), `${tag}: the map's overlays are ${g.over.join(', ')}`);
+    ok(g.nomap === 'This screen cannot draw the map.', `${tag}: no line where the map would be: "${g.nomap}"`);
+    ok(g.w <= w, `${tag}: the page is ${g.w} px wide`);
+    if (!touch) ok(g.h <= h, `${tag}: the Wall is ${g.h} px on a ${h} px screen`);
+    ok(!g.small.length, `${tag}: under the floor: ${g.small.join(', ')}`);
+    ok(touch ? g.chrome > 0 : !g.chrome, `${tag}: ${g.chrome} parts of the chrome shown ${touch ? 'on a touch screen, so the floor read none' : 'with no pointer over them'}`);
+    ok(!g.undated.length, `${tag}: a figure with no time or word: ${g.undated.join(' | ')}`);
+    ok(!g.words.length, `${tag}: a provenance word that is not one of the five: ${g.words.join(', ')}`);
+    ok(!g.named.length, `${tag}: names a room or sensor: ${g.named.join(', ')}`);
+    ok(g.narr && g.narr.inCol && g.narr.belowChap, `${tag}: the narration covers the column: ${JSON.stringify(g.narr)}`);
+    if (g.narr && !touch) ok(g.narr.past <= 1, `${tag}: the narration runs ${g.narr.past} px past the screen`);
+    if (w === 1920) {
+      /* both reads: the last real slot (23, the replay pads a short window before it), the base size, no clock */
+      const a = await read(r.page, 0); await r.page.waitForTimeout(1500); const b = await read(r.page, 0);
+      ok([a, b].every(x => x.hour === 23 && x.size === 0 && !x.sub.length), `reduced motion: the replay moved (${a.hour}/${a.size}/${a.sub} → ${b.hour}/${b.size}/${b.sub})`);
     }
     await r.browser.close();
   }
@@ -3352,15 +3413,31 @@ async function wallwalk() {
       if (await serveNodeAPI(route, u)) return; return route.continue(); });
     const page = await ctx.newPage();
     await page.goto(`${POP}/?fixture=${FIXTURE}#wall`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('#wpage .wfig', { timeout: 30000 }).catch(() => bad.push('motion: the Wall drew no page'));
+    await page.waitForSelector('#wstrip .wg', { timeout: 30000 }).catch(() => bad.push('motion: the Wall drew no strip'));
     await page.evaluate(() => document.documentElement.style.setProperty('--motion-replay-loop', '2.4s'));
+    /* each sample: the hour and the size, the strip as drawn (the clock and the four figures), the chapter lit in the
+       column and the one the story has on at that hour. 60 samples of 250 ms is 15 s and more, a whole walk of three 2.4 s
+       days from wherever it starts and back with time to spare, so the last change is never missed by timing */
     const seen = [];
-    for (let k = 0; k < 14; k++) { seen.push(await page.evaluate(() => [document.querySelector('#wrail button.on').dataset.sc, WALK.hour])); await page.waitForTimeout(250); }
-    const hours = new Set(seen.map(x => x[1])), scales = new Set(seen.map(x => x[0]));
-    ok(hours.size >= 4 && seen.every(x => Number.isInteger(x[1])), `motion: the hours did not step (${[...hours].join(',')})`);
-    ok(scales.size >= 2, `motion: the walk stayed on scale ${[...scales].join(',')} for a whole day's replay`);
+    for (let k = 0; k < 60; k++) { seen.push(await page.evaluate(() => { const S = WALL.story[WALL.s], n = S ? S.chapters.length : 0;
+      return { h: WALL.h, s: WALL.s, strip: [...document.querySelectorAll('#wstrip .wrv, #wstrip .wclock b')].map(e => e.textContent).join(' | '),
+        clock: (document.querySelector('#wstrip .wclock b') || {}).textContent, lit: (document.querySelector('#wscale li.on .t') || {}).textContent || null,
+        want: n ? S.chapters[chapterAt(WALL.h, n)].title : null }; })); await page.waitForTimeout(250); }
+    const hours = new Set(seen.map(x => x.h));
+    ok(hours.size >= 4 && seen.every(x => Number.isInteger(x.h)), `motion: the hours did not step (${[...hours].join(',')})`);
+    /* the strip: every step of the hour redraws the clock, and the figures change over the walk */
+    const stale = seen.filter((x, i) => i && x.h !== seen[i - 1].h && x.clock === seen[i - 1].clock);
+    ok(!stale.length, `motion: the clock stayed at ${stale.map(x => x.clock).join(', ')} while the hour stepped`);
+    ok(new Set(seen.map(x => x.strip)).size >= 4, 'motion: the strip\'s figures were not redrawn as the hours stepped');
+    /* the column: the chapter lit is the story's at that hour, every sample, and more than one is lit over the walk */
+    const off = seen.filter(x => x.lit !== x.want);
+    ok(!off.length && new Set(seen.map(x => `${x.s}:${x.lit}`)).size >= 3, `motion: the column lit ${off.slice(0, 2).map(x => `${x.lit} for ${x.want}`).join(', ') || 'too few chapters'}`);
+    /* the sizes: base → community → city → base, in that order, nothing skipped. Every change is one size on, and four
+       runs hold three changes, a whole turn whichever size the samples start in */
+    const runs = seen.map(x => x.s).filter((x, i, a) => !i || x !== a[i - 1]);
+    ok(runs.length >= 4 && runs.every((x, i) => !i || x === (runs[i - 1] + 1) % 3), `motion: the walk went ${runs.join(' → ')}, not base → community → city → base`);
     await browser.close(); }
-  if (!bad.length) console.log('  wallwalk: four scales at 1920×1080 and 390, each one screen, dated and worded, no names, the narration under the page; still under reduced motion, stepping with motion on; 44 px scale names on a phone');
+  if (!bad.length) console.log('  wallwalk: the column and the strip at 1920×1080, 1440×900 and 390 without a map, one screen on a TV, nothing under the 20 px floor, dated and worded, no names, the narration inside the column; still under reduced motion, walking with motion on');
   for (const b of bad) console.log('FAIL wallwalk:', b);
   if (bad.length) process.exitCode = 1;
 }
@@ -3454,8 +3531,9 @@ async function doors() {
       if (shots && (s === '#setup/basics' || s === '#setup/sharing' || s === '#setup/screen'))
         await r.page.screenshot({ path: path.join(OUT, `doors_${s.slice(1).replace('/', '-')}_${tag}.jpg`), fullPage: true, type: 'jpeg', quality: 78 });
     }
-    /* Place (SPEC_place_microgis §4, 4 Nov 2026): the cake on the left in its ten sections, the black screen, the tools on
-       the right; on a phone the screen first and the cake and the tools as two disclosures. The house named in the list
+    /* Place (SPEC_place_microgis §4, 4 Nov 2026, and Tomas's changes of 5 Nov): the cake on the left in its ten sections,
+       the black screen, the tools a menu behind the Tools button on the top line; on a phone the screen first and the
+       cake as a disclosure under it. The house named in the list
        under the screen, its own rows withheld without the token; 44 px targets on a phone; nothing scrolls sideways;
        a cake row pressed switches its layer and says so */
     await go(r.page, '#place'); await r.page.waitForSelector('#cake .ck', { state: 'attached', timeout: 20000 }); await r.page.waitForTimeout(600);
@@ -3464,21 +3542,41 @@ async function doors() {
       const vis = x => x.getClientRects().length, sel = '#cake .ly, #ptools .tl, .tools button, .zoom button, #pmargin button.mr, .scales button, .psbar button';
       const scr = document.querySelector('.mapc');
       return { secs: document.querySelectorAll('#cake .ck').length, map: Math.round(document.getElementById('map').getBoundingClientRect().width),
-        bg: getComputedStyle(scr).backgroundColor, cake: vis(document.getElementById('cake')), tools: document.querySelectorAll('#ptools .tl').length,
+        bg: getComputedStyle(scr).backgroundColor, cake: vis(document.getElementById('cake')), toolsBtn: vis(document.getElementById('ptoolsb')),
         small: [...document.querySelectorAll(sel)].filter(vis).map(x => x.getBoundingClientRect()).filter(b => b.height < 44 || b.width < 44).length,
         cut: [...document.querySelectorAll('#cake .ly span')].filter(x => x.scrollWidth > x.clientWidth).map(x => x.textContent),
         h: [...document.querySelectorAll('#cake .ck > h2')].length,
-        margin: document.getElementById('pmargin').innerText, facts: document.getElementById('facts').innerText };
+        margin: document.getElementById('pmargin').innerText, facts: document.getElementById('facts').innerText,
+        sheet: getComputedStyle(document.getElementById('cake')).position, first: (document.querySelector('#cake > section') || {}).id,
+        /* the rows are switches and the column says so (Tomas, 17 Nov 2026): a track at least 20 px wide on every row that can switch, and a head in view */
+        sw: [...document.querySelectorAll('#cake .ly.on:not([aria-disabled="true"]) i, #cake .ly.off:not([aria-disabled="true"]) i')].filter(vis).map(x => Math.round(x.getBoundingClientRect().width)),
+        head: (h => !!h && vis(h) && /Press a row/.test(h.textContent))(document.querySelector('#cake > .ckh p')),
+        /* and a row that cannot switch never shows a switch (final review, 17 Nov): 'not here', 'live map' and 'token-only' rows carry the small mark */
+        dead: [...document.querySelectorAll('#cake .ly[aria-disabled="true"] i')].filter(vis).map(x => Math.round(x.getBoundingClientRect().width)),
+        folds: [...document.querySelectorAll('.pfold')].filter(vis).length };
     });
     ok(pl.secs === 10, `${tag} #place: the cake has ${pl.secs} sections, not 10`);
     ok(pl.bg === 'rgb(23, 25, 29)', `${tag} #place: the screen is ${pl.bg}, not PAL.dark's land`);
-    ok(pl.cake && pl.tools >= 10, `${tag} #place: the cake is ${pl.cake ? 'drawn' : 'not drawn'}, ${pl.tools} tools listed`);
+    ok(pl.cake && pl.toolsBtn, `${tag} #place: the cake is ${pl.cake ? 'drawn' : 'not drawn'}, the Tools button ${pl.toolsBtn ? 'shown' : 'not shown'}`);
+    /* Tools opens its menu, the rows visible in it, and Esc closes it again */
+    { if (w < 768 && pl.sheet === 'fixed') { await r.page.click('.psbar button[data-s="cake"]'); await r.page.waitForTimeout(150); }   /* close the sheet over the page */
+      await r.page.click('#ptoolsb'); await r.page.waitForTimeout(150);
+      const tm = await r.page.evaluate(() => { const m = document.getElementById('ptools'), rows = [...m.querySelectorAll('.tl')].filter(x => x.getClientRects().length);
+        return { open: !m.hidden && !!m.getClientRects().length, rows: rows.length, first: rows[0] && rows[0].textContent, exp: document.getElementById('ptoolsb').getAttribute('aria-expanded') }; });
+      ok(tm.open && tm.rows === 16 && /^Rings and distance/.test(tm.first || '') && tm.exp === 'true', `${tag} #place: Tools opened ${JSON.stringify(tm)}`);
+      await r.page.keyboard.press('Escape'); await r.page.waitForTimeout(150);
+      ok(await r.page.evaluate(() => document.getElementById('ptools').hidden), `${tag} #place: Esc did not close the Tools menu`);
+      if (w < 768 && pl.sheet === 'fixed') { await r.page.click('.psbar button[data-s="cake"]'); await r.page.waitForTimeout(150); } }
     ok(w < 768 || pl.map >= 700, `${tag} #place: the screen is ${pl.map}px wide`);
     ok(!pl.cut.length, `${tag} #place: cake name(s) cut off: ${pl.cut.join(', ')}`);
     ok(pl.h === pl.secs, `${tag} #place: ${pl.h} cake headings are h2, of ${pl.secs}`);
+    ok(pl.head && pl.sw.every(x => x >= 20), `${tag} #place: the layer list's head is ${pl.head ? 'shown' : 'missing'} and its switches are ${pl.sw.join(' ')} px wide`);
+    ok(pl.dead.length > 0 && pl.dead.every(x => x < 20), `${tag} #place: ${pl.dead.filter(x => x >= 20).length} of ${pl.dead.length} rows that cannot switch are drawn as switches`);
     ok(w >= 768 || !pl.small, `${tag} #place: ${pl.small} target(s) under 44 × 44 px`);
     ok(/This house/.test(pl.margin) && (tok || /withheld/.test(pl.margin)), `${tag} #place: the list under the screen reads ${pl.margin.slice(0, 120)}`);
     ok(/In view/i.test(pl.facts), `${tag} #place: the status line reads ${pl.facts.slice(0, 80)}`);
+    /* a phone keeps the bottom sheet, your maps first in it, and has no side to fold (SPEC_place_microgis §10) */
+    ok(w >= 768 || (pl.sheet === 'fixed' && pl.first === 'ymaps' && !pl.folds), `${tag} #place: the phone's sheet is ${pl.sheet}, opens on ${pl.first}, ${pl.folds} fold key(s) drawn`);
     const pressed = () => r.page.evaluate(() => document.querySelector('#cake [data-l="rings"] button').getAttribute('aria-pressed'));
     await r.page.click('#cake [data-l="rings"] button'); await r.page.waitForTimeout(200);
     ok(await pressed() === 'true', `${tag} #place: pressing Rings did not switch it on`);
@@ -3487,6 +3585,36 @@ async function doors() {
     await r.page.click('#cake [data-l="rings"] button'); await r.page.waitForTimeout(200);
     ok(await pressed() === 'false', `${tag} #place: a second press did not switch Rings off`);
     panes += 1;
+    /* place-folded (SPEC_place_microgis §4; one side since Tomas's ruling of 5 Nov 2026): the layers fold by their arrow
+       into a 36 px strip that says what it holds and the screen takes the width; `\\` is map only, the screen at the
+       window's height; a reload keeps it; `\\` again opens the left */
+    if (w === 1440) {
+      const fd = () => r.page.evaluate(() => { const m = document.getElementById('map').getBoundingClientRect();
+        return { map: Math.round(m.width), h: Math.round(m.height), cls: document.querySelector('.bench').className,
+          folds: [...document.querySelectorAll('.pfold')].map(x => `${x.getAttribute('aria-label')}:${x.getAttribute('aria-expanded')}:${Math.round(x.getBoundingClientRect().width)}`) }; });
+      await r.page.click('.pfold[data-fold="lc"]'); await r.page.waitForTimeout(300);
+      const f1 = await fd();
+      ok(f1.map >= 1250 && f1.h < 600, `${tag} place-folded: the screen is ${f1.map}x${f1.h}px with the left folded`);
+      ok(f1.folds.join() === 'Show the layers:false:36', `${tag} place-folded: the strip reads ${f1.folds.join(', ')}`);
+      { const o = await overflowAt(r.page); ok(o <= 1, `${tag} place-folded: the page scrolls ${o}px sideways`); }
+      await r.page.click('.pfold[data-fold="lc"]'); await r.page.keyboard.press('\\'); await r.page.waitForTimeout(300);
+      const f2 = await fd();
+      ok(f2.map >= 1250 && f2.h >= 800 && /\bmo\b/.test(f2.cls), `${tag} place-folded: map only left the screen ${f2.map}x${f2.h}px (${f2.cls})`);
+      if (shots) await r.page.screenshot({ path: path.join(OUT, `doors_place-folded_${tag}.jpg`), type: 'jpeg', quality: 78 });
+      await r.page.reload({ waitUntil: 'domcontentloaded' }); await r.page.waitForSelector('#cake .ck', { state: 'attached', timeout: 20000 }); await r.page.waitForTimeout(600);
+      const f3 = await fd();
+      ok(f3.map === f2.map && f3.h === f2.h && f3.folds.join() === 'Show the layers:false:36', `${tag} place-folded: after a reload the screen is ${f3.map}x${f3.h}px, the strip ${f3.folds.join(', ')}`);
+      await r.page.keyboard.press('\\'); await r.page.waitForTimeout(300);
+      const f4 = await fd();
+      ok(f4.map < 1250 && f4.folds.join() === 'Hide the layers:true:28', `${tag} place-folded: \\ left the screen ${f4.map}px, the fold ${f4.folds.join(', ')}`);
+      /* at 900 px the folded strip stops at the screen's row: the years band under it takes its own presses */
+      await r.page.setViewportSize({ width: 900, height: 900 }); await r.page.keyboard.press('['); await r.page.waitForTimeout(300);
+      const hit = await r.page.evaluate(() => { const t = document.querySelector('.pyears'); t.scrollIntoView({ block: 'center' }); const b = t.getBoundingClientRect();
+        const e = document.elementFromPoint(b.left + 4, b.top + 20); return { band: !!(e && e.closest('.pyears')), strip: !!(e && e.closest('.pfold')), cls: document.querySelector('.bench').className }; });
+      ok(hit.cls.includes('lc') && hit.band && !hit.strip, `${tag} place-folded: at 900 px a press on the years band's left edge lands on ${hit.strip ? 'the folded strip' : 'something else'} (${hit.cls})`);
+      await r.page.keyboard.press('['); await r.page.setViewportSize({ width: 1440, height: 900 }); await r.page.waitForTimeout(300);
+      panes += 1;
+    }
     /* the consequences step, unlocked only: open sharing asks first; a plain setting saves at once */
     if (tok && w === 1440 && !dark) {
       const puts = []; r.page.on('request', q => { if (q.method() === 'PUT' && q.url().endsWith('/settings')) puts.push(q.postData()); });
@@ -3512,10 +3640,12 @@ async function doors() {
        docs say about it (the quote), and a link to the section; a part on a hidden tab or view is not listed */
     if (!dark) {
       await go(r.page, '#now'); await r.page.click('#askbtn'); await r.page.check('#learn');
-      const WANT = { '#now': ['now-sentence', 'now-todo', 'now-rows'], '#place': ['place-head', 'place-map'].concat(w < 768 ? [] : ['place-layers', 'place-tools']),   /* a phone keeps the cake and the tools in closed sheets */
+      /* what changed, year on year is a band under the screen since 5 Nov: place-orbit is on the page; Tools is on the top
+         line at every width, so place-tools is too */
+      const WANT = { '#now': ['now-sentence', 'now-todo', 'now-rows'], '#place': ['place-head', 'place-map', 'place-orbit', 'place-tools'].concat(w < 768 ? [] : ['place-layers']),   /* a phone keeps the cake in a closed sheet */
         '#node': ['node-verdict', 'node-flow', 'node-refusals'], '#data/readings': ['data-head', 'data-readings', 'data-week'],
-        '#data/home': ['data-images', 'data-things'], '#setup': ['settings', 'setup-sections', 'setup-save'], '#wall': ['wall-never', 'wall-sentence', 'wall-map'] };
-      const NOT = { '#place': ['place-orbit', 'earth'], '#data/home': ['data-ledger', 'data-readings'], '#wall': ['bar', 'foot'] };
+        '#data/home': ['data-images', 'data-things'], '#setup': ['settings', 'setup-sections', 'setup-save'], '#wall': ['wall-never', 'wall-map', 'wall-sentence', 'wall-strip'] };
+      const NOT = { '#place': ['earth'], '#data/home': ['data-ledger', 'data-readings'], '#wall': ['bar', 'foot'] };
       let parts = 0;
       for (const [h, want] of Object.entries(WANT)) {
         await go(r.page, h); await r.page.waitForTimeout(h === '#setup' || h === '#wall' ? 1200 : 600);
@@ -3560,12 +3690,12 @@ async function doors() {
       const m = await r.page.evaluate(() => {
         const b = id => document.getElementById(id), rows = [...b('decl-rig-rice').querySelectorAll('.row')];
         return { rcol: !!b('decl-rig-rice').closest('#alsoread:not([hidden])'), under: !!(document.querySelector('.rcol').compareDocumentPosition(b('decl-rig-rice')) & 4),
-          did: !!b('decl-rig-did') && !!(b('decide').compareDocumentPosition(b('decl-rig-did')) & 4) && !b('decl-rig-did').closest('.rcol'),
+          did: !!b('decl-rig-did') && !!(b('rows').compareDocumentPosition(b('decl-rig-did')) & 4) && !!b('decl-rig-did').closest('.rcol'),
           h: rows.map(x => Math.round(x.getBoundingClientRect().height)), waiting: b('decl-rig-rice').textContent.includes('1 of the 3 readings'),
           wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
       ok(m.rcol && m.under, `${tag}: the observe band is not in Also read here, under both columns`);
-      ok(m.did, `${tag}: the measure band is not in the left column after What to do`);
+      ok(m.did, `${tag}: the measure band is not under Around the house, in its column`);
       ok(m.h.length === 2 && m.h.every(x => x >= 44), `${tag}: the band's rows are ${m.h.join(',')} px (two of at least 44)`);
       ok(m.waiting, `${tag}: the band does not say how many readings have not arrived`);
       ok(m.wide <= 1, `${tag}: Now scrolls ${m.wide}px sideways with a declared band`);
@@ -3587,13 +3717,19 @@ async function doors() {
     await r.page.route('**/actions', route => route.request().method() === 'POST'
       ? (posts.push(route.request().postDataJSON()), route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' })) : route.fallback());
     await r.page.goto(`${POP}/?layout=doors&fixture=${FIXTURE}#now`, { waitUntil: 'domcontentloaded' });
-    const got = await wait(r.page, '#asks button[data-al]').then(() => true, () => false);
+    /* What to do opens folded (9 Nov): the asks hidden, the button counting them; pressed, they open */
+    const fold = await wait(r.page, '#decide .nfold').then(() => true, () => false);
     await r.page.waitForSelector('#asking:not(.on)', { state: 'attached', timeout: 6000 }).catch(() => {});
+    const shut = fold ? await r.page.evaluate(() => ({ t: document.querySelector('#decide .nfold').textContent, hid: getComputedStyle(document.getElementById('asks')).display === 'none',
+      h: document.querySelector('.nstrip').getBoundingClientRect().height })) : null;
+    ok(fold && shut.hid && /Options to act · 1/.test(shut.t), `${tag}: What to do does not open folded, its button counting the ask: ${JSON.stringify(shut)}`);
+    if (fold) await r.page.click('#decide .nfold');
+    const got = await wait(r.page, '#asks button[data-al]').then(() => true, () => false);
     ok(got, `${tag}: Now drew no pack buttons`);
     if (got) {
       const m = await r.page.evaluate(() => {
         const a = document.getElementById('asks'), bs = [...a.querySelectorAll('button')];
-        return { under: !!(document.getElementById('decide').compareDocumentPosition(a) & 4) && !a.closest('.rcol'), n: bs.length,
+        return { under: !!(document.getElementById('decide').compareDocumentPosition(a) & 4) && !!a.closest('.nstrip'), n: bs.length,
           small: bs.map(b => b.getBoundingClientRect()).filter(x => x.height < 44 || x.width < 44).length,
           seventh: a.textContent.includes('seventh'), wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
@@ -3643,17 +3779,20 @@ async function doors() {
         const targets = q('button, a').filter(vis).map(b => b.getBoundingClientRect());
         const box = nx.getBoundingClientRect(), cells = q('.nxc').map(c => c.getBoundingClientRect());
         return { days: q('.nrow .nxc').every(c => /^(Today|Tomorrow|[A-Z][a-z]{2}), /.test((c.querySelector('.vh') || {}).textContent || '')),
-          rows: q('.nrow').map(x => x.dataset.k || 'line'), cols: q('.nxhead > span').filter(vis).length,
+          rows: q('.nrow').map(x => x.dataset.k || 'line'), cols: q('.nxhead > span').filter(vis).length, four: box.width >= 560,
+          broken: q('.nxc .state, .nxc .num').filter(e => { const g = document.createRange(); g.selectNodeContents(e);
+            return new Set([...g.getClientRects()].map(c => Math.round(c.top))).size > 1; }).length,
           small: targets.filter(x => x.height < 44 || x.width < 44).length, n: targets.length,
           outside: cells.filter(c => c.right > box.right + 1 || c.left < box.left - 1).length,
-          place: !!nx.closest('.lcol') && document.getElementById('decide').getBoundingClientRect().bottom <= box.top,
+          place: !!nx.closest('.lcol2') && document.getElementById('decide').getBoundingClientRect().bottom <= box.top,
           nowShown: vis(document.querySelector('.lcol')) && vis(document.querySelector('.rcol')),
           wide: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
       ok(m.days, `${tag}: a cell does not say its day to a screen reader`);
       ok(JSON.stringify(m.rows) === JSON.stringify(['air', 'heat', 'wind_rain', 'sea', 'line']), `${tag}: the rows are ${m.rows.join(',')}`);
-      ok(m.cols === (w < 768 ? 3 : 4) && !m.outside, `${tag}: ${m.cols} heads, ${m.outside} cells outside the view`);
-      ok(m.place && m.nowShown, `${tag}: Next days is not under What to do in Now's left column`);
+      ok(m.cols === (m.four ? 4 : 3) && !m.outside, `${tag}: ${m.cols} heads, ${m.outside} cells outside the view`);
+      ok(!m.broken, `${tag}: ${m.broken} figures or state boxes in Next days broken over two lines`);
+      ok(m.place && m.nowShown, `${tag}: Next days is not under What to do, in its column`);
       ok(m.n && !m.small, `${tag}: ${m.small} of ${m.n} targets under 44 × 44 px`);
       ok(m.wide <= 1, `${tag}: Now scrolls ${m.wide}px sideways with Next days`);
       /* by the keyboard, as a screen reader's user presses it: the focus stays on the row through the redraw */
@@ -3700,6 +3839,241 @@ async function doors() {
   process.exit(1);
 }
 
+/* ------------------------------------------------------------------ the controls on the Place screen (5 Nov 2026)
+ *
+ * Tomas on node #1: "Review the size of the menus inside the map when rescaling, now they collapse." The rig's still map
+ * draws none of them, so this opens Place with software WebGL and the admin token, on a node holding a satellite layer
+ * and a drone flight (the base switch shows), at the widths in between, the left open and folded, the readout folded
+ * and opened, and asks for the boxes of the keys, the readout, the hour, the right column, the rungs, the base switch,
+ * the zoom, the scale and the credit: no two overlap, none leaves the screen, the rungs are not cut, and every key is
+ * 36 px with a pointer, 44 px under a finger. A rig that gives the screen no live map fails: it would prove nothing. */
+async function placescreen() {
+  const bad = [], ok = (c, what) => { if (!c) bad.push(what); }, seen = [];
+  let sliders = 0;
+  const ADMIN = process.env.PAI_ADMIN_TOKEN || (process.env.PAI_ADMIN_TOKEN = 'rig-admin');
+  const ground = { on_disk: { vector: false, imagery: true, drone: true }, layers: { imagery: { passes: 12, from: '2025-01', to: '2025-12', bytes: 4e6,
+    attribution: 'Contains modified Copernicus Sentinel data' }, drone: { bytes: 1e6, mosaics: [{ provider: 'Bayu', gsd_m: 0.04, date: '2024-03-15', bbox: [115.16, -8.825, 115.172, -8.815] }] } } };
+  /* one map with one area near the node, so pressing it on the map puts a drawing in hand and opens the form */
+  const MAPS = { maps: [{ id: 1, name: 'Garden plan for the whole street', owner: null, agent: null, shared: false, held: false, share_error: null, from_node: null, marks: 1, updated_at: '2026-11-05T10:00:00Z' }],
+    palette: { 1: '#FFFFFF', 2: '#FFE600', 3: '#9BFF2E', 4: '#00E5FF', 5: '#FF3DCB', 6: '#FF3B30' } };
+  const MARKS = { marks: [{ id: 7, map_id: 1, kind: 'area', colour: 3, label: 'rain garden', note: null, capture_id: null, length_m: null, area_m2: 1500, alert_id: null, event_id: null,
+    geometry: { type: 'Polygon', coordinates: [[[115.1668, -8.8198], [115.168, -8.8198], [115.168, -8.8188], [115.1668, -8.8188], [115.1668, -8.8198]]] } }] };
+  const W = process.env.PAI_W ? process.env.PAI_W.split(',').map(Number) : [761, 900, 1024, 1080, 1280, 1440, 390];
+  /* a pointer at every desk width, open and folded; a finger on the phone; and a tablet (a finger at desk widths, the
+     44 px keys in the desk layout) at 768 and 1024 with the left open */
+  const cases = W.flatMap(w => (w < 761 ? [{ w, fold: '', touch: true }] : [{ w, fold: '' }, { w, fold: 'lc' }]))
+    .concat(process.env.PAI_W ? [] : [{ w: 768, fold: '', touch: true }, { w: 1024, fold: '', touch: true }]);
+  for (const { w, fold, touch = false } of cases) {
+    const tag = `${w}${fold ? ' folded' : ''}${touch && w >= 761 ? ' touch' : ''}`;
+    const r = await openRig({ w, h: w < 761 ? 844 : 900, touch, admin: ADMIN, gl: true, ground, mem: 'doors' });   // a phone keeps the doors by memory
+    await r.page.route('**/place/maps/1/marks*', q => q.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MARKS) }));
+    await r.page.route(u => new URL(u).pathname === '/place/maps', q => q.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MAPS) }));
+    if (fold) await r.page.addInitScript(() => { try { localStorage.setItem('planetai_place_folds', 'lc'); } catch (e) {} });
+    await r.page.goto(`${POP}/?fixture=${FIXTURE}#place`, { waitUntil: 'domcontentloaded' });
+    const live = await r.page.waitForFunction(() => window.__PM && window.__PM.map && window.__PM.map.loaded() && document.querySelector('.dkeys') && document.querySelector('#dread .dchip'),
+      null, { timeout: 30000 }).then(() => true, () => false);
+    if (!live) bad.push(`${tag}: the screen drew no live map, keys or readout (no WebGL in this rig?): ` + JSON.stringify(await r.page.evaluate(() => ({ url: location.href,
+      map: !!(window.__PM && window.__PM.map), flat: window.__PM && window.__PM.flat, keys: !!document.querySelector('.dkeys') }))));
+    if (!live) { await r.browser.close(); continue; }
+    await r.page.waitForTimeout(600);
+    /* an area in progress, three corners and the pointer on a fourth: the chip's figure fits, unclipped */
+    if (w === 900 || (w === 1024 && !fold && !touch)) {   // 900 with the left open is the narrowest readout of the four, 220 px
+      const b = await r.page.evaluate(() => { const c = document.getElementById('map').getBoundingClientRect(); return { x: c.left + c.width / 2, y: c.top + c.height / 2 }; });
+      await r.page.evaluate(() => window.__PM.map.jumpTo({ zoom: 17.2 })); await r.page.waitForTimeout(400);   /* under a hectare: the longest figure, "6120 m² · 0.61 ha · 330 m round" */
+      await r.page.keyboard.press('a'); await r.page.waitForTimeout(150);
+      for (const [dx, dy] of [[-60, -40], [70, -30], [50, 60]]) { await r.page.mouse.click(b.x + dx, b.y + dy); await r.page.waitForTimeout(150); }
+      await r.page.mouse.move(b.x - 50, b.y + 50); await r.page.waitForTimeout(250);
+      const v = await r.page.evaluate(() => { const e = document.querySelector('#dread .dchip .v'), c = document.querySelector('#dread .dchip');
+        const vr = e && e.getBoundingClientRect(), cr = c && c.getBoundingClientRect();
+        return { text: e && e.innerText, sw: e && e.scrollWidth, cw: e && e.clientWidth, past: vr && cr ? Math.round(vr.right - (cr.right - 12)) : null,
+          spill: c ? c.scrollWidth - c.clientWidth : null, chip: cr && Math.round(cr.width) }; });
+      /* the figure fits: not cut by its own ellipsis, not past the chip's padding, the chip not overflowing */
+      ok(v.text && /m²|ha/.test(v.text) && v.sw <= v.cw && v.past <= 0.5 && v.spill <= 0, `${tag}: an area in progress, the chip's figure does not fit: ${JSON.stringify(v)}`);
+      seen.push(`area ${v.text} in a ${v.chip} px chip at ${tag}`);
+      await r.page.keyboard.press('Escape'); await r.page.keyboard.press('v'); await r.page.waitForTimeout(150);
+    }
+    for (const st of ['folded', 'open', 'form']) {
+      if (st === 'open') { await r.page.click('#dread .dchip'); await r.page.waitForTimeout(200); }
+      if (st === 'form') { await r.page.click('#dread .dchip');
+        /* the area pressed on the map (the table that put it in hand went on 9 Nov): the map jumps onto it, then a press inside it */
+        const at = await r.page.evaluate(() => { const m = window.__PM.map; m.jumpTo({ center: [115.1676, -8.8194], zoom: 17 }); const b = m.getContainer().getBoundingClientRect(), q = m.project([115.1676, -8.8194]); return { x: b.left + q.x, y: b.top + q.y }; });
+        await r.page.waitForTimeout(600); await r.page.mouse.click(at.x, at.y); await r.page.waitForTimeout(900);
+        /* a short panel (the phone's) scrolls: bring the form into it, as a thumb would */
+        await r.page.evaluate(() => { const f = document.getElementById('dform'), p = f && f.closest('.dpanel'); if (p && f.offsetTop + f.offsetHeight > p.clientHeight) p.scrollTop = f.offsetTop; }); await r.page.waitForTimeout(100); }
+      const g = await r.page.evaluate(() => {
+        const m = document.getElementById('map').getBoundingClientRect(), sel = { keys: '.dkeys', readout: '#dread .dchip', colours: '#dfull:not([hidden])', form: '#dform:not([hidden])',
+          hour: '#phour', column: '.mapc .tools', rungs: '#mapbar .scales', base: '.pbase:not([hidden])', zoom: '.mapc .zoom', scale: '.maplibregl-ctrl-scale', credit: '#mapcredit' };
+        const B = {};
+        for (const [k, q] of Object.entries(sel)) { const e = document.querySelector(q);
+          if (!e || !e.getClientRects().length || (k === 'credit' && (!e.textContent.trim() || getComputedStyle(e).position === 'static'))) continue;
+          const b = e.getBoundingClientRect(), p = e.closest('.dpanel') && e.closest('.dpanel').getBoundingClientRect();   /* the panel scrolls: what is in it shows only inside it */
+          B[k] = [b.left - m.left, (p ? Math.max(b.top, p.top) : b.top) - m.top, b.right - m.left, (p ? Math.min(b.bottom, p.bottom) : b.bottom) - m.top];
+          if (B[k][3] <= B[k][1]) delete B[k]; }
+        const over = [], ks = Object.keys(B);
+        for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) { const a = B[ks[i]], b = B[ks[j]];
+          if (a[0] < b[2] - 0.5 && b[0] < a[2] - 0.5 && a[1] < b[3] - 0.5 && b[1] < a[3] - 0.5) over.push(`${ks[i]} × ${ks[j]}`); }
+        const sc = document.querySelector('#mapbar .scales');
+        const keys = [...document.querySelectorAll('.dkeys button, .mapc .tools button, .mapc .zoom button, #mapbar .scales button, .pbase button, #dread .dchip, .dsw button')]
+          .filter(e => e.getClientRects().length).map(e => e.getBoundingClientRect()).map(b => Math.round(Math.min(b.width, b.height)));
+        /* the keys say their names where the screen is 760 px or wider, and fold to icons under it (17 Nov 2026) */
+        const named = [...document.querySelectorAll('.dkeys .kn')].filter(e => e.getClientRects().length).length;
+        /* the opacity of a row that is on is always in view, under its row, and says what it is; a row that is off shows none */
+        const cakeUp = !!(document.querySelector('#cake .ckh') || { getClientRects: () => [] }).getClientRects().length;   /* folded, the column is a strip with nothing in it */
+        const op = [...document.querySelectorAll('#cake .lyr .opw')].map(e => ({ on: e.closest('.lyr').querySelector('.ly').classList.contains('on'), shown: e.getClientRects().length > 0, word: e.textContent.trim() }));
+        return { W: Math.round(m.width), ks, over, named, cakeUp, op, out: ks.filter(k => { const b = B[k]; return b[0] < -0.5 || b[1] < -0.5 || b[2] > m.width + 0.5 || b[3] > m.height + 0.5; }),
+          cut: sc ? sc.scrollWidth - sc.clientWidth : 0, small: Math.min(...keys) };
+      });
+      /* with a drawing in hand a short panel may have scrolled its chip out of view: the form must show */
+      const want = ['keys', 'hour', 'column', 'rungs', 'base', 'zoom'].concat(st === 'folded' ? ['readout'] : st === 'open' ? ['readout', 'colours'] : ['form']);
+      ok(want.every(k => g.ks.includes(k)), `${tag}, readout ${st}: not drawn: ${want.filter(k => !g.ks.includes(k)).join(', ')}`);
+      ok(!g.over.length, `${tag}, readout ${st} (screen ${g.W} px): overlapping: ${g.over.join(', ')}`);
+      ok(!g.out.length, `${tag}, readout ${st}: off the screen: ${g.out.join(', ')}`);
+      ok(g.cut <= 1, `${tag}, readout ${st}: the rungs are cut by ${g.cut} px`);
+      ok(g.small >= (touch ? 44 : 36), `${tag}, readout ${st}: a key ${g.small} px across, under ${touch ? 44 : 36}`);
+      ok(g.named === (g.W >= 760 ? 7 : 0), `${tag}, readout ${st} (screen ${g.W} px): ${g.named} of the 7 keys show their name`);
+      if (g.cakeUp) { sliders += g.op.filter(o => o.shown).length;
+        ok(g.op.every(o => o.shown === o.on && o.word === 'opacity'), `${tag}, readout ${st}: an opacity slider is ${JSON.stringify(g.op.filter(o => o.shown !== o.on || o.word !== 'opacity'))}`); }
+      seen.push(`${g.W}`);
+      if (st === 'form') await r.page.keyboard.press('Escape');
+    }
+    await r.browser.close();
+  }
+  ok(sliders > 0, 'placescreen: no opacity slider was in view under any row that is on, at any width');
+  if (!bad.length) { const px = [...new Set(seen.filter(x => /^\d+$/.test(x)))], ar = seen.filter(x => x.startsWith('area'));
+    console.log(`  placescreen: the keys, readout, colours, form, hour, right column, rungs, base switch, zoom, scale and credit apart and on the screen at ${px.join(', ')} px of screen, readout folded, open and with a drawing in hand${cases.some(c => c.touch && c.w >= 761) ? ', a tablet\'s 44 px keys at 768 and 1024' : ''}; keys 36 px with a pointer, 44 under a finger${ar.length ? `; ${ar.join('; ')}, unclipped` : ''}`); return; }
+  for (const b of bad) console.log('FAIL placescreen:', b);
+  process.exit(1);
+}
+
+/* The Place report in print (docs/SPEC_place_report §3, §5, §8): #place/report with software WebGL and the token, so
+ * the picture is taken from a live map, then print media at A4 landscape. The sheet's frame sits inside the page, the
+ * legend is not clipped, each report page holds its rows inside its A4 portrait box, and the PDF the browser makes is one
+ * landscape page and then one portrait page for each report page, nothing spilled onto a blank one. Without the token
+ * the same, with the node's sentence where the map would be. PAI_REPORT_PDF=1 keeps the PDFs. */
+async function report() {
+  const bad = [], ok = (c, what) => { if (!c) bad.push(what); }, said = [];
+  const ADMIN = process.env.PAI_ADMIN_TOKEN || (process.env.PAI_ADMIN_TOKEN = 'rig-admin');
+  for (const tok of [true, false]) {
+    const tag = tok ? 'with the token' : 'without the token';
+    const r = await openRig({ w: 1440, h: 900, touch: false, admin: tok ? ADMIN : null, gl: tok, ground: { on_disk: {}, layers: {} }, mem: 'doors' });
+    /* the reading (§11): with the token the node answers its own reading, six avenues and what it cannot see, and may be
+       asked for a fuller one; a press shows it being written, and the text that lands redraws the two pages without a
+       new picture. Without the token the page does not ask, and the report is the pages it was */
+    const AV = n => Array.from({ length: n }, (_, i) => ({ title: `Avenue ${i + 1}: shade and soak the hardest ground on the street`, why: 'The surface runs 0.6 °C hotter than the land around it, with 34% of the ground green.',
+      first_step: 'Pick the hottest stretch of street, and plant or shade twenty metres of it before the next dry season.', layer: 'Place-based interventions', action: 'Experiment', signal: 'bioregional', with: 'the lab about 3 km away' }));
+    const RD = { facts_at: '2026-11-17', state: 'none', refused: null, can_write: true, written: null, written_at: null, by: 'node',
+      rules: { sections: ['The region it belongs to', 'What the land allows', 'What people here need', 'How the place behaves', 'The life of the street'].map((heading, i) => ({ id: 's' + i, heading,
+        lines: ['Rain that falls here leaves by a basin of 319 km², inside a bioregion of 140,535 km².', 'The nearest river is about 4 km away.', 'Between 84% and 99% of the electricity here is burned, on the Bali grid.'] })),
+        avenues: AV(6), blind: [{ what: 'trees and farmed land from the satellite', command: 'turn on the earth-engine pack in Set up › Packs', facts: [] }] } };
+    let rd = RD, posts = 0;
+    if (tok) await r.page.route(u => new URL(u).pathname === '/place/reading', q => {
+      if (q.request().method() === 'POST') { posts++; rd = { ...RD, state: 'writing' }; return q.fulfill({ status: 202, contentType: 'application/json', body: '{"state":"writing","id":1}' }); }
+      return q.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rd) });
+    });
+    await r.page.goto(`${POP}/?fixture=${FIXTURE}#place/report`, { waitUntil: 'domcontentloaded' });
+    const drawn = await r.page.waitForFunction(t => document.querySelector(t ? '#psheets .sheet .splan image' : '#psheets .sheet .snone') && !document.getElementById('preport').hidden,
+      tok, { timeout: 45000 }).then(() => true, () => false);
+    if (!drawn) { bad.push(`${tag}: #place/report drew no sheet: ` + JSON.stringify(await r.page.evaluate(() => ({ url: location.href, sheets: (document.getElementById('psheets') || {}).innerHTML?.slice(0, 200) })))); await r.browser.close(); continue; }
+    /* the register pressed and the page redrawn at once (a resize, the print dialog closing) during the take: the picture
+       must still be of the map, not 0 × 0 (node #1, 16 Nov), and come back to Paper for the measures below */
+    if (tok) {
+      const taken = async reg => {
+        await r.page.evaluate(g => { document.querySelector(`#preport [data-reg="${g}"]`).click(); report(); dispatchEvent(new Event('resize')); }, reg);
+        await r.page.waitForFunction(g => !PTAKING && PREG === g && PSHEET && PSHEET.dark === (g === 'screen') && !document.getElementById('preport').hidden, reg, { timeout: 45000 }).catch(() => {});
+        return r.page.evaluate(() => PSHEET && [PSHEET.w, PSHEET.h, !!PSHEET.dark]);
+      };
+      const sc = await taken('screen'), pa = await taken('paper');
+      ok(sc && sc[0] > 0 && sc[1] > 0 && sc[2] && pa && pa[0] > 0 && !pa[2], `${tag}: a redraw during the take left the picture at ${sc} on Screen, ${pa} on Paper`);
+    }
+    await r.page.emulateMedia({ media: 'print' });
+    await r.page.setViewportSize({ width: 1123, height: 794 });   // A4 landscape at 96 px to the inch
+    await r.page.waitForTimeout(300);
+    const g = await r.page.evaluate(() => {
+      const box = e => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom].map(Math.round); };
+      const sh = document.querySelector('.sheet'), leg = document.querySelector('.sleg'), map = document.querySelector('.smap');
+      const pg = [...document.querySelectorAll('.rpage')].map(e => ({ w: e.offsetWidth, h: e.offsetHeight, over: [e.scrollHeight - e.clientHeight, e.scrollWidth - e.clientWidth],
+        head: (e.querySelector('.rhead') || {}).textContent }));
+      return { sheet: box(sh), leg: box(leg), map: box(map), legCut: [leg.scrollHeight - leg.clientHeight, leg.scrollWidth - leg.clientWidth], pg,
+        shown: [...document.body.children].filter(e => e.getClientRects().length && getComputedStyle(e).display !== 'none').map(e => e.tagName + (e.id ? '#' + e.id : '')),
+        bar: !!document.querySelector('.prbar').getClientRects().length };
+    });
+    const inside = (b, o) => b[0] >= o[0] - 1 && b[1] >= o[1] - 1 && b[2] <= o[2] + 1 && b[3] <= o[3] + 1;
+    ok(inside(g.sheet, [0, 0, 1123, 794]), `${tag}: the sheet ${g.sheet} leaves the A4 page`);
+    ok(inside(g.map, g.sheet) && inside(g.leg, g.sheet), `${tag}: the frame ${g.map} or the legend ${g.leg} leaves the sheet ${g.sheet}`);
+    ok(g.legCut[0] <= 1 && g.legCut[1] <= 1, `${tag}: the legend is clipped by ${g.legCut} px`);
+    ok(!g.bar && g.shown.length === 1, `${tag}: in print more than the sheet shows: ${g.shown}${g.bar ? ', the bar' : ''}`);
+    /* A4 portrait at 96 px to the inch is 794 × 1123; a page is 296 mm tall, so 1119 */
+    const N = g.pg.length;
+    ok(N >= (tok ? 5 : 3) && N <= (tok ? 6 : 4) && g.pg.every((p, i) => p.head.endsWith(`page ${i + 1} of ${N}`)), `${tag}: the report has ${N} pages, heads ${JSON.stringify(g.pg.map(p => p.head))}`);
+    g.pg.forEach((p, i) => ok(Math.abs(p.w - 794) <= 2 && Math.abs(p.h - 1119) <= 2 && p.over[0] <= 1 && p.over[1] <= 1,
+      `${tag}: report page ${i + 1} is ${p.w}×${p.h} px with ${p.over} px spilling out of it`));
+    const pdf = await r.page.pdf({ preferCSSPageSize: true, printBackground: false });
+    if (process.env.PAI_REPORT_PDF === '1') fs.writeFileSync(path.join(OUT, `report_${tok ? 'token' : 'locked'}.pdf`), pdf);
+    const t = pdf.toString('latin1'), pages = (t.match(/\/Type\s*\/Page\b(?!s)/g) || []).length, boxes = [...t.matchAll(/\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/g)].map(m => [+m[1], +m[2]]);
+    ok(pages === 1 + N, `${tag}: the PDF has ${pages} pages, not ${1 + N}: something spilled onto a blank one`);
+    const land = boxes.filter(([w, h]) => Math.abs(w - 842) < 2 && Math.abs(h - 595) < 2).length, port = boxes.filter(([w, h]) => Math.abs(w - 595) < 2 && Math.abs(h - 842) < 2).length;
+    ok(land === 1 && port === N && boxes.length === pages, `${tag}: not one A4 landscape page and ${N} portrait ones: ${JSON.stringify(boxes)}`);
+    said.push(`${tag} ${g.sheet[2] - g.sheet[0]}×${g.sheet[3] - g.sheet[1]} px and ${N} pages`);
+    if (tok) {
+      await r.page.emulateMedia({ media: 'screen' });
+      const pic = await r.page.evaluate(() => document.querySelector('#psheets .sheet .splan image').getAttribute('href').length);
+      const w0 = await r.page.evaluate(() => ({ btn: !document.getElementById('prwrite').hidden && document.getElementById('prwrite').textContent, who: document.querySelector('.rpage .rwho').textContent, av: document.querySelectorAll('.rpage .av').length }));
+      ok(w0.btn === 'Write a fuller reading' && /^Written by this node from its own figures, 17 November 2026\.$/.test(w0.who) && w0.av === 6, `${tag}: the reading's pages ${JSON.stringify(w0)}`);
+      await r.page.click('#prwrite');
+      const busy = await r.page.waitForFunction(() => document.getElementById('prwrite').disabled && /^Writing/.test(document.getElementById('prwrite').textContent), null, { timeout: 10000 }).then(() => true, () => false);
+      rd = { ...RD, state: 'written', written_at: '2026-11-17T03:04:05+00:00', by: { model: 'qwen3.5:122b', where: 'your network' },
+        written: { sections: Object.fromEntries(RD.rules.sections.map(x => [x.id, 'A model wrote this paragraph about the place, from the figures the node holds.'])), avenues: AV(6).map(a => ({ ...a, with: null })) } };
+      const landed = await r.page.waitForFunction(() => /^Written by a language model on your network \(qwen3\.5:122b\)/.test(document.querySelector('.rpage .rwho').textContent)
+        && document.getElementById('prwrite').textContent === 'Write it again', null, { timeout: 20000 }).then(() => true, () => false);
+      const w1 = await r.page.evaluate(() => ({ pages: document.querySelectorAll('.rpage').length, cont: /continued/.test(document.querySelectorAll('.rpage')[2].textContent),
+        pic: document.querySelector('#psheets .sheet .splan image').getAttribute('href').length, heights: [...document.querySelectorAll('.rpage')].map(a => { const pad = parseFloat(getComputedStyle(a).paddingBottom);
+          return Math.round(a.getBoundingClientRect().bottom - pad - a.lastElementChild.getBoundingClientRect().bottom); }) }));
+      ok(posts === 1 && busy && landed && w1.pages === N + 1 && w1.cont && w1.pic === pic && w1.heights.every(x => x >= 0),
+        `${tag}: asking for the fuller reading: ${posts} POST, busy ${busy}, landed ${landed}, ${JSON.stringify(w1)} (the picture was ${pic})`);
+      if (posts === 1 && busy && landed) said.push('a fuller reading written in place');
+    }
+    await r.browser.close();
+  }
+  /* Asking for it (§9 step 3): on Place with the token, the Ask pane's answer carries a button, and the button opens
+     #place/report in the register the model passed on (Screen here) */
+  { const was = process.env.PAI_ASK_MODEL; process.env.PAI_ASK_MODEL = was || 'qwen3.5:4b';
+    const r = await openRig({ w: 1440, h: 900, touch: false, admin: ADMIN, gl: true, ground: { on_disk: {}, layers: {} }, mem: 'doors' });
+    await r.page.route(u => new URL(u).pathname === '/place/reading', q => q.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ facts_at: '2026-11-17', state: 'none', refused: null, can_write: false, written: null, written_at: null, by: 'node', rules: { sections: [], avenues: [], blind: [] } }) }));
+    await r.page.goto(`${POP}/?fixture=${FIXTURE}#place`, { waitUntil: 'domcontentloaded' });
+    /* beside its buttons, who wrote the reading and when (§11), asked for once the figures are drawn */
+    const who = await r.page.waitForFunction(() => document.getElementById('prfwho').textContent === 'Reading written 17 November 2026 by this node', null, { timeout: 30000 })
+      .then(() => true, () => r.page.evaluate(() => document.getElementById('prfwho').textContent));
+    ok(who === true, `report: the foot of Place does not say who wrote the reading: ${JSON.stringify(who)}`);
+    /* the foot of Place offers it (§12): its button opens the report on Paper, and Back to Place shows the block again */
+    const foot = await r.page.waitForSelector('#preportfoot [data-prf="paper"]', { timeout: 20000 }).then(async () => {
+      await r.page.click('#preportfoot [data-prf="paper"]');
+      await r.page.waitForFunction(() => location.hash === '#place/report' && !document.getElementById('preport').hidden
+        && document.querySelectorAll('#psheets .sheet').length === 1 && !document.getElementById('preportfoot').getClientRects().length, null, { timeout: 45000 });
+      await r.page.click('#preport .prbar a');
+      await r.page.waitForFunction(() => location.hash === '#place' && document.getElementById('preportfoot').getClientRects().length > 0, null, { timeout: 20000 });
+      return true;
+    }).catch(e => String(e.message || e).split('\n')[0]);
+    ok(foot === true, `report: the block at the foot of Place did not open the report and come back: ${foot}`);
+    if (foot === true) said.push('opened from the foot of Place');
+    const got = await r.page.waitForSelector('#askbtn', { timeout: 20000 }).then(async () => {
+      await r.page.click('#askbtn'); await r.page.fill('#q', 'Make me the place report'); await r.page.click('#qsend');
+      await r.page.click('[data-open-report="screen"]', { timeout: 20000 });
+      await r.page.waitForFunction(() => location.hash === '#place/report' && !document.getElementById('preport').hidden
+        && document.querySelector('#preport [data-reg="screen"]').getAttribute('aria-pressed') === 'true', null, { timeout: 45000 });
+      return true;
+    }).catch(async e => String(e.message || e).split('\n')[0] + ' ' + JSON.stringify(await r.page.evaluate(() => ({ hash: location.hash,
+      hidden: document.getElementById('preport').hidden, reg: [...document.querySelectorAll('#preport [data-reg]')].map(b => b.dataset.reg + b.getAttribute('aria-pressed')),
+      sheets: (document.getElementById('psheets').innerHTML || '').slice(0, 160), taking: !!PTAKING, preg: PREG })).catch(() => null)));
+    ok(got === true, `asking: the Ask pane's report button did not open #place/report on Screen: ${got}`);
+    if (got === true) said.push('opened from Ask on Screen');
+    await r.browser.close();
+    if (was === undefined) delete process.env.PAI_ASK_MODEL; }
+  if (!bad.length) { console.log(`  report: #place/report prints the sheet on one A4 landscape page, its legend whole, then each report page on one A4 portrait page (${said.join(', ')})`); return; }
+  for (const b of bad) console.log('FAIL report:', b);
+  process.exit(1);
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === 'render') await render(rest.length ? rest : ['all']);
 else if (cmd === 'steps') await steps();
@@ -3725,5 +4099,7 @@ else if (cmd === 'list') jobs().forEach(j => console.log(j.name));
 else if (cmd === 'mobile') await mobile();
 else if (cmd === 'doors') await doors();
 else if (cmd === 'wallwalk') await wallwalk();
-else { console.error('usage: measure.mjs render|shots|plates|plate-list|steps|stall|press|asking|extend|anchors|sheets|header|targets|audit|overflow|analyse|list|mobile|doors|wallwalk');
+else if (cmd === 'placescreen') await placescreen();
+else if (cmd === 'report') await report();
+else { console.error('usage: measure.mjs render|shots|plates|plate-list|steps|stall|press|asking|extend|anchors|sheets|header|targets|audit|overflow|analyse|list|mobile|doors|wallwalk|placescreen|report');
   process.exit(2); }

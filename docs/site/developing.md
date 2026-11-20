@@ -1,5 +1,5 @@
 # Developing and contributing
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page is for the person who changes the node itself: a new adapter, a rule, a pack, a fix. A household updates
 by running `planetai update` and cannot review what arrives, so every change here passes the gates, a review and CI
@@ -22,7 +22,7 @@ Add a sensor or a source. An adapter is one function returning `(sensors, readin
 
 Write a rule, a cell or a pack: [Packs](packs.md). A pack for one place is a wild pack in its own repository, listed
 at [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs), and does not come here as a pull
-request. The 25 packs in `packs/` are core, and a wild pack joins them by promotion. Start from a core pack of the
+request. The 28 packs in `packs/` are core, and a wild pack joins them by promotion. Start from a core pack of the
 same kind, say in the README where the thresholds come from and which place you wrote for, and make the rule end in
 something a person does.
 
@@ -70,7 +70,7 @@ extra packages on the dev machine (`pyyaml`; `sqlglot` for the rules; `markdown`
 `requirements.txt` for the import check), and a gate whose package is missing says it skipped. CI installs them all,
 so nothing skips there.
 
-`make test` runs `tests/all`: 105 offline suites, one line each with a count at the end. It exits non-zero when a
+`make test` runs `tests/all`: 122 offline suites, one line each with a count at the end. It exits non-zero when a
 suite fails, when a check skipped that nobody declared, or when the list and the count disagree. A new suite needs
 its own line in `tests/all` and the count raised, or it never runs.
 
@@ -111,10 +111,10 @@ says who merges what. How a merged change is tested on a node and gathered into 
 ## Looking at the page
 
 `python3 tools/shots.py` renders every fixture in Now, on the Wall and in Network at four widths into
-`docs/design/shots/`, with every request answered from disk. It fails on a page error, a component that drew its
+a `shots/` folder in `docs/design/` that git ignores, with every request answered from disk. It fails on a page error, a component that drew its
 guard box, a page that scrolls sideways or a request the fixture should not have made. It needs Chromium from a
 sibling `planetai-design` checkout (`PLANETAI_DESIGN_REPO`) and is not a gate. The dashboard's frozen visual language
-and the checks against it are in `docs/design/LANGUAGE_GAP.md`.
+and the checks against it are in `planetai-design/node-docs/design/LANGUAGE_GAP.md`.
 
 ## This documentation
 
@@ -168,8 +168,10 @@ app/          main.py (api, loops) · db.py (the pool, q()) · auth.py (tokens, 
               ask.py (the dashboard's ask pane) · bootstrap.py · ground.py · issues/ · static/ (the dashboard)
               store.py (how a reading is written) · buttons.py (a rule's buttons) · wild.py (wild packs on Set up)
               firmware.py (the firmware the workbench flashes)
+              maps.py (the household's named maps on Place) · cells.py (the node's seven cells) · area.py (the area pull)
+              reading.py (the Place report's reading) · wall.py (GET /wall) · identity.py (the node's key and its signatures)
 bin/planetai  the operator CLI
-packs/        the twenty-five core packs, some with their own routes.py; see Packs
+packs/        the twenty-eight core packs, some with their own routes.py; see Packs
 config/       rules.yml (two domain-blind rules, trust's three) · channels.yml · mosquitto · grafana
 data/         sources/ (the pinned registry) · strings/ · env_defaults.yml · frozen_layer.txt · platform_floors.yml · mac_ceilings.yml
 skills/       setup-node · troubleshoot-node · connect-agent · publish-to-index · preflight · land · write-a-pack
@@ -180,7 +182,7 @@ docs/         the pages; docs/site/ the ones written for this site; design/ the 
 presets/      bali · barcelona · boston · santiago · delhi · menorca
 ```
 
-A tarball node carries none of `tests/`, `.github/`, `docs/design/`, the `tools/check_*` gates, or the bundle and
+A tarball node carries none of `tests/`, `.github/`, `planetai-design/node-docs/design/`, the `tools/check_*` gates, or the bundle and
 release scripts; `tools/bundle.sh` leaves them out.
 
 ## Where this leads

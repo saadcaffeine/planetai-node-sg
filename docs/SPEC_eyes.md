@@ -128,6 +128,7 @@ A community node that stops holding its parent says so on its page and in its li
    of a cell from a drone or phone picture is the smallest useful one).
 3. **The model rows** in Set up, local and online, with the online yes.
 4. **Seven cells.** The node's own cells become the res-8 ring; the walk and Place draw what is mapped in each.
+   **Built on `cells-area-2026-11-10`** (10 Nov): home plus the neighbours the keeper claims on Place (`node_cells`), a claim held while an own reading lands in it within 24 h, `local` stamped by those cells in place of `LOCAL_RADIUS_M`, and Place draws them at Cell scale.
 5. **Community.** The `registry.json` fields and the check of §6, then the first promotion.
 6. **Offers.** OpenAerialMap for mosaics, iNaturalist for species, OpenLitterMap for litter, each its own yes.
 

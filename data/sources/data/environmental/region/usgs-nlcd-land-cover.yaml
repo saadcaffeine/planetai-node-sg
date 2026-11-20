@@ -1,0 +1,38 @@
+name: USGS National Land Cover Database (NLCD), MRLC
+url: https://www.mrlc.gov/data
+description: |
+  30 m land cover for the conterminous US in 16 classes from Landsat, by
+  the Multi-Resolution Land Characteristics consortium led by USGS.
+  Served as bulk downloads and through a keyless WCS.
+pillar: environmental
+scale: region
+status: candidate
+license: "US public domain: MRLC describes NLCD as public domain information on the nation's land cover; the WCS declares no fees and no access constraints."
+api: https://www.mrlc.gov/geoserver/mrlc_download/wcs
+pilot_relevance: []
+places: [charlotte]
+tags: [land-cover, landsat, raster-30m, united-states, usgs]
+auth: none
+feeds_cells: [Environmental|Region]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. WCS 2.0.1 GetCoverage on coverage
+  mrlc_download__NLCD_2021_Land_Cover_L48, clipped to Mecklenburg's box in
+  EPSG:5070 as an ASCII grid (8.3 MB), masked by the TIGERweb county polygon
+  (GEOID 37119). The masked total, 1,414.3 km2, matches TIGER land plus
+  water (1,356.2 + 58.1 km2). NLCD 2021 in km2: developed open space 354.0,
+  low 311.0, medium 196.3, high 89.1; deciduous forest 152.4, mixed 99.6,
+  evergreen 51.5; pasture/hay 61.0; open water 51.3.
+
+  LICENCE. www.mrlc.gov/about: NLCD aims to provide "public domain
+  information on the Nation's land cover". The WCS capabilities document
+  states Fees NONE and AccessConstraints NONE.
+
+  WHY THIS CELL. Environmental|Region asks for land under each land-use
+  class in km2.
+
+  WHAT IT DOES NOT CLAIM. It is land cover, not land use, from 30 m pixels.
+  Annual NLCD's per-year land cover is not on the WCS; the 2024 CONUS bundle
+  is a 1.44 GB zip and was not read.

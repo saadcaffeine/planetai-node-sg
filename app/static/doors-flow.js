@@ -43,8 +43,8 @@ function flowFrom(D) {
 }
 if (typeof module !== 'undefined') module.exports = { flowFrom };
 const HOURS = 24, TRAVEL = 1.1, WINS = [6, 24];                                 // a packet's flight, in replay seconds
-function rgba(v, a = 1) {
-  const s = css(v);
+function rgba(v, a = 1, at = null) {
+  const s = at ? getComputedStyle(at).getPropertyValue(v).trim() : css(v);   /* at: read a screen's own tokens (evolution variation) */
   if (s.startsWith('#')) { const h = s.length === 4 ? s.slice(1).split('').map(c => c + c).join('') : s.slice(1, 7); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).concat(Math.round(a * 255)); }
   const m = s.match(/[\d.]+/g) || [0, 0, 0]; return [+m[0], +m[1], +m[2], Math.round(a * 255 * (m[3] != null ? +m[3] : 1))];
 }

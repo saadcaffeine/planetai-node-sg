@@ -25,7 +25,12 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-LAT, LON = float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"])
+import h3  # noqa: E402 — in the app image, where `planetai run` runs this
+
+# Centred on the res-8 cell's centre, not the house: /ground/* is on the `open` list, and which edge tiles exist would
+# otherwise say where the house is to ~0.6 km (R25, main._published_position). The cut is the same wherever in the
+# cell the house is. A set fetched before 18 Nov 2026 was cut round the house; fetching again re-centres it.
+LAT, LON = h3.cell_to_latlng(h3.latlng_to_cell(float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"]), 8))
 OUT = Path(os.getenv("PACK_OUT", "/app/out")) / "ground"
 R_KM = float(os.getenv("GROUND_RADIUS_KM", "12"))
 WIDE_KM = float(os.getenv("GROUND_SAT_WIDE_KM", "60"))

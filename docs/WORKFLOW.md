@@ -38,11 +38,11 @@ Two nodes track `main` and get a merge on their next update. They are the test n
 
 | node | where | how to reach it | update |
 |---|---|---|---|
-| #1 `bayu-ungasan` | Fab Lab Bali, Mac mini, port 8081 | `ssh mini` | `planetai update` |
+| #1 `bayu-ungasan` | Fab Lab Bali, Mac mini, port 8081 | `ssh <node-1-host>` | `planetai update` |
 | #3 `dieznode` | Tomas's Omarchy laptop, port 8080 (tailnet `omarchy-gmail`) | `ssh omarchy-gmail` | `planetai update` |
 
 ```bash
-ssh mini 'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"; cd ~/planetai/planetai-node && planetai update'
+ssh <node-1-host> 'export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"; cd ~/planetai/planetai-node && planetai update'
 ssh omarchy-gmail 'cd ~/planetai && planetai update'
 ```
 

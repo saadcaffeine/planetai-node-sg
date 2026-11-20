@@ -1,0 +1,37 @@
+name: HydroATLAS — BasinATLAS v1.0
+url: https://www.hydrosheds.org/hydroatlas
+description: |
+  HydroBASINS sub-basins at all 12 Pfafstetter levels, each with 281 hydro-environmental attributes (climate, land
+  cover, soils, population, ecoregion). The same basin polygons as HydroBASINS, released under CC-BY 4.0.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: CC-BY-4.0
+api: null
+pilot_relevance: [global]
+places: []
+tags: [watershed, basin-boundaries, hydrosheds, hydroatlas, pfafstetter, spatial-framework, attributes, geospatial]
+added: 2026-11-08
+assisted_by: Claude Code
+adapter: pack:hydro
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-08, licence and documentation only; the data were not downloaded.
+
+  LICENCE. The HydroATLAS page: "licensed under a Creative Commons Attribution (CC-BY) 4.0 International License".
+  The technical documentation (HydroATLAS_TechDoc_v10_1.pdf, section 4.1) calls it a Collective Database, CC-BY 4.0
+  as a whole, with each attribute column under CC-BY 4.0 or ODbL 1.0 as listed in the BasinATLAS catalog. Cite Linke
+  et al. (2019) Scientific Data 6: 283, doi:10.1038/s41597-019-0300-6.
+
+  WHY IT MATTERS. HydroBASINS' own download carries the HydroSHEDS v1 licence agreement, which is not open (see
+  hydrosheds-hydrobasins). BasinATLAS publishes the same polygons under CC-BY 4.0, so it is the route to showing or
+  redistributing basins. index.fab.city's river-basin layer (fci-index compute/bioregions.py, HydroBASINS level 4)
+  rests on this licence.
+
+  ENDPOINT. figshare (ndownloader files 20082137 and 20087237 to 20087486, linked from the HydroATLAS page). Several
+  GB, as a geodatabase or a shapefile, and it refused scripted downloads on 2026-11-08, so it was not read. No API.
+
+  WHAT IT DOES NOT CLAIM. Basins have no names, only HYBAS_ID and PFAF_ID. The attributes are modelled or overlaid
+  from global layers, each with its own date.

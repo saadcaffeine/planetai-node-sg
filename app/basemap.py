@@ -2,8 +2,8 @@
 
 `planetai run place basemap` (vector, fonts, drone mosaics) and `planetai run earth-engine basemap` (Sentinel-2)
 fetch a detailed map of this place once into out/ground/, and the forecast pack writes the wind field there; these
-routes serve it, so a map drawn from them asks nobody anything. On the `open` list: public data, centred no closer
-than /health's rounded point (app/auth.py, `/ground/`).
+routes serve it, so a map drawn from them asks nobody anything. On the `open` list: public data, each set cut round
+the centre of the res-8 cell /health names, never the house (app/auth.py, `/ground/`; R25).
 
 A module of its own since 24 Oct 2026, moved unchanged out of app/main.py (review item 15); app/ground.py is the
 hero's own cell drawing, a different thing. It stays in the core and

@@ -1,0 +1,19 @@
+# Grid mix and infrastructure distances are regional context derived from OpenStreetMap and grid operators:
+# derived, never comparable with an instrument at this address. The two km are whole km from the middle of the res-8
+# cell, not the house: derived readings leave without a token (R25).
+- { source: energy, metric: fossil_share_pct,      role: derived, comparable: false, unit: "%" }
+- { source: energy, metric: fossil_share_low_pct,  role: derived, comparable: false, unit: "%" }
+- { source: energy, metric: fossil_share_high_pct, role: derived, comparable: false, unit: "%" }
+- { source: energy, metric: fossil_share_day_pct,  role: derived, comparable: false, unit: "%" }
+- { source: energy, metric: substation_km,         role: derived, comparable: false, unit: "km" }
+- { source: energy, metric: large_plant_km,        role: derived, comparable: false, unit: "km" }
+- { source: energy, metric: import_share_max_pct,  role: derived, comparable: false, unit: "%" }
+- { source: energy, metric: grid_months,           role: derived, comparable: false, unit: "months" }
+# The house's own power, from its Home Assistant (ha.py): used on this node's page with the admin token, never exported,
+# aggregated upward, put in the report bundle or read by an agent (packs.public_sql).
+- { source: energy, metric: home_roof_w,     role: private, comparable: false, unit: "W" }
+- { source: energy, metric: home_grid_w,     role: private, comparable: false, unit: "W" }
+- { source: energy, metric: home_battery_w,  role: private, comparable: false, unit: "W" }
+- { source: energy, metric: home_roof_kwh,   role: private, comparable: false, unit: "kWh" }
+- { source: energy, metric: home_grid_kwh,   role: private, comparable: false, unit: "kWh" }
+- { source: energy, metric: home_fossil_pct, role: private, comparable: false, unit: "%" }

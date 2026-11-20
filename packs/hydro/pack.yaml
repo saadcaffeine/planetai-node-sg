@@ -1,0 +1,28 @@
+id: hydro
+name: Rivers and basins
+description: >-
+  Where the rivers are around this node and which basins it drains into, from HydroSHEDS: the nearest river, how
+  much water it carries on average, how far it runs to the sea, and the basin the node sits in, down to the level-4
+  basin index.fab.city calls its bioregion. Fetched once on command; traced at about 500 m, so a river you would
+  know by name, never a ditch.
+author: PLANETAI core (official, prototype)
+version: 0.1.0
+requires: { node: ">=0.91" }
+kind: code
+domain: water
+metrics: [river_m, river_flow_m3s, river_order, river_upland_km2, river_to_sea_km, river_largest_m3s, basin_up_km2]
+scales: [city]
+sources: [environmental/bioregion/hydroatlas-basinatlas, environmental/bioregion/hydroatlas-riveratlas]
+pip: [pyshp]
+env:
+  # No padding after `=`: a value pasted after spaces makes the line `VAR= value`, which shell reads as a command.
+  - "# hydro: half-width of the square of rivers and basins kept around the node, in km"
+  - "HYDRO_RADIUS_KM=25"
+attribution: >-
+  Rivers and basins: HydroSHEDS (Lehner & Grill 2013, Hydrological Processes 27: 2171-2186), as published in
+  HydroATLAS v1.0 (Linke et al. 2019, Scientific Data 6: 283) under CC-BY 4.0. Data available at www.hydrosheds.org.
+needs: >-
+  Network to data.hydrosheds.org on the fetch only: one or two level-1 basin files (1-3 MB) to find the region,
+  then that region's basins and rivers, 50-160 MB in all, unpacked, read and deleted. The node keeps under 100 KB.
+  No key. Nothing on any poll.
+# No `footprint:`: the square is context drawn as rivers, not a claim of where this node's word reaches.

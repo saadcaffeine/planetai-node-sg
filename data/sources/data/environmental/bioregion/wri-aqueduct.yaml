@@ -10,6 +10,7 @@ status: live
 license: Creative Commons (variant not specified on the source page - verify before publishing derived values)
 api: null
 pilot_relevance: [global]
+places: [charlotte]
 tags: [water-stress, water-risk, hydrological-basin, wri, geospatial]
 added: 2026-09-09
 feeds_cells: [Environmental|Bioregion]
@@ -27,3 +28,7 @@ notes: |
   untreated-wastewater proxies, not measured concentrations - pair with
   GEMStat for actual measurements. Baseline period roughly 1979-2019;
   major-version releases rather than continuous updates.
+
+  CHARLOTTE, read 2026-11-05: basin pfaf_id 732406, baseline water stress 0.727, "High (40-80%)", through the
+  Resource Watch Carto mirror (table aq4baselineannual), which is being sunset. Not yet checked against WRI's
+  own zip.

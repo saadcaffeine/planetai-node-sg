@@ -1,0 +1,40 @@
+name: BTS T-100 Air Carrier Statistics (freight by airport)
+url: https://www.transtats.bts.gov/Tables.asp?QO_VQ=EEE
+description: |
+  Monthly passengers, freight and mail carried by every airline on every
+  US airport pair, domestic and international, from the Bureau of
+  Transportation Statistics.
+pillar: economic
+scale: bioregion
+status: candidate
+license: "US public domain: data.bts.gov, BTS's own catalogue, lists it as Public Domain U.S. Government. bts.gov's own pages could not be read (403)."
+api: https://data.bts.gov/resource/r495-tyji.json
+pilot_relevance: []
+places: [charlotte]
+tags: [air-freight, airports, trade-flows, united-states, bts]
+auth: none
+feeds_cells: [Economic|Bioregion]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. T-100 Market (All Carriers), keyless TranStats
+  download form, ORIGIN/DEST = CLT (Charlotte Douglas), freight only. 2019:
+  enplaned 150,554,735 lb (68,290 t), deplaned 195,595,274 lb (88,721 t).
+  2024: enplaned 156,686,752 lb (71,072 t), deplaned 233,850,402 lb (106,073
+  t), of which international enplaned 14.3 M lb and deplaned 61.5 M lb. The
+  Socrata summary r495-tyji (T100 segment by origin airport) matches segment
+  sums exactly.
+
+  LICENCE. data.bts.gov metadata: "Public Domain U.S. Government"
+  (usa.gov/government-works). bts.gov returned 403 to scripts, so the agency
+  page itself was not read; a reviewer with a browser should confirm it.
+
+  WHY THIS CELL. Economic|Bioregion asks for goods through the territory's
+  ports and airports in tonnes, inwards and outwards separately, as Eurostat
+  avia_gooa gives Barcelona and Hamburg.
+
+  WHAT IT DOES NOT CLAIM. Air only: road and rail, which carry most of
+  Charlotte's freight, are not here (FAF5 zone 371 has them, but no licence
+  statement was found for it). Use the Market series: Segment counts freight
+  passing through on multi-stop flights.

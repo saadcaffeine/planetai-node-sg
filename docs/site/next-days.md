@@ -1,5 +1,5 @@
 # Next days
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 Next days is on Now, under What to do: the rest of today, tomorrow and the day after, read against the same lines Now
 uses for what is happening. It shows whether the air will go over the line tonight, and whether tomorrow's surf is worth

@@ -84,7 +84,8 @@ planetai radio init         # LoRa radios: the fleet, then `radio provision <rol
 ## Invariants. Do not break these.
 
 - Raw readings stay on this machine. Exports and aggregates travel; rows never do.
-- `.env` holds secrets. Never print it, never paste it, never commit it. Logs containing `api.telegram.org/bot` are a leak.
+- `.env` holds secrets. Never print it, never paste it, never commit it. Logs containing `api.telegram.org/bot` are a leak. `NODE_KEY` in it is
+  the node itself (docs/SPEC_identity.md): never regenerate, blank or copy it to another node. A new key is a new node.
 - The database lives on a local disk. Never a network mount. Backups are how data reaches a NAS.
 - A model or a portal is `partial`, whatever its quality. `live` means measured here.
 - Alerts say what to do in one sentence and name the threshold's source. Do not add alerts a household would ignore.
@@ -109,6 +110,9 @@ planetai radio init         # LoRa radios: the fleet, then `radio provision <rol
   the event push carries timestamps, and neither carries where. The Reticulum announce is the one thing that
   leaves, as an H3 cell rounded UP to a coarse parent with `res` beside it and a floor of res 6 no settings box
   can go under.
+  One exception, by the owner's ruling of 4 Nov 2026: a Place map the household chooses to share goes to the node
+  upstream with its exact coordinates, labels, notes and measures, after the plain warning, and is held here while a
+  drawing touches the cell the house stands in.
 - **Exactly one node per pilot writes to the spine.** A pilot is a city in the Index's `ALLOWED_CITIES`. Every
   other node computes its cells, shows them, and passes them no further.
 - When a document and a skill disagree, the document wins and the skill has a bug. Fix the skill, not the doc.
@@ -116,6 +120,11 @@ planetai radio init         # LoRa radios: the fleet, then `radio provision <rol
 ## Changing code
 
 Development happens on a dev machine, not on the node. The node only runs `planetai update`.
+
+This repository is public and households install from it. Plans, specs, handoffs, reviews, audits and prompts
+are working records: they go to the private `planetai-design` repo under `node-docs/`, never into `docs/` here.
+What stays is what a household or a contributor reads: `docs/site/`, the `SPEC_*` pages, `docs/decisions/` and
+`docs/proposals/`.
 
 A merge is not a release, and nothing reaches a tester without one. `/install` and `/preflight` are
 stubs that read the published `node0/get/VERSION`, take the commit it names, and fetch their script
@@ -150,7 +159,7 @@ where the thresholds came from and which place they were written for.
 - `status.errors` is per loop. A key present means that loop failed on its last run.
 - A request without a token reads the house's rooms and sensors as "Room A" and "Sensor 1"; the MCP tools, on this
   machine, read the names the household gave in Set up › Rooms. Never repeat those names anywhere a stranger reads.
-- `sensors[].local` means the person's own **and** at this node; a kit of theirs further than `LOCAL_RADIUS_M` is theirs but not this node's measurement. `indoor` is what the rules use to tell the house from the street.
+- `sensors[].local` means the person's own **and** at this node; a kit of theirs outside the node's own cells (the res-8 cell it stands in and the neighbours claimed on Place, `GET /place/cells`) is theirs but not this node's measurement. `indoor` is what the rules use to tell the house from the street.
 - `alerts[].acted_at` is null until someone acts. It is the person's note on what they did, not the node's own
   measurement: ask them, record it with `act` in their words, and never invent one.
 - "Outside" means: the person's own outdoor sensors, else the three nearest public references, else the model. Same order

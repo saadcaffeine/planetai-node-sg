@@ -121,7 +121,7 @@ matters. It does not need the internet to keep working, only to send you message
 | `port is already in use` | `planetai config set APP_PORT 8081` — it writes `.env` and offers the restart. |
 | No alerts at all | Normal when the air is fine. `planetai test-alert` proves the path works. |
 | Alerts every few minutes | Thresholds wrong for your place. Tell us. |
-| A sensor shows nothing | `planetai sensors`. A Smart Citizen kit must be publishing; an AirGradient is not polled in this version (`sensors.md`). |
+| A sensor shows nothing | `planetai sensors`. A Smart Citizen kit must be publishing; an AirGradient or PurpleAir needs its host set (`AIRGRADIENT_HOSTS`, `PURPLEAIR_HOSTS`). |
 | Telegram says nothing | Message the bot first; a bot cannot start a conversation. Then `planetai telegram` again. |
 | The bot does not answer | `planetai logs agent`. The first lines say whether Telegram is set and which model it found. |
 | Stopped after a power cut | The computer must boot and log in on its own. On a Mac: Login Items, and Energy → start after power failure. |

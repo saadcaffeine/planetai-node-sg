@@ -358,5 +358,202 @@ with tempfile.TemporaryDirectory() as tmp:
     os.environ.pop("PACK_OUT")
 print("earth frames: one shared projection, reused, and no-data stays no-data")
 
+# ---------------------------------------------------------------- the image the Wall may show
+# The Wall is tokenless and may show nothing finer than the house's res-8 cell. change_<A>_<B>.png is a square
+# centred on the house's pixel with a ring on it, so the Wall gets its own image: changed pixels only, inside the
+# community's res-7 cells that lie wholly in a square centred on the cell's centre, transparent everywhere else.
+import h3                                                                         # noqa: E402
+
+def _chunks(png: bytes) -> dict:
+    out, i = {}, 8
+    while i < len(png):
+        n = struct.unpack(">I", png[i:i + 4])[0]
+        out.setdefault(png[i + 4:i + 8], []).append(png[i + 8:i + 8 + n]); i += 12 + n
+    return out
+
+# the mask: only changed, unmasked pixels inside `allowed` are lit
+dist10 = np.full((10, 10), 0.05); dist10[::2, :] = 0.4
+masked10 = np.zeros((10, 10), bool); masked10[0, 0] = True
+allowed10 = np.zeros((10, 10), bool); allowed10[:, :5] = True
+m10 = A.wall_mask(dist10, masked10, 0.15, allowed10)
+assert m10.dtype == np.uint8 and set(np.unique(m10)) == {0, 1}
+assert m10[:, 5:].sum() == 0, "nothing outside the allowed cells"
+assert m10[0, 0] == 0, "a masked pixel is not change"
+assert m10.sum() == 5 * 5 - 1 and np.array_equal(m10[:, :5] == 1, (dist10[:, :5] > 0.15) & ~masked10[:, :5])
+
+# the PNG: a two-entry palette, the first transparent, and nothing else in it
+with tempfile.TemporaryDirectory() as tmp:
+    p = Path(tmp) / "w.png"
+    A.write_png(p, m10, {"Copyright": A.ATTRIBUTION}, palette=A.WALL_PALETTE, trns=b"\x00")
+    ch = _chunks(p.read_bytes())
+    assert ch[b"PLTE"] == [b"\x00\x00\x00\xff\xbe\x78"], "transparent, then #FFBE78"
+    assert ch[b"tRNS"] == [b"\x00"], "palette entry 0 is fully transparent"
+    raw = zlib.decompress(b"".join(ch[b"IDAT"]))
+    assert np.array_equal(np.frombuffer(raw, np.uint8).reshape(10, 11)[:, 1:], m10)
+    A.write_png(p, m10)                                       # the old call is unchanged: no tRNS, 256 colours
+    assert b"tRNS" not in _chunks(p.read_bytes()) and len(_chunks(p.read_bytes())[b"PLTE"][0]) == 768
+
+# The crop, from a synthetic tile: every ground pixel has its own distance, so two windows read around two
+# different points inside the same res-8 cell hold the same values wherever they overlap, as two fetches would.
+fwd = A.projection(32750)
+LATH, LONH = -8.8271, 115.15709
+home = h3.latlng_to_cell(LATH, LONH, 8)
+cen = h3.cell_to_latlng(home)
+
+def window(lat, lon, radius=5000):
+    x, y = fwd(lat, lon)
+    i, j, half = int(x // 10), int(y // 10), radius // 10
+    b = {"west": 10.0 * (i - half), "east": 10.0 * (i + half), "north": 10.0 * (j + half), "south": 10.0 * (j - half)}
+    I = (i - half + np.arange(2 * half))[None, :]
+    J = (j + half - 1 - np.arange(2 * half))[:, None]
+    d = ((I * 7919 + J * 104729) % 1000) / 1000 * 0.3
+    return d, ((I * 31 + J * 17) % 50 == 0) & np.ones_like(d, bool), b
+
+shots = []
+houses = [cen, (LATH, LONH)] + [(cen[0] + 0.97 * (v[0] - cen[0]), cen[1] + 0.97 * (v[1] - cen[1]))
+                               for v in h3.cell_to_boundary(home)[:3]]
+with tempfile.TemporaryDirectory() as tmp:
+    for k, (la, lo) in enumerate(houses):
+        assert h3.latlng_to_cell(la, lo, 8) == home, "every test house is inside the same res-8 cell"
+        d, msk, b = window(la, lo)
+        ix, crop = A.wall_image(d, msk, b, "EPSG:32750", home, 5000, 0.15)
+        p = Path(tmp) / f"w{k}.png"
+        A.write_png(p, ix, {"Copyright": A.ATTRIBUTION}, palette=A.WALL_PALETTE, trns=b"\x00")
+        shots.append((crop, p.read_bytes(), ix))
+assert all(s[0] == shots[0][0] for s in shots), [s[0] for s in shots]
+assert all(s[1] == shots[0][1] for s in shots), "the PNG must not move with the house inside its cell"
+crop, _, ix = shots[0]
+assert set(crop) == {"bounds", "ha"} and set(crop["bounds"]) == {"west", "east", "north", "south"}
+assert ix.shape == (round((crop["bounds"]["north"] - crop["bounds"]["south"]) / 10),
+                    round((crop["bounds"]["east"] - crop["bounds"]["west"]) / 10)), "bounds are the image's edges"
+assert crop["ha"] == round(int(ix.sum()) * 100 / 10000, 1), "ha counts the lit pixels and nothing else"
+
+# the crop holds the community's cells that fit the safe square, whole, and nothing else
+cx, cy = fwd(*cen)
+circ = max(h3.great_circle_distance(cen, v, unit="m") for v in h3.cell_to_boundary(home))
+half = 5000 - circ
+fit = [c for c in h3.grid_disk(h3.cell_to_parent(home, 7), 1)
+       if all(abs(x - cx) <= half and abs(y - cy) <= half for x, y in (fwd(*v) for v in h3.cell_to_boundary(c)))]
+assert len(fit) == 7, f"at node #1's point all seven community cells fit a 5 km square, got {len(fit)}"
+b = crop["bounds"]
+assert cx - half <= b["west"] and b["east"] <= cx + half and cy - half <= b["south"] and b["north"] <= cy + half, \
+    "the crop stays inside the square centred on the cell's centre"
+d, msk, bw = window(*cen)
+allowed = A.allowed_raster(bw, "EPSG:32750", d.shape, home, 5000)
+area = sum(h3.cell_area(c, unit="m^2") for c in fit) / 100
+assert abs(int(allowed.sum()) - area) / area < 0.01, (int(allowed.sum()), area)
+# a smaller square drops the cells that no longer fit wholly, rather than cutting them
+d3, msk3, b3 = window(*cen, radius=3000)
+a3 = A.allowed_raster(b3, "EPSG:32750", d3.shape, home, 3000)
+fit3 = [c for c in fit if all(abs(x - cx) <= 3000 - circ and abs(y - cy) <= 3000 - circ
+                              for x, y in (fwd(*v) for v in h3.cell_to_boundary(c)))]
+assert len(fit3) == 1 and abs(int(a3.sum()) - h3.cell_area(fit3[0], unit="m^2") / 100) < 0.01 * a3.sum()
+assert A.wall_image(*window(*cen, radius=2000), "EPSG:32750", home, 2000, 0.15) is None, "no whole cell, no image"
+# fetch reads radius // 10 pixels each way, so a radius that is not a multiple of 10 is read as the one below it
+for la, lo in houses:
+    d9, _, b9 = window(la, lo, radius=5009)
+    assert np.array_equal(A.allowed_raster(b9, "EPSG:32750", d9.shape, home, 5009),
+                          A.allowed_raster(b9, "EPSG:32750", d9.shape, home, 5000)), "5009 m is read as 5000"
+# a window that is not clipped and still does not hold the safe square was read around somewhere else: which edge
+# cells survived would say where, so there is no image. A tile edge is the same: where it cuts the square read round
+# the house depends on where in the cell the house is, so a clipped read publishes nothing, even one that still holds
+# every cell.
+dt, mt, bt = window(*cen)
+dt, mt, bt = dt[:, :-80], mt[:, :-80], {**bt, "east": bt["east"] - 800}   # 800 m short: past the 528 m slack
+assert A.wall_image(dt, mt, bt, "EPSG:32750", home, 5000, 0.15) is None, "the square passes an unclipped edge"
+assert A.wall_image(dt, mt, bt, "EPSG:32750", home, 5000, 0.15, clipped=True) is None, "a tile edge publishes nothing"
+assert not A.allowed_raster(bw, "EPSG:32750", d.shape, home, 5000, clipped=True).any(), "clipped, nothing allowed"
+
+# change.py writes it, end to end, beside the pair's map, and records the crop under `wall`
+with tempfile.TemporaryDirectory() as tmp:
+    env = {**os.environ, "PACK_OUT": tmp, "NODE_NAME": "t", "NODE_LAT": str(LATH), "NODE_LON": str(LONH),
+           "EARTH_RADIUS_M": "3000", "PYTHONPATH": os.getcwd()}
+    cache = Path(tmp) / "earth" / "t"; cache.mkdir(parents=True)
+    d3, _, b3 = window(LATH, LONH, radius=3000)
+    rng4 = np.random.default_rng(5)
+    base = rng4.integers(-100, 100, size=(64, 1, 1)).astype(np.int8)
+    np.save(cache / "2024.npy", np.repeat(np.repeat(base, 600, 1), 600, 2))
+    later = np.repeat(np.repeat(base, 600, 1), 600, 2); later[:, 300:, :] = -later[:, 300:, :]
+    np.save(cache / "2025.npy", later)
+    xh, yh = fwd(LATH, LONH)
+    win = {"crs": "EPSG:32750", "bounds": b3, "px": [600, 600], "clipped": False, "north_up": True,
+           "node_rc": [int(b3["north"] - yh) // 10, int(xh - b3["west"]) // 10], "object": "gs://x.tiff"}
+    (cache / "meta.json").write_text(json.dumps({"lat": LATH, "lon": LONH, "radius_m": 3000,
+                                                 "windows": {"2024": win, "2025": win}}))
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    st = json.loads((cache / "change_2024_2025.json").read_text())
+    wp = cache / "change_2024_2025_wall.png"
+    assert wp.is_file() and set(st["wall"]) == {"bounds", "ha", "cell"} and st["wall"]["cell"] == home, r.stdout
+    assert not list(cache.glob("*.part")), "the image is written beside and moved over, never left half"
+    ch = _chunks(wp.read_bytes())
+    assert ch[b"PLTE"] == [b"\x00\x00\x00\xff\xbe\x78"] and ch[b"tRNS"] == [b"\x00"]
+    assert 0 < st["wall"]["ha"] < st["hectares_over_threshold"], st["wall"]
+    px = np.frombuffer(zlib.decompress(b"".join(ch[b"IDAT"])), np.uint8)
+    assert set(np.unique(px)) <= {0, 1}, "filter bytes and two colours: no node mark, no scale bar"
+    # a pair computed before the Wall's image existed has no `wall` key: a plain run (no --force) computes it again
+    old = {k: v for k, v in st.items() if k != "wall"}
+    (cache / "change_2024_2025.json").write_text(json.dumps(old)); wp.unlink()
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert r.returncode == 0 and "already computed" not in r.stdout, r.stdout + r.stderr
+    assert wp.is_file() and json.loads((cache / "change_2024_2025.json").read_text())["wall"] == st["wall"]
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert "already computed" in r.stdout, "with `wall` written, the pair is done"
+    # a crop whose image is gone (a disk that filled mid-write) is not done: a plain run draws it again
+    wp.unlink()
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert "already computed" not in r.stdout and wp.is_file(), r.stdout + r.stderr
+    # the house moved into another res-8 cell inside fetch's tolerance: the crop was cut round the old cell, so a plain
+    # run cuts it again round the new one
+    v = h3.cell_to_boundary(home)[0]
+    moved = (cen[0] + 1.1 * (v[0] - cen[0]), cen[1] + 1.1 * (v[1] - cen[1]))
+    assert h3.latlng_to_cell(*moved, 8) != home
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env={**env, "NODE_LAT": str(moved[0]),
+                                                                      "NODE_LON": str(moved[1])},
+                       capture_output=True, text=True)
+    assert "already computed" not in r.stdout, r.stdout + r.stderr
+    st3 = json.loads((cache / "change_2024_2025.json").read_text())
+    assert (st3["wall"] or {}).get("cell", st3.get("wall_cell")) == h3.latlng_to_cell(*moved, 8), st3.get("wall")
+
+# two years read over different ground, one pixel apart, the same size: refused with the re-fetch, never differenced
+with tempfile.TemporaryDirectory() as tmp:
+    env = {**os.environ, "PACK_OUT": tmp, "NODE_NAME": "t", "NODE_LAT": str(LATH), "NODE_LON": str(LONH),
+           "EARTH_RADIUS_M": "3000", "PYTHONPATH": os.getcwd()}
+    cache = Path(tmp) / "earth" / "t"; cache.mkdir(parents=True)
+    for y in (2024, 2025):
+        np.save(cache / f"{y}.npy", np.repeat(np.repeat(base, 600, 1), 600, 2))
+    w24 = {"crs": "EPSG:32750", "bounds": b3, "px": [600, 600], "clipped": False, "north_up": True,
+           "node_rc": [300, 300], "object": "gs://x.tiff"}
+    w25 = {**w24, "bounds": {**b3, "west": b3["west"] + 10, "east": b3["east"] + 10}}
+    for w_b, why in ((w25, "bounds"), ({**w24, "crs": "EPSG:32751"}, "crs")):
+        (cache / "meta.json").write_text(json.dumps({"lat": LATH, "lon": LONH, "radius_m": 3000,
+                                                     "windows": {"2024": w24, "2025": w_b}}))
+        r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+        assert "different ground" in r.stdout and "planetai run earth fetch 2024 2025 --force" in r.stdout, \
+            (why, r.stdout + r.stderr)
+        assert not list(cache.glob("change_*")), (why, "nothing compared")
+
+# no community cell fits a 2 km square: `wall` is null, no image, and the next plain run does not try again
+with tempfile.TemporaryDirectory() as tmp:
+    env = {**os.environ, "PACK_OUT": tmp, "NODE_NAME": "t", "NODE_LAT": str(LATH), "NODE_LON": str(LONH),
+           "EARTH_RADIUS_M": "2000", "PYTHONPATH": os.getcwd()}
+    cache = Path(tmp) / "earth" / "t"; cache.mkdir(parents=True)
+    _, _, b2 = window(LATH, LONH, radius=2000)
+    for y in (2024, 2025):
+        np.save(cache / f"{y}.npy", np.repeat(np.repeat(base, 400, 1), 400, 2) * (1 if y == 2024 else -1))
+    win = {"crs": "EPSG:32750", "bounds": b2, "px": [400, 400], "clipped": False, "north_up": True,
+           "node_rc": [200, 200], "object": "gs://x.tiff"}
+    (cache / "meta.json").write_text(json.dumps({"lat": LATH, "lon": LONH, "radius_m": 2000,
+                                                 "windows": {"2024": win, "2025": win}}))
+    (cache / "change_2024_2025_wall.png").write_bytes(b"\x89PNG stale")
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+    st2 = json.loads((cache / "change_2024_2025.json").read_text())
+    assert "wall" in st2 and st2["wall"] is None and st2["wall_cell"] == home, st2.get("wall")
+    assert not (cache / "change_2024_2025_wall.png").exists(), "a stale image must not answer for a null crop"
+    r = subprocess.run([sys.executable, "packs/earth/change.py"], env=env, capture_output=True, text=True)
+    assert "already computed" in r.stdout, "a null `wall` is an answer, not a pair to redo on every run"
+print("earth wall: changed pixels in whole community cells only, the same image wherever the house is in its cell")
+
 print("all earth pack tests pass")
 sys.exit(0)

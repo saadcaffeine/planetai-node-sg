@@ -1,5 +1,5 @@
 # The dashboard
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The dashboard is where a household reads its node: what it observed about the place, what it asks of the people
 there, whether that worked, and what the machine itself is doing. The node computes and the page draws, so every
@@ -32,8 +32,8 @@ so the dashboard draws on a network with no route out.
 3. **Read Now.** The bar shows the node's name and the five doors. Now opens on the headline issue: its sign, the
    node's sentence, and its day drawn at every distance against the line. The four distances (house, street, ring,
    region) follow in one line, each with its provenance word.
-4. **Answer what is asked.** If the node is asking something, **What to do** holds a framed card with the action it
-   chose and **Done**, **Not now** and **Doesn't fit**. Press the one that is true. The page says "Recorded.", or for
+4. **Answer what is asked.** If the node is asking something, **What to do** says it in one line. Press **Options to
+   act** and it opens the action the node chose with **Done**, **Not now** and **Doesn't fit**. Press the one that is true. The page says "Recorded.", or for
    Not now, that the node holds the question for three hours unless it reaches danger. If it says the screen can't
    answer yet, the screen holds no token: unlock it in Set up › This screen. When nothing is asked the section reads
    "Nothing is asked now."
@@ -57,7 +57,7 @@ The foot closes every door but the Wall: what the node is in one line, its versi
 explained" (this page), `llms.txt` for agents, Ask the node, Set up, **Unlock this screen**, today's open export (CC BY
 4.0) and links to PLANETAI, Fab City and the source.
 
-> **Gap in v0.91.0.** The doors read the node when the page opens, and again only after an answer on Now or an
+> **Gap in v0.92.0.** The doors read the node when the page opens, and again only after an answer on Now or an
 > unlock; nothing re-reads it while the page stays open. A Wall left on keeps the figures of the moment it was opened,
 > and only its narration is new every ten minutes. Reload the page, or use the classic wall, which re-reads on
 > `POLL_SECONDS`.
@@ -81,19 +81,23 @@ now** and **Doesn't fit**. Once somebody has answered, the buttons go and the li
 when, and when a Not now asks again. An alert still true that no event stands for is drawn the same way, without
 buttons, because it is answered on Telegram. When nothing is asked the section is one plain line, "Nothing is asked
 now.", with the hour this issue is usually worst for a screen holding the admin token. A past hour shows what was open
-then, and is read, never answered. An issue with no line says the node only reports it and never asks you to act.
+then, and is read, never answered. An issue with no line says the node only reports it and never asks you to act. What to do is one low strip across
+the whole page, under the day's screen and the right column, in small type; on a phone it follows the right column.
+It opens folded, as one line: its head, the one sentence and a button. **Options to act** counts what can be answered,
+the card's buttons and each pack's ask, and opens them under the line; **Fold** closes them. The strip stays open or
+folded while you are on the page.
 
 When a pack's rule has asked with buttons of its own, each of its alerts from the last 72 hours that nobody has
-answered is a card of its own under this one, with the alert's text and its rows of buttons. A press is one answer, and
+answered is a card of its own under this one when the strip is open, with the alert's text and its rows of buttons. A press is one answer, and
 a button that asks a question opens a line for the words. A screen without the token draws none of these.
 
 **Did it work** and **Yesterday** (admin token only). For the issue on screen: the last time the node asked, what was
 done, what the air or heat inside did in the hours after against the street, and the node's verdict from what it
 learned ("It helps here.", "No clear difference here yet.", "Too early to say."), with who it matters to, or a link to
 say who lives here. Yesterday is the node's diary entry for yesterday, condensed from its own numbers, with a link to
-the whole entry on Node.
+the whole entry on Node. Both sit under What to do, across the page, side by side on a wide screen.
 
-**Next days.** Under What to do, the next three days, from the next hour to the end of the day after tomorrow.
+**Next days.** Under What to do and Did it work, across the page, the next three days, from the next hour to the end of the day after tomorrow.
 Each thing gets a row in the order of Now's rows: air and heat, then wind and rain, then the sea, then a line from any
 pack that declares one with `ahead:` in its `pack.yaml`. A cell has the day's number, the state word against the issue's
 line, and for air and heat how many hours go over it. Press a row and its 72 hours are drawn under it, with the line.
@@ -101,16 +105,31 @@ Under the rows each source is a pill with the time it was issued or fetched, the
 models. The node does not forecast, and nothing here sends a message." With Open-Meteo off only BMKG's weather shows,
 where BMKG covers the node, and a line says where to turn Open-Meteo on. `#now/next` links straight to it.
 
-**Around the house.** A row for each issue drawn by the hour, its state word, its value now and its hours over the line
-today; pressing one moves the page to that issue. Under them, the map of the stations around the house: each public
-station with its 15-minute mean, a red square beside one over the air's line, the house as one mark with its own
-sensors' range, and the distance rings and cells for a screen with the token. Pressing a station opens it in Data.
-Without WebGL the map is a rose of bearings and distances. With the admin token one line counts the things this home
+**Around the house** opens the right column. A row for each issue drawn by the hour, its state word, its value now and its hours over the line
+today; pressing one moves the page to that issue. With the admin token one line counts the things this home
 keeps, how many sit idle and how many need repair, and opens Data › Home.
+
+**Energy**, once the energy pack is on and in `NODE_ISSUES`, is a row there too, with the grid's fossil share and the
+line its figure comes from. Pressing it draws the grid where the day figure is: the share (a range where the grid
+publishes no mix, one figure where it does), the mix as a bar with the part nobody publishes hatched, the nearest
+substation, the plants and the links with how far each is, and a Today box with the sun on the cell, what a roof of
+panels would make with it and what the house uses. With Home Assistant connected the box shows the house's own roof,
+grid and fossil share instead. Energy is context and never asks you to act.
+
+**The air around it**, under Around the house: the map of the stations around the house. Each public station has
+its 15-minute mean, a red square beside one over the air's line, the house is one mark with its own sensors' range,
+and a screen with the token gets the distance rings and cells. Pressing a station opens it in Data. Without WebGL the
+map is a rose of bearings and distances.
+
+**Local production capacity in the city**, under the map: the city's Fab City Index. The Index is the screen's big figure, its FCI or its range out of 1, with a column of the Index's 20
+cells beside it, one lit for each cell measured. Under the figure: the label the Index gives the city, how many cells
+are measured, and when the Index's file was read, marked `partial`, or `cached` when the last read failed. The figure
+opens the city on index.fab.city, and a link goes to its figures on Place. With no city chosen the screen says to run
+`planetai place` on the node; with a city that has no Index yet it says how a city gets one.
 
 **A pack's own band.** A pack can declare a band in its `pack.yaml` (a wild pack has no other way onto the page, it
 ships no code for it), and Now draws it next to the part with the same stage: `decide` and `act` under What to do,
-`measure` under Did it work. The `observe` bands go under both columns, in **Also read here**, side by side on a wide
+`measure` at the foot of the right column. The `observe` bands go under both columns, in **Also read here**, side by side on a wide
 screen. Each band is the pack's title, then where its readings come from, how they were got and how old they are, said
 once, then one row per reading the node holds. A row says its source again only when it changes. A line says how many
 of the readings it declares have not arrived yet, and the pack's note is folded under "How this is read". On node #1
@@ -143,56 +162,9 @@ hours over the line that day, from `GET /issues/days`.
 
 ## Place
 
-The ground around the house. The head gives the cell's id, resolution, edge and area, and the node's position for a
-screen with the token. Under it is a line to ask the node about this place (press `/` to get there; `UI_ASK=off` removes it) and **+ Add an
-image**. Below that, the door has three columns around one screen.
-
-**What the place is made of.** On the left is a list of what the node can show about the ground around the house.
-The sky is at the top of the list and the ground at the bottom. Its headings, in order, are results, microclimate,
-flows, built, animals, plants, soil, water, ground and frame, and each says how many of its rows are on, or none yet. A row is one line, a dot, a name and a word
-for where it comes from. A filled dot is on, a hollow one is off, and a dotted one is something this node does not hold
-yet, with its source beside it, such as canopy, soil, terrain, geology, the flows log, or samples of soil and water.
-Press a row to switch it on or off. The line under the screen then says what the row draws and where it comes from,
-and if the row cannot draw, why: **token-only**, **not here**, **live map**, or **zoom in** and **zoom out**. Six rows
-start on: this house's outdoor kit, the public stations, the species, the cell the node stands in, the street map
-and the images. Nothing from inside the house is listed or drawn on Place, and neither are the rooms.
-
-**The screen.** In the middle is the map, on a black screen in a bezel. It stays black on the light page and on the dark one. The hour is a pill at the top, the node's last reading. When
-the wind is on it shows the wind's hour, and arrows step it. The scale rungs are at the bottom left, street, block,
-cell, village and district, and the credit sits at the foot. The resolution drawn follows the zoom, and a cell that may
-leave the machine is dotted. On the right edge are the screen's own tools, **Inspect**, **Measure** with **Done**,
-**From the house**, back to the node's cell, and save as PNG, with zoom apart below them.
-
-When the satellite row is on and the node holds Sentinel-2 years, the screen shows the node's Sentinel-2 annual medians,
-then and now side by side, with the hectares that changed between them by its AlphaEarth record.
-
-Under the screen one line says what is in view. Press a station, an image, a place to make or a cell and the line
-gives its facts, and with the token how far it is from the node and which cell it is in. A station of this house says
-it counts toward the cell; a public one is shown and never counted. Below it is the list around the house, nearest
-first, with the distance in metres measured by the node (`GET /geo/measure`, and `GET /nearby` for public stations).
-
-**The tools.** On the right is a column of what the node could do with this place. **Rings and distance** works today.
-It draws the 2, 5 and 15 km rings from the node's point, and its name sits in a pill while it is on. The rest, sun and
-shade, trees, built form, sealed ground, streets, walking, what changed, where the rain goes, and four fitness tools,
-carry a dotted **not yet**. A screen without a token reads "Tools run on this node with a token. Unlock this screen in Set up." under them. On a phone the layers and the tools each open
-from a bar under the screen as a sheet that rises over the lower part of the page, and Esc closes it.
-
-The lower part has two halves. **Selected** is where a tool's rows will be listed, one row for each thing it found.
-**The place in figures** holds what changes yearly and has no hours, land and coast with the node's sentence and
-figure, the Index cells, and what is not here yet (production and trade, water and soil, and the forecast).
-
-The grid, the rings and every distance are the node's own answers from `GET /geo/*`, and the plan is
-`GET /place/geojson`; all of them need a token at every sharing level, because together they place the house. Without
-the token, the house's marks say **withheld** where they would stand, the rows that need it say **token-only**, and the
-map opens on the published cell. The street map comes from `/ground/*` once `planetai run place basemap` has run; until
-then Set up lists **The map of this place** under what is left to finish.
-
-**+ Add an image** (token only) opens a dialog: the file, what took it (phone, fixed camera, microscope, drone, balloon
-or kite), a note and your name, and whether the image model on this node describes it. The image lands where its own
-GPS says it was taken, else in the node's cell; the node strips EXIF and GPS from the file and keeps it.
-
-**Species confirmed here** is the list under the species row: a table of what somebody here confirmed in an image,
-how often, where, and GBIF's open records by others in the node's seven cells, token only.
+The ground around the house as a small GIS: the layers the node holds from the sky down to the ground, the map on a
+black screen, drawing and your own maps, the tools that measure from the house, and what changed year on year. It has
+a page of its own, [The Place door](place.md).
 
 ## Node
 
@@ -232,9 +204,10 @@ Every reading the node holds, one tab at a time, routed `#data/<tab>`. The tab b
 
 ## Wall
 
-The keeper's one screen for a room, always dark, read from about three metres and operated by nobody. Its map walks
-out from the house a scale at a time, house, street, ring and region, and under it the node's model says in plain
-words what is happening. It names no sensor, room or person, and shows what is asked without a button to answer it.
+The keeper's one screen for a room, always dark, read from about three metres and operated by nobody. Its satellite
+map walks out from the house through the three sizes of node, base, community and city, and beside it the node's
+model says in plain words what is happening. It names no sensor, room or person, and shows what is asked without a
+button to answer it.
 [Wall mode](wall.md) has all of it.
 
 ## Set up
@@ -403,7 +376,7 @@ fixture. When a poll gets no answer the figures stay, the pill says `stale`, and
 node has not answered for N min". The asking screen is held at least `--motion-asking-hold` (3 s) on a load or a press
 of **↻**, never on a routine poll.
 
-> **Gap in v0.91.0.** On the classic dashboard at `SHARE_LEVEL=off`, a browser that has never stored a token draws
+> **Gap in v0.92.0.** On the classic dashboard at `SHARE_LEVEL=off`, a browser that has never stored a token draws
 > the refused page on every view, Set up included, so there is nowhere to enter one. Unlock the screen on the doors
 > (`/`), which keeps the token in the same place, then open `/?layout=classic`.
 
@@ -527,7 +500,7 @@ same alert first, and the page prints the node's sentence. When nothing is open,
 pack on, from `COAST_MAX_KM` for the sea to the three decimals `/health` rounds a position to. Each produces one number, and its card says how many cells of the rung you are on that one number has to cover.
 
 The other four are the stations pack's radius (`BAD_RADIUS_KM` in Bali), `EARTH_RADIUS_M` and `PLACE_RADIUS_M` (each a
-`footprint:` in its pack's `pack.yaml`, and counted only while that pack is on), and `LOCAL_RADIUS_M`. The node sends the coverings in `GET /issues` as `geometry.claims`, widest first.
+`footprint:` in its pack's `pack.yaml`, and counted only while that pack is on), and the node's own cells, the one it stands in and the neighbours claimed on Place. The node sends the coverings in `GET /issues` as `geometry.claims`, widest first.
 
 ### Act
 

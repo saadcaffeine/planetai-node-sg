@@ -1,5 +1,5 @@
 # Install
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page puts the node itself on a machine: two containers, a database on this disk, and the loops that read
 your place every five minutes. Once it is done the node has pulled the air model and the climate normals for
@@ -47,7 +47,8 @@ curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 `/install` is a small stub. It looks up the released version and fetches the `install` script, and the preflight,
-from exactly that commit, so everything you receive belongs to one release. The script prints the logo with the
+from exactly that commit, so everything you receive belongs to one release. Each of those downloads is tried up to
+three times when the server answers with a timeout or a 5xx, because GitHub does that now and then. The script prints the logo with the
 published version under it, runs the preflight, downloads the node's tarball from `planetai.fab.city/node0/get`,
 checks its checksum and its signature, unpacks it into `~/planetai` keeping any `.env` already there, links the
 command to `~/.local/bin/planetai`, and hands over to `planetai setup`. Before the questions the screen shows:
@@ -83,12 +84,16 @@ public stations, the `bali-air-dispatch` pack, which the Bali preset turns on; e
 CAMS model at your coordinates, with no key. A place inside Bali, Barcelona, Boston or Santiago also takes that
 pilot's preset and files the node under the pilot's city key.
 
-Then **Here's the plan** lists the name, place, time zone, city key, sensor and outdoor reference, and asks
+After that it names the nearest of the 61 places the Fab City Index tracks, if one is within 150 km, and asks which one this
+node belongs to. Enter keeps the suggestion and another slug picks that place. `none` leaves it out. `planetai place` asks
+the same later, and [Place](place.md) shows what the node does with the answer.
+
+Then **Here's the plan** lists the name, place, time zone, city key, Index place, sensor and outdoor reference, and asks
 `Install with these?`. Saying no changes nothing. Saying yes writes the answers to `.env` first, so a failure
 later keeps them for the next run, and starts the seven steps below.
 
-The place is the answer that matters most: it fixes the H3 cell the node stands in and the 500 m radius inside
-which a sensor counts as this node's own. Without a sensor the node still knows your weather, the satellite air
+The place is the answer that matters most: it fixes the H3 cell the node stands in, and a sensor counts as this
+node's own only in that cell and the neighbours you claim on [Place](place.md#the-seven-cells). Without a sensor the node still knows your weather, the satellite air
 model for your district and forty years of climate for your coordinates; see [Before a sensor](before-a-sensor.md).
 
 > **Only Smart Citizen, for now.** The installer offers one kit. AirGradient and PurpleAir are read by their own
@@ -126,8 +131,9 @@ full log is in `.planetai-install.log`.
    printing the three lines that let Podman answer to `docker` (`podman-docker`, the user `podman.socket`, and
    `DOCKER_HOST`). No node has run on Podman yet.
 2. **`.env`.** Copies `.env.example` (mode 600), applies the pilot preset if any, writes the answers, stamps
-   `NODE_VERSION`, and generates `POSTGRES_PASSWORD` and `ADMIN_TOKEN`. It refuses to start without coordinates,
-   and refuses a new database password over a database volume an earlier node left behind.
+   `NODE_VERSION`, and generates `POSTGRES_PASSWORD`, `ADMIN_TOKEN` and `NODE_KEY`, the node's own key (see
+   [Federation](federation.md#each-node-is-a-key)). It refuses to start without coordinates,
+   and refuses a new database password over a database volume an earlier node left behind. Until your answers replace them, `NODE_LAT` and `NODE_LON` hold the centre of node #1's cell in Bali.
 3. **Port and folders.** Checks that `APP_PORT` (8080) is free, and creates `backups`, `exports` and `out`.
 4. **The database image.** Pulls `imresamu/postgis:16-3.4-alpine` (about 162 MB, amd64 and arm64) with visible
    progress.
@@ -197,7 +203,7 @@ own code.
 
 ```
 ~/planetai/
-  .env                   every setting; mode 600; never committed, never pasted
+  .env                   every setting and the node's key; mode 600; never committed, never pasted. Keep a copy off the backup share
   backups/               nightly pg_dump, kept BACKUP_KEEP days
   exports/<node>/        the daily CC BY 4.0 export, one JSON a day
   out/                   what pack scripts write: land-change maps, timelapses, mapping briefs, the kept map (out/ground/), the workbench's firmware (out/firmware/)

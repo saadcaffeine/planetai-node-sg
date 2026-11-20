@@ -99,7 +99,7 @@ if G.contains(110) != 10 or G.contains(10) != 12:
 
 # --- the claims: every footprint a number the product already declares ----------------------------------------
 class S:  # the settings module's two readers, over the preset node #1 was captured under
-    _v = {"LOCAL_RADIUS_M": 500, "BAD_RADIUS_KM": 8, "COAST_MAX_KM": 30, "EARTH_RADIUS_M": 5000,
+    _v = {"BAD_RADIUS_KM": 8, "COAST_MAX_KM": 30, "EARTH_RADIUS_M": 5000,
           "PLACE_RADIUS_M": 1000, "RETICULUM_PRESENCE_RES": 3}
     @staticmethod
     def num(k, d):
@@ -121,6 +121,21 @@ if [c["key"] for c in G.claims(LAT, LON, S)] != ["coast", "region", "place", "ya
     fails.append("no stations pack on, no ring claimed")
 if list(c["key"] for c in G.claims(LAT, LON, S, RING)) != ["coast", "ring", "region", "place", "yard", "room"]:
     fails.append("claims are ordered widest first: coast, ring, region, place, yard, room")
+_home8 = G.h3.latlng_to_cell(LAT, LON, 8)
+_home_area = G.h3.cell_area(_home8, unit="m^2")
+if (C["yard"]["where"] != "node_cells"
+        or C["yard"]["declared"] != "1 cell"
+        or C["yard"]["cells"] != [_home8]
+        or C["yard"]["area_km2"] != round(_home_area / 1e4) / 100):
+    fails.append(f"yard ('The street') should declare own cells from node_cells; got {C['yard']}")
+_nb8 = sorted(set(G.h3.grid_disk(_home8, 1)) - {_home8})[0]
+_two_area = sum(G.h3.cell_area(c, unit="m^2") for c in (_home8, _nb8))
+_yard2 = {c["key"]: c for c in G.claims(LAT, LON, S, RING, own_cells={_home8, _nb8})}["yard"]
+if (_yard2["where"] != "node_cells"
+        or _yard2["declared"] != "2 cells"
+        or _yard2["cells"] != sorted({_home8, _nb8})
+        or _yard2["area_km2"] != round(_two_area / 1e4) / 100):
+    fails.append(f"yard with two own cells should sum their h3.cell_area and declare '2 cells'; got {_yard2}")
 if not (2800 < C["coast"]["area_km2"] < 2830) or not (195 < C["ring"]["area_km2"] < 205):
     fails.append(f"coast ≈ 2,813 km² and ring ≈ 200 km²; got {C['coast']['area_km2']}, {C['ring']['area_km2']}")
 reg = C["region"]

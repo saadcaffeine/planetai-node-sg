@@ -127,6 +127,7 @@ body[data-view="wall"] .bar,body[data-view="wall"] .foot{display:none}
 .askpane #qsend:disabled{opacity:.4;cursor:default}
 .askpane .hint{margin:6px 0 0;font:400 var(--t-cap) var(--mono);color:var(--mute)}
 .askpane .hits{list-style:none;padding:0;margin:4px 0 0}.askpane .hits li{padding:8px 0;border-top:1px solid var(--doc-line)}
+.askpane .aopen{display:block;margin-top:8px;background:var(--ink);color:var(--ground);border:0;padding:8px 12px;font:600 var(--t-small) var(--body);cursor:pointer}
 .askpane .hits a{font-weight:600}.askpane .hits p{margin:3px 0 0;font-size:var(--t-small);color:var(--mute)}
 .try{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.try button{background:var(--ground);color:var(--ink);border:1px solid var(--doc-line);padding:4px 8px;font-size:var(--t-small);cursor:pointer;text-align:left}
 .learnsw{display:flex;gap:10px;align-items:flex-start;font-size:var(--t-small);cursor:pointer}
@@ -178,8 +179,9 @@ details .in{padding:0 0 16px;color:var(--mute);font-size:var(--t-small);max-widt
 
 /* ================= NOW ================= */
 /* one bold block (the sentence and its day), then quiet parts under sentence-case heads; mono only for units, times, values */
-.face{max-width:1240px;margin:0 auto;padding:18px clamp(16px,3vw,40px) 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:0 48px;grid-template-areas:"kick kick" "l r" "al al"}
+.face{max-width:1240px;margin:0 auto;padding:18px clamp(16px,3vw,40px) 40px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:0 48px;grid-template-areas:"kick kick" "l r" "td td" "rm rm" "l2 l2" "al al" "bd bd"}
 .lcol{grid-area:l;min-width:0}.rcol{grid-area:r;min-width:0;align-content:start}
+.nstrip{grid-area:td;min-width:0}.nrem{grid-area:rm;min-width:0}.lcol2{grid-area:l2;min-width:0}
 .kick{grid-area:kick;display:flex;justify-content:space-between;gap:6px 16px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
 .kick .kr{display:flex;gap:12px;align-items:baseline}.kick .kr a{font-size:var(--t-cap);color:var(--mute)}
 .kick .now{background:none;border:1px solid var(--ink);padding:2px 9px;font:600 var(--t-small) var(--body);cursor:pointer}
@@ -203,7 +205,7 @@ details .in{padding:0 0 16px;color:var(--mute);font-size:var(--t-small);max-widt
 .dm{font:500 var(--t-small)/1.45 var(--body);color:var(--mute);margin:8px 0 0}.dm .mono{font-size:.95em}
 /* Did it work, then Yesterday: quiet, sentence-case heads, never framed (the frame is What to do's) */
 .nrem{margin-top:28px}.nrem h3{font:600 var(--t-body)/1.3 var(--body);margin:20px 0 6px}.nrem h3:first-child{margin-top:0;padding-top:12px;border-top:1px solid var(--ink)}
-.nrem p{margin:0 0 6px;max-width:64ch;font-size:var(--t-small)}.nrem .x{color:var(--mute)}
+.nrem p{margin:0 0 6px;max-width:64ch;font-size:var(--t-small)}.face .nrem:not([hidden]){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:0 40px;align-items:start}.nrem .x{color:var(--mute)}
 .ans{display:flex;gap:0;border:1px solid var(--ink);width:max-content;max-width:100%}
 .ans button{background:none;border:0;border-right:1px solid var(--ink);padding:0 16px;min-height:44px;font:600 var(--t-small) var(--body);cursor:pointer}
 .ans button:last-child{border-right:0}.ans button.on{background:var(--ink);color:var(--ground)}
@@ -235,18 +237,19 @@ section.decl{margin-top:22px}.row.decl{cursor:default}   /* a pack's declared ba
 #rose svg{display:block;overflow:visible}
 /* Next days (SPEC_next_days §5): a part of Now under What to do, one row card a thing over three day columns (the rest
    of today, tomorrow, the day after), the row's 72 h a series card under it */
-.nxpart{margin-top:36px}#next{min-width:0}
+.nxpart{margin-top:36px}#next{min-width:0;container:next/inline-size}
 .nxhead,.nrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px}
 .nxhead{font:500 var(--t-cap)/1.4 var(--mono);color:var(--mute);padding:0 10px 6px 8px;border-bottom:1px solid var(--ink)}
 .nxhead b{font:600 var(--t-small) var(--body);color:var(--ink)}.nxhead>span:first-child,.nrow .n{grid-column:1 / -1}.nxhead>span:first-child{display:none}
-.nrow .n small{display:block;font-weight:500}.nxc{min-width:0;font:500 var(--t-small)/1.4 var(--body);overflow-wrap:anywhere}
+.nrow .n small{display:block;font-weight:500}.nxc{min-width:0;font:500 var(--t-small)/1.4 var(--body);overflow-wrap:break-word}
 .nxc .state{margin-left:4px;display:inline-block}.nxc .sub{display:block;margin-top:4px}
 .nrow[aria-pressed="true"] .nk,.nrow[aria-pressed="true"] .x{color:var(--ground);opacity:.75}
 .nxs{margin:0;padding:10px 0;border-bottom:1px solid var(--hair)}.nxs svg{display:block;width:100%;height:auto;overflow:visible}.nxs .fine{margin-top:4px}
 .nxsrc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
 #next .fine a,.nxempty a{display:inline-flex;align-items:center;min-height:44px}
 .nxempty{font:600 var(--t-read)/1.3 var(--body);margin:0;max-width:64ch}
-@media (min-width:761px){.nxhead,.nrow{grid-template-columns:8.5em repeat(3,minmax(0,1fr))}.nxhead>span:first-child{display:block}.nrow .n,.nxhead>span:first-child{grid-column:auto}}
+/* the four columns by the width Next days has, not the screen's: in the right column (Field Synthesizer variation) it has three */
+@container next (min-width:560px){.nxhead,.nrow{grid-template-columns:8.5em repeat(3,minmax(0,1fr))}.nxhead>span:first-child{display:block}.nrow .n,.nxhead>span:first-child{grid-column:auto}}
 /* what the packs read here, under both columns: each band's source said once under its head, its note folded */
 .alsoread{grid-area:al;margin-top:40px;min-width:0}.alsog{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 40px;align-items:start}
 .decl .src{margin:-4px 0 6px}.decl .how{border:0;margin-top:4px}
@@ -270,31 +273,74 @@ section.decl{margin-top:22px}.row.decl{cursor:default}   /* a pack's declared ba
 .pask input{flex:1;min-width:0;height:100%;border:0;background:none;color:var(--ink);font:300 var(--t-body) var(--body);outline-offset:4px}
 .pask input::placeholder{color:var(--mute)}
 .pask kbd{font:400 10.5px/17px var(--mono);color:var(--mute);border:1px solid var(--hair);border-radius:4px;padding:0 5px}
-.addimg{background:none;border:1px solid var(--ink);border-radius:999px;padding:0 16px;font:400 var(--t-small) var(--body);color:var(--ink);cursor:pointer;min-height:44px;white-space:nowrap}
-.pmh,#cake .ck>h2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:12px 0 2px;font:400 var(--t-cap) var(--body);letter-spacing:.02em;color:var(--mute)}
-.pmh b,#cake .ck>h2 b{font:400 10.5px var(--mono)}
-/* three columns: the cake, the screen, the tools */
-.bench{display:grid;grid-template-columns:216px minmax(0,1fr) 286px;margin-top:16px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.prow{position:relative}
+/* the tools: one button on the top line, beside Ask (Tomas, 5 Nov 2026), and its menu under it, the runnable rows first */
+.ptoolsb{background:none;border:1px solid var(--ink);border-radius:999px;padding:0 16px;font:400 var(--t-small) var(--body);color:var(--ink);cursor:pointer;min-height:44px;white-space:nowrap}
+.ptoolsb[aria-expanded="true"]{background:var(--ink);color:var(--ground)}
+.ptmenu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:min(320px,calc(100vw - 32px));max-height:min(520px,70vh);overflow-y:auto;padding:6px;background:var(--ground);border:1px solid var(--ink);border-radius:10px}
+.ptmenu[hidden]{display:none}.ptmenu hr{border:0;border-top:1px solid var(--hair);margin:6px 2px}.ptmenu .fine{margin:8px 8px 4px}
+.pmh,#ymaps>h2,#cake .ck>h2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:12px 0 2px;font:400 var(--t-cap) var(--body);letter-spacing:.02em;color:var(--mute)}
+.pmh b,#ymaps>h2 b,#cake .ck>h2 b{font:400 10.5px var(--mono)}
+/* two columns: the cake and the screen. One side menu, the left (Tomas, 5 Nov 2026): the tools are on the top line */
+.bench{display:grid;grid-template-columns:224px minmax(0,1fr);margin-top:16px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
 #cake{padding:0 16px 16px 0;border-right:1px solid var(--hair);min-width:0}
-#ptools{padding:0 0 16px 16px;border-left:1px solid var(--hair);min-width:0}
-/* the screen's column sets the bench's height; the cake and the tools fill it and scroll inside it */
-#cake,#ptools{height:0;min-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+/* the screen's column sets the bench's height; the cake fills it and scrolls inside it */
+#cake{height:0;min-height:100%;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .bench>#spd,.psbar{display:none}
-/* a layer: the OP-XY dot (filled with a ring on, hollow off, dotted not yet), its name, and under it its source */
+/* folding (SPEC_place_microgis §4): a small arrow on the left side's inner edge, at its top; folded, the side is a 36 px
+   strip with its name down it, and the strip is the arrow's own button, so a press on it opens the side again. Map only
+   (.mo) is the left folded and the screen at the window's height less the header, with the page's gutters narrowed. A
+   phone has the sheet. */
+.bench{position:relative}.pfold{display:none}
+@media (min-width:761px){
+  .pfold{position:absolute;top:8px;z-index:4;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid var(--hair);border-radius:50%;background:var(--ground);color:var(--mute);cursor:pointer}
+  .pfold:hover{color:var(--ink)}.pfold svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.5}.pfold span{display:none}
+  /* placed in the screen's row, so the strip stops at the screen's foot. Both lines are named: for an absolute grid child
+     an `auto` end line is the bench's own edge */
+  .pfold[data-fold="lc"]{grid-row:1/2;grid-column:1/2;left:210px}
+  .bench.lc .pfold[data-fold="lc"]{left:0;top:0;bottom:0;width:36px;height:auto;align-content:start;gap:10px;padding:12px 0;border:0;border-radius:0;background:none}
+  .bench.lc .pfold[data-fold="lc"]:hover{background:var(--raise)}.bench.lc .pfold[data-fold="lc"] svg{transform:scaleX(-1)}
+  .bench.lc .pfold[data-fold="lc"] span{display:block;writing-mode:vertical-rl;font:400 11px var(--body);letter-spacing:.04em}
+  .bench.lc{grid-template-columns:36px minmax(0,1fr)}.bench.lc #cake{padding:0;overflow:hidden}.bench.lc #cake>*{display:none}
+  .bench.lc.mo .mapc #map{height:max(560px,calc(100vh - 80px))}.page[data-view="place"]:has(.bench.lc.mo){padding-left:16px;padding-right:16px}.bench.lc.mo .pmid{padding:12px 6px 0}
+}
+/* the head of the column: what it is and what a press does (Tomas, 17 Nov 2026: the rows read as text) */
+.ckh{padding:12px 0 2px}.ckh h2{margin:0;font:500 var(--t-small) var(--body);color:var(--ink)}.ckh p{margin:2px 0 0;font:400 var(--t-cap)/1.35 var(--body);color:var(--mute)}
+#cake .ck>h2 span,#ymaps>h2 span{color:var(--ink)}
+/* a layer: a switch (the track filled and the knob to the right on, hollow with the knob to the left off), its name and
+   one word for its source. A row that cannot switch, whatever the reason (not held yet, not here, live map only), has no
+   switch: a dotted mark, and a dashed one when it is locked */
 .lyr{padding:0}#facts code{font:inherit;border:1px solid var(--hair);padding:0 3px}
-.ly{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:26px;margin:0;padding:0 8px;border:0;border-radius:6px;background:none;color:var(--ink);font:400 var(--t-small)/1.25 var(--body);text-align:left;cursor:pointer}
-.ly:hover{background:var(--raise)}.ly[aria-disabled="true"]{cursor:help}
+.ly{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;min-height:26px;margin:0;padding:0 8px;border:0;border-radius:6px;background:none;color:var(--ink);font:400 var(--t-small)/1.25 var(--body);text-align:left;cursor:pointer}
+.ly:hover{background:var(--raise)}.ly[aria-disabled="true"]{cursor:help}.ly:focus-visible,.ly.map>button:focus-visible{outline:2px solid var(--cells);outline-offset:-2px}
 .ly span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ly small{font:400 10.5px var(--mono);color:var(--mute);white-space:nowrap}
 .ly.held small{color:var(--ink)}.ly small .wh{width:10px;height:10px;margin-right:3px;vertical-align:-1px}
-.ly i{width:8px;height:8px;border-radius:50%;margin-left:3px;background:var(--ink);box-shadow:0 0 0 2px var(--ground),0 0 0 3px var(--ink)}
-.ly.off{color:var(--mute)}.ly.off i{background:none;box-shadow:inset 0 0 0 1px var(--mute)}
-.ly.soon{color:var(--mute)}.ly.soon i{width:6px;height:6px;margin-left:4px;background:none;box-shadow:none;border:1px dotted var(--mute)}
-.lyr .op{display:none;width:calc(100% - 22px);margin:6px 0 2px 22px;accent-color:var(--ink);height:14px}
-.lyr:has(.ly.on):hover .op,.lyr:has(.ly.on):focus-within .op{display:block}
-.lyr .whr{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center;margin:6px 0 2px 22px;font:400 10.5px var(--mono);color:var(--mute)}
+.ly i{position:relative;width:22px;height:12px;border-radius:999px;background:var(--ink)}
+.ly i::after{content:'';position:absolute;top:2px;left:12px;width:8px;height:8px;border-radius:inherit;background:var(--ground)}
+.ly.off{color:var(--mute)}.ly.off i{background:none;box-shadow:inset 0 0 0 1px var(--mute)}.ly.off i::after{left:2px;background:var(--mute)}
+.ly.soon{color:var(--mute)}.ly.soon i,.ly[aria-disabled="true"] i{width:6px;height:6px;margin-left:8px;border-radius:50%;background:none;box-shadow:none;border:1px dotted var(--mute)}
+.ly.held[aria-disabled="true"] i{border-style:dashed}.ly.soon i::after,.ly[aria-disabled="true"] i::after{content:none}
+/* your maps, above the cake: a map's switch is square, a layer's round; the switch shows or hides it, the name opens it */
+.ly.map i{border-radius:3px}
+.ly.map{grid-template-columns:38px minmax(0,1fr);gap:0;padding:0;cursor:default}.ly.map:hover{background:none}
+.ly.map>button{display:grid;align-items:center;min-height:inherit;padding:0 0 0 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ly.map>button:hover{background:var(--raise)}.ly.map .ymn{grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:0 8px 0 0}
+.ly.map.open .ymn span{font-weight:500}
+/* New map is a button and looks like one */
+.ly.new{width:auto;min-height:28px;margin:4px 0 0;padding:0 12px 0 8px;border:1px solid var(--hair);gap:4px}.ly.new:hover{border-color:var(--ink)}
+.ly.new i{background:none;box-shadow:none;font:400 14px/12px var(--body);font-style:normal;text-align:center}.ly.new i::before{content:'+'}.ly.new i::after{content:none}
+.yed,.ynew{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px 30px;font:400 var(--t-cap) var(--body);color:var(--mute)}.yed .fine{margin:0}
+.yed label{display:flex;flex-direction:column;gap:2px}
+.yed input,.ynew input{min-height:32px;padding:0 8px;border:1px solid var(--hair);background:none;color:var(--ink);font:400 var(--t-small) var(--body)}
+.yacts{display:flex;gap:8px}.yask{margin-left:0}.dform img[data-photo]{display:block;width:100%;height:auto;margin:6px 0}
+.ybtn{align-self:flex-start;min-height:32px;padding:0 14px;border:1px solid var(--ink);border-radius:999px;background:none;color:var(--ink);font:400 var(--t-cap) var(--body);cursor:pointer}
+/* a row that is on shows how strongly it is drawn, always: on hover only, nobody found it */
+.lyr .opw{display:none;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;margin:2px 8px 6px 38px;font:400 10.5px var(--mono);color:var(--mute)}
+.lyr:has(.ly.on) .opw{display:grid}.lyr .op{width:100%;accent-color:var(--ink);height:14px}
+.lyr .whr{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;gap:8px;align-items:center;margin:6px 8px 2px 38px;font:400 10.5px var(--mono);color:var(--mute)}
 .lyr .whr input{accent-color:var(--ink);width:100%}.lyr .whr b{font-weight:500;color:var(--ink);text-align:right}
 /* the species confirmed here open under their row */
-.spd{margin:4px 0 0 22px;border:0}.spd summary{display:flex;align-items:center;min-height:28px;padding:0;font:400 var(--t-cap) var(--body);color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.spd{margin:4px 0 0 38px;border:0}.spd summary{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border:1px solid var(--hair);border-radius:6px;font:400 var(--t-cap) var(--body);color:var(--ink);cursor:pointer}.spd summary:hover{border-color:var(--ink)}
 .pspecies h2{font:500 var(--t-small) var(--body);margin:4px 0}.pspecies .tbl{font-size:var(--t-cap)}.pspecies .tbl .hide{display:none}
 /* a tool: a plain row with its command id; the chosen one a filled pill; one that does not run yet, a dotted "not yet" */
 .tl{display:flex;align-items:center;gap:8px;width:100%;min-height:28px;margin:0;padding:0 8px;border:0;border-radius:999px;background:none;color:var(--ink);font:400 var(--t-small) var(--body);text-align:left}
@@ -302,52 +348,216 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 .tl code{margin-left:auto;font:400 10px var(--mono);color:var(--mute)}
 .tl.on{background:var(--ink);color:var(--ground)}.tl.on code{color:var(--ground);opacity:.6}
 .tl.soon{color:var(--mute)}.tl.soon code{border:1px dotted var(--mute);border-radius:999px;padding:0 6px;font:400 10.5px var(--body)}
-#ptools .fine{margin-top:12px}
+/* THE PLACE REPORT (SPEC_place_report §3, §4, §5): #place/report hides the rest of Place and shows the sheet and the
+   report's pages on a grey ground. The sheet is paper in both registers, sized in its own width (cqw), so on a phone it
+   is the same sheet, smaller. In print only the sheet and the pages are left, the sheet A4 landscape through the named
+   page `sheet`; a browser without named pages prints it portrait and scales it to fit. */
+body.preport .page[data-view="place"]>:not(#preport){display:none}
+/* the report, offered at the foot of Place (SPEC_place_report §12): what it is on the left, its two doors on the right */
+.prf{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 32px;align-items:end;margin-top:32px;padding:20px 0 8px;border-top:1px solid var(--ink)}
+.prf h2{grid-column:1/-1;margin:0;font:400 var(--t-cap) var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.prfb{max-width:68ch}.prfb p{margin:0 0 6px;font:400 var(--t-small)/1.5 var(--body);color:var(--mute)}.prfb .prfl{font:400 var(--t-read)/1.3 var(--body);color:var(--ink);margin-bottom:10px}
+.prfa{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}.prfa .ybtn{min-height:40px;padding:0 18px;font-size:var(--t-small)}
+.prfa .ybtn:first-child{background:var(--ink);color:var(--ground)}.prfa .fine{flex-basis:100%;margin:4px 0 0;text-align:right}.prfa .fine:empty{display:none}
+@media (max-width:760px){.prf{grid-template-columns:minmax(0,1fr)}.prfa{justify-content:flex-start}.prfa .fine{text-align:left}.prfa .ybtn{min-height:44px}}
+.prbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:16px 0 12px}
+.prbar .reg button{min-height:32px;padding:0 12px}.prbar .reg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.psheets{display:grid;justify-items:center;gap:24px;padding:24px;background:var(--doc-line)}
+.sheet{--ink:var(--fc-ink);--mute:var(--fc-neutral-600);--hair:var(--fc-neutral-300);width:min(100%,297mm);aspect-ratio:297/210;container-type:inline-size;
+  background:var(--fc-paper);color:var(--ink);box-shadow:0 1px 6px rgba(0,0,0,.25)}
+.sin{display:grid;grid-template-columns:minmax(0,1fr) 22em;gap:2em;height:100%;padding:2.6em;font:400 max(1cqw,5px)/1.35 var(--body)}
+.smap{min-width:0;min-height:0}.splan{display:block;width:100%;height:100%}
+.snone{display:grid;place-items:center;height:100%;margin:0;padding:3em;border:2px solid var(--ink);text-align:center;font-size:1.3em}
+.sleg{display:flex;flex-direction:column;min-height:0;overflow:hidden;padding-left:1.4em;border-left:1px solid var(--hair)}
+.sleg h2{margin:0;font:700 1.7em/1.1 var(--display);letter-spacing:-.02em}.sleg .k{margin:.3em 0 .6em;font-size:.8em;color:var(--mute)}
+.sleg h3{margin:1em 0 .25em;padding-bottom:.15em;border-bottom:1px solid var(--hair);font:500 .8em var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.sleg p{display:flex;justify-content:space-between;gap:1em;margin:.12em 0}.sleg small{font:400 .82em var(--mono);color:var(--mute);white-space:nowrap}
+.sleg i{display:inline-block;width:.85em;height:.85em;margin-right:.45em;vertical-align:-.08em;border:1px solid var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}.shouse i{background:rgba(23,23,23,.3)}
+.sfoot{margin-top:auto;padding-top:1em;font-size:.78em;color:var(--mute)}.sfoot p{display:block;margin:.4em 0 0}.sfoot .mono{color:var(--ink)}
+/* the report's pages (§5): A4 portrait paper under the sheet, each with its head line. On a phone a page is the width and
+   grows to hold its rows; in print each is one page of the named page `report`. */
+.rpage{--ink:var(--fc-ink);--mute:var(--fc-neutral-600);--hair:var(--fc-neutral-300);--ground:var(--fc-paper);--prov:var(--fc-ink);width:min(100%,210mm);aspect-ratio:210/297;
+  padding:12mm 15mm;background:var(--fc-paper);color:var(--ink);box-shadow:0 1px 6px rgba(0,0,0,.25);font-size:var(--t-small);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rhead{margin:0 0 8mm;padding-bottom:2mm;border-bottom:1px solid var(--hair);font:400 10px var(--mono);color:var(--mute)}
+.rpage .pmh{margin:0 0 4px;font-size:var(--t-small)}.rpage .pmh~.pmh{margin-top:6mm}.rpage p{margin:0 0 6px}.rpage .fine{margin-top:10px}
+.rpage .pair{height:auto;gap:4mm;margin-top:6px}.rpage .pair figure{aspect-ratio:1}.rpage .pairnote{padding:6px 0;border:0}
+/* the reading (§11): five short sections, then the avenues, each numbered, with its layer and key action in small type */
+.rpage .rwho{margin:0 0 5mm;font:400 10px var(--mono);color:var(--mute)}
+.rpage .rs{margin:0 0 4mm}.rpage .rs h4,.rpage .av h4{margin:0 0 1mm;font:500 13px/1.3 var(--body);color:var(--ink)}.rpage .rs p{font:400 12px/1.5 var(--body);max-width:72ch}
+.rpage .av{display:grid;grid-template-columns:7mm minmax(0,1fr);gap:0 2mm;margin:0 0 3.5mm;break-inside:avoid}.rpage .av>b{font:400 13px/1.3 var(--mono);color:var(--mute)}
+.rpage .av p{margin:0 0 2px;font:400 11.5px/1.45 var(--body)}.rpage .av .avf{font:400 10px var(--mono);color:var(--mute);margin-bottom:3px}
+.rpage .avk{font:400 10px var(--mono);color:var(--mute);margin-right:4px}
+.rpage .rblind{margin:0 0 3px;padding:0;font:400 11px/1.45 var(--body);list-style:none}.rpage ul.rblind li{margin:0 0 2px}.rblind code{font-size:10px}
+.prbar #prnote{flex-basis:100%;margin:0}
+.rcake th,.rcake td{padding:2px 8px 2px 0;font-size:11px}.rcake th[colspan]{padding-top:8px;color:var(--ink)}.rcake code{font-size:10px}
+@media (max-width:480px){.psheets{padding:8px}.rpage{padding:16px}}
+@page sheet{size:A4 landscape;margin:0}
+@page report{size:A4 portrait;margin:0}
+@media print{
+  body.preport>:not([data-view="place"]),body.preport .prbar{display:none!important}
+  body.preport .page[data-view="place"]{max-width:none;margin:0;padding:0;border:0;background:none}
+  body.preport .psheets{display:block;padding:0;background:none}
+  body.preport .sheet{page:sheet;width:297mm;height:209mm;aspect-ratio:auto;box-shadow:none;break-inside:avoid}
+  body.preport .rpage{page:report;width:210mm;height:296mm;aspect-ratio:auto;box-shadow:none;break-inside:avoid}
+  body.preport .psheets>:not(:last-child){break-after:page}
+}
+/* EVOLUTION VARIATION (6 Nov 2026): the screen Place has had since 4 Nov, given to Now's day and Node's flow, with
+   OP-XY's header ramp on top (name cell, value cell, in grey steps from black to white, a second row under each) and an
+   info line at the foot. Same tokens as .mapc (doors-placemap.js PAL.dark), same bezel; no hue the layer lacks. */
+.scr{--ink:#F9F5F2;--ground:#17191D;--mute:#A3A19F;--dim:#8A8886;--hair:#3A3F47;--raise:#2B2E34;--cells:#7FA5E8;--satellite-only:#FF931E;
+  margin:20px 6px 6px;border-radius:10px;overflow:hidden;background:var(--ground);color:var(--ink);box-shadow:0 0 0 1px #000,0 0 0 5px #1b1b1b,0 0 0 6px #000}
+.scr .sbody{padding:6px 14px 4px}.scr .fig{margin-top:6px}
+.ramp{display:grid;grid-template-columns:repeat(var(--n,8),minmax(0,1fr))}
+.ramp>div{padding:8px 10px 7px;min-width:0;overflow:hidden}
+.ramp .r1{display:flex;align-items:baseline;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ramp .rk{font:400 var(--t-small)/1.2 var(--body)}.ramp .rv{font:500 20px/1.1 var(--mono);font-variant-numeric:tabular-nums}.ramp .ru{font:400 var(--t-cap) var(--mono);opacity:.8}
+.ramp .r2{display:block;font:400 var(--t-cap)/1.3 var(--mono);opacity:.75;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sinfo{font:500 var(--t-cap)/1.3 var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--mute);padding:9px 14px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;gap:4px 14px;flex-wrap:wrap;margin:0}
+.scr #flow{border:0;margin:0}
+.scr ~ .figfoot,.scr + .nk{margin-top:12px}
+body:not(.classic) .hero .ladder.folded{display:none}
+@media (max-width:480px){.ramp{grid-template-columns:repeat(2,minmax(0,1fr))}.ramp .rv{font-size:17px}.scr{margin:16px 4px 4px}.scr .sbody{padding:4px 6px}}
+
 /* the screen: black glass in a bezel, its controls on it as chips */
 .pmid{min-width:0;padding:12px 12px 0}
 .mapc{--ink:#F9F5F2;--ground:#17191D;--mute:#A3A19F;--hair:#3A3F47;--raise:#2B2E34;--cells:#7FA5E8;--chip:rgba(28,31,35,.92);   /* doors-placemap.js PAL.dark */
+  /* the keys inside the screen: 36 px with a pointer, 44 px under a finger (Tomas, 5 Nov 2026, over the plan's 44 px);
+     the screen is a container, so its controls lay out by its own width, folded or not */
+  --k:36px;container:place / inline-size;
  
   position:relative;margin:6px;border-radius:10px;overflow:hidden;background:var(--ground);color:var(--ink);box-shadow:0 0 0 1px #000,0 0 0 5px #1b1b1b,0 0 0 6px #000}
+@media (pointer:coarse){.mapc{--k:44px}}
+.pyears{--screen:#17191D}   /* the screen's ground (PAL.dark), behind the then-and-now pictures */
 .mapw{position:relative;min-width:0}.mapc #map{aspect-ratio:auto;height:560px;width:100%;position:relative;background:var(--ground)}
-.mapc .tools,.mapc .zoom,.mapc .scales,.phour,.altc{background:var(--chip);border:1px solid var(--hair);border-radius:10px}
+.mapc .tools,.mapc .zoom,.mapc .scales,.phour,.dlmenu,.pbase{background:var(--chip);border:1px solid var(--hair);border-radius:10px}
 .tools{position:absolute;top:12px;right:12px;z-index:3;display:flex;flex-direction:column}
 .zoom{position:absolute;right:12px;bottom:12px;z-index:3;display:flex;flex-direction:column}
-/* 44 px targets (Tomas, 15 Oct); the active tool says its word beside it, and measuring ends on Done */
-.tools button,.zoom button{width:44px;height:44px;position:relative;display:grid;place-items:center;padding:0;border:0;background:none;color:var(--ink);font:300 18px/1 var(--mono);cursor:pointer}
-.tools button+button,.zoom button+button{border-top:1px solid var(--hair)}.tools button[data-t="fit"]{border-top-width:4px}
-.tools button:first-child,.zoom button:first-child{border-radius:9px 9px 0 0}.tools button[data-t="png"],.zoom button:last-child{border-radius:0 0 9px 9px}
-.tools button.on{background:var(--ink);color:var(--ground)}.tools button:hover:not(.on),.zoom button:hover{background:var(--raise)}
-.tools .w{display:none;position:absolute;right:calc(100% + 6px);top:50%;transform:translateY(-50%);padding:5px 10px;border:1px solid var(--hair);border-radius:999px;background:var(--chip);color:var(--ink);font:400 var(--t-cap)/1 var(--body);white-space:nowrap}
-.tools button.on .w{display:block}
-.tools button.done{position:absolute;top:calc(100% + 6px);right:-1px;width:auto;padding:0 16px;border:0;border-radius:999px;background:var(--ink);color:var(--ground);font:500 var(--t-small)/1 var(--body)}.tools button.done[hidden]{display:none}
-.mapc #mapbar{position:absolute;left:12px;bottom:12px;z-index:3;padding:0;border:0;display:block;max-width:calc(100% - 210px)}
+/* the right column at the top right (map only, full screen, back to the cell, download), zoom at the bottom right */
+.tools button,.zoom button{width:var(--k);height:var(--k);position:relative;display:grid;place-items:center;padding:0;border:0;background:none;color:var(--ink);font:300 18px/1 var(--mono);cursor:pointer}
+.tools button+button,.zoom button+button{border-top:1px solid var(--hair)}
+.tools button:first-child,.zoom button:first-child{border-radius:9px 9px 0 0}.tools button:last-child,.zoom button:last-child{border-radius:0 0 9px 9px}
+.tools button.gap{border-top-width:5px}
+.tools button.on,.tools button[aria-expanded="true"],.tools button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}.tools button:hover:not(.on):not([aria-expanded="true"]):not([aria-pressed="true"]),.zoom button:hover{background:var(--raise)}
+/* full screen: the screen alone, its keys, readout and controls with it */
+.mapc:fullscreen{margin:0;border-radius:0;box-shadow:none}.mapc:fullscreen .mapw{display:flex;flex-direction:column;height:100%}.mapc:fullscreen #map{flex:1;height:auto}
+/* the download menu beside the column, and the base switch beside the zoom (SPEC_place_microgis §4) */
+.dlmenu{position:absolute;right:calc(var(--k) + 24px);top:12px;z-index:5;width:250px;padding:6px;color:var(--ink)}.dlmenu[hidden],.pbase[hidden]{display:none}
+.dlmenu .dlh{margin:0;padding:4px 8px 6px;font:400 10.5px var(--body);color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlmenu button{display:flex;align-items:center;gap:8px;width:100%;min-height:var(--k);padding:0 8px;border:0;border-radius:6px;background:none;color:var(--ink);font:400 12.5px var(--body);text-align:left;cursor:pointer}
+.dlmenu button:hover:not(:disabled){background:var(--raise)}.dlmenu button:disabled{color:var(--mute);cursor:default}
+.dlmenu code{margin-left:auto;font:400 10px var(--mono);color:var(--mute)}.dlmenu hr{border:0;border-top:1px solid var(--hair);margin:5px 2px}.dlmenu .err{margin:6px 8px 2px;font:400 11px/1.4 var(--body)}
+.pbase{position:absolute;right:calc(var(--k) + 24px);bottom:12px;z-index:3;display:flex;gap:2px;padding:3px;border-radius:999px}
+.pbase button{min-height:var(--k);padding:0 12px;border:0;border-radius:999px;background:none;color:var(--mute);font:400 11px var(--body);cursor:pointer}
+.pbase button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}.mapc:has(.pbase:not([hidden])) #mapcredit{bottom:calc(var(--k) + 32px)}
+.mapc #mapbar{position:absolute;left:12px;bottom:12px;z-index:3;padding:0;border:0;display:block;max-width:calc(100% - var(--k) - 240px)}
 .scales{display:flex;gap:2px;padding:3px;border-radius:999px!important;overflow-x:auto;scrollbar-width:none}
-#mapbar .scales button{display:flex;gap:5px;align-items:center;width:auto;height:auto;min-height:44px;padding:0 12px;border:0;border-radius:999px;background:none;color:var(--mute);cursor:pointer;font:400 11px var(--body);white-space:nowrap}
+#mapbar .scales button{display:flex;gap:5px;align-items:center;width:auto;height:auto;min-height:var(--k);padding:0 12px;border:0;border-radius:999px;background:none;color:var(--mute);cursor:pointer;font:400 11px var(--body);white-space:nowrap}
 .scales b{font-weight:400}.scales span{font:400 10px var(--mono);opacity:.75}.scales button.leave span{text-decoration:underline dotted;text-underline-offset:2px}
 #mapbar .scales button.on{background:var(--ink);color:var(--ground)}
-.phour{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:0;min-height:44px;padding:0 6px;border-radius:999px;font:400 11.5px var(--mono);color:var(--ink);white-space:nowrap}
+.phour{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:0;min-height:var(--k);padding:0 6px;border-radius:999px;font:400 11.5px var(--mono);color:var(--ink);white-space:nowrap}
 .phour:empty{display:none}.phour b{font-weight:400;padding:0 8px}
-.phour button{width:44px;height:44px;border:0;border-radius:50%;background:none;color:var(--mute);cursor:pointer;font:400 14px var(--body)}.phour button:disabled{opacity:.35;cursor:default}
+.phour button{width:var(--k);height:var(--k);border:0;border-radius:50%;background:none;color:var(--mute);cursor:pointer;font:400 14px var(--body)}.phour button:disabled{opacity:.35;cursor:default}
 .mapc .maplibregl-ctrl-scale{background:none;border:1px solid var(--mute);border-top:0;color:var(--mute);font:400 10px var(--mono);padding:0 5px;border-radius:0}
-.mapc .maplibregl-ctrl-bottom-left{left:12px;bottom:50px}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin:0}
-#mapcredit{position:absolute;right:68px;bottom:12px;z-index:3;margin:0;max-width:40%;font:400 10px/1.3 var(--body);color:var(--mute);text-align:right;pointer-events:none}
-/* the satellite's then and now, on the screen while its row is on: photographs beside the map, never on it */
-.altc{position:absolute;left:12px;top:12px;z-index:4;width:min(380px,calc(100% - 140px));max-height:calc(100% - 80px);overflow:auto;color:var(--ink)}.altc[hidden]{display:none}
-#altbar{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--hair);font:400 var(--t-cap) var(--body)}
-#altbar button{background:none;border:1px solid var(--hair);border-radius:999px;color:var(--ink);width:44px;height:44px;cursor:pointer}#altbar .cmp{margin-left:auto;display:flex;gap:6px;align-items:center;min-height:44px}
-#mapalt .photo{width:100%;display:block}
-.mapc .flatnote{top:54px}.mapc .nonode{right:68px;bottom:56px}   /* under the hour; above the rungs, clear of the zoom */
+.mapc .maplibregl-ctrl-bottom-left{left:12px;bottom:calc(var(--k) + 22px)}.maplibregl-ctrl-bottom-left .maplibregl-ctrl{margin:0}
+#mapcredit{position:absolute;right:calc(var(--k) + 24px);bottom:12px;z-index:3;margin:0;max-width:40%;font:400 10px/1.3 var(--body);color:var(--mute);text-align:right;pointer-events:none}
+.mapc .flatnote{top:54px}.mapc .nonode{right:calc(var(--k) + 24px);bottom:56px;pointer-events:none}   /* under the hour; above the rungs, clear of the zoom; a message that never takes a press meant for a key */
+/* the drawing keys (SPEC_place_microgis §4, §10): a column of 44 px keys on the screen's left edge, the letter small in
+   a corner, the pressed one filled with the screen's ink; focus is the cells' blue, as everywhere on the screen. Beside
+   them the readout, the device's own screen line, and under it the form for the drawing in hand. */
+/* the drawing keys say what they are (Tomas, 17 Nov 2026): a head, then each key as its icon, its name and its letter.
+   Under 760 px of screen they fold back to icons with the letter in the corner (the container rule below) */
+.dkeys{position:absolute;left:12px;top:12px;z-index:3;display:flex;flex-direction:column;width:112px;background:var(--chip);border:1px solid var(--hair);border-radius:10px;overflow:hidden}
+.dkh{padding:6px 10px 5px;border-bottom:1px solid var(--hair);font:400 var(--t-cap) var(--body);letter-spacing:.02em;color:var(--mute)}
+.dkeys button{width:100%;height:var(--k);position:relative;display:grid;grid-template-columns:var(--k) minmax(0,1fr) auto;align-items:center;padding:0 9px 0 0;border:0;background:none;color:var(--ink);font:400 var(--t-small) var(--body);text-align:left;cursor:pointer}
+.dkeys button svg{justify-self:center}.dkeys kbd{font:400 10px var(--mono);opacity:.6;text-transform:none;letter-spacing:0}
+.dkeys button.gap{text-transform:none;letter-spacing:0}  /* the page's .gap chip is uppercase; a key that opens a group is not one */
+.dkeys button+button{border-top:1px solid var(--hair)}.dkeys button.gap{border-top-width:5px}
+.dkeys button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}.dkeys button:hover:not([aria-pressed="true"]){background:var(--raise)}
+.tools button:focus-visible,.zoom button:focus-visible,.dlmenu button:focus-visible,.pbase button:focus-visible,.dkeys button:focus-visible,.dchip:focus-visible,.dpanel button:focus-visible,.dpanel input:focus-visible,.dpanel textarea:focus-visible,.dpanel select:focus-visible{outline:2px solid var(--cells);outline-offset:-3px}
+.dkeys svg,.tools svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* with the keys on the screen the hour moves right, beside the column at the top right, clear of the readout */
+.mapc:has(.dkeys) .phour{left:auto;right:calc(var(--k) + 24px);transform:none}
+/* the readout and the form, beside the keys: never wider than leaves the hour and the right column clear, and never
+   down into the rungs; only what is drawn in it takes presses */
+.dpanel{position:absolute;left:136px;top:12px;z-index:3;display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:min(300px,calc(100% - var(--k) - 414px));max-height:calc(100% - 150px);overflow:auto;scrollbar-width:thin;pointer-events:none}
+.dpanel>*{pointer-events:auto;max-width:100%}.dpanel .dfull,.dpanel .dform{align-self:stretch}
+/* the controls by the screen's own width, the left open or folded (Tomas, 5 Nov 2026: in between they collapsed). Under
+   760 px of screen the rungs say their number only (the name stays in the title); under 560 px the base switch climbs
+   above the rungs on the left, and the hour goes down above the zoom, so the readout has the top to itself */
+@container place (max-width:759px){#mapbar .scales b{display:none}#mapbar .scales button{min-width:var(--k);justify-content:center;padding:0 8px}
+  .dkeys{width:auto}.dkh,.dkeys .kn{display:none}.dkeys button{width:var(--k);grid-template-columns:var(--k);padding:0}
+  .dkeys kbd{position:absolute;right:3px;bottom:2px;font-size:8.5px;opacity:.55}
+  .dpanel{left:calc(var(--k) + 24px);width:min(300px,calc(100% - 2 * var(--k) - 302px))}}
+@media (min-width:761px){@container place (max-width:559px){
+  .mapc:has(.dkeys) .phour,.mapc .phour{left:auto;right:12px;top:auto;bottom:calc(2 * var(--k) + 24px);transform:none}
+  .pbase{left:12px;right:auto;bottom:calc(var(--k) + 28px)}.mapc .maplibregl-ctrl-bottom-left{bottom:calc(2 * var(--k) + 48px)}
+  .mapc #mapbar{max-width:calc(100% - var(--k) - 40px)}.mapc:has(.pbase:not([hidden])) #mapcredit,.mapc #mapcredit{bottom:12px;max-width:calc(100% - 6 * var(--k) - 60px)}
+  .dpanel{width:min(300px,calc(100% - 2 * var(--k) - 52px));max-height:calc(100% - 3 * var(--k) - 44px)}
+}}
+/* the readout folds to a chip (Tomas, 5 Nov 2026): the tool, the open map, the live figure and a dot in the colour; a
+   press opens the colours and the hint under it, a second press or Esc folds them */
+.dread{display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:100%;color:var(--ink)}
+.dchip{display:flex;align-items:center;gap:8px;max-width:100%;min-height:var(--k);padding:0 12px;background:var(--chip);border:1px solid var(--hair);border-radius:999px;color:var(--ink);font:400 11px var(--body);cursor:pointer;white-space:nowrap}
+.dchip:hover{background:var(--raise)}.dchip[aria-expanded="true"]{border-color:var(--ink)}
+.dchip .dot{flex:none;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px var(--hair)}
+/* when the chip is short of room the map's name gives way first, then the tool's word; the figure last, and it ends in
+   an ellipsis rather than spilling out. The figure's second half (" · 0.31 ha · 223 m round") is the open panel's on
+   a screen under 900 px: the chip keeps the number and its unit */
+.dchip>*{min-width:0}.dchip .t{flex:0 10 auto;overflow:hidden;text-overflow:ellipsis}
+.dchip .m{flex:0 1000 auto;font:400 10px var(--mono);color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.dchip .v,.dfull .vf{flex:0 1 auto;font:400 13px var(--mono);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}.dchip .v:empty,.dfull .vf:empty{display:none}
+.dchip .v small,.dfull .vf small{margin-left:4px;font-size:10px;color:var(--mute)}.dchip .v small.more,.dfull .vf small.more{margin-left:0}
+.dfull .vf{display:block;margin:2px 0 4px;white-space:normal}
+@container place (max-width:899px){.dchip .v small.more{display:none}}
+.dfull,.dform{background:var(--chip);border:1px solid var(--hair);border-radius:10px;padding:6px 10px 8px;color:var(--ink)}.dfull{align-self:stretch}.dfull[hidden],.dform[hidden]{display:none}
+/* the swatches are .dsw: .sw is the margin's sign class, 18 px wide */
+.dread .dsw{display:flex;flex-wrap:wrap;align-items:center}.dread .dsw em{margin-left:auto;font:normal 400 11px var(--body);color:var(--mute)}
+.dread .dsw button{flex:none;width:var(--k);height:var(--k);display:grid;place-items:center;padding:0;border:0;background:none;cursor:pointer}
+.dread .dsw i{width:14px;height:14px;border-radius:50%;display:block}.dread .dsw button[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--ground),0 0 0 3px var(--ink)}
+.dread .hint{margin-top:2px;padding-top:5px;border-top:1px solid var(--hair);font:400 10.5px/1.4 var(--body);color:var(--mute)}
+.dread .err,.dform p{margin:6px 0 0;font:400 11px/1.4 var(--body);color:var(--ink)}.dform p{color:var(--mute)}
+.dform label{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;font:400 10.5px var(--body);color:var(--mute)}
+.dform input,.dform textarea,.dform select{min-height:var(--k);padding:0 8px;border:1px solid var(--hair);border-radius:6px;background:var(--ground);color:var(--ink);font:400 var(--t-small) var(--body)}
+.dform textarea{padding:8px;resize:vertical}.dform .acts{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.dform button{min-height:var(--k);padding:0 14px;border:1px solid var(--hair);border-radius:999px;background:none;color:var(--ink);font:400 var(--t-small) var(--body);cursor:pointer}
+.dform button:hover{background:var(--raise)}.dform .caps{display:flex;flex-direction:column;max-height:220px;overflow:auto;margin-top:6px}
+.dform .caps button{border-radius:6px;text-align:left}.dform .caps small{font:400 10px var(--mono);color:var(--mute)}
 /* under the screen: the status line (the inspector), then the marks around the house, nearest first */
 #facts.inspect{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;padding:12px 6px 8px;font:400 10.5px/1.5 var(--mono);color:var(--mute)}
 #facts b{font-weight:500;color:var(--ink)}#facts .fi small{color:var(--mute);font:inherit;margin-right:6px}#facts .hint{margin-left:auto}#facts .said{font-family:var(--body)}
+#facts .pb{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;border-top:1px solid var(--hair);padding-top:6px}
 #pmargin{padding:0 6px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));column-gap:24px}
 #pmargin .pmh,#pmargin .fine{grid-column:1/-1}#pmargin .fine{margin:10px 0 0}
 #pmargin .mr{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:32px;width:100%;padding:0;border:0;border-bottom:1px solid var(--hair);background:none;color:var(--ink);text-align:left;font:400 var(--t-small)/1.25 var(--body)}
 #pmargin button.mr{cursor:pointer}#pmargin button.mr:hover span{text-decoration:underline;text-underline-offset:3px}#pmargin .mr b{font:400 var(--t-cap) var(--mono);white-space:nowrap}
 #pmargin .mr>i,#pmargin .mr>.sg{justify-self:center}
-/* the lower band: what is selected or returned, and the place in figures */
-.plow{display:grid;grid-template-columns:minmax(0,1fr) 340px;border-bottom:1px solid var(--hair)}
-.plow>section{padding:0 20px 18px 0;min-width:0}.plow>section+section{padding:0 0 18px 20px;border-left:1px solid var(--hair)}.plow .fr b{white-space:nowrap}
+/* the years under the screen, end to end (Tomas, 5 Nov 2026): then and now large, side by side, the bars under them */
+.pyears{padding:0 0 18px;border-bottom:1px solid var(--hair)}
+#pchange .pair{gap:12px;background:none}#pchange .pair img{background:var(--ink)}#pchange .pairnote{max-width:none}
+/* the lower band: the place in figures across the page, a size up (Tomas, 9 Nov: the drawings' table went) */
+.plow{border-bottom:1px solid var(--hair)}.plow>section{padding:0 0 18px;min-width:0}
+#pfigures{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));column-gap:40px;align-items:start}
+#pfigures>.pmh,#pfigures>.fine{grid-column:1/-1}#phydro{display:contents}#pfigures>.pmh{font-size:var(--t-small)}
+#pfigures .fr{padding:12px 0;font-size:var(--t-body)}#pfigures .fr small{font-size:var(--t-small);line-height:1.45;margin-top:2px}
+#pfigures .fr b{font-size:var(--t-read);white-space:nowrap}
+/* what changed, year on year: the satellite's then and now, beside the map and never on it, then a bar a year */
+#altbar{display:flex;gap:6px;align-items:center;padding:4px 0;font:400 var(--t-cap) var(--body)}
+#altbar button{background:none;border:1px solid var(--hair);border-radius:999px;color:var(--ink);width:44px;height:44px;cursor:pointer}#altbar .cmp{margin-left:auto;display:flex;gap:6px;align-items:center;min-height:44px}
+#pchange .pair{height:auto}#pchange .pair figure{aspect-ratio:1}#pchange .photo{width:100%;display:block}
+/* at a desk the pictures are no taller than 420 px (Tomas, 5 Nov: they were taller than the map) and show the whole
+   3 km square, because the hectares under them count the whole of it: each square sits centred in its half of the
+   band on the screen's dark ground. The single year the same */
+#pchange .pair figure,#pchange .photo{background:var(--screen)}#pchange .pair img{background:none}
+@media (min-width:761px){#pchange .pair figure{aspect-ratio:auto;height:min(420px,calc(50vw - 40px))}#pchange .pair img{object-fit:contain;object-position:center}
+  #pchange .photo{height:min(420px,calc(100vw - 80px));object-fit:contain;object-position:center}}
+.years{display:grid;gap:4px;align-items:end;height:98px;margin-top:8px}.years i{background:var(--ink);opacity:.55;border-radius:1px}
+.yl{display:grid;gap:3px;margin:3px 0 10px;font:400 9.5px var(--mono);color:var(--mute);text-align:center}
+/* the open map's table: a swatch in the drawing's own colour is the one place a drawing colour sits off the screen */
+.mtbl .mrow{display:inline-flex;align-items:center;min-height:32px;padding:0;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.mtbl .mrow:hover{text-decoration:underline;text-underline-offset:3px}.mtbl tr.on td{background:var(--raise)}
+.msw{display:inline-block;width:10px;height:10px;margin-right:8px;border-radius:50%;box-shadow:0 0 0 1px var(--ink)}
+.mth{width:26px;height:20px;object-fit:cover;border-radius:3px;vertical-align:middle}
 #pedges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
 #pedges text{font:500 11px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--ground);stroke-width:3px}#pedges .pub{fill:var(--ground);stroke:var(--ink);stroke-width:1.4}#pedges path{fill:none;stroke:var(--ink);stroke-width:1.5}
 .wh{flex:none;vertical-align:-2px;margin-right:6px}.wh rect,.wh path{fill:none;stroke:var(--signal-worse);stroke-width:1.5}
@@ -363,7 +573,7 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 .pmpop .maplibregl-popup-content{background:var(--ground);color:var(--ink);border:1px solid var(--ink);border-radius:0;box-shadow:none;padding:10px 26px 10px 12px;display:flex;flex-direction:column;gap:4px;font:var(--t-small)/1.35 var(--body)}
 .pmpop .maplibregl-popup-content b{font:600 var(--t-body)/1.25 var(--body)}.pmpop .maplibregl-popup-content .mono{font-size:var(--t-cap);color:var(--mute)}
 .pmpop .maplibregl-popup-content a{font:600 var(--t-small) var(--body);color:var(--ink);margin-top:4px;text-underline-offset:3px}
-.pmpop .maplibregl-popup-close-button{font:400 18px/1 var(--mono);color:var(--ink);width:44px;height:44px;border-radius:0}
+.pmpop .maplibregl-popup-close-button{font:400 18px/1 var(--mono);color:var(--ink);width:var(--k);height:var(--k);border-radius:0}
 .pmpop .maplibregl-popup-tip{border-top-color:var(--ink);border-bottom-color:var(--ink)}
 .sw.txt::before{content:'Aa';font:600 11px/14px var(--body)}
 .sw.pt-img::before{content:'■';font:14px/12px var(--mono)}.pmimg{width:100%;max-height:160px;object-fit:cover;background:var(--hair)}
@@ -378,7 +588,7 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 .icard .acts{display:flex;gap:8px;flex-wrap:wrap}.icard .seen{border-left:2px solid var(--hair);padding-left:8px}.icard .seen p{margin:0 0 3px}.frow{display:grid;grid-template-columns:minmax(0,1fr) 3.6em auto 32px;gap:4px;align-items:center;margin:0 0 4px}.icard .frow select,.icard .frow input{min-height:36px;padding:2px 6px;min-width:0}.frow label{flex-direction:row;align-items:center;gap:2px}.icard .frow button,.icard .seen [data-g=add]{min-height:36px;padding:0 8px}.frow [data-g=name],.frow [data-g=sci],.frow>span{grid-column:1/-1}.frow [hidden]{display:none}.imgdlg label.tick{flex-direction:row}.imgdlg label.tick input{min-height:0;margin:0 8px 0 0;vertical-align:middle}.icard button{min-height:44px;border:1px solid var(--ink);background:none;color:var(--ink);padding:0 12px;font:600 var(--t-small) var(--body);cursor:pointer}
 .srow.focus,section.focus{outline:2px solid var(--cells);outline-offset:4px}
 .windcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
-#wfield{position:relative}.wallmap{position:relative}.wallmap .windcv{z-index:1}
+#wfield{position:relative}
 .nonode{position:absolute;left:12px;right:56px;bottom:40px;z-index:3;margin:0;background:var(--ground);border:1px dashed var(--ink);padding:8px 10px;font:500 var(--t-cap)/1.45 var(--mono)}
 #mapbar{display:flex;gap:8px;align-items:center;justify-content:center;padding:8px;border-bottom:1px solid var(--hair)}
 #mapbar:empty{display:none}
@@ -386,7 +596,7 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 #map{aspect-ratio:1;width:100%;overflow:hidden}
 #map .photo{width:100%;height:100%;object-fit:cover;display:block}
 .pair{display:grid;grid-template-columns:1fr 1fr;height:100%}.pair figure{margin:0;position:relative}.pair img{width:100%;height:100%;object-fit:contain;display:block;background:var(--ink)}
-#mapalt:has(.pair){aspect-ratio:auto;display:flex;flex-direction:column}#mapalt .pair{height:auto}#mapalt .pair figure{aspect-ratio:1}.pairnote{padding:8px 12px;border-top:1px solid var(--ink);font-size:var(--t-small);background:var(--ground)}
+.pairnote{padding:8px 12px;border-top:1px solid var(--ink);font-size:var(--t-small);background:var(--ground)}
 .pair figcaption{position:absolute;left:8px;top:8px;background:var(--ground);border:1px solid var(--ink);font:600 var(--t-cap) var(--mono);padding:1px 6px}
 .yearly{max-width:760px;margin:6px 0 4px}
 .fr{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:var(--t-small);align-items:baseline}
@@ -485,96 +695,106 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 .sm .grid{stroke:var(--hair)}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:48px}
 
-/* ================= WALL: a public screen read from 3 m (docs/site/dashboard.md, the Wall), one viewport, always dark =================
-   THE TYPE FLOOR: every size here is --wf or a multiple of it, never less. --wf is 28 px at 1920×1080 and scales with the
-   viewport, whichever of its width or height is shorter for it; tests/test_doors.py holds this block to that.
-   What did not survive the floor was cut from the Wall, not shrunk. */
-#wallv{--wf:min(1.4584vw,2.5926vh);position:relative;height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:2.4vh;padding:3.4vh 2.4vw;overflow:hidden;font-size:var(--wf)}
-/* chrome: a wall is not operated. The back button, the chips, the hour strip and the model's note are there for a pointer
-   or the keyboard and invisible otherwise; the back button is first in keyboard order. On a touch screen there is no
-   hover, so there it is always shown, and every control is a 44 px target. It appears at once: nothing fades. */
+/* ================= WALL: a public screen read from 3 m (docs/site/wall.md), one viewport, always dark =================
+   18 Nov 2026: the Wall walks out on the satellite (planetai-design node-docs/superpowers/specs/2026-11-18-wall-scales-map
+   -design.md and its mockup). The map on the left, the column beside it, the strip of four small gauges and the clock
+   under both. No radius, no shadow, no glow; each reading's domain hue on its line and its figure only; red is a line.
+   THE TYPE FLOOR: every size here is --wf or a multiple of it, never less. --wf is 20 px at 1920×1080 (Tomas, 18 Nov:
+   the text and the size legend were "too big"; it was 28) and scales with the viewport, whichever of its width or
+   height is shorter for it; tests/test_doors.py holds this block to that. --cells is the doors' dark value, set here
+   because the map's hues are read inside #wallv. */
+#wallv{--wf:min(1.0417vw,1.8519vh);--cells:#38BDF8;position:relative;height:100vh;display:grid;grid-template-columns:minmax(0,1fr) calc(var(--wf) * 21);
+  grid-template-rows:minmax(0,1fr) auto;overflow:hidden;font-size:var(--wf);background:var(--ground)}
+/* stepped, never tweened: nothing on the Wall eases from one hour to the next. The camera's glide is MapLibre's own. */
+#wallv *{transition:none}
+/* chrome: a wall is not operated. The back button and the model's note are there for a pointer or the keyboard and
+   invisible otherwise; the back button is first in keyboard order. On any screen that can be touched it is always shown, a
+   44 px target: a touch laptop whose primary pointer is its mouse cannot hover to find it (CodeRabbit on #406). */
 #wallv .wchrome{opacity:0}
 #wallv .wchrome:hover,#wallv .wchrome:focus-within{opacity:1}
-@media (hover:none) and (pointer:coarse){#wallv .wchrome{opacity:1}#wallv{grid-template-rows:auto auto minmax(0,1fr)}#wallv .wtop{position:relative;margin:-3.4vh -2.4vw 0}}
-@media (pointer:coarse){#wallv .wback,#wallv .wchips button,#wallv .wrail button{min-height:44px;min-width:44px}}
+@media (any-pointer:coarse){#wallv .wchrome{opacity:1}#wallv .wback{min-height:44px;min-width:44px}}
 .wtop{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;gap:1.2vw;align-items:center;flex-wrap:wrap;padding:1.2vh 2.4vw;background:var(--ground);border-bottom:1px solid var(--hair)}
-.wback,.wchips button{background:none;border:1px solid var(--ink);padding:.1em .5em;font:600 var(--wf) var(--mono);cursor:pointer}
-.wchips{display:flex}.wchips button+button{border-left:0}.wchips button.on{background:var(--ink);color:var(--ground)}
+.wback{background:none;border:1px solid var(--ink);color:var(--ink);padding:.1em .5em;font:600 var(--wf) var(--mono);cursor:pointer}
 .wnote{font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
-/* the walk: the map on the left, framed on one scale's cell; the scale's page on the right */
-.wgrid{display:grid;grid-template-columns:58% minmax(0,1fr);min-height:0;font-size:var(--wf)}
-.wl{position:relative;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:1.2vh;min-width:0;min-height:0}
-#wfield{position:relative;min-height:0;font-size:var(--wf)}#wfield .wallmap{position:absolute!important;inset:0;width:100%;height:100%}.wallmap .windcv{z-index:1}
-/* the rail says which scale is drawn (not chrome: always shown); each scale is a button that holds it */
-.wrail{position:absolute;left:0;top:0;z-index:5;display:flex;background:var(--ground)}
-.wrail button{background:none;border:0;border-bottom:3px solid transparent;padding:.25em .5em;font:500 var(--wf)/1.2 var(--mono);color:var(--mute);cursor:pointer}
-.wrail button.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}.wrail button[aria-pressed="true"]::after{content:" ·held"}
-.wclock{position:absolute;bottom:.5em;left:.6em;z-index:3;display:flex;flex-direction:column;gap:.15em;pointer-events:none;font:500 var(--wf)/1.2 var(--mono);color:var(--ink);text-shadow:0 0 6px var(--ground),0 0 2px var(--ground)}
-.wclock b{font:600 calc(var(--wf) * 2)/1 var(--mono);letter-spacing:-.02em}.wclock:empty{display:none}
-.wcap{margin:0;font:500 var(--wf)/1.3 var(--body);text-wrap:pretty}
-.wr{min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:1.6vh;border-left:1px solid var(--hair);padding-left:2.4vw;margin-left:2.4vw}
-/* the head runs across the top: the time and the sentence, and what is asked now beside them */
-.whead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,30%);gap:.6vh 2.4vw;align-items:end}.whead .wkick{grid-column:1/-1}.whead .wask{align-self:end}
-.wkick{font:600 calc(var(--wf) * 1.2)/1.2 var(--mono);color:var(--mute)}.wkick time,.wkick b{color:var(--ink)}
-/* the hero: what is happening, in the household's words; the tagline explains it, at the floor and muted */
-.wsent{font:700 calc(var(--wf) * 2.1)/1.04 var(--display);letter-spacing:-.03em;margin:0;text-wrap:balance}
-.wsent .wtag{display:block;font:500 var(--wf)/1.3 var(--body);letter-spacing:0;color:var(--mute);margin-top:1.4vh;max-width:40ch;text-wrap:pretty}
+/* the map: the satellite dimmed, or the node's streets dark; the wind and the crests on a canvas over it */
+.wmap{position:relative;grid-row:1;grid-column:1;min-width:0;min-height:0;overflow:hidden;background:#000;border-right:1px solid var(--hair)}
+.wmbox{position:absolute;inset:0}.wmap .wml,.wmap .wfx{position:absolute;inset:0;width:100%;height:100%}.wmap .wfx{pointer-events:none}
+/* over the map, as the mockup Tomas approved (18 Nov): the size, the chapter's words, the three sizes; never pressed */
+.wover{position:absolute;z-index:2;pointer-events:none;font:500 var(--wf)/1.2 var(--mono);text-transform:uppercase;letter-spacing:.02em;text-shadow:0 0 6px #0E0E10,0 0 2px #0E0E10}
+.wwhere{left:1.4vw;top:2.2vh;display:flex;gap:.9em;align-items:center}.wwhere b{color:var(--ink);font-weight:700}.wwhere span{color:var(--mute)}
+.wcap{left:1.4vw;bottom:2.2vh;max-width:56%;text-transform:none;font:500 calc(var(--wf) * 1.05)/1.3 var(--body);color:var(--ink);background:rgb(14 14 16 / .78);padding:.5em .75em;border-left:3px solid var(--c,var(--ink))}
+.wcap .wcs{display:block;font:500 var(--wf)/1.3 var(--mono);color:var(--mute);text-transform:uppercase;margin-top:.25em}
+/* the one size below the floor: the legend's words, as small as the mockup set them after Tomas asked for it smaller */
+.whex{right:1.4vw;bottom:2.2vh;background:rgb(14 14 16 / .78);padding:.45em .6em;display:flex;gap:.8em;align-items:flex-end;font-size:calc(var(--wf) * .8)}
+.whex .s{display:flex;flex-direction:column;align-items:center;gap:.3em;color:var(--dim)}.whex .s.on{color:var(--ink)}.whex svg{display:block}
+.whex polygon{fill:none;stroke:currentColor;stroke-width:1}.whex .s.on polygon.me{fill:rgb(56 189 248 / .18);stroke:var(--cells)}
+.wnomap{position:absolute;left:0;right:0;top:45%;margin:0;text-align:center;font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
+.woffi{font:600 var(--wf)/1.2 var(--mono);text-transform:uppercase;color:var(--ink);background:rgb(14 14 16 / .8);padding:.15em .4em;border-left:3px solid var(--cells);white-space:nowrap}
+#wallv .maplibregl-ctrl-attrib{font:500 var(--wf)/1.3 var(--mono);background:rgb(14 14 16 / .6);color:var(--mute)}
+/* the column: the moment and what is asked, the size on the map and its chapters, then the node's words */
+.wcol{grid-row:1;grid-column:2;display:flex;flex-direction:column;gap:2.2vh;padding:2.4vh 1.3vw 2vh;min-width:0;min-height:0;overflow:hidden}
+.whead{display:flex;flex-direction:column;gap:1vh;min-width:0}
+.wkick{font:600 var(--wf)/1.2 var(--mono);color:var(--mute)}.wkick time,.wkick b{color:var(--ink)}
+.wsent{font:350 calc(var(--wf) * 1.7)/1.08 var(--display);letter-spacing:-.025em;margin:0;text-wrap:balance}
+.wsent .wnum{font-family:var(--mono)}
+.wtag{margin:0;font:500 var(--wf)/1.3 var(--body);color:var(--mute);text-wrap:pretty}
 /* what the node suggests: one line, ending on a word (wallAsk), never a button that answers */
-.wask{display:flex;flex-direction:column;gap:.3em;border-left:3px solid var(--ink);padding-left:1vw}
-.wask .wsay{font:600 calc(var(--wf) * 1.15)/1.25 var(--body)}.wask .wtel{font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
-/* the node, thinking aloud: a voice, set apart from the node's figures. Figtree Italic, light and large, is speech against
-   the upright facts around it. Collapsed ([hidden]) until there is text; the last text stays while the next is written. */
-/* the scale's page: its figures, each with its source, when and its word; its day; its land; what is around */
-.wscale{margin:0;font:600 calc(var(--wf) * 1.2)/1.2 var(--mono);color:var(--mute)}
-/* the page keeps its height; the narration under it is what gives way, showing its last lines (node #1, 16 Oct: the
-   page was let shrink, and the region's table ran on under the narration's box) */
-.wpage{flex:0 0 auto;display:flex;flex-direction:column;gap:1.2vh}
-.wnarr.wnoroom{display:none}
-.wpage h3{margin:1.2vh 0 0;font:700 calc(var(--wf) * 1.2)/1.1 var(--display);letter-spacing:-.02em}
-.wfacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10em),1fr));gap:1.4vh 2vw}
-.wfig{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:0 .35em}.wfig .wn{grid-column:1/-1;font:600 var(--wf)/1.2 var(--body)}
-.wfig b{font-size:calc(var(--wf) * 2.2);line-height:1;letter-spacing:-.03em}.wfig .wsrc{grid-column:1/-1}
-.wu{font:500 var(--wf) var(--mono)}
-.wsrc{display:block;margin:0;font:500 var(--wf)/1.3 var(--body);color:var(--mute);text-wrap:pretty}
-.wpw{display:inline-block;margin-left:.25em;padding:.05em .3em;border:1px solid currentColor;font:500 var(--wf)/1 var(--mono)}
-.wat{margin:0;font:700 calc(var(--wf) * 1.5)/1.15 var(--display);letter-spacing:-.02em}.wat b{font-family:var(--mono)}
-.wday{display:block;width:100%;height:calc(var(--wf) * 5)}
-/* the land as a hundred squares: the kind by fill, never by hue; stroked orange, what only the satellite knows */
-.whund{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;max-width:calc(var(--wf) * 18)}
-.whund i,.wkey i{display:block;aspect-ratio:1;border:2px solid var(--satellite-only)}
-.wkey{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2em 1em;margin:0;font:500 var(--wf)/1.3 var(--body)}.wkey .wsrc{display:inline}.wkey b{font-family:var(--mono)}
-.wkey i{display:inline-block;width:.8em;margin-right:.3em;vertical-align:-.05em}
-.q-built{background:var(--ink)}.q-trees{background:repeating-linear-gradient(45deg,var(--ink) 0 3px,transparent 3px 7px)}
-.q-crops{background:repeating-linear-gradient(0deg,var(--ink) 0 2px,transparent 2px 6px)}.whund .q-rest,.wkey .q-rest{border-style:dashed}
-.wplaces{display:flex;flex-direction:column;gap:.4vh}.wplaces div{display:grid;grid-template-columns:5em minmax(0,1fr) 2em;align-items:center;gap:.6em;font:500 var(--wf)/1.2 var(--body)}
-.wplaces b{font:600 var(--wf) var(--mono);text-align:right}.wsq{display:flex;flex-wrap:wrap;gap:3px}.wsq i{width:.65em;height:.65em;background:var(--ink)}
-.wexp{border-collapse:collapse;width:100%;font:500 var(--wf)/1.25 var(--body)}
-.wexp th{text-align:left;vertical-align:top;padding:.5vh 1em .5vh 0;white-space:nowrap;font-weight:700}.wexp td{padding:.5vh 0;border-bottom:1px solid var(--hair)}
-.wexp td b{font-family:var(--mono)}.wexp .wbysat td b{color:var(--satellite-only)}.wexp .wnone td{color:var(--mute)}
-.wnarr{margin-top:auto;flex:0 1 auto;min-height:calc(var(--wf) * 5);display:flex;flex-direction:column;border:1px solid var(--ink);overflow:hidden}
-.wnarr .nh{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0 1em;padding:.8vh 1.1vw;border-bottom:1px solid var(--hair);font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
-.wnarr .nl{display:flex;align-items:center;gap:.4em;color:var(--ink);font-weight:600}
-.wnarr .dot{width:.3em;height:.3em;border-radius:50%;background:var(--ink);opacity:.35}
+.wask{display:flex;flex-direction:column;gap:.3em;border-left:3px solid var(--ink);padding-left:.8em}
+.wask .wsay{font:600 var(--wf)/1.25 var(--body)}.wask .wtel{font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
+.wscale h2{margin:0;font:700 var(--wf)/1.2 var(--mono);text-transform:uppercase;letter-spacing:.03em}.wscale h2 span{color:var(--mute);font-weight:500}
+.wchap{list-style:none;margin:.6em 0 0;padding:0;border-top:1px solid var(--hair)}
+.wchap li{display:grid;grid-template-columns:.35em minmax(0,1fr);column-gap:.7em;padding:.45em 0;border-bottom:1px solid var(--hair);color:var(--dim)}
+.wchap li i{background:var(--c);opacity:.35;margin:.2em 0}.wchap li.on{color:var(--ink)}.wchap li.on i{opacity:1}
+.wchap .wr{display:flex;justify-content:space-between;align-items:baseline;gap:.6em;min-width:0}
+.wchap .t{font:600 var(--wf)/1.15 var(--mono);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wchap .n{font:400 calc(var(--wf) * 1.15)/1 var(--mono);letter-spacing:-.04em;white-space:nowrap}.wchap li.on .n{color:var(--c)}
+.wchap .n u{font:500 var(--wf) var(--mono);text-decoration:none;margin-left:.2em;letter-spacing:0}
+.wnone{margin:.6em 0 0;font:500 var(--wf)/1.3 var(--body);color:var(--mute)}
+.wpw{display:inline-block;margin-left:.35em;padding:0 .3em;border:1px solid currentColor;font:500 var(--wf)/1.2 var(--mono);letter-spacing:0;vertical-align:.1em;color:var(--ink)}
+/* the node, thinking aloud: a voice, set apart from the node's figures, at the foot of the column. Figtree Italic, light,
+   is speech against the upright facts around it. Collapsed ([hidden]) until there is text. */
+.wnarr{margin-top:auto;min-height:0;flex:0 1 auto;display:grid;grid-template-rows:auto minmax(0,1fr);max-height:calc(var(--wf) * 10);border:1px solid var(--hair)}
+/* its label is a header ramp: whose words, in black, then that they are never a reading, in grey */
+.wnarr .nh{display:flex;flex-wrap:wrap;margin:0;padding:0;border:0;font:500 var(--wf)/1.25 var(--body);color:var(--ink)}
+.wnarr .nh>span{padding:.25em .5em}.wnarr .nh>.nl{background:#000;white-space:nowrap}.wnarr .nh>span+span{flex:1 1 10em;background:#3a3a3a}
+.wnarr .nl{color:var(--ink);font-weight:600}.wnarr .nl .dot{display:inline-block;margin-right:.4em;vertical-align:.15em}
+.wnarr .dot{width:.3em;height:.3em;background:var(--ink);opacity:.35}
 /* the only two motions in the box, each a datum's cadence, stepped: the model is asked (the dot), a letter is typed (the caret) */
 #wallv{--motion-model-asking:1.6s;--motion-caret-typing:1s}
 .wnarr.busy .dot{opacity:1;animation:breathe var(--motion-model-asking) steps(1) infinite}
 @keyframes breathe{50%{opacity:.25;transform:scale(.7)}}
-.wnarr .nw{flex:0 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:1.2vh 1.4vw;mask-image:linear-gradient(to bottom,transparent 0,#000 1.2vh)}
-.wnarr .nt{font:italic 300 calc(var(--wf) * 1.1)/1.34 Figtree,var(--body);letter-spacing:-.005em;margin:0;max-width:44ch;text-wrap:pretty}
+.wnarr .nw{min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:.4em .6em 0}
+.wnarr .nt{font:italic 300 var(--wf)/1.35 Figtree,var(--body);letter-spacing:-.005em;margin:0;text-wrap:pretty}
 .wnarr .caret{display:inline-block;width:.42em;height:.95em;margin-left:3px;vertical-align:-.1em;background:var(--ink);animation:blink var(--motion-caret-typing) steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.wnarr .nw.roll{justify-content:flex-start;mask-image:linear-gradient(to bottom,transparent 0,#000 1.2vh,#000 calc(100% - 1.2vh),transparent 100%)}
-.wnarr .nw.roll .nt{flex:none;margin-bottom:calc(var(--wf) * 1.6);animation:wroll var(--roll-s) linear 4s infinite}
+.wnarr .nw.roll{justify-content:flex-start}
+.wnarr .nw.roll .nt{flex:none;margin-bottom:calc(var(--wf) * 1.6);animation:wroll var(--roll-s) steps(var(--roll-n,40)) 4s infinite}
 @keyframes wroll{to{transform:translateY(calc(-1 * var(--roll-h)))}}
 @media (prefers-reduced-motion: reduce){.wnarr .caret,.wnarr.busy .dot,.wnarr .nw.roll .nt{animation:none}}
-/* A phone, a small screen or a portrait one: the columns stack, the map first, and the page scrolls. The floor never
-   drops under 12 px, the layer's floor for type and controls (at 390 px wide --wf alone would be 5.7 px). */
-@media (max-width:999px),(max-height:499px),(orientation:portrait){
-  #wallv{--wf:max(12px,min(1.4584vw,2.5926vh));height:auto;min-height:100vh;overflow:visible;grid-template-rows:auto;padding:16px}
-  #wallv .whead{grid-template-columns:minmax(0,1fr)}#wallv .wl{grid-template-rows:auto auto}#wallv #wfield{height:min(calc(100vw - 32px),70vh)}
-  #wallv .wgrid{grid-template-columns:minmax(0,1fr);gap:3vh}
-  #wallv .wr{border-left:0;padding-left:0;margin-left:0;border-top:1px solid var(--hair);padding-top:3vh;overflow:visible}
-  @media (hover:none) and (pointer:coarse){#wallv .wtop{margin:-16px -16px 16px}}
+/* the strip: four gauges and the clock, at the hour the map shows */
+.wstrip{grid-row:2;grid-column:1/3;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;border-top:1px solid var(--hair)}
+.wg{min-width:0;display:flex;flex-direction:column;gap:.3em;padding:1.2vh 1.3vw;border-right:1px solid var(--hair)}
+.wgh{display:flex;justify-content:space-between;gap:1em;white-space:nowrap;overflow:hidden;font:600 var(--wf)/1.2 var(--mono);text-transform:uppercase;letter-spacing:.02em;color:var(--mute)}
+.wgh span+span{text-transform:none;font-weight:500;color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+.wg .wrv{display:flex;align-items:baseline;gap:.4em;white-space:nowrap;overflow:hidden}
+.wg .wrv b{font:400 calc(var(--wf) * 1.5)/1 var(--mono);letter-spacing:-.04em;color:var(--c)}
+.wg .wrv u{font:500 var(--wf) var(--mono);text-decoration:none;margin-left:.2em;letter-spacing:0;color:var(--ink)}
+.wg .wrv>span{font:500 var(--wf)/1.2 var(--mono);color:var(--mute)}
+.wdir{flex:none;width:calc(var(--wf) * 1.1);height:calc(var(--wf) * 1.1);fill:var(--c);align-self:center}
+.wsp{width:100%;height:calc(var(--wf) * 2.2);display:block;overflow:visible}
+.wsp path{fill:none;stroke:var(--c);stroke-width:1.6;vector-effect:non-scaling-stroke}.wsp .wl{stroke:var(--signal-worse);stroke-dasharray:3 2}.wsp .wh{stroke:var(--ink);stroke-opacity:.7;stroke-width:1}
+.wclock{display:flex;flex-direction:column;justify-content:center;padding:1.2vh 1.3vw;min-width:calc(var(--wf) * 9);font:600 var(--wf)/1.3 var(--mono);color:var(--mute);text-transform:uppercase}
+.wclock b{font:400 calc(var(--wf) * 1.5)/1 var(--mono);color:var(--ink);letter-spacing:-.04em}
+/* A phone or a portrait screen: the map first at 60 % of the height, then the column, then the strip as two rows of two,
+   and the page scrolls. The floor never drops under 12 px, the layer's floor for type and controls. */
+@media (max-width:759px),(orientation:portrait){
+  #wallv{--wf:max(12px,min(1.0417vw,1.8519vh));height:auto;min-height:100vh;overflow:visible;grid-template-columns:minmax(0,1fr);grid-template-rows:60vh auto auto}
+  #wallv .wmap{grid-row:1;grid-column:1;border-right:0}#wallv .wcol{grid-row:2;grid-column:1;padding:16px;overflow:visible}
+  #wallv .wstrip{grid-row:3;grid-column:1;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #wallv .wg{border-bottom:1px solid var(--hair)}#wallv .wg:nth-child(2n){border-right:0}#wallv .wclock{grid-column:1/-1}
+  #wallv .wnarr{max-height:none}
+  #wallv .whex{display:none}   /* on a narrow map it would sit under the chapter's words */
+  #wallv .wcap{max-width:calc(100% - 2.8vw)}
 }
 
 
@@ -617,8 +837,7 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 .h3grid{fill:none;stroke:var(--ink);stroke-width:.4;opacity:.5}.h3lit{fill:var(--cells);fill-opacity:.13;stroke:var(--cells);stroke-width:1.5}
 
 @media (max-width:1080px){
-  .face{grid-template-columns:minmax(0,1fr);grid-template-areas:"kick" "l" "r" "al"}.rcol{margin-top:28px}
-  .bench{grid-template-columns:216px minmax(0,1fr)}#ptools{grid-column:1 / -1;height:auto;min-height:0;border-left:0;border-top:1px solid var(--hair);padding:0 0 16px;columns:2;column-gap:32px}
+  .face{grid-template-columns:minmax(0,1fr);grid-template-areas:"kick" "l" "r" "td" "rm" "l2" "al" "bd"}.rcol{margin-top:28px}
   .sms{grid-template-columns:repeat(2,minmax(0,1fr))}.cols2{grid-template-columns:1fr}
 }
 /* a phone (SPEC_place_microgis §4): one column, the screen first, then the cake and the tools as two disclosures, then the
@@ -626,20 +845,26 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 @media (max-width:760px){
   .phead{grid-template-columns:minmax(0,1fr)}
   .bench{grid-template-columns:minmax(0,1fr);border-bottom:0}.pmid{display:contents}
-  .mapc{order:1;margin:6px 6px 14px}.mapc #map{height:440px}
+  .mapc{order:1;margin:6px 6px 14px}.mapc #map{height:500px}
   .psbar{order:2;display:flex;gap:8px;margin-bottom:4px}
   .psbar button{flex:1;min-height:44px;border:1px solid var(--ink);border-radius:999px;background:none;color:var(--ink);font:400 var(--t-small) var(--body);cursor:pointer}
   .psbar button[aria-expanded="true"]{background:var(--ink);color:var(--ground)}
-  #cake,#ptools{display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;height:60vh;min-height:0;grid-column:auto;columns:auto;
+  #cake{display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;height:60vh;min-height:0;grid-column:auto;columns:auto;
     padding:4px 16px 24px;border:0;border-top:1px solid var(--ink);background:var(--ground)}
-  .bench[data-sheet="cake"] #cake,.bench[data-sheet="tools"] #ptools{display:block}
-  .bench[data-sheet="cake"] .psbar,.bench[data-sheet="tools"] .psbar{position:fixed;left:0;right:0;bottom:60vh;z-index:51;margin:0;padding:8px 16px;background:var(--ground)}
+  .bench[data-sheet="cake"] #cake{display:block}
+  .bench[data-sheet="cake"] .psbar{position:fixed;left:0;right:0;bottom:60vh;z-index:51;margin:0;padding:8px 16px;background:var(--ground)}
   #facts.inspect{order:4}#pmargin{order:5;grid-template-columns:minmax(0,1fr)}#pmargin .mr{min-height:44px}
-  .ly,.tl,.spd summary{min-height:44px}
-  .mapc #mapbar{max-width:calc(100% - 72px)}.mapc .maplibregl-ctrl-bottom-left{bottom:68px}#mapcredit{position:static;max-width:none;padding:4px 12px 6px;text-align:left}
-  .phour{left:12px;transform:none}   /* left: the active tool's word needs the top right */
-  .altc{top:64px;max-height:calc(100% - 140px)}   /* under the hour, not over it */
-  .plow{grid-template-columns:minmax(0,1fr)}.plow>section+section{padding:0 0 18px;border-left:0;border-top:1px solid var(--hair)}
+  .ly,.ly.new,.tl,.spd summary{min-height:44px}#pchange .pair{grid-template-columns:minmax(0,1fr)}
+  #mapcredit{position:static;max-width:none;padding:4px 12px 6px;text-align:left}
+  /* the screen's chrome (§10): the hour, the rungs and the base down the top left, the column and the zoom down the right,
+     the keys a row along the bottom with the readout above them, the download menu across the top */
+  .mapc .phour,.mapc:has(.dkeys) .phour{left:12px;right:auto;transform:none}
+  .mapc #mapbar{top:64px;bottom:auto;max-width:calc(100% - 80px)}.pbase{top:124px;bottom:auto;left:12px;right:auto}.mapc .maplibregl-ctrl-bottom-left{top:184px;bottom:auto}
+  .tools [data-t="wide"]{display:none}.tools [data-t="wide"]+button{border-top:0;border-radius:9px 9px 0 0}
+  .zoom{top:164px;bottom:auto}.dlmenu{left:12px;right:68px;width:auto}
+  /* the readout stops under the zoom (164 + 90 + 8 = 262 px from the top) and an open form scrolls inside it */
+  .dkeys{top:auto;bottom:12px;flex-direction:row}.dkeys button+button{border-top:0;border-left:1px solid var(--hair)}.dkeys button.gap{border-top-width:0;border-left-width:3px}
+  .dpanel{top:auto;bottom:66px;left:12px;right:12px;width:auto;max-height:calc(100% - 328px)}.dread .dsw em{display:none}
 }
 @media (max-width:560px){
   .doors a{padding:5px 8px}.lrow{grid-template-columns:minmax(0,1fr) auto}.lrow .s{grid-column:1 / -1;grid-row:2}
@@ -787,6 +1012,208 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
    shell instead of a spinner that would lie — scripting:none, not a noscript style tag: check_ui
    lints inline style blocks and a second one would muddy it */
 @media (scripting: none){.asking{display:none !important}}
+
+/* ===================================================================================================================
+   VARIATION · FIELD SYNTHESIZER (6 Nov 2026), after Stitch's "Field Synthesizer & Instrument Interface" export
+   (DESIGN.md + code.html in planetai-design/prototypes/dashboard-variation-evolve/reference/). An evolution of the
+   doors as they ship: the same pages, parts, words and data, in the export's chassis. Dark is this variation's
+   default. Its two accents keep one job each: amber is what is engaged (the open door, a pressed answer, a live
+   source), cyan is the signal (the current hour, a cell, a source partly read). Red stays the layer's, a reading over
+   its line. Faces are the node's own: Funnel Sans for Space Grotesk, JetBrains Mono for Space Mono.
+   =================================================================================================================== */
+:root[data-theme="dark"]{--ground:#0E0E10;--ink:#F4F4F5;--mute:#A1A1AA;--dim:#71717A;--hair:#232326;--raise:#1A1A1E;
+  --card:#141416;--wire:#323236;--wire-on:#52525B;--amber:#F59E0B;--cyan:#38BDF8;--cells:#38BDF8;--prov:#F4F4F5;--doc:#141416;--doc-line:#323236}
+:root{--card:#FFFFFF;--wire:#D9D4CE;--wire-on:#8A8580;--amber:#B45309;--cyan:#0369A1}
+/* etched labels: uppercase, tracked, mono */
+.k,.nk,.sinfo,.foot b,.pill,.gap,.proto{text-transform:uppercase;letter-spacing:.08em}
+/* the doors: a segmented switch; the open door inverts and carries an amber LED */
+.doors{border-color:var(--wire)}.doors a{font:600 var(--t-small) var(--mono);text-transform:lowercase;letter-spacing:.02em;border-right-color:var(--wire);display:inline-flex;align-items:center;gap:7px}
+.doors a.on::before{content:"";width:6px;height:6px;background:var(--amber)}
+.reg,.iconbtn{border-color:var(--wire)}.reg button.on{background:var(--ink);color:var(--ground)}
+#asof::before{content:"";display:inline-block;width:6px;height:6px;background:var(--amber);margin-right:7px;vertical-align:1px}
+.bar{border-bottom-color:var(--hair);background:var(--ground)}
+/* provenance as a micro-badge: a square LED, then the word. live engaged (amber), partial signal (cyan), the rest slate */
+.pill{border-color:var(--wire);background:var(--ground);gap:6px;font-weight:700;font-size:11px}
+.pill::before{content:"";width:5px;height:5px;flex:none;background:var(--dim)}
+.pill.pv-live::before{background:var(--amber)}.pill.pv-partial::before{background:var(--cyan)}
+.pill svg.sg{display:none}
+/* module cards, each section of a door: #141416 on the chassis, one hairline, square */
+.face .hero,.face .todo,.face .nrem:not([hidden]),.face .nxpart,.face .rcol,.face .alsoread:not([hidden]),.dsec,.pcols>section,.page>section:not(.refuse){
+  background:var(--card);border:1px solid var(--hair);padding:0 16px 16px;margin-top:16px}
+.face .hero{padding-top:14px}.face .rcol{align-self:start}
+/* the etched header bar every module opens with: an LED, the label, its index */
+.face{counter-reset:mod}.page{counter-reset:mod}
+.nh:not(.wnarr>.nh),.dsec>h2,.dsh h2,.pcols>section>h2,.page>h2,.page>section>h2,.runwrap h2{counter-increment:mod;display:flex;align-items:center;gap:8px;
+  font:700 var(--t-small)/1 var(--mono)!important;letter-spacing:.1em;text-transform:uppercase;border-top:0!important;
+  margin:0 -16px 14px!important;padding:12px 16px!important;border-bottom:1px solid var(--hair)}
+.nh:not(.wnarr>.nh)::before,.dsec>h2::before,.dsh h2::before,.pcols>section>h2::before,.page>h2::before,.page>section>h2::before,.runwrap h2::before{content:"";width:6px;height:6px;flex:none;background:var(--amber)}
+.nh:not(.wnarr>.nh)::after,.dsec>h2::after,.dsh h2::after,.pcols>section>h2::after,.page>h2::after,.page>section>h2::after,.runwrap h2::after{content:"// MOD-0" counter(mod);margin-left:auto;font-weight:500;color:var(--dim);letter-spacing:.06em}
+.page>h2,.runwrap h2{margin:28px 0 0!important;background:var(--card);border:1px solid var(--hair)}
+/* hardware triggers: Done, Not now, Doesn't fit; a pressed one fills amber */
+.decide{border:1px solid var(--wire);background:var(--ground)}
+.ans{border-color:var(--wire)}.ans button{font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.08em;border-right-color:var(--wire);display:inline-flex;align-items:center;gap:8px}
+.ans button::before{content:"";width:6px;height:6px;background:var(--dim)}
+.ans button.on{background:var(--amber);color:#0E0E10}.ans button.on::before{background:#0E0E10}
+/* rack-mount rows: the issues around the house as cards in a column; the one in front inverts */
+.rcol .rows{border-top:0;display:grid;gap:8px}.rcol .row{border:1px solid var(--wire);background:var(--ground)}
+.rcol .row[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+/* the screen, as the export's oscilloscope: square, a #0E0E10 ground, a faint reticle */
+.scr{border-radius:0!important;box-shadow:none!important;border:1px solid var(--wire);margin:14px 0 0!important;--ground:#0A0A0C;--cells:#38BDF8;--hair:#26262B}
+.scr .sbody{background-image:radial-gradient(rgba(244,244,245,.09) 1px,transparent 1.2px);background-size:24px 24px}
+/* the readout strip at the screen's head: cells side by side, a label over a value (not a grey ramp in this variation) */
+.ramp>div{background:transparent!important;color:var(--ink)!important;border-right:1px solid var(--hair);padding:10px 12px 9px}
+.ramp>div:last-child{border-right:0}.ramp{border-bottom:1px solid var(--hair)}
+.ramp .rk{display:block;font:700 var(--t-cap)/1.2 var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ramp .rv{font-size:22px}.ramp .r2{color:var(--mute);opacity:1}
+.ramp .warm .rv{color:var(--signal-worse)}.ramp .sig .rv{color:var(--cyan)}
+/* the encoder bank: the four distances as dials */
+.ladder.enc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-top:0;padding-top:0;margin-top:14px}
+.enc .knob{border:1px solid var(--wire);background:var(--ground);padding:10px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.enc .kh{display:flex;justify-content:space-between;align-items:center;gap:6px;font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.1em}
+.enc .kh .pill{font-size:10px;padding:1px 5px}
+.enc svg{width:100%;max-width:120px;height:auto;align-self:center;display:block}
+.enc .kf{display:block;max-width:100%;font:500 var(--t-cap) var(--mono);color:var(--mute);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.enc .knob>*{min-width:0;max-width:100%}
+.foot{border-top-color:var(--hair)}
+/* ROUND 2: colour, one hue a kind of reading (the same ten as the dark variation, air and noise brighter here), used
+   for the stroke of that reading, its LED and its figure: never a background, never good or bad */
+:root[data-theme="dark"]{--d-air:#A78BFA;--d-heat:#F2C14E;--d-water:#5BC8F5;--d-sea:#3B8FD9;--d-wind:#7EE0C3;--d-energy:#F28C28;--d-ground:#C08A48;--d-biota:#8BC34A;--d-noise:#F472B6;--d-light:#F5E9A8}
+:root{--d-air:#6D28D9;--d-heat:#8A6D00;--d-water:#0369A1;--d-sea:#1F5F8B;--d-wind:#0F766E;--d-energy:#B45309;--d-ground:#6B4F1D;--d-biota:#3F7A0C;--d-noise:#BE185D;--d-light:#7A6F2A}
+.rcol .row[data-k]{box-shadow:inset 3px 0 0 var(--dk,var(--wire))}.rcol .row[data-k="air"]{--dk:var(--d-air)}.rcol .row[data-k="heat"]{--dk:var(--d-heat)}.rcol .row[data-k="coast"]{--dk:var(--d-sea)}.rcol .row[data-k="land"]{--dk:var(--d-ground)}.rcol .row[data-k="water"]{--dk:var(--d-water)}.rcol .row[data-k="energy"]{--dk:var(--d-energy)}
+.epanel{padding:14px 12px 10px;border-top:1px solid var(--hair)}
+.epanel .hl{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.epanel .big{font:600 clamp(32px,3.6vw,48px)/1 var(--mono);letter-spacing:-.03em;color:var(--d-energy)}
+.epanel .u{font:500 var(--t-small) var(--mono);color:var(--mute)}
+.epanel .sent{font:400 var(--t-body)/1.45 var(--body);margin:10px 0 12px;max-width:66ch}
+.epanel .mixbar{display:flex;height:20px;border:1px solid var(--ink);overflow:hidden;background:var(--ground)}
+.epanel .mixbar>span{display:block;height:100%;background:var(--seg,var(--d-energy));border-right:1px solid var(--ground)}
+.epanel .mixbar>span:last-child{border-right:0}
+.epanel .hatch{background:repeating-linear-gradient(-45deg,var(--seg,var(--d-energy)) 0 5px,transparent 5px 10px)!important}
+.epanel .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font:500 var(--t-cap) var(--mono);color:var(--mute)}
+.epanel .sw{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px;border:1px solid var(--ink);background:var(--seg,var(--d-energy))}
+.epanel .sources{margin-top:14px;border-top:1px solid var(--hair)}
+.epanel .src{display:grid;grid-template-columns:10px minmax(0,1.5fr) minmax(0,1fr) auto auto;gap:8px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--hair);font-size:var(--t-small)}
+.epanel .dot{width:8px;height:8px;display:inline-block;background:var(--seg,var(--ink))}
+.epanel .today{margin-top:12px;padding:10px 12px;border:1px solid var(--hair);display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.epanel .today .k{font:600 var(--t-cap) var(--mono);color:var(--mute);display:block}
+.epanel .today .v{font:600 var(--t-read)/1.2 var(--mono)}
+.epanel .provline{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:12px;font:500 var(--t-cap) var(--mono);color:var(--mute)}
+.fam[data-fam="Air"]{--dk:var(--d-air)}.fam[data-fam="Weather"]{--dk:var(--d-heat)}.fam[data-fam="Sound and light"]{--dk:var(--d-noise)}.fam[data-fam="Sea"]{--dk:var(--d-sea)}.fam[data-fam="Radio"]{--dk:var(--d-energy)}.fam[data-fam="Other"]{--dk:var(--d-ground)}
+.fam .tr path{stroke:var(--dk,currentColor)!important}.fam .fh{box-shadow:inset 3px 0 0 var(--dk,transparent);padding-left:8px}
+/* the board: a grid of slots; a feed is a module with its own little screen; an empty slot is a + */
+.face .board{grid-area:bd}.board{background:var(--card);border:1px solid var(--hair);padding:0 16px 16px;margin-top:16px;min-width:0}
+.bnote{font:500 var(--t-cap)/1.5 var(--mono);color:var(--mute);margin:0 0 12px;max-width:90ch}
+.bgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{border:1px solid var(--wire);background:var(--ground);min-width:0;display:flex;flex-direction:column;min-height:206px}
+.tile .th{display:flex;align-items:center;gap:7px;padding:8px 10px;border-bottom:1px solid var(--hair);min-width:0}
+.tile .th .led{width:7px;height:7px;flex:none;background:var(--dk)}
+.tile .th b{font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tile .th .pill{margin-left:auto;font-size:10px;padding:1px 5px}
+.tile .tx{background:none;border:1px solid var(--wire);color:var(--mute);width:24px;height:24px;flex:none;cursor:pointer;font:400 14px/1 var(--mono);padding:0}
+.tile .tx:hover{color:var(--ink);border-color:var(--wire-on)}
+.tile .tb{flex:1;background:#0A0A0C;background-image:radial-gradient(rgba(244,244,245,.08) 1px,transparent 1.2px);background-size:20px 20px;min-height:110px;color:#F4F4F5}
+.tile .tb svg{display:block;width:100%;height:100%}
+.tile .tf{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:7px 10px;border-top:1px solid var(--hair);min-width:0}
+.tile .tv{font:600 18px var(--mono);color:var(--dk);white-space:nowrap}.tile .tv small{font-size:var(--t-cap);color:var(--mute);margin-left:3px}
+.tile .ts{font:500 var(--t-cap) var(--mono);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tile .kinds{display:flex;gap:0;border:1px solid var(--wire)}.tile .kinds button{background:none;border:0;border-right:1px solid var(--wire);color:var(--mute);font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:3px 6px;cursor:pointer;min-height:24px}
+.tile .kinds button:last-child{border-right:0}.tile .kinds button[aria-pressed="true"]{background:var(--amber);color:#0E0E10}
+.tile .tk{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:0 10px 8px}
+.tile.add{align-items:center;justify-content:center;gap:10px;border-style:dashed;cursor:pointer;color:var(--mute);font:600 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.tile.add:hover,.tile.add:focus-visible{border-color:var(--amber);color:var(--ink)}
+.tile.add .plus{width:44px;height:44px;border:1px solid currentColor;display:grid;place-items:center;font:300 28px/1 var(--mono)}
+/* the picker */
+.feedpick{width:min(720px,94vw);max-height:84vh;padding:0;border:1px solid var(--wire-on);background:var(--ground);color:var(--ink)}
+.feedpick::backdrop{background:rgba(0,0,0,.6)}
+.fphead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--hair);font:700 var(--t-small) var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.fphead::before{content:"";width:7px;height:7px;background:var(--amber);margin-right:8px}.fphead b{margin-right:auto}
+.fpx{background:none;border:1px solid var(--wire);color:var(--ink);width:32px;height:32px;cursor:pointer;font-size:18px}
+#fpq{display:block;width:calc(100% - 32px);margin:12px 16px;min-height:40px;border:1px solid var(--wire);background:#0A0A0C;color:var(--ink);padding:0 10px;font:var(--t-small) var(--mono)}
+#fpq:focus{outline:0;border-color:var(--amber)}
+.fpbody{overflow:auto;max-height:calc(84vh - 130px);padding:0 16px 16px}
+.fpg{margin-top:14px}.fpg h3{font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin:0 0 6px;display:flex;justify-content:space-between}
+.fpr{display:grid;grid-template-columns:9px minmax(0,1.3fr) minmax(0,1fr) 90px 80px auto;gap:10px;align-items:center;width:100%;min-height:44px;padding:4px 8px;background:none;border:0;border-bottom:1px solid var(--hair);color:var(--ink);text-align:left;cursor:pointer;font:var(--t-small) var(--body)}
+.fpr:hover,.fpr:focus-visible{background:var(--raise)}.fpr .led{width:7px;height:7px;background:var(--dk)}
+.fpr .m{font:600 var(--t-small) var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fpr .s{font:500 var(--t-cap) var(--mono);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpr .v{font:600 var(--t-small) var(--mono);color:var(--dk);text-align:right;white-space:nowrap}.fpr svg{width:80px;height:20px;display:block}
+.fpr.off{cursor:default;opacity:.62}.fpr.off .v{color:var(--mute);font-weight:500}
+.fpr .on{font:700 10px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+/* ROUND 3: Now with no dead space. Both columns are stacks of modules and end on the same line: the grid stretches
+   them, and the last module of the shorter one grows (Tomas, 7 Nov: "so it does not have empty spaces like the one
+   below the map"). What to do opens the right column, beside the moment it is about. */
+.face{align-items:stretch}.face .lcol,.face .rcol,.face .lcol2{display:flex;flex-direction:column;gap:16px;min-width:0}
+.face .rcol{background:none!important;border:0!important;padding:0!important;align-self:stretch!important}
+.face .lcol>*,.face .rcol>*,.face .lcol2>*{margin-top:0!important}.face .lcol,.face .rcol{margin-top:0!important;padding-top:0!important}
+.face .lcol>.hero,.face .rcol>.nmap,.face .lcol2>.nxpart{flex:1}.face .lcol2{margin-top:16px}
+/* What to do as one strip across both columns, under the Index and the map (Tomas, 8 Nov): small text, one line when
+   nothing is asked, two at most when something is; the buttons keep their 44 px */
+.face .nstrip{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.nstrip .todo{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin:0;padding:0 12px;font-size:var(--t-cap)}
+.nstrip .todo>.nh{margin:0!important;padding:0!important;border:0!important;flex:none;font-size:var(--t-cap)!important;min-height:30px}.nstrip .todo>.nh::after{content:none}
+.nstrip .decide{display:contents}.nstrip .todo:has(.decide){border-color:var(--wire)}
+.nstrip .nk,.nstrip .dq,.nstrip .dm,.nstrip .nothing{margin:0!important;max-width:none}
+.nstrip .dq{font:600 var(--t-cap)/1.3 var(--body)}.nstrip .nothing,.nstrip .nothing .x,.nstrip .dm,.nstrip .nk{font:500 var(--t-cap)/1.3 var(--body)}
+.nstrip .ans button{padding:0 10px}
+.nstrip .dm:empty{display:none}
+.nstrip #asks .decide{display:flex;flex-wrap:wrap;align-items:center;gap:0 14px;margin:0;padding:0 12px;font-size:var(--t-cap)}.nstrip #asks .decide+.decide{margin-top:8px}
+.face .amod{background:var(--card);border:1px solid var(--hair);padding:0 16px 16px}
+/* the right column (Tomas, 9 Nov): Around the house, then the map of the air around, then the Index as the city's
+   local production capacity, each its own module */
+.ncity .scr,.nmap .scr{margin-top:0!important}.nmap .around{margin:0}.nmap #rosecap{margin-top:10px}
+/* the map takes whatever height the frame has beside the day's screen, so the frame ends with the screen, not empty */
+.nmap,.nmap .scr,.nmap .around,.nmap .around>.sbody,.nmap #rose{display:flex;flex-direction:column}.nmap .scr,.nmap .around,.nmap .around>.sbody,.nmap #rose,.nmap .aroundmap{flex:1 1 auto}.nmap .aroundmap{width:100%!important}
+/* What to do folded (9 Nov): the head, the one sentence and the button on one line; the rest opens under it */
+.nstrip:not(.open) :is(#decide .dm,#decide .ans,#decide .nk,#asks,#ndecl-decide){display:none!important}
+.nstrip:not(.open) .todo{flex-wrap:nowrap}.nstrip:not(.open) .todo>p,.nstrip:not(.open) .todo .dq{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nfold{flex:none;margin-left:auto;min-height:44px;padding:0 12px;background:none;border:1px solid var(--wire);color:var(--ink);font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;white-space:nowrap}
+.nfold:hover,.nfold:focus-visible{border-color:var(--wire-on)}
+/* on a phone the head and the button share the top line and the sentence takes the next, still one line */
+@media (max-width:640px){.nstrip:not(.open) .todo{flex-wrap:wrap}.nstrip:not(.open) .todo>p,.nstrip:not(.open) .todo .dq{order:3;flex-basis:100%;padding-bottom:8px}}
+.ix{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;padding:10px 0 12px}
+.ixvu{display:grid;grid-template-rows:repeat(20,6px);gap:2px;width:14px;align-self:center}.ixvu i{background:var(--hair)}.ixvu i.on{background:var(--cells)}
+.ixh{font:500 var(--t-cap)/1.3 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--cells);margin:0}.ixh span{color:var(--ink)}
+.ixv{font:600 clamp(48px,4.6vw,72px)/1 var(--mono);letter-spacing:-.04em;margin:8px 0 6px;color:var(--ink)}
+.ixv a{color:inherit;text-decoration:none;display:inline-flex;align-items:baseline;min-height:44px}.ixv small{font:500 var(--t-small) var(--mono);letter-spacing:0;color:var(--mute);margin-left:8px}
+.ixs{font:500 var(--t-small)/1.45 var(--mono);color:var(--mute);margin:2px 0 0}.ixs a{color:var(--ink);display:inline-flex;align-items:center;min-height:44px}.ixs code{color:var(--ink)}.ixl{display:flex;flex-wrap:wrap;column-gap:18px}
+.face .board{margin-top:16px}
+.pboard{margin:22px 0 0!important}
+/* Node's map of the nodes around it, full width (Tomas, 7 Nov): the node already draws it at the column's width, a
+   height cap of a third of the screen was shrinking it to about half; here it spans the page on the screen's ground */
+#world{border:1px solid var(--wire);background:#0A0A0C;margin-top:12px}
+#world svg{width:100%!important;max-width:none!important;max-height:none!important;height:auto!important}
+/* ROUND 4: pages of the household's own. A + after the five doors makes one; each is a grid of boxes, wide or narrow,
+   with a + box at its end. At most PAGE_MAX pages and TILE_MAX boxes a page (doors-now.js) */
+.doors{flex-wrap:wrap}.doors a.pg{border-left:1px dashed var(--wire);max-width:calc(12ch + 24px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;padding:7px 10px;line-height:20px}
+.bar:has(.doors a.pg) .doors a{padding-left:10px;padding-right:10px}
+/* with pages of its own the doors take a row of their own under the name, the time and the icons, so nothing falls
+   to a stray second line; four pages keep that row one line down to a 1024 px screen */
+.bar:has(.doors a.pg) .doors{order:9;flex:1 0 100%;width:100%;justify-content:flex-start}
+.bar:has(.doors a.pg) .sp{order:1}
+.doors .pgadd{background:none;border:0;border-left:1px solid var(--wire);color:var(--mute);min-width:40px;min-height:34px;font:400 18px/1 var(--mono);cursor:pointer;padding:0 12px}
+.doors .pgadd:hover,.doors .pgadd:focus-visible{color:var(--ground);background:var(--amber)}
+.phd{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 20px;margin:6px 0 18px}.phd h1{margin:0!important}
+.phd .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.phd .acts button,.pn button.go,.pn button.ghost{border:1px solid var(--wire);background:none;color:var(--ink);font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.08em;min-height:36px;padding:0 12px;cursor:pointer}
+.phd .acts button:hover,.pn button.ghost:hover{border-color:var(--wire-on)}.pn button.go{background:var(--amber);border-color:var(--amber);color:#0E0E10}
+.phd input{font:600 var(--t-head)/1.1 var(--display);background:none;color:var(--ink);border:0;border-bottom:1px solid var(--amber);min-width:0;width:min(560px,90vw);padding:2px 0}
+.phd .sure{display:flex;gap:8px;align-items:center;font-size:var(--t-small);color:var(--mute)}
+.pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}.pgrid .tile.w2{grid-column:span 2}.pgrid .tile{min-height:230px}
+.pgrid .tile.w2 .tb{min-height:140px}
+.tile .tw{background:none;border:1px solid var(--wire);color:var(--mute);height:24px;flex:none;cursor:pointer;font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:0 6px}
+.tile .tw[aria-pressed="true"]{color:var(--ink);border-color:var(--wire-on)}
+.pn{padding:4px 16px 16px}.pn label{display:block;font:700 var(--t-cap) var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--mute);margin:14px 0 6px}
+.pn input[type=text]{width:100%;min-height:42px;border:1px solid var(--wire);background:#0A0A0C;color:var(--ink);padding:0 10px;font:var(--t-body) var(--body)}
+.pn input[type=text]:focus{outline:0;border-color:var(--amber)}
+.pn .from{display:grid;gap:6px}.pn .from label{display:flex;gap:10px;align-items:center;margin:0;padding:10px;border:1px solid var(--wire);text-transform:none;letter-spacing:0;font:500 var(--t-small) var(--body);color:var(--ink);cursor:pointer}
+.pn .from label:has(input:checked){border-color:var(--amber)}.pn .from input{accent-color:var(--amber)}.pn .from small{margin-left:auto;font:500 var(--t-cap) var(--mono);color:var(--mute)}
+.pn .row2{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.pn .lim{font-size:var(--t-small);color:var(--mute);margin-top:12px}
+@media (max-width:900px){.bgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.pgrid .tile.w2{grid-column:span 2}}
+@media (max-width:520px){.pgrid .tile.w2{grid-column:auto}}
+/* on a phone the five doors fill the first row, and the pages wrap under them two to a row, the + beside the last */
+@media (max-width:480px){.bar:has(.doors a.pg) .doors a:not(.pg){flex:1 0 calc(20% - 1px);min-width:0;text-align:center;padding-left:4px;padding-right:4px}
+  .bar:has(.doors a.pg) .doors a.pg{flex:1 0 calc(50% - 23px);max-width:none;text-align:center;border-top:1px solid var(--wire);min-height:44px;line-height:30px}
+  .bar:has(.doors a.pg) .doors .pgadd{flex:0 0 44px;border-top:1px solid var(--wire);min-height:44px}}
+@media (max-width:520px){.bgrid{grid-template-columns:minmax(0,1fr)}.fpr{grid-template-columns:9px minmax(0,1fr) 70px;}.fpr .s,.fpr svg{display:none}}
+@media (max-width:640px){.ladder.enc{grid-template-columns:repeat(2,minmax(0,1fr))}.face .hero,.face .todo,.face .nxpart,.face .rcol,.dsec{padding:0 10px 12px}.nh:not(.wnarr>.nh){margin:0 -10px 12px!important;padding:12px 10px!important}}
 </style>
 </head>
 <body>
@@ -828,10 +1255,14 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
        2. The four distances as one quiet line under the drawing, provenance as ink pills (the drawing shows them).
        3. What to do: the Decide card, framed and with its buttons, only while something is asked (`asking`, or a live
           event still asking). Otherwise one plain line, "Nothing is asked now.", with the hour it is usually worst.
-       4. Did it work, then Yesterday (#nremember, admin token only): quiet, no frame.
+          Since 8 Nov one low strip across both columns, under the day's screen and the city's (Tomas: "fully
+          horizontally, small text"); the pack asks and the decide bands sit in it. Since 9 Nov it is one line, and a
+          button unfolds the answers, the pack asks and the decide bands (Tomas: "just one line collapsed").
+       4. Did it work, then Yesterday (#nremember, admin token only): under the strip, across the page (9 Nov).
        5. Next days (Tomas, 4 Nov: the switch "Now · Next days" was a second tab bar under the doors): the rest of today,
-          tomorrow and the day after, a part of Now under What to do. #now/next scrolls to it.
-       6. Around the house: the issues drawn by the hour as rows (Air, Heat), then the stations' map, its caption one line.
+          tomorrow and the day after, under the strip across the page. #now/next scrolls to it.
+       6. Around the house: the issues drawn by the hour as rows (Air, Heat), at the head of the right column; under it
+          the map of the air around, then the Index as the city's local production capacity (9 Nov).
           Land and Coast change yearly and moved to Place, beside the ground.
        7. Also read here, under both columns: the packs' observe bands side by side, each band's source once, its note
           folded under "How this is read".
@@ -845,50 +1276,90 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
   <div class="lcol">
     <div class="hero">
       <section aria-live="polite" data-learn="now-sentence" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="readout"><h1 class="sentence" id="sentence"></h1></section>
+      <div class="scr" data-theme="dark" id="nscr"><div class="ramp" id="nramp" aria-label="The four distances"></div><div class="sbody">
       <section class="fig" data-learn="figure" data-reads="/issues /issues/days" data-stage="observe" data-pack="core" data-kind="series" aria-label="The day and the week">
         <svg id="svg" tabindex="0" role="img" aria-describedby="sentence"></svg>
         <div class="week" id="week" role="group" aria-label="The last seven days" hidden></div>
-      </section>
-      <p class="ladder" id="ladder" data-learn="now-distances" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="stack"></p>
+        <div class="epanel" id="energy" hidden></div>
+      </section></div><p class="sinfo" id="ninfo"></p></div>
+      <p class="ladder enc" id="ladder" data-learn="now-distances" data-reads="/issues" data-stage="observe" data-pack="core" data-kind="stack"></p>
       <p class="nk figfoot"><span id="fighead"></span> <span id="figline"></span></p>
     </div>
+  </div>
+  <div class="rcol">
+    <section class="amod" aria-label="Around the house"><h2 class="nh">Around the house</h2>
+    <aside data-learn="now-rows" data-reads="/issues /issues/days" data-stage="measure" data-pack="core"><div class="rows" id="rows"></div></aside>
+    <p class="fine" id="nthings" data-learn="now-things" data-reads="/things" data-stage="observe" data-pack="core" data-kind="row" hidden></p></section>
+    <section class="amod nmap" aria-labelledby="nmaph"><h2 class="nh" id="nmaph">The air around it</h2>
+      <div class="scr" data-theme="dark"><figure class="around" data-learn="now-around" data-reads="/sensors /stats" data-stage="observe" data-pack="air-quality" data-kind="stack"><div class="sbody" style="padding:10px"><div id="rose"></div></div><p class="sinfo"><span>Air · the stations around it</span><span>PM2.5 now</span></p></figure></div>
+      <p class="fine" id="rosecap"></p></section>
+    <section class="amod ncity" id="ncity" data-learn="now-city" data-reads="/index/place" data-stage="observe" data-pack="index" data-kind="readout" aria-labelledby="ncityh"><h2 class="nh" id="ncityh">Local production capacity in the city</h2>
+      <div class="scr" data-theme="dark"><div class="sbody" id="ncityrow"></div></div></section>
+    <div id="ndecl-measure" hidden></div>
+  </div>
+  <div class="nstrip">
     <section class="todo" id="decide" data-learn="now-todo" data-reads="/issues /actions /alerts" data-stage="decide" data-pack="core" data-kind="readout" aria-label="What to do"></section>
     <div id="asks" hidden></div>
     <div id="ndecl-decide" hidden></div>
-    <section class="nrem" id="nremember" data-learn="now-worked" data-reads="/learned /learned/search /household" data-stage="measure" data-pack="core" data-kind="readout" aria-label="Did it work, and yesterday" hidden></section>
-    <div id="ndecl-measure" hidden></div>
+  </div>
+  <section class="nrem" id="nremember" data-learn="now-worked" data-reads="/learned /learned/search /household" data-stage="measure" data-pack="core" data-kind="readout" aria-label="Did it work, and yesterday" hidden></section>
+  <div class="lcol2">
     <div class="nxpart"><h2 class="nh" id="nexth">Next days</h2>
       <section id="next" data-learn="now-next" data-reads="/forecast" data-stage="observe" data-pack="forecast" data-kind="readout" aria-labelledby="nexth"></section></div>
   </div>
-  <div class="rcol">
-    <h2 class="nh">Around the house</h2>
-    <aside data-learn="now-rows" data-reads="/issues /issues/days" data-stage="measure" data-pack="core"><div class="rows" id="rows"></div></aside>
-    <figure class="around" data-learn="now-around" data-reads="/sensors /stats" data-stage="observe" data-pack="air-quality" data-kind="stack"><div id="rose"></div><figcaption class="fine" id="rosecap"></figcaption></figure>
-    <p class="fine" id="nthings" data-learn="now-things" data-reads="/things" data-stage="observe" data-pack="core" data-kind="row" hidden></p>
-  </div>
   <section class="alsoread" id="alsoread" aria-labelledby="alsoh" hidden><h2 class="nh" id="alsoh">Also read here</h2><div class="alsog" id="ndecl-observe"></div></section>
+  <section class="board" id="board" data-board="now" aria-labelledby="boardh" data-reads="/stats /readings /issues /packs" data-stage="observe" data-pack="core" data-kind="series">
+    <h2 class="nh" id="boardh">Your board</h2><p class="bnote"></p><div class="bgrid"></div></section>
 </main>
+<dialog id="feedpick" class="feedpick" aria-labelledby="fph">
+  <div class="fphead"><b id="fph">Add a feed to the board</b><button type="button" class="fpx" id="fpclose" aria-label="Close">×</button></div>
+  <input type="search" id="fpq" placeholder="Search feeds, sensors, packs" aria-label="Search feeds">
+  <div class="fpbody" id="fpbody"></div>
+</dialog>
 
+<!-- A PAGE OF THE HOUSEHOLD'S OWN (Field Synthesizer variation, round 4): #p/<id>, made with the + after the doors -->
+<section class="page view" data-view="p" hidden><div id="pagev"></div></section>
+<dialog id="pagenew" class="feedpick" aria-labelledby="pnh">
+  <div class="fphead"><b id="pnh">A new page</b><button type="button" class="fpx" id="pnclose" aria-label="Close">×</button></div>
+  <div class="fpbody" id="pnbody"></div>
+</dialog>
 <!-- PLACE -->
 <section class="page view" data-view="place" hidden>
   <div class="phead"><div id="placehead" data-learn="place-head" data-reads="/health /issues" data-stage="observe" data-pack="place"></div>
-    <div class="prow"><form id="pask" class="pask"><label class="vh" for="paskq">Ask the node about this place</label><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14v10H8l-4 3v-3H3z"/></svg><input id="paskq" autocomplete="off" placeholder="Ask about this place"><kbd>/</kbd></form><span id="paddimg"></span></div></div>
+    <div class="prow"><form id="pask" class="pask"><label class="vh" for="paskq">Ask the node about this place</label><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14v10H8l-4 3v-3H3z"/></svg><input id="paskq" autocomplete="off" placeholder="Ask about this place"><kbd>/</kbd></form><div class="ptools" data-learn="place-tools" data-reads="/geo/rings /geo/measure /geo/cell /area" data-stage="observe" data-pack="core"><button type="button" id="ptoolsb" class="ptoolsb" aria-expanded="false" aria-controls="ptools">Tools</button><div id="ptools" class="ptmenu" role="group" aria-label="Tools" hidden></div></div></div></div>
   <div class="bench">
     <nav id="cake" aria-label="What this place is made of" data-learn="place-layers" data-reads="/health /issues /packs" data-stage="observe" data-pack="place"></nav>
+    <button type="button" class="pfold" data-fold="lc" aria-controls="cake" aria-expanded="true" aria-label="Hide the layers" title="Hide the layers · ["><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M9 3L5 7l4 4"/></svg><span>layers</span></button>
     <div class="pmid">
-      <div class="mapc" data-learn="place-map" data-reads="/place/geojson /sensors /issues" data-stage="observe" data-pack="place"><div class="mapw"><div id="mapbar"></div><div id="map"></div><div id="phour" class="phour"></div><svg id="pedges" aria-hidden="true"></svg><p id="mapcredit"></p>
-        <div class="altc" hidden data-learn="place-orbit" data-reads="/earth" data-stage="observe" data-pack="earth"><div id="altbar"></div><div id="mapalt"></div></div></div></div>
-      <div class="psbar"><button data-s="cake" aria-expanded="false" aria-controls="cake">Layers</button><button data-s="tools" aria-expanded="false" aria-controls="ptools">Tools</button></div>
+      <div class="mapc" data-learn="place-map" data-reads="/place/geojson /sensors /issues" data-stage="observe" data-pack="place"><div class="mapw"><div id="mapbar"></div><div id="map"></div><div id="phour" class="phour"></div><svg id="pedges" aria-hidden="true"></svg><p id="mapcredit"></p></div></div>
+      <div class="psbar"><button data-s="cake" aria-expanded="false" aria-controls="cake">Layers</button></div>
       <div id="facts" class="inspect" aria-live="polite"></div>
       <aside id="pmargin" aria-label="Around the house"></aside>
     </div>
-    <aside id="ptools" aria-label="Tools" data-learn="place-tools" data-reads="/geo/rings /geo/measure /geo/cell" data-stage="observe" data-pack="core"></aside>
     <details id="spd" class="spd"><summary>the list</summary><section id="pspecies" class="pspecies" data-learn="place-species" data-reads="/species /captures" data-stage="observe" data-pack="core"></section></details>
   </div>
   <dialog id="imgdlg" class="imgdlg" aria-label="Add an image"></dialog>
+  <section class="board pboard" data-board="place" data-reads="/stats /readings /observations /packs" data-stage="observe" data-pack="core" data-kind="series"><h2 class="nh">The place’s board</h2><p class="bnote"></p><div class="bgrid"></div></section>
+  <section class="pyears" aria-label="What changed"><div id="pchange" data-learn="place-orbit" data-reads="/earth /history" data-stage="observe" data-pack="earth"></div></section>
   <div class="plow">
-    <section id="ptable" aria-label="Selected"><h3 class="pmh">selected</h3><p class="fine">When a tool runs, what it returns is listed here, a row for each thing it found.</p></section>
-    <section id="pfigures" data-learn="place-changing" data-reads="/issues /cells /sources" data-stage="observe" data-pack="core"></section>
+    <section id="pfigures" aria-label="The place in figures" data-learn="place-changing" data-reads="/issues /cells /sources" data-stage="observe" data-pack="core"></section>
+  </div>
+  <!-- THE REPORT, OFFERED (SPEC_place_report §12): the last block of Place says what the report is and opens it -->
+  <section id="preportfoot" class="prf" aria-labelledby="prfh">
+    <h2 id="prfh">The Place report</h2>
+    <div class="prfb">
+      <p class="prfl">This place on paper, to hand to the neighbours, the council or a funder.</p>
+      <p>A plan of the map as you have it on screen. A reading of the place, with ways to improve it. Its figures, what the node holds and what it does not, what changed year on year, and the sources.</p>
+      <p id="prfhow">Your browser prints it or saves it as a PDF. Nothing is sent anywhere, and the house is drawn as a blurred cell.</p>
+    </div>
+    <div class="prfa"><button type="button" class="ybtn" data-prf="paper">Open the report</button><button type="button" class="ybtn" data-prf="screen">Dark version</button><p id="prfwho" class="fine"></p></div>
+  </section>
+  <!-- THE PLACE REPORT (SPEC_place_report §3): #place/report, the sheet to print or save as PDF -->
+  <div id="preport" class="preport" hidden>
+    <div class="prbar"><div class="reg" role="group" aria-label="Register of the map on the sheet"><button type="button" data-reg="paper" aria-pressed="true">Paper</button><button type="button" data-reg="screen" aria-pressed="false">Screen</button></div>
+      <button type="button" id="prprint" class="ybtn">Print or save as PDF</button><button type="button" id="prwrite" class="ybtn" hidden>Write a fuller reading</button><a href="#place">Back to Place</a>
+      <p id="prnote" class="fine" role="status" hidden></p></div>
+    <div id="psheets" class="psheets"></div>
   </div>
 </section>
 
@@ -915,7 +1386,7 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 </section>
 
 <!-- WALL -->
-<section class="view" data-view="wall" hidden><div id="wallv" data-learn="wall-never" data-reads="/health /issues /stats" data-stage="observe" data-pack="core"></div></section>
+<section class="view" data-view="wall" hidden><div id="wallv" data-learn="wall-never" data-reads="/health /issues /wall" data-stage="observe" data-pack="core"></div></section>
 
 <!-- SET UP: a page of its own, opened by the gear (doors-setup.js) -->
 <section class="page view" data-view="setup" hidden><div id="setupv2"></div></section>
@@ -924,7 +1395,9 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 <section class="page view" data-view="node" hidden>
   <div id="nodehead" data-learn="node-verdict" data-reads="/health" data-pack="core"></div>
   <h2>What comes in, what goes out</h2>
-  <div id="flow" data-learn="node-flow" data-reads="/health /sensors /stats /alerts /actions /rho /cells" data-pack="core" data-kind="row"></div><p class="fine" id="flownote"></p>
+  <div class="scr" data-theme="dark" id="fscr"><div class="ramp" id="framp" aria-label="What comes in, what goes out, counted"></div>
+  <div id="flow" data-learn="node-flow" data-reads="/health /sensors /stats /alerts /actions /rho /cells" data-pack="core" data-kind="row"></div><p class="sinfo" id="finfo"></p></div><p class="fine" id="flownote"></p>
+  <section class="board pboard" data-board="node" data-reads="/stats /readings /observations /packs" data-stage="observe" data-pack="core" data-kind="series"><h2 class="nh">This machine’s board</h2><p class="bnote"></p><div class="bgrid"></div></section>
   <section id="cells" data-learn="node-cells" data-reads="/cells" data-stage="measure" data-pack="core" data-kind="row"></section>
   <section id="remember" data-learn="node-remember" data-reads="/learned /learned/search /household" data-stage="measure" data-pack="core" data-kind="row" aria-label="What it remembers"></section>
   <h2>The nodes around it</h2>
@@ -973,6 +1446,8 @@ button.tl{cursor:pointer}button.tl:hover:not(:disabled):not(.on){background:var(
 <script src="/static/doors-fig.js"></script>
 <script src="/static/doors-now.js"></script>
 <script src="/static/doors-cake.js"></script>
+<script src="/static/doors-draw.js"></script>
+<script src="/static/doors-sheet.js"></script>
 <script src="/static/doors-placemap.js"></script>
 <script src="/static/doors-place.js"></script>
 <script src="/static/doors-data.js"></script>

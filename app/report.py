@@ -113,7 +113,7 @@ SERIES_SQL = """
 WITH win AS (
   SELECT r.sensor_id, r.metric, r.bucket, r.mean, r.min AS lo, r.max AS hi, r.n
     FROM readings_1h r
-   WHERE r.bucket > now() - make_interval(hours => %(h)s) AND """ + packs.public_sql("r") + """
+   WHERE r.bucket > now() - make_interval(hours => %(h)s) AND """ + packs.public_sql("r") + " AND " + packs.open_sql("r") + """
 ), agg AS (
   SELECT sensor_id, metric, min(bucket) AS t0, max(bucket) AS t1,
          min(lo) AS lo, max(hi) AS hi, sum(n)::int AS n,
@@ -189,7 +189,7 @@ NOW_SQL = """
 SELECT sensor_id, name, metric, indoor, local, kind,
        round(last::numeric, 2) AS last, round(mean_15m::numeric, 2) AS mean_15m,
        round(mean_1h::numeric, 2) AS mean_1h, round(silent_minutes) AS silent_minutes
-  FROM stats WHERE """ + packs.public_sql("stats") + """ ORDER BY local DESC, indoor DESC, sensor_id, metric
+  FROM stats WHERE """ + packs.public_sql("stats") + " AND " + packs.open_sql("stats") + """ ORDER BY local DESC, indoor DESC, sensor_id, metric
 """
 
 PREV_SQL = "SELECT id, ts, text, cells, window_hours, held_quiet FROM reports WHERE sent ORDER BY ts DESC LIMIT 1"
@@ -325,14 +325,16 @@ def bundle(cur, hours: int, held_hours: int = 0) -> dict:
         b["rules"] = []
         log.warning("pack rules unavailable for the report: %s", e)
 
-    # packs/make, when it is on. One row, the nearest, read straight out of what the pack stored so the
-    # report cannot disagree with the database about which lab is closest. Absent when no pack has run:
-    # the report then simply has nothing to say about where to go, which is honest.
+    # packs/make, when it is on. One row, the nearest, read out of what the pack stored. Absent when no pack has
+    # run: the report then simply has nothing to say about where to go, which is honest. Its distance is from the
+    # cell's centre (main._public_rows), not the house: /report/latest serves this sentence to any reader at
+    # SHARE_LEVEL=open, and two labs' distances to 0.1 km cross at the house (R25).
     try:
-        fac = index.run_ro(cur, """SELECT name, meta FROM sensors
-                                   WHERE kind = 'facility' AND source = 'fablabs-io'
-                                   ORDER BY (meta->>'distance_km')::float NULLS LAST LIMIT 1""", {})
-        b["facility"] = ({"name": fac[0]["name"], "meta": fac[0]["meta"]} if fac else None)
+        import main  # noqa: PLC0415 — main imports this module
+        fac = main._public_rows(index.run_ro(cur, """SELECT name, lat, lon, local, kind, meta FROM sensors
+                                                     WHERE kind = 'facility' AND source = 'fablabs-io'""", {}))
+        fac = min(fac, key=lambda r: (r["meta"] or {}).get("distance_km", 1e9), default=None)
+        b["facility"] = ({"name": fac["name"], "meta": fac["meta"]} if fac else None)
     except Exception as e:  # noqa: BLE001
         b["facility"] = None
         log.warning("facilities unavailable for the report: %s", e)

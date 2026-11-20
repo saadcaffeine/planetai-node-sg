@@ -94,6 +94,7 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 #results .none { padding: 10px; color: var(--mute); font-size: 13px; }
 .links { display: flex; align-items: center; gap: 14px; font: 500 13.5px/1 var(--fc-font-body); }
 .links a { color: var(--ink); }
+.links a.start { font-weight: 700; }
 button.theme, button.menu {
   font: 500 13.5px/1 var(--fc-font-body);
   color: var(--ink); background: none;

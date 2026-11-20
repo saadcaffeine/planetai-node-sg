@@ -27,7 +27,7 @@ function dayWeek(o) {
   const defs = svg.append('defs');
   defs.append('pattern').attr('id', 'hatch-' + uid).attr('patternUnits', 'userSpaceOnUse').attr('width', 6).attr('height', 6).attr('patternTransform', 'rotate(45)')
     .append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6).attr('stroke', 'currentColor').attr('stroke-width', 1).attr('opacity', .28);
-  svg.style('color', getComputedStyle(document.body).color);
+  svg.style('color', getComputedStyle(svg.node().parentNode).color);   /* its screen's ink on a dark screen (evolution variation) */
   // y grid and values on the right (Apple Weather)
   for (const t of y.ticks(4)) {
     g.append('line').attr('x1', m.l).attr('x2', m.l + iw).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', 'var(--hair)');
@@ -114,10 +114,9 @@ function dayWeek(o) {
       const j = D.at[dt + '|' + h]; if (j == null) continue;
       const v = sd[j], over = it.line != null && v != null && v > it.line;
       g.append('rect').attr('x', x(h) + 1).attr('y', yy + 1).attr('width', x(h + 1) - x(h) - 2).attr('height', rowH - 2)
-        .attr('fill', v == null ? `url(#hatch-${uid})` : 'currentColor').attr('opacity', v == null ? 1 : over ? .9 : shade(v))
+        .attr('fill', v == null ? `url(#hatch-${uid})` : over ? 'var(--signal-worse)' : 'currentColor').attr('opacity', v == null ? 1 : over ? 1 : .06 + shade(v) * .5)   /* a sequencer step (Field Synthesizer variation) */
         .style('cursor', 'pointer').on('click', () => o.pick && o.pick(j));
       /* over the line: an ink cell with a red tick on top, never a red fill (the layer) */
-      if (over) g.append('rect').attr('x', x(h) + 1).attr('y', yy + 1).attr('width', x(h + 1) - x(h) - 2).attr('height', 2.5).attr('fill', 'var(--signal-worse)').attr('pointer-events', 'none');
     }
     g.append('text').attr('x', m.l + iw + 8).attr('y', yy + rowH - 3).attr('class', pd && pd.over ? 'lab' : '').text(pd ? (pd.over ? `${pd.over} h` : '0') : '');
     if (dt === date) g.append('rect').attr('x', m.l).attr('y', yy).attr('width', iw).attr('height', rowH).attr('fill', 'none').attr('stroke', 'currentColor').attr('stroke-width', 1.5);

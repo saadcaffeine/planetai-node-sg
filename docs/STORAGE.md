@@ -1,5 +1,5 @@
 # Where the data lives
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 `planetai storage` shows all of this on one screen. `GET /storage`, for a token or this machine at every
 `SHARE_LEVEL`, gives the sizes as numbers: the database, `out/`, the backups (and what `BACKUP_KEEP` days of dumps
@@ -41,10 +41,12 @@ planetai restore backups/bayu-ungasan-2026-09-05.sql.gz  # replaces the database
 `planetai restore` asks you to type the node's name before it replaces anything.
 
 A dump holds readings, sensors, alerts, alert events and actions, and the rows of what the house learned, the
-things it keeps and its pictures. The picture files themselves stay in `CAPTURES_DIR`. A dump does not hold the
+things it keeps and its pictures, the maps and drawings made on Place and the cells the node claimed, and the public keys of the nodes pushing to it. The picture files themselves stay in `CAPTURES_DIR`. A dump does not hold the
 rows of the `settings` table (the dashboard's values, a Telegram token saved from Set up): `backup.sh` leaves them
 out so no token travels to a NAS or a remote. After a restore the node runs on `.env`; `planetai telegram`
-reconnects the bot if it was set from the dashboard. Alert texts name places and numbers, so treat every dump and
+reconnects the bot if it was set from the dashboard. Nor does a dump hold `.env`, which has the database password
+and `NODE_KEY`, the node's identity (docs/SPEC_identity.md): keep a copy of it somewhere that is not the backup share.
+Restored with its `.env`, a node on a new machine is the same node; without it, it is a new one. Alert texts name places and numbers, so treat every dump and
 every remote as private anyway.
 
 ## A NAS that pulls
@@ -85,8 +87,8 @@ infrastructure. rclone's `crypt` backend encrypts the copy if you want that.
 `/export?day=YYYY-MM-DD`, written every night to `exports/<node>/`: the hourly mean, min and max per sensor and
 metric, the Index cells, the alerts (first line only), ρ, and, while the `things` pack is on, the household's offers (class, name,
 condition and count at the cell). Your own sensors are named by role (`indoor-1`, `outdoor-2`), never by device id. The position
-is the centre of the node's resolution-8 cell, not its point. No raw rows, no tokens, no chat ids. CC BY 4.0,
-stated in the file.
+is the centre of the node's resolution-8 cell, not its point. No raw rows, no tokens, no chat ids. A source whose terms are not open stays out: the Menorca grid mix from Red Eléctrica
+is on the node's page and to its bot, and is never in the file. CC BY 4.0, stated in the file.
 
 This is what a parent node, the Index, a researcher or the commons should receive. The node keeps the raw readings
 and gives away the aggregate.

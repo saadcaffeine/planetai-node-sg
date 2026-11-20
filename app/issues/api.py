@@ -49,11 +49,11 @@ def issues_now(request: Request = None):
         # `mesh_state` and `MQTT_HOST` are `app/main.py`'s own module-level names, already used by its
         # `/health` route — reading them here costs no query and no network call (Ruling P3: /issues
         # never makes a network call, so the Reticulum bridge's peer list is Task 4's problem, not this
-        # one's). `place` is left to default to the node's own coordinates.
+        # one's). `place` is the node's own coordinates for a token, the cell's centre without one (below).
         # The facility rows the `make` pack stores. One query, on the cursor already open, and only
         # what the pack's own sentence needs — a place has no readings, so it is in neither `stats`
         # nor the five reads the engine makes.
-        cur.execute("SELECT sensor_id, name, meta FROM sensors WHERE kind = 'facility'")
+        cur.execute("SELECT sensor_id, name, lat, lon, local, kind, meta FROM sensors WHERE kind = 'facility'")
         facilities = [dict(r) for r in cur.fetchall()]
         # The alert events block. A node whose events cannot be read still draws every issue: the block then
         # carries the reason, which is a different fact from a node too old to have events (SPEC §5).
@@ -70,10 +70,32 @@ def issues_now(request: Request = None):
         # ask.py calls this with no request to build a model's context, which a tokenless pane or the Wall may speak
         # from: that caller gets the nameless body too. Without the default, /ask answered 500 (node #1, 14 Oct).
         trusted = request is not None and bool(getattr(request.state, "share_trusted", False))
-        out = engine.compute(cur, main.settings, load(), earth=_earth(),
+        place = public = None
+        lat, lon = float(main.settings.get("NODE_LAT", 0) or 0), float(main.settings.get("NODE_LON", 0) or 0)
+        if not trusted and (lat or lon):
+            # R25: without a token every distance is from the cell's centre, the house's own sensors stand at the
+            # point /health publishes, and the stations and the lab are the ones any point of the cell would keep.
+            place = main.ground.centre(lat, lon)[:2]
+            facilities = main._public_rows(facilities)
+            public = unplaced
+        out = engine.compute(cur, main.settings, load(), earth=_earth(public=not trusted), place=place, public=public,
                              mesh=main.mesh_state if main.MQTT_HOST else None,
                              facilities=facilities, now=now, events=events if trusted else nameless(events))
         return out if trusted else nameless(out)
+
+
+def unplaced(stations: list[dict], place: tuple[float, float]) -> list[dict]:
+    """/issues' stations for a reader without a token (R25): main._public_rows' ring, and the house's own at the point
+    /health publishes, `km` measured from `place` (the cell's centre) to there."""
+    import h3                      # noqa: PLC0415
+    import main                    # noqa: PLC0415
+    out = []
+    for s in main._public_rows(stations):
+        if s.get("local"):
+            la, lo = main._own_point(s)
+            s = {**s, "lat": la, "lon": lo, "km": round(h3.great_circle_distance(place, (la, lo), unit="km"), 1)}
+        out.append(s)
+    return out
 
 
 def nameless(body: dict | None) -> dict | None:
@@ -111,14 +133,15 @@ def issues_days(days: int = Query(7, ge=1, le=engine.DAYS_MAX), locale: str = Qu
         return engine.days(cur, main.settings, load(), days, loc=locale)
 
 
-def _earth():
+def _earth(public: bool = True):
     """`/earth`'s body, or None. The earth pack's record has exactly one reader in this repo and it
     is that pack's own `earth()` (packs/earth/routes.py); land's region column asks it rather than opening the
-    pack's files again, and gets None while the pack is off."""
+    pack's files again, and gets None while the pack is off. A stranger's /issues reads the public square's
+    numbers: the cached square's would place the house (packs/earth/adapter.py, PUBLIC_MARGIN_M)."""
     import packs                   # noqa: PLC0415
     try:
         mod = packs.module("earth", "routes")
-        return mod.earth() if mod else None
+        return mod.earth(public) if mod else None
     except Exception as e:  # noqa: BLE001
         log.warning("issues: /earth did not answer (%s: %s) — land falls back", type(e).__name__, str(e)[:120])
         return None

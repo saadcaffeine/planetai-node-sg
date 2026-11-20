@@ -66,3 +66,7 @@
 - { source: meshtastic, metric: current,          role: device_health,  comparable: false, unit: "mA" }
 
 - { source: open-meteo-cams, metric: pm25_model, role: derived, comparable: false, unit: "µg/m³" }
+
+# Place maps (the household's drawings): counts and the area they mark off. Used here, never exported or read by an agent.
+- { source: place, metric: marks,          role: private, comparable: false, unit: "count" }
+- { source: place, metric: marked_area_m2, role: private, comparable: false, unit: "m²" }

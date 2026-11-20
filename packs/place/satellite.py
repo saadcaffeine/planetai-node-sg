@@ -2,7 +2,7 @@
 
 Two datasets, both open (CC BY 4.0), both behind the Earth Engine credentials the earth-engine pack already uses:
   V3 polygons   GOOGLE/Research/open-buildings/v3/polygons        footprints detected from imagery, with a confidence
-  Temporal v1   GOOGLE/Research/open-buildings-temporal/v1        yearly presence, count and height, 2016-2023, 4 m
+  Temporal v1   GOOGLE/Research/open-buildings-temporal/v1        yearly presence, count and height, 2016-2023, 0.5 m pixels (4 m effective)
 
 Footprints go into PostGIS beside the OpenStreetMap ones, so the node can say how many buildings the satellite sees
 and how many the map has. The yearly series becomes readings dated 1 July of each year: the place's growth, in numbers.
@@ -85,16 +85,29 @@ def footprints(ee, con, lat, lon, radius_m, min_confidence=0.65):
     return len(rows), conf
 
 
+NATIVE_M2 = 0.25    # every band of the Temporal dataset is a 0.5 m pixel; 4 m is what the model resolves, not the grid
+
+
 def yearly(ee, lat, lon, radius_m):
-    """Open Buildings Temporal: per year, the building count (sum of fractional counts) and the mean height where
-    presence > 0.5, inside the radius. Returns [(year, count, height_m)]."""
+    """Open Buildings Temporal: per year, the building count and the mean height where presence > 0.5, inside the
+    radius. Returns [(year, count, height_m)].
+
+    The count band holds a fraction of a building on each 0.5 m pixel, and Earth Engine's pyramid for it is the mean:
+    read at 4 m, one pixel carries the mean of the 64 under it, and a bare sum is 64 times low. Google's example
+    script ("How to compute building count for a given AOI", on the catalog page) multiplies the sum by
+    (scale × 2)², "to recover sum at original 50cm resolution". Here each pixel is multiplied by its own area over
+    0.25 m² before the sum, which is the same count on a square 4 m pixel and holds on the pixel Earth Engine really
+    reduces on: a mosaic is read in EPSG:4326, whose pixels narrow with latitude. Until 18 Nov 2026 this was the bare
+    sum, and node #1 read 128 buildings in the circle where the footprints count 5994. A series whose last year is
+    several times off the footprints is this band misread, and must not be shown: `verify` says so, and app/reading.py
+    does not hold it."""
     circle = ee.Geometry.Point([lon, lat]).buffer(radius_m)
     coll = ee.ImageCollection(TEMPORAL).filterBounds(circle)
     out = []
     epochs = coll.aggregate_array("inference_time_epoch_s").distinct().getInfo()
     for ep in sorted(epochs):
         img = coll.filter(ee.Filter.eq("inference_time_epoch_s", ep)).mosaic()
-        count = img.select("building_fractional_count").reduceRegion(ee.Reducer.sum(), circle, 4, maxPixels=1e9).getInfo().get("building_fractional_count")
+        count = img.select("building_fractional_count").multiply(ee.Image.pixelArea()).divide(NATIVE_M2).reduceRegion(ee.Reducer.sum(), circle, 4, maxPixels=1e9).getInfo().get("building_fractional_count")
         h = img.select("building_height").updateMask(img.select("building_presence").gt(0.5)).reduceRegion(ee.Reducer.mean(), circle, 4, maxPixels=1e9).getInfo().get("building_height")
         year = datetime.fromtimestamp(int(ep), timezone.utc).year
         if count is not None:
@@ -102,14 +115,3 @@ def yearly(ee, lat, lon, radius_m):
     log.info("place: Open Buildings Temporal %s", [(y, round(c)) for y, c, _ in out])
     return out
 
-
-def yearly_crosscheck(ee, lat, lon, radius_m):
-    """A second estimate of the latest year's count, independent of the fractional-count band: built area where presence
-    > 0.5, in m², and the same area divided by 120 m² (a typical Bukit footprint). If this disagrees with yearly() by more
-    than a few times, yearly() is misreading the band and the series must not be shown."""
-    circle = ee.Geometry.Point([lon, lat]).buffer(radius_m)
-    coll = ee.ImageCollection(TEMPORAL).filterBounds(circle)
-    latest = coll.aggregate_array("inference_time_epoch_s").reduce(ee.Reducer.max()).getInfo()
-    img = coll.filter(ee.Filter.eq("inference_time_epoch_s", latest)).mosaic()
-    area = img.select("building_presence").gt(0.5).multiply(ee.Image.pixelArea()).reduceRegion(ee.Reducer.sum(), circle, 4, maxPixels=1e9).getInfo().get("building_presence")
-    return float(area or 0), float(area or 0) / 120.0

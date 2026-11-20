@@ -10,6 +10,7 @@ status: live
 license: CC-BY-4.0
 api: null
 pilot_relevance: [global]
+places: [charlotte]
 tags: [land-cover, forest-cover, raster-10m, cog, sentinel, geospatial]
 added: 2026-09-09
 feeds_cells: [Environmental|Bioregion]
@@ -25,3 +26,6 @@ notes: |
   scale as well as bioregion. Attribution string: (c) ESA WorldCover
   project [year] / Contains modified Copernicus Sentinel data ([year])
   processed by ESA WorldCover consortium.
+
+  CHARLOTTE, read 2026-11-05: tile N33W081 (2021 v200), central box 35.18-35.27N 80.90-80.79W: tree cover
+  53.5%, built-up 35.3%, grassland 9.1%.

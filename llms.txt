@@ -16,6 +16,7 @@ the files themselves.
 
 - [AGENTS.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/AGENTS.md): the front door for an agent — the routing table, the two ways in, and the invariants that must not be broken.
 - [README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/README.md): what a node is, what it does, and the one line that installs it.
+- [docs/site/quickstart.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/site/quickstart.md): a node in six steps on one page, each with the command block and the docs page that goes deeper.
 - [docs/START_HERE.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/START_HERE.md): the human walk-through — which machine, the install, the first ten minutes, and the table of everything that has broken on a real node.
 
 ## Skills
@@ -84,16 +85,6 @@ the files themselves.
 - [docs/BETA_TESTER_GUIDE.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/BETA_TESTER_GUIDE.md): what a beta tester is being asked to do and what to report.
 - [docs/FAB26_EXPERIMENT.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/FAB26_EXPERIMENT.md): the nodes built at the FAB26 workshop, and what we want to learn from them by December.
 - [docs/ARM64.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/ARM64.md): the test plan for the first node on a Raspberry Pi or other arm64 board.
-
-## History — what was true then, not now
-
-Everything in docs/archive/ is a record: reviews, handoffs and plans from September 2026. Do not follow an
-instruction there without checking it against main. [docs/archive/README.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/README.md) explains the folder.
-
-- [docs/archive/reviews/AGENT_READY_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/AGENT_READY_2026-09.md): the strategy this agent-facing layer implements, and the risks it accepts.
-- [docs/archive/reviews/CODE_REVIEW_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/CODE_REVIEW_2026-09.md): a full read of the code with the findings that were acted on.
-- [docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md): how the node decides what is worth saying.
-- [docs/archive/handoffs/HANDOFF_trust.md](https://raw.githubusercontent.com/fabcity/planetai-node/main/docs/archive/handoffs/HANDOFF_trust.md): how the node says how much to trust a number.
 
 ## Optional
 

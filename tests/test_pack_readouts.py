@@ -31,7 +31,7 @@ ISSUES = tmp / "issues"; ISSUES.mkdir()
 for _f in sorted((ROOT / "packs").glob("*/issue.yml")):
     shutil.copy(_f, ISSUES / f"{_f.parent.name}.yml")
 FILES = I.load(ISSUES)
-assert set(FILES) == {"air", "heat", "coast", "land", "water"}, set(FILES)
+assert set(FILES) == {"air", "heat", "coast", "land", "water", "energy"}, set(FILES)
 LABEL = {"en": "NEA PSI", "id": "PSI NEA", "es": "PSI de NEA"}
 
 

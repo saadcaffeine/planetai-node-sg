@@ -210,6 +210,14 @@ def public_sql(alias: str = "r") -> str:
             f"WHERE ps.sensor_id = {alias}.sensor_id AND pc.metric = {alias}.metric AND pc.role = 'private')")
 
 
+def open_sql(alias: str = "r") -> str:
+    """SQL: this row's sensor may be republished as open data. A sensor whose source is not open says so in
+    `sensors.meta.licence` ('non-commercial': REE on the Balearic grid, ruled 9 Nov 2026). It shows on the node's own
+    page and to its bot, which the source allows, and stays out of the daily export and the report bundle."""
+    return (f"NOT EXISTS (SELECT 1 FROM sensors ls WHERE ls.sensor_id = {alias}.sensor_id "
+            f"AND ls.meta->>'licence' = 'non-commercial')")
+
+
 def channels() -> list[dict]:
     """Channel role declarations: core's own, then every enabled pack's. A pack may not redeclare a pair core has
     already claimed; the first declaration wins and the duplicate is logged, so a merged pack cannot quietly

@@ -42,12 +42,12 @@ for (const locale of ['en', 'es', 'id']) {
     $: q => (els[q] ||= { hidden: true, innerHTML: '', querySelector: () => null }) };
   vm.createContext(ctx);
   vm.runInContext(['esc', 'WD', 'loc', 'dayOf', 'dLabel', 'wdhm', 'said'].map(pick).join('\n') + '\n'
-    + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + 'var got = asksFrom(D.alerts, D.actions, Date.now()); drawAsks();', ctx);
+    + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + 'function stripFold() {}\n' + 'var got = asksFrom(D.alerts, D.actions, Date.now()); drawAsks();', ctx);
   out[locale] = { got: ctx.got, html: els['#asks'].innerHTML, hidden: els['#asks'].hidden };
 }
 const empty = { innerHTML: '', hidden: true, querySelector: () => null }, c2 = { D: { tz: 'Asia/Makassar', locale: 'en', alerts: [], actions: [] }, doorsLocal: L.doorsLocal, Date, $: () => empty };
 vm.createContext(c2);
-vm.runInContext(['esc', 'WD', 'loc', 'dayOf', 'dLabel', 'wdhm', 'said'].map(pick).join('\n') + '\n' + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + 'drawAsks();', c2);
+vm.runInContext(['esc', 'WD', 'loc', 'dayOf', 'dLabel', 'wdhm', 'said'].map(pick).join('\n') + '\n' + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + 'function stripFold() {}\n' + 'drawAsks();', c2);
 out.none = empty;
 console.log(JSON.stringify(out));
 """
@@ -77,6 +77,14 @@ assert r2.returncode == 0, r2.stderr[-2000:]
 o2 = json.loads(r2.stdout)
 assert ">Voy</span></button>" in o2["es"]["html"] and ">Going</span></button>" in o2["id"]["html"] and ">Going</span></button>" in o2["en"]["html"], o2
 print("  a button says the page's locale, else English: never a dict")
+
+# a drawing tied to the alert on Place answers it with choice "place.mark:<id>": Now says so in words, never the key
+tied = [{"ts": "2026-11-03T08:10:00+08:00", "alert_id": 1, "stage": "acted", "actor": "<b>ana</b>", "note": "dug a swale", "choice": "place.mark:12"}]
+r3 = subprocess.run(["node", "-e", prog, json.dumps([[ALERTS[0]], tied, NOW])], capture_output=True, text=True, cwd=ROOT)
+assert r3.returncode == 0, r3.stderr[-2000:]
+h3 = json.loads(r3.stdout)["en"]["html"]
+assert "answered: a drawing on Place by &lt;b&gt;ana&lt;/b&gt; at 08:10 · “dug a swale”" in h3 and "place.mark" not in h3, h3
+print("  a drawing tied to the alert reads as a drawing on Place, never place.mark:12")
 
 assert {k: out["none"][k] for k in ("innerHTML", "hidden")} == {"innerHTML": "", "hidden": True}, out["none"]
 print("  nothing asked (or no token, so no /alerts): #asks stays hidden and empty")
@@ -116,10 +124,12 @@ const pick = n => core.match(new RegExp('^const ' + n + ' = .*$', 'm'))[0], fn =
 const [alerts] = JSON.parse(process.argv[1]), out = [];
 const typing = { id: 'input' }, form = { note: { value: '' }, contains: e => e === typing };
 const el = { hidden: true, innerHTML: '', open: false, querySelector: q => q === 'form' && el.open ? form : null };
-const ctx = { D: { tz: 'Asia/Makassar', locale: 'en', alerts, actions: [] }, doorsLocal: L.doorsLocal, $: () => el, document: { activeElement: null } };
+// the fixture's alerts are dated 3 Nov 2026 and asksFrom drops anything 72 h old, so the clock is pinned as above
+const ctx = { D: { tz: 'Asia/Makassar', locale: 'en', alerts, actions: [] }, doorsLocal: L.doorsLocal, $: () => el, document: { activeElement: null },
+  Date: Object.assign(class extends Date {}, { now: () => Date.parse('2026-11-03T09:00:00+08:00') }) };
 vm.createContext(ctx);
 vm.runInContext(['esc', 'WD', 'loc', 'dayOf', 'dLabel', 'wdhm', 'said'].map(pick).join('\n') + '\n'
-  + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + fn(now, 'askTaken'), ctx);
+  + fn(now, 'asksFrom') + fn(now, 'packWord') + fn(now, 'drawAsks') + 'function stripFold() {}\n' + fn(now, 'askTaken'), ctx);
 const snap = () => out.push({ html: el.innerHTML, hidden: el.hidden, n: ctx.D.actions.length });
 vm.runInContext('drawAsks()', ctx); snap();                                             // 0: the alert, both rows
 vm.runInContext("askTaken('1', 'why', 'ibu')", ctx);                                    // the press was taken

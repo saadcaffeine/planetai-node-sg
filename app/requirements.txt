@@ -13,3 +13,6 @@ h3==4.*
 python-multipart==0.0.*
 pillow==11.*
 pillow-heif==1.*
+# the node's key (docs/SPEC_identity.md): Ed25519, to sign what it pushes to its parent and check what its children push.
+# Already in most images through a pack's google-auth; named here so a clean node has it. Wheels only.
+cryptography>=42

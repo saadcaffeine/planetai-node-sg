@@ -93,12 +93,16 @@ def _buckets(cur) -> dict:
 
     `sensors` and `children` are for `min_sensors` (see `cells`): one child reporting is one household's
     kitchen, and a cell that says `live` off one kitchen is the same lie as a model claiming it.
+
+    PUBLIC channels only. A `private` reading (the things pack's counts, the daily count of what was drawn) sits on a
+    sensor that is local, so it has custody, and counting it would make one real sensor read as two and lift the guard
+    above. No private number is an instrument measuring the air.
     """
     cur.execute("""SELECT count(*) AS n, count(DISTINCT r.sensor_id) AS sensors,
                           count(DISTINCT split_part(r.sensor_id, '/', 1))
                             FILTER (WHERE s.kind = 'child') AS children
                    FROM readings_1h r JOIN sensors s USING (sensor_id)
-                   WHERE s.custody AND r.bucket > now() - interval '24 hours'""")
+                   WHERE s.custody AND r.bucket > now() - interval '24 hours' AND """ + packs.public_sql("r"))
     row = cur.fetchone() or {}
     return {"buckets": int(row.get("n") or 0), "sensors": int(row.get("sensors") or 0),
             "children": int(row.get("children") or 0)}

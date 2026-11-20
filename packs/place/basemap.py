@@ -16,7 +16,7 @@ WHAT IT REVEALS, ONCE. Range requests to build.protomaps.com name the tiles of t
 learns roughly where this node is: a square GROUND_RADIUS_KM*2 across. OpenAerialMap's API and tile server learn
 the drone ring the same way. After the fetch nothing is sent: every tile is read from out/ground/.
 
-Standard library only (urllib, gzip, sqlite3), so it runs on any node. Writes out/ground/{vector,drone}.mbtiles,
+The standard library (urllib, gzip, sqlite3) and h3, which every node image carries. Writes out/ground/{vector,drone}.mbtiles,
 out/ground/glyphs/ and out/ground/meta.json, each replaced whole only when its fetch finishes.
 """
 import concurrent.futures as cf
@@ -30,7 +30,12 @@ import time
 import urllib.request
 from pathlib import Path
 
-LAT, LON = float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"])
+import h3  # in the app image, where `planetai run` runs this
+
+# Centred on the res-8 cell's centre, not the house: /ground/* is on the `open` list, and which edge tiles exist would
+# otherwise say where the house is to ~0.6 km (R25, main._published_position). The cut is the same wherever in the
+# cell the house is. A set fetched before 18 Nov 2026 was cut round the house; fetching again re-centres it.
+LAT, LON = h3.cell_to_latlng(h3.latlng_to_cell(float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"]), 8))
 OUT = Path(os.getenv("PACK_OUT", "out")) / "ground"
 R_KM = float(os.getenv("GROUND_RADIUS_KM", "12"))
 DRONE_KM = float(os.getenv("GROUND_DRONE_RADIUS_KM", "4"))

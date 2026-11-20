@@ -1,5 +1,5 @@
 # Alerts
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 An alert is the node asking a person to do something. When a reading crosses a line, the node sends the household
 one plain message, then records what somebody did about it. Every answer is a row in
@@ -149,7 +149,9 @@ Menorca, Barcelona and Santiago, and `en` for Boston and Delhi.
 `notify()` sends to Telegram every alert that reaches it, prefixed with the level's icon (ℹ️ ⚠️ 🔴) unless the
 text opens with its own sign. An `act` heat or air alert that weighs on someone ticked under *Who is in the house*
 ends, in Telegram only, with one line such as "This matters more here: you said there is a child under five." That
-line never goes to the mesh, Reticulum, Home Assistant or the stored text. An `act` alert also goes to the LoRa
+line never goes to the mesh, Reticulum, Home Assistant or the stored text. If the connection to Telegram never opens, the node tries again 3 seconds later and then 10 seconds after that. A send
+that timed out waiting for an answer is not tried again, because Telegram may already have it, and a second copy of an
+alert is worse than a late one. An `act` alert also goes to the LoRa
 mesh (first line only, with `MESH_ALERTS=1`) and to the Reticulum bridge for LXMF delivery. Home Assistant is the
 `home-assistant` pack's `on_alert` hook, which hears every recorded alert whether it was sent or not. Setting each one up is on
 [Channels](channels.md).
@@ -218,7 +220,7 @@ A `decided` row closes no alert and counts in neither ρ nor the funnel; the nod
 the record: a household that looked, decided and did not manage it no longer leaves the same trace as one that
 never looked. With `DECISION_REQUIRED=1` (Set up → Alerts, off by default), `POST /actions` answers an `acted` with
 no earlier `decided` row for the same alert with a 409, whichever way the act came in. Turn it on only where
-everybody answering has a screen to decide on, because the radio, the terminal and the bot have none. It does not
+everybody answering has a screen to decide on, because the radio, the terminal and the bot have none. A drawing on Place tied to an alert counts as an act and is refused the same way. It does not
 apply to an event's buttons.
 
 ## Conditions that are not events

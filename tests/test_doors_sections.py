@@ -105,8 +105,8 @@ print("  a node with no declared section draws nothing on Now")
 
 html = (STATIC / "doors.html").read_text()
 nowh = html[html.index('<main class="face view" data-view="now">'):html.index("<!-- PLACE -->")]
-assert nowh.index('id="decide"') < nowh.index('id="ndecl-decide"') < nowh.index('id="nremember"') < nowh.index('id="ndecl-measure"') \
-    < nowh.index('id="next"') < nowh.index('class="rcol"') < nowh.index('id="rows"') < nowh.index('class="around"') \
+assert nowh.index('class="rcol"') < nowh.index('id="rows"') < nowh.index('class="around"') < nowh.index('id="ncity"') \
+    < nowh.index('id="ndecl-measure"') < nowh.index('class="nstrip"') < nowh.index('id="decide"') < nowh.index('id="ndecl-decide"') < nowh.index('id="nremember"') < nowh.index('id="next"') \
     < nowh.index('id="alsoread"') < nowh.index('id="ndecl-observe"'), "a mount moved"
 assert "drawDeclared();" in (STATIC / "doors-now.js").read_text().split("VIEWS.now = function")[1].split("};")[0]
 assert "sections" not in (STATIC / "doors-wall.js").read_text(), "the Wall door does not take the declared bands; wall: true is the classic wall's"

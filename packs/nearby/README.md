@@ -47,7 +47,7 @@ anything stale. Gaps stay gaps and are never filled.
 
 ## The ring at node #1 is thin, and the pack says so
 
-Measured 7 September 2026, after exclusions, from −8.8271 / 115.15709:
+Measured 7 September 2026, after exclusions, from node #1 in Kuta Selatan:
 
 | radius | stations | mirrors collapsed |
 |---|---|---|

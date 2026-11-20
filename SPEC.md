@@ -1,5 +1,5 @@
 # PLANETAI Node. Spec v0.1
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 Two containers by default. `ARCHITECTURE.md` is the whole system; this document is the node. Everything here is
 either a contract that must survive rewrites, or a retired piece with the condition that brings it back.
@@ -22,9 +22,9 @@ These are what any node has to share with node #1 to work with it. They are chea
 
 **Rules.** A rule is SQL that returns rows plus a message template. Cooldown is enforced in SQL against the `alerts` table. No rules engine, no expression language. If Postgres can't express the condition, the condition is wrong.
 
-**Up-link.** Child → parent is `POST /aggregates {schema, node, scale, rows:[{bucket, sensor_id, metric, mean, min, max, n, indoor}]}`, hourly. Raw never travels it, and neither does a peer or a model: only custody rows go up. The parent stores rows as `<child>/<sensor_id>` with `sensors.cadence = 'PT1H'`, the metric under its own name, and a later push of the same hour replaces the earlier mean.
+**Up-link.** Child → parent is `POST /aggregates {schema, node, scale, rows:[{bucket, sensor_id, metric, mean, min, max, n, indoor}]}`, hourly. Raw never travels it, and neither does a peer or a model: only custody rows go up. The parent stores rows as `<child>/<sensor_id>` with `sensors.cadence = 'PT1H'`, the metric under its own name, and a later push of the same hour replaces the earlier mean. Every push is signed with the child's own Ed25519 key, and the parent pins the child's name to that key on first contact (`docs/SPEC_identity.md`).
 
-**Registry.** `registry.json` in this repo. Fields: name, scale, operator, place, lat, lon, cell, sources, parent, since, contact. Adding a node is a PR. Approval is a merge.
+**Registry.** `registry.json` in this repo. Fields: name, scale, operator, place, lat, lon, cell, sources, parent, since, contact, and `id` and `key` for a node that has its own key. Adding a node is a PR. Approval is a merge.
 
 **Cells.** `fci-cells-v0`: `{city, cell:"Pillar|Scale", value, unit, source, observed_at, state}`. Exactly the `FCI Observations` row. `state` is never upgraded by aggregation.
 
@@ -37,7 +37,7 @@ These are what any node has to share with node #1 to work with it. They are chea
 | | |
 |---|---|
 | `db` | `imresamu/postgis:16-3.4-alpine` (Postgres 16 and PostGIS 3.4, for amd64 and arm64). Bound to localhost. Volume `db`. Nightly `pg_dump` via `backup.sh`. |
-| `app` | Python 3.12. Thirteen timer threads (poll, rules, the hourly table behind `readings_1h`, the hourly refresh of the usual-for-the-hour view, the aggregates and events pushes, the release check, the read of the wild packs' list, the read of the programme's node list, the six-hourly copy of the sensors' firmware, GBIF's invasive-species checklist and its records nearby, which run only while the eyes pack is on, and the daily learnings and diary), a fourteenth for Reticulum when it is on and two more for MQTT when a broker is set, + FastAPI on :8080. `app/main.py` is ~2,300 lines, with route groups in `app/basemap.py`, `geo.py`, `machine.py`, `household.py` and `presence.py`, and a pack's routes in its own `routes.py`. |
+| `app` | Python 3.12. Fifteen timer threads (poll, rules, the hourly table behind `readings_1h`, the hourly refresh of the usual-for-the-hour view, the aggregates and events pushes, the push of shared Place maps, the daily count of what was drawn, the release check, the read of the wild packs' list, the read of the programme's node list, the six-hourly copy of the sensors' firmware, GBIF's invasive-species checklist and its records nearby, which run only while the eyes pack is on, and the daily learnings and diary), a sixteenth for Reticulum when it is on and two more for MQTT when a broker is set, + FastAPI on :8080. `app/main.py` is ~2,400 lines, with route groups in `app/basemap.py`, `geo.py`, `cells.py`, `maps.py`, `reading.py`, `area.py`, `wall.py`, `machine.py`, `household.py` and `presence.py`, and a pack's routes in its own `routes.py`. |
 
 `GET /health /sensors /readings /stats /alerts /aggregates /cells /rho` · `POST /aggregates` (parent) · `POST /actions` (ρ) · `POST /readings` (downstream contributors, admin token).
 
@@ -54,7 +54,7 @@ An adapter is a function returning `(sensors, readings)`. Two are described here
 
 `app:8080` is published on every interface, because the things that read this node are on the network: the NAS that pulls hourly dumps from `/backups` (the only off-machine copy of readings that exist nowhere else), the phones and wall screens in the house, Home Assistant, and the agent's MCP surface on the tailnet. Postgres is not: `db` binds `127.0.0.1:5432`, and so do IPFS's API and gateway ports (its swarm port, 4001, is public).
 
-A token guards every write and every secret read. `SHARE_LEVEL` decides what an unauthenticated reader on that LAN may see. It is `off` by default, which answers such a reader the dashboard, `/health` with the centre of the node's resolution-8 cell, `/presence`, `/llms.txt`, the daily CC-BY export, the layout, the programme's node list (`/nodes`), what the household offers (`/offers`) and the sensors workbench (`/workbench`), and refuses the rest with a sentence naming the setting; `open` answers the whole read API, which is what a wall screen with no token needs. A request carrying a token reads what it always read, from anywhere, at either level. The building's own geometry (`/place/geojson`), the map's routes (`/geo/*`) and the machine's (`/machine`, `/storage`) need a token at every level, except two map routes at `open`: `/ground/*`, public datasets cut around the node, and `/geo/cell`, which leaves out its node-relative fields for a reader with no token. `.env` is `chmod 600`, never committed.
+A token guards every write and every secret read. `SHARE_LEVEL` decides what an unauthenticated reader on that LAN may see. It is `off` by default, which answers such a reader the dashboard, `/health` with the centre of the node's resolution-8 cell, `/presence`, `/llms.txt`, the daily CC-BY export, the layout, the programme's node list (`/nodes`), what the household offers (`/offers`) and the sensors workbench (`/workbench`), and refuses the rest with a sentence naming the setting; `open` answers the whole read API, which is what a wall screen with no token needs. A request carrying a token reads what it always read, from anywhere, at either level. The building's own geometry (`/place/geojson`), the map's routes (`/geo/*`) and the machine's (`/machine`, `/storage`) need a token at every level, except three map routes at `open`: `/ground/*`, public datasets cut around the centre of the node's cell, `/geo/cell`, which leaves out its node-relative fields for a reader with no token, and `/wall`, which the Wall draws from and which says nothing finer than that cell. `.env` is `chmod 600`, never committed.
 
 There is no TLS. The traffic that leaves this machine goes over Tailscale, which encrypts it. TLS becomes a requirement when a node is reachable from outside the tailnet.
 
@@ -85,7 +85,7 @@ stays readable.
 | **MQTT broker** | ~~the first sensor that publishes~~ **fired, shipped** | `mqtt` profile; `planetai meshtastic`; `msh/#` and `planetai/sensors/#` |
 | **Reticulum** bridge (LXMF inbox/outbox) | **shipped**: `planetai reticulum`, TCP today, RNode a config block | `reticulum` profile, built on the node from [fabcity/planetai-reticulum](https://github.com/fabcity/planetai-reticulum) at the commit `RETICULUM_REF` pins |
 | **Reticulum** node-to-node data transport | a district and a community node with no internet between them | Transport-enabled node + store-and-forward; see `docs/NETWORKING.md §3` |
-| **Node registry service + signed handshake** | `registry.json` PRs stop scaling: roughly 30 nodes or a second operator org | FastAPI + SQLite, Ed25519 identity, human approval |
+| **Node registry service** | `registry.json` PRs stop scaling: roughly 30 nodes or a second operator org | FastAPI + SQLite, human approval. The Ed25519 identity half shipped in v0.92.0: each node signs its pushes and the parent pins its key (`docs/SPEC_identity.md`) |
 | **Federated learning (Flower)** | a model exists whose parameters can't be averaged by the hourly push, *and* the sovereignty claim is being examined by someone outside the team | self-hosted SuperLink at the district, SuperNodes at hubs; FedAvg first, FedProx when climates diverge |
 | **Local LLM (Ollama)** | ~~someone asks the node a question the alert doesn't answer~~ **fired, shipped**: `planetai agent local` | a `/brief` endpoint that turns 24h stats into a paragraph in the local language |
 | **Edge role / MQTT bridge** | a real network partition between sensors and the hub | a Pi with a broker forwarding upstream |

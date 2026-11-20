@@ -1,0 +1,98 @@
+key: energy
+name: { en: Energy, id: Energi, es: Energía }
+alert:
+  en: an energy alert
+  id: peringatan energi
+  es: una alerta de energía
+kind: context
+metric: fossil_share_low_pct
+unit: "%"
+dp: 0
+line: ~
+
+packs:
+  domains: [energy]
+  rules: []
+
+distances:
+  room: ~
+  yard: ~
+  ring: ~
+  region:
+    from: observations
+    sensor_id: energy-grid
+    metrics: [fossil_share_low_pct]
+
+readouts:
+  - metric: fossil_share_low_pct
+    sensor_id: energy-grid
+    unit: "%"
+    dp: 0
+    label: { en: Fossil share (low), id: Pangsa fosil (rendah), es: Cuota fósil (baja) }
+  - metric: fossil_share_high_pct
+    sensor_id: energy-grid
+    unit: "%"
+    dp: 0
+    label: { en: Fossil share (high), id: Pangsa fosil (tinggi), es: Cuota fósil (alta) }
+  - metric: fossil_share_pct
+    sensor_id: energy-grid
+    unit: "%"
+    dp: 0
+    label: { en: Fossil share, id: Pangsa fosil, es: Cuota fósil }
+  - metric: fossil_share_day_pct
+    sensor_id: energy-grid
+    unit: "%"
+    dp: 0
+    label: { en: Fossil share (yesterday), id: Pangsa fosil (kemarin), es: Cuota fósil (ayer) }
+  - metric: substation_km
+    sensor_id: energy-grid
+    unit: km
+    dp: 0
+    label: { en: Nearest substation, id: Gardu induk terdekat, es: Subestación más cercana }
+  - metric: large_plant_km
+    sensor_id: energy-grid
+    unit: km
+    dp: 0
+    label: { en: Nearest large plant, id: Pembangkit besar terdekat, es: Central grande más cercana }
+  - metric: import_share_max_pct
+    sensor_id: energy-grid
+    unit: "%"
+    dp: 0
+    label: { en: Max cable import share, id: Pangsa impor kabel maks, es: Cuota máx. de importación por cable }
+  - metric: grid_months
+    sensor_id: energy-grid
+    unit: months
+    dp: 0
+    label: { en: Months of grid mix held, id: Bulan bauran jaringan tersimpan, es: Meses de mix eléctrico guardados }
+
+where:
+  room:   { en: inside, id: di dalam, es: dentro }
+  yard:   { en: outside, id: di luar, es: fuera }
+  ring:   { en: across the city, id: di kota, es: en la ciudad }
+  region: { en: on this grid, id: di jaringan ini, es: en esta red }
+
+sentences:
+  en:
+    state:
+      context: "At least {n} {unit} of the power {where} comes from fossil fuel."
+      context_plain: "The grid feeding this cell is at least {n} {unit} fossil."
+      none: "This node is on no grid the energy pack knows yet: add it to packs/energy/grids.yml."
+  id:
+    state:
+      context: "Setidaknya {n} {unit} listrik {where} berasal dari bahan bakar fosil."
+      context_plain: "Jaringan yang memasok sel ini setidaknya {n} {unit} fosil."
+      none: "Node ini belum berada di jaringan yang dikenal paket energi: tambahkan ke packs/energy/grids.yml."
+  es:
+    state:
+      context: "Al menos el {n} {unit} de la electricidad {where} procede de combustibles fósiles."
+      context_plain: "La red que alimenta esta celda es al menos un {n} {unit} fósil."
+      none: "Este nodo no está en ninguna red que el paquete de energía conozca aún: añádela a packs/energy/grids.yml."
+
+about:
+  en: "Where the grid's power comes from, how much of it is fossil, and which plants, substations and cables feed this cell."
+  id: "Dari mana listrik jaringan berasal, berapa banyak yang fosil, dan pembangkit, gardu, serta kabel mana yang memasok sel ini."
+  es: "De dónde viene la electricidad de la red, cuánta es fósil y qué centrales, subestaciones y cables alimentan esta celda."
+empty:
+  en: "Waiting for the first energy grid check (OpenStreetMap via Overpass and the grid mix)."
+  id: "Menunggu pemeriksaan jaringan energi pertama (OpenStreetMap via Overpass dan bauran jaringan)."
+  es: "Esperando la primera comprobación de la red eléctrica (OpenStreetMap vía Overpass y el mix de la red)."

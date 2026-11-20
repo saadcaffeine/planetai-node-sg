@@ -41,8 +41,9 @@ MAIN = open("app/main.py").read()
 MAIN += "\n".join(open(f).read().replace("@router.", "@app.") for f in sorted(glob.glob("packs/*/routes.py")))
 # and every core module's router mounted with no prefix (app/basemap.py: GET /ground/*, and the groups review item 15
 # takes out of main.py); app/issues/api.py has its own prefix and is read where /issues is
-MAIN += "\n".join(open(f).read().replace("@router.", "@app.") for f in sorted(glob.glob("app/*.py"))
-                   if f != "app/main.py" and "APIRouter()" in open(f).read())
+# (app/maps.py has two: the household's and a child's, so any router name counts)
+MAIN += "\n".join(re.sub(r"^@\w+\.(get|post|put|delete|patch)\(", r"@app.\1(", open(f).read(), flags=re.M)
+                   for f in sorted(glob.glob("app/*.py")) if f != "app/main.py" and "APIRouter(" in open(f).read())
 ENVEX = open(".env.example").read()
 CODE = "\n".join(open(f).read() for f in glob.glob("app/*.py") + glob.glob("packs/*/*.py")) + CLI + \
        "\n".join(open(f).read() for f in ("install.sh", "update.sh", "backup.sh", "install", "docker-compose.yml"))
@@ -82,9 +83,6 @@ ENV_OK = ENV_DECLARED | ENV_IN_CODE | ENV_IN_PACKS | ENV_RETIRED | ENV_IN_MCP | 
 # deletes the entry. The two assertions under the loop are what force that deletion — an entry for a
 # document that is gone, or for something that now exists, fails the gate.
 PROPOSED = {
-    # docs/SPEC_identity.md is Phase 1 of prompt 3 of the 18 September review: approved or struck by Tomas
-    # before a line of it is written. Phase 2 deletes this entry in the commit that adds each name.
-    "docs/SPEC_identity.md": {"children", "tests/test_identity.py", "app/identity.py"},
     # MAINTAINERS.md's entry for docs/SPEC_rho.md goes here, because this commit writes that file — the
     # same gate that fired for the licence record fires for this one. What replaces it is the promise
     # the spec itself makes: tests/test_rho.py lands with Phase 2's code and deletes this line.
@@ -97,6 +95,12 @@ ALLOWED = {
     "docs/site/cli.md": {"publish"},                    # "There is no `planetai publish` ..."
     "docs/site/configuration.md": {"/send"},            # the Reticulum bridge's route, not the app's
 }
+# singapore-node: these two pages describe wild packs installed into packs/ from fabcity/planetai-wild-packs,
+# which a clean checkout does not hold.
+_SG_WILD = {"singapore-nea", "singapore-beach", "fire-smoke", "tuya-indoor",
+            "packs/singapore-nea", "packs/singapore-beach", "packs/fire-smoke", "packs/tuya-indoor",
+            "packs/tuya-indoor/README.md", "packs/singapore-nea/rules.yml", "NEA_API_KEY"}
+ALLOWED["README.md"] = ALLOWED["docs/SINGAPORE_NODE.md"] = _SG_WILD
 # names used as examples of packs someone might write, not packs that ship
 EXAMPLE_PACKS = {"_test", "my-pack", "monsoon", "monsoon-bali", "air-", "water", "example",
                  "acme-sensor", "air", "yourplace", "district", "id", "my-room",
@@ -160,7 +164,7 @@ for doc in DOCS:
                 errs.append(f"{doc}: documents endpoint `{ep}`, which app/main.py does not define")
 
     for pk in set(re.findall(r"`packs/([a-z0-9-]+)/", text)) | set(re.findall(r"(?<!/)\bpacks/([a-z0-9-]+)\b", text)):   # `/packs/all` is a route, not a folder
-        if pk not in PACKS and pk not in EXAMPLE_PACKS and doc != "CHANGELOG.md":   # a record: packs move, as files do
+        if pk not in PACKS and pk not in EXAMPLE_PACKS and pk not in proposed and doc != "CHANGELOG.md":   # a record: packs move, as files do
             errs.append(f"{doc}: refers to pack `{pk}`, which does not exist")
 
 # Every declared channel must be a metric some adapter actually produces. A declaration for a metric that does not
@@ -176,7 +180,9 @@ def _metrics(src: str) -> set:
 
 
 # pm25, pm25_raw and aqi are written by readings.append(...) tuples in core that none of the shapes above catch.
-_produced = {"pm25", "pm25_raw", "aqi"}
+# marks and marked_area_m2 are the Place maps' own counts (config/channels.yml, source: place): derived from place_marks
+# by the node, never appended by an adapter.
+_produced = {"pm25", "pm25_raw", "aqi", "marks", "marked_area_m2"}
 for _a in ["app/sources.py"] + sorted(glob.glob("packs/*/adapter.py")):
     _produced |= _metrics(open(_a).read())
 for f in ["config/channels.yml"] + sorted(glob.glob("packs/*/channels.yml")):
@@ -193,7 +199,7 @@ if block:
     # "HANDOFF_arm" and reported the file as unlisted while it was sitting there in the block.
     # `\d` matters: HANDOFF_arm64 without it reads as "HANDOFF_arm", and the file sitting in the block
     # is reported unlisted. The lookbehind matters for the same reason in reverse: with digits allowed,
-    # `design/DIRECTIONS_2026-09` starts matching, and that file is in docs/design/, which this check
+    # `design/DIRECTIONS_2026-09` starts matching, and that file is in planetai-design/node-docs/design/, which this check
     # does not glob. A stem preceded by a slash belongs to a subdirectory and is not this list's business.
     listed = set(re.findall(r"(?<![/\w])([A-Z][A-Za-z0-9_]{2,}|sensors)\b", block.group(0)))
     actual = {os.path.basename(f)[:-3] for f in glob.glob("docs/*.md")}

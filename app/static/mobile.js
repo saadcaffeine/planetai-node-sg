@@ -68,8 +68,22 @@ function drawAll() {
 }
 
 /* ---- Now (§5.1) ---- */
+function energyHTML(E) {
+  if (!E || !(E.sources || []).length) return '';
+  const sh = E.share || {}, td = E.today || {};
+  const fig = sh.value != null ? `${Math.round(sh.value * 100)}%` : sh.low != null && sh.high != null ? `${Math.round(sh.low * 100)}–${Math.round(sh.high * 100)}%` : '';
+  return `<div class="facts" id="m-energy"><div class="fact"><div class="l">Grid mix (${esc(E.grid || '')})</div>`
+    + (fig ? `<b>${num('energy.share', fig, 'fossil share of the grid')}</b> fossil${sh.now != null ? ` · right now ${num('energy.now', Math.round(sh.now * 100) + '%', 'against the trailing-year share')}` : ''}<br>` : '')
+    + E.sources.map((x, i) => `${esc(x.name)} (${esc(x.fuel || x.kind)}${x.mw != null ? `, ${num('energy.src.' + i + '.mw', fmt(x.mw, 0), 'installed MW')} MW` : ''}, ${num('energy.src.' + i + '.km', fmt(x.km, 1), 'from this node’s cell')} km)`).join(' · ')
+    + (td.sun_kwh_m2 != null ? `<br>Sun today: ${num('energy.today.sun', fmt(td.sun_kwh_m2, 1), 'shortwave radiation today')} kWh/m²` : '')
+    + `</div></div>`;
+}
+
 function drawNow() {
   const it = D.issues[leadKey] || D.issues[D.lead] || {};
+  if (leadKey === 'energy' && !D.energy && !D._ef) {
+    D._ef = 1; doorsFetch('/energy').then(r => r.ok ? r.json() : null).then(e => { D.energy = e; if (leadKey === 'energy') drawNow(); }).catch(() => {});
+  }
   const hd = it.hero_distance || 'region';
   const hero = (it.stack || {})[hd] || {};
   const cmp = it.line != null ? `against the line, ${fmt(it.line, it.dp)} ${it.unit}` : 'this issue has no line';
@@ -79,7 +93,8 @@ function drawNow() {
     + `<div class="hero"><span class="v">${num(`${it.metric}.${hd}`, hero.value, cmp, `<b>${esc(fmt(hero.value, it.dp))}</b>`)}</span>`
     + `<span class="u">${esc(it.unit || '')}</span> ${prov(hero.provenance)}`
     + `<p class="cmp">${it.line != null ? `against the line, ${esc(fmt(it.line, it.dp))} <span class="unit">${esc(it.unit || '')}</span>` : esc(cmp)}</p>`
-    + (it.plain ? `<p class="plain">${said(it.plain)}</p>` : '') + `</div>`;
+    + (it.plain ? `<p class="plain">${said(it.plain)}</p>` : '') + `</div>`
+    + (leadKey === 'energy' ? energyHTML(D.energy) : '');
   /* the four distances are the walk's, below: its rail on the map and one chapter each */
   /* a pack's declared bands (doors-load.js), each beside its stage as on the doors' Now: decide and act under the card,
      observe under the other issues; the phone has no Did it work, so measure closes Now */

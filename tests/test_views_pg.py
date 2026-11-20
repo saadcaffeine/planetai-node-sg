@@ -135,5 +135,67 @@ got = cur.fetchall()
 assert [(r["value"], r["ts"]) for r in got] == [(10.0, past)], f"observations returns the past hour, not the future one: {got}"
 print("  revisions: a future fc_ hour takes the newer run; a past one, a measured one and observations stay as they were")
 
+# ---------------------------------------------------------------- the reading's facts, on the real schema
+# app/reading.py's own SQL (tests/test_reading.py runs it on a fake cursor): the latest place-scale figures, the yearly
+# building counts, and the days this node's own outdoor sensors measured over the WHO guideline. The packs are not
+# read here (held gives nothing), so only the rows this block writes can come out.
+import reading  # noqa: E402
+
+q("INSERT INTO sensors (sensor_id, source, name, lat, lon, indoor, local, kind, scale) VALUES "
+  "('place-point', 'openstreetmap', 'Around here', -8.8, 115.1, FALSE, FALSE, 'map', 'community') ON CONFLICT (sensor_id) DO NOTHING")
+q("INSERT INTO sensors (sensor_id, source, name, lat, lon, indoor, local, kind, scale) VALUES "
+  "('v-other', 'test', 'a wild pack', -8.8, 115.1, FALSE, FALSE, 'model', 'community')")
+q("DELETE FROM readings WHERE sensor_id = 'place-point'")
+ran, before = t0 - timedelta(days=3), t0 - timedelta(days=70)
+insert_readings(cur, [(ran, "place-point", "buildings", 2459.0), (ran, "place-point", "green_share", 0.341), (ran, "place-point", "poi_health", 0.0),
+                      (before, "place-point", "nearest_health_m", 948.3), (ran, "place-point", "nearest_school_m", 1480.0),
+                      (t0 + timedelta(days=2), "place-point", "green_share", 0.9),          # a row dated ahead never wins
+                      (ran, "v-other", "built_share", 0.99)]                                 # another sensor never supplies a figure
+                     + [(t0.replace(year=y, month=7, day=1), "place-point", "sat_buildings_yearly", float(n)) for y, n in ((2016, 3105), (2019, 4410), (2023, 5994))])
+# v-yard is this node's own outdoor sensor, v-room its indoor one: 31 days of 20 hourly pm25 means, a third of them over 15
+air = []
+for d in range(1, 32):
+    for h in range(20):
+        ts = (t0 - timedelta(days=d)).replace(hour=h, minute=0, second=0, microsecond=0)
+        air += [(ts, "v-yard", "pm25", 30.0 if d % 3 == 0 else 8.0), (ts, "v-room", "pm25", 90.0)]
+insert_readings(cur, air)
+doc = reading.facts(cur, held=lambda c: (None, None, None, None))
+RF = doc["facts"]
+assert set(RF) == set(reading.FORM), "the facts document has every key"
+assert RF["buildings"]["v"] == 2459 and RF["green_share"]["v"] == 0.341, f"the latest past row of each place-scale metric: {RF['buildings']}, {RF['green_share']}"
+assert RF["built_share"] is None, "a figure on another sensor is not the place pack's"
+assert RF["clinic_km"] is None and RF["school_km"]["v"] == 1, f"a distance older than the pack's last run is dropped; one from that run is whole kilometres: {RF['clinic_km']}, {RF['school_km']}"
+assert RF["buildings_then"]["v"] == 3105 and RF["buildings_then_year"]["v"] == 2016 and RF["buildings_now_year"]["v"] == 2023, "the yearly series, first and last"
+assert RF["air_days"]["v"] >= 29 and 8 <= RF["air_days_over"]["v"] <= 11, f"the air figure counts this node's outdoor days only: {RF['air_days_over']} of {RF['air_days']}"
+assert RF["labs_near"] is None and RF["basin_km2"] is None and RF["cells_held"] is None, "the make pack is off (MAKE_ENABLED=0), and what the packs hold is not read here"
+print("  reading: its facts on the real schema: the latest past figure of each place-scale sensor, the yearly counts, the node's own outdoor days over the guideline")
+
+# The place pack's recount on the real schema (packs/place/adapter.py satellite_refresh): the rows above are an earlier
+# count, and the recount has to replace them, because the node keeps the first value it files. Its own commit is held
+# back here so this suite still leaves nothing behind.
+import types  # noqa: E402
+
+sys.path.insert(0, "packs/place")
+import adapter as place  # noqa: E402
+
+sys.modules["satellite"] = types.SimpleNamespace(init_ee=lambda: None, footprints=lambda ee, c, lat, lon, r: (0, 0.0),
+                                                yearly=lambda ee, lat, lon, r: [(2016, 5464.0, 4.1), (2020, 6900.0, None), (2023, 8076.0, None)])
+held = types.SimpleNamespace(cursor=con.cursor, commit=lambda: None)
+SERIES = "SELECT extract(year FROM ts)::int AS y, metric, value FROM readings WHERE sensor_id = 'place-point' AND metric LIKE 'sat%%yearly' ORDER BY ts, metric"
+series = lambda: [(r["y"], r["metric"], round(r["value"], 1)) for r in q(SERIES).fetchall()]   # noqa: E731
+assert place.satellite_refresh(held, -8.8, 115.1, 1000) == 3
+after = series()
+assert after == [(2016, "sat_buildings_yearly", 5464.0), (2016, "sat_height_m_yearly", 4.1), (2020, "sat_buildings_yearly", 6900.0), (2023, "sat_buildings_yearly", 8076.0)], \
+    f"the recount replaces the series, and 2019 went with the old count: {after}"
+# a poll that read the old count before the recount files it after: the new rows stand
+insert_readings(cur, place.yearly_readings([(2016, 86.4, 3.9), (2020, 107.8, None), (2023, 127.7, None)]))
+assert series() == after, "a stale poll cannot bring the old count back"
+assert reading.facts(cur, held=lambda c: (None, None, None, None))["facts"]["buildings_now"]["v"] == 8076, "and the reading takes the recount"
+# a node that has not filed its sensor yet: nothing to correct, and no reading without its sensor
+q("DELETE FROM readings WHERE sensor_id = 'place-point'")
+q("DELETE FROM sensors WHERE sensor_id = 'place-point'")
+assert place.satellite_refresh(held, -8.8, 115.1, 1000) == 3 and series() == [], "before the first poll the recount files nothing"
+print("  place: a recount replaces the yearly readings on the real schema, a stale poll cannot undo it, and a new node waits for its first poll")
+
 con.rollback()
 print("views: every check passed")

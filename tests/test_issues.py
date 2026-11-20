@@ -36,7 +36,7 @@ DECL = I.load()
 
 # --- the five shipped files validate -------------------------------------------------------------
 # Since 23 Oct 2026 an issue ships in the pack that watches it (packs/<id>/issue.yml), read while that pack is on.
-OWNER = {"air": "air-quality", "heat": "heat", "land": "earth", "coast": "coast", "water": "terrain"}
+OWNER = {"air": "air-quality", "heat": "heat", "land": "earth", "coast": "coast", "water": "terrain", "energy": "energy"}
 for want, pk in OWNER.items():
     if want not in DECL:
         raw = yaml.safe_load((ROOT / f"packs/{pk}/issue.yml").read_text()) or {}
@@ -68,7 +68,7 @@ _db, _ = _5d("NODE_ISSUES=air,heat\nPACKS_ENABLED=smartcitizen,heat\n", "")
 assert _db.endswith("PACKS_ENABLED=smartcitizen,heat,air-quality\n"), _db
 assert _5d(_db, "")[0] == _db, "a second update changed the list again"
 _, _env = _5d("", "NODE_ISSUES=\nPACKS_ENABLED=heat\n")
-assert "PACKS_ENABLED=heat,air-quality,coast,earth,terrain" in _env, "NODE_ISSUES empty draws every issue: every owner"
+assert "PACKS_ENABLED=heat,air-quality,coast,earth,terrain,energy" in _env, "NODE_ISSUES empty draws every issue: every owner"
 # Every shipped issue's pack is in 5d's list: on 23 Oct 2026 `water` shipped without it, so naming water in a node's
 # NODE_ISSUES drew nothing on a node that lists its packs (node #1 does).
 _pairs = set(_step.split("for owned in ", 1)[1].split(";", 1)[0].split())

@@ -10,7 +10,7 @@ status: candidate
 license: "No named licence. Published as open data under OMB M-10-06 and EO 13642; the API terms require a specific attribution notice, quoted in notes. US federal works carry no domestic copyright, which is the usual basis — but the Bureau names no licence of its own."
 api: https://api.census.gov/data/2024/acs/acs5
 pilot_relevance: [boston, global]
-places: [boston]
+places: [boston, charlotte]
 tags: [census, acs, united-states, fips, demographics, housing]
 added: 2026-09-23
 auth: api-key
@@ -64,3 +64,10 @@ notes: |
   by FIPS place code, and confirms the attribution notice is displayed wherever
   the value surfaces — the notice is a condition of use, not a courtesy, and an
   Index that shows ACS numbers without it is out of terms.
+
+  CHARLOTTE, read 2026-11-05. The API still wants a key (302 to missing_key.html), but the ACS table-based
+  Summary File on www2.census.gov is keyless and carries the same 2024 five-year (2020-2024) values:
+  summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b01003.dat gives Charlotte city (1600000US3712000)
+  903,844 ±208, Mecklenburg County (0500000US37119) 1,154,681, MSA 16740 2,768,407. With the 2024 Gazetteer
+  land area (city 807.05 km2) that is 1,120 people/km2. B25070: 49.8% of city renter households pay 30% or
+  more of income on rent.

@@ -1,5 +1,5 @@
 # Networking
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 Three layers connect a node, each with one job.
 
@@ -15,6 +15,8 @@ Three layers connect a node, each with one job.
 you once to approve it in a browser. The node then answers as `<name>.<tailnet>.ts.net` from any of your devices,
 with no port open on any router. `planetai mesh status` shows the tailnet; `planetai mesh down` leaves it. When a
 district node exists, `PARENT_API_URL` is its tailnet hostname.
+A child signs what it pushes with its node's key, and the parent pins the child's name to that key the first time it
+hears from it ([Sharing](site/sharing.md)).
 
 On Linux it turns on Tailscale SSH, so `ssh <name>` needs no keys; on a Mac it is ordinary `ssh` over the tailnet,
 with Remote Login on. Where a third-party coordinator is ruled out, self-hosted Headscale replaces only the login

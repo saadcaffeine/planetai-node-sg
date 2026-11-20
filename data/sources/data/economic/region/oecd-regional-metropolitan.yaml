@@ -10,7 +10,7 @@ status: candidate
 license: "OECD Terms and Conditions (last updated 1 July 2024) — reuse for any purpose including commercial, with attribution that must be passed on to sub-licensees. An open permission, not a named licence. See notes."
 api: https://sdmx.oecd.org/public/rest/dataflow/OECD.CFE.EDS
 pilot_relevance: [barcelona, boston, santiago, global]
-places: [barcelona, boston, hamburg, santiago-de-chile]
+places: [barcelona, boston, hamburg, santiago-de-chile, charlotte]
 tags: [oecd, regional, metropolitan, sdmx, gdp, functional-urban-area]
 added: 2026-09-22
 auth: none
@@ -76,3 +76,6 @@ notes: |
   Catalonia, Massachusetts, a Chilean región — and confirms the OECD territorial
   code maps to that region's own official code, because everything downstream
   depends on that crosswalk being real rather than assumed.
+
+  CHARLOTTE, read 2026-11-05: FUA USA28F in DF_ECONOMY 1.1, GDP 177,688 M USD PPP in 2023 (80,924 per person).
+  The flow now reaches 2023.

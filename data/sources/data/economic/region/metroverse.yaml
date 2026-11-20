@@ -10,7 +10,7 @@ status: live
 license: CC-BY-4.0
 api: null
 pilot_relevance: [barcelona, boston, santiago]
-places: [barcelona, boston, santiago-de-chile]
+places: [barcelona, boston, santiago-de-chile, charlotte]
 tags: [economic-complexity, metro-area, harvard, urban-economics]
 added: 2026-05-04
 feeds_cells: [Economic|Region]
@@ -20,3 +20,8 @@ notes: |
   Crucially does NOT cover Denpasar / Bali — for the Bali pilot,
   Asian KLEMS is the closest available substitute.
   Direct successor to Atlas of Economic Complexity at the city scale.
+
+  CHARLOTTE, read 2026-11-05: cityId 707 through the keyless GraphQL at metroverse.hks.harvard.edu/graphql
+  (cityIndustryYearList), 2024: 157,592 employees across 69,400 companies. Metroverse's Charlotte is its own
+  urban extent (population 428,278), smaller than the city (903,844) or the OECD FUA; never compare them as
+  one unit.

@@ -76,7 +76,8 @@ assert c.get("/forecast", headers=H).status_code == 200, "back on, back"
 print("  and 404 while their pack is off, with no restart")
 
 # ---- the share list comes from the packs, and only from official ones
-assert {"/forecast", "/nearby", "/earth", "/earth/change.png", "/earth/year.png", "/earth/frame.png"} <= auth._SHARE_OPEN[0], \
+assert {"/forecast", "/nearby", "/earth", "/earth/change.png", "/earth/year.png", "/earth/frame.png",
+        "/earth/wall.png"} <= auth._SHARE_OPEN[0], \
     "a pack's share: open adds its paths"
 assert "/forecast" not in auth._SHARE_OFF[0] and "/forecast" not in open("app/auth.py").read(), "auth.py names no pack route"
 r = c.get("/forecast")                                   # no token, from the test client's own address, at open

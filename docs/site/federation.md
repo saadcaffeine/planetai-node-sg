@@ -1,5 +1,5 @@
 # Federation and the Index
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This is the part that joins the network. With a parent set, a house becomes one cell in a district's picture
 without its readings leaving the house: every hour it sends up hourly means and the timestamps of its alerts,
@@ -8,7 +8,8 @@ sources, different rules and a different parent, which is how the architecture c
 built from nodes, not declared from above" ([Architecture](architecture.md), §7).
 
 A child pushes two things to its parent, `POST /aggregates` and `POST /events`, and every node answers
-`GET /cells`. What the Index cells are, and the words `live` and `partial`, are on [Concepts](concepts.md).
+`GET /cells`. A child whose household shares a Place map also sends the map and, if the parent asks, a photo on it
+([below](#shared-place-maps-and-photos)). What the Index cells are, and the words `live` and `partial`, are on [Concepts](concepts.md).
 
 ## Parent and child
 
@@ -27,12 +28,38 @@ To make one node the child of another:
    `/events` half a minute after that, then each every hour, with `Authorization: Bearer <PARENT_TOKEN>` and
    its `NODE_SCALE`. A child that was already running pushes on its next hourly turn, and `planetai restart`
    brings the first push to two minutes. In `planetai logs` the child says `pushed <N> hourly rows to
-   parent`, and `pushed <N> alert events to parent` when it raised an alert in the last 36 hours. A wrong
-   token shows as `push to parent failed:` with a 401. On the parent the child's sensors appear as
+   parent`, and `pushed <N> alert events to parent` when it raised an alert in the last 36 hours. A parent that
+   cannot be reached shows as `push of /aggregates to parent failed:`. A parent that refuses, a wrong token or a
+   changed key, shows as `the parent refused /aggregates (401): …` with the parent's own sentence, and it stays in
+   Set up › Machine on the child until a push goes through. On the parent the child's sensors appear as
    `<child>/<sensor_id>` with `kind='child'`, in the parent's custody, so they count toward a `live` cell.
    The house's raw readings are still at home.
 
-A parent never sees a child's raw rows, its room names, its people, its sentences or its coordinates.
+Through those two routes a parent never sees a child's raw rows, its room names, its people, its sentences or its
+coordinates.
+
+## Each node is a key
+
+The token says who may push to a parent. It does not say who is pushing: every child holds the same one. So each
+node also has its own key, made when it is installed, and signs every push with it. Its ID is a short hash of the
+public key, 16 letters and digits, and it shows in Set up › Sharing, in `planetai status` and in `GET /health`.
+Upstream, the node owns what it shares, and the key is how a parent knows which node that is.
+
+The parent trusts a child's key the first time the child pushes, and pins the child's name to it. After that a push
+under that name signed by another key is refused, with a sentence naming both IDs. The same key under another name is
+refused too, so a child cannot rename itself into a sibling, and so is an unsigned push under a name that has signed,
+so nobody can fall back on the token to speak for it.
+
+A child on an older release, with no key yet, is still accepted with the token and shows as `unsigned` in
+`planetai children` on the parent. Its first signed push pins it. A node listed in `registry.json` with a key can only
+be pinned to that key.
+
+The key is `NODE_KEY` in the node's `.env`. Nothing prints it, and the nightly dump does not hold it, because dumps
+travel to a NAS or a remote. Keep a copy of `.env` somewhere that is not the backup share; the database password is
+in it too. Put that `.env` in the folder before installing on a new machine and the node is the same node. Lose it and
+the node is new. Its parent refuses it under the old name until the parent's keeper runs
+`planetai children forget <name>`, and if it is listed, `planetai hello` sends its new key to the list. Never copy a
+node's `.env` to start a second node, because the copy is the same node.
 
 ### POST /aggregates
 
@@ -76,6 +103,17 @@ There is no text, actor, sensor, note or ratio in it. The parent computes [ρ](r
 act-level alerts and its children's pooled together, because a mean of ten ratios is not the ratio of the
 pooled counts. The Measure funnel under `/rho` stays the node's own: children push no stages, so a pooled
 funnel would have a hole where each child's `measured` should be.
+
+### Shared Place maps and photos
+
+A household that presses Share on a map sends it to its parent, a minute at a time, to `POST /place/maps/received`,
+with the same token and the same signature. The map goes as drawn, every drawing at its exact place with its labels,
+notes and measures, and the parent keeps it read-only with the child as its owner. A photo on a shared drawing goes up
+as words: what took it, its note, the words the household gave it and the day. The parent can ask for the file. The
+ask comes back in the parent's answer to the hourly `/aggregates` push, because a parent cannot reach a home node, and
+the file goes up to `POST /place/photos/received` only when somebody at the child presses **Send**. Unshare the map,
+take the image off the drawing or delete the photo, and the parent deletes its copy. Both routes answer
+`AGGREGATE_TOKEN` and nothing else. [Place](place.md) says how it looks from the child's side.
 
 ### Versions on the wire
 
@@ -139,10 +177,10 @@ the copy every node carries is described on [the source registry](sources.md).
 `registry.json` in the repository is the node directory: `name, scale, operator, place, cell, lat, lon,
 sources, parent, since, contact`, where `cell` is the node's resolution-8 H3 cell and `lat`/`lon` are that
 cell's centre, never the house. Adding a node is a pull request, and approval is a merge. It lists two nodes,
-`bayu-ungasan` (node #1, in Ungasan) and `larsbcn` in Barcelona.
+`bayu-ungasan` (node #1, in Ungasan) and `barcelona`.
 
 Every node reads the file from the repository's `main` once an hour and serves it at `GET /nodes`, with only
-the name, place, scale, operator, `since` and cell, and each point rounded to one decimal; `contact`, `sources`
+the name, ID, place, scale, operator, `since` and cell, and each point rounded to one decimal; `contact`, `sources`
 and `parent` stay in the file. The Node door and the phone's walk draw the nodes from it. `UPDATE_CHECK=off`
 reads nothing. A registry service with a signed handshake comes back when pull requests stop scaling, roughly
 thirty nodes or a second operator organisation, with its trigger written in [`SPEC.md`](spec.md) §6.
@@ -162,23 +200,17 @@ lab within reach: a place with a name and a point, no readings, never in custody
 the node can say where somebody could go and make or fix something (see
 [Packs that ship](packs-reference.md#make)).
 
-## Not built: identity and discovery
+## Not built: discovery
 
-Two specifications describe what the network would add next. Neither is built.
-
-[`docs/SPEC_identity.md`](../SPEC_identity.md) is about identity. Today every child of a parent shares one
-`AGGREGATE_TOKEN`, and the child's name is `body["node"]`, a string the child declares about itself, so any
-child holding the district's token can push readings under a sibling's name or rewrite a sibling's ρ rows.
-The spec gives each node an Ed25519 key generated in the app container at first boot, makes the node id the
-public key, has the parent keep a `children` table filled by one enrolment command, signs the bytes on the
-wire, and retires the shared token after one release. The two body shapes would not change.
-
-[`docs/SPEC_discovery.md`](../SPEC_discovery.md) is about discovery. A node that chooses to be discoverable
-would answer what `GET /presence` already returns: its name, a coarse H3 cell (resolution 3, about sixty
+[`docs/SPEC_discovery.md`](../SPEC_discovery.md) is about discovery, and it is not built. A node that chooses to be
+discoverable would answer what `GET /presence` already returns: its name, a coarse H3 cell (resolution 3, about sixty
 kilometres across), its version and its kind. On the tailnet the host would read the peer list and the node
 would ask each peer's `/presence` once an hour; on radio, the Reticulum bridge already announces the same body.
 Being discoverable gives nobody access: `SHARE_LEVEL` still decides who may read what, and nothing discovered
 enters `sensors`, `cells` or any count.
+
+Identity is built, as [Each node is a key](#each-node-is-a-key) says, and the shared `AGGREGATE_TOKEN` stays. The token
+says who may push, and the key says who is pushing.
 
 ## The commons
 
@@ -186,7 +218,7 @@ The daily export (`GET /export?day=`, written nightly to `exports/<node>/`, `sch
 parent, the Index, a researcher or the commons should receive: hourly mean, min, max and count per sensor and
 metric, the cells, the first line of each alert, ρ, what the household offers (`offers`, while the things pack is on), and the centre of
 the node's resolution-8 cell in place of its coordinates. Your own sensors are named by role (`indoor-1`,
-`outdoor-2`) instead of by id. There are no raw rows, no tokens and no chat ids, and CC BY 4.0 is stated in the
+`outdoor-2`) instead of by id. There are no raw rows, no tokens and no chat ids, nothing from a source whose licence is non-commercial (the Balearic grid mix from Red Eléctrica, for one), and CC BY 4.0 is stated in the
 file as `licence`. Each source's own attribution is in its sensor's `meta` on `/sensors`, not in the export.
 `planetai ipfs` pins the export on IPFS; the database and its dumps never go there.
 
@@ -195,8 +227,9 @@ file as `licence`. Each source's own attribution is in its sensor's `meta` on `/
 No raw readings leave the instance that recorded them. No cell is upgraded from `mock` or `partial` to `live` by
 aggregation. No agent dispatches without a human row in `actions`. No layer requires a cloud provider to
 function. No scale is skipped: a city aggregator is built from nodes, not declared from above. Peers never roll
-up and never drive an alert or a report line. Exact place never leaves; a coarse cell may, and says how coarse.
-Exactly one node per pilot writes to the spine.
+up and never drive an alert or a report line. Exact place never leaves, except a Place map the household chooses
+to share, which goes up with its exact coordinates, labels, notes and measures after a plain warning; a coarse cell
+may, and says how coarse. Exactly one node per pilot writes to the spine.
 
 ## Where the network is
 

@@ -187,6 +187,12 @@ async function flow(kept, offers) {
     ['Its cell, by radio', ret.announce_s ? `res ${D.geometry.radio.res} · every ${Math.round(ret.announce_s / 60)} min · ${(ret.peers || []).length} heard` : 'no radio on this node', perDay, 'blue'], ['Fab City Index cells', `${new Set(D.index_cells.map(c => c.cell)).size} of 20 · hourly`, 24, 'blue'],
     ['Open export, CC BY 4.0', 'one file a day', 1, ''],
     ['What this home offers', nOff == null ? 'not read' : nOff ? `${nOff} thing${nOff === 1 ? '' : 's'} · open to anyone, and in the export` : 'nothing offered', nOff ? 1 : null, ''], ['Hourly means, to a community node', 'none set · nowhere yet', null, '']];
+  /* the flow's screen header (evolution variation): the four counts a keeper asks first, from the rows drawn below */
+  const fr = $('#framp'), fi = $('#finfo');
+  if (fr) { fr.style.setProperty('--n', 4); fr.innerHTML = rampHTML([['sensors', String(loc.length), '', 'in this house', n24.house == null ? '' : `${n24.house.toLocaleString('en')} in 24 h`],
+    ['stations', `${heard} of ${pub.length}`, '', 'around it', 'heard'], ['answers', String(F.answers.length), '', 'from the household', 'in 24 h'],
+    ['to a phone', String(sent == null ? F.alerts.length : sent), '', 'alerts', sent == null ? 'recorded, 24 h' : 'sent, 24 h']]); }
+  if (fi) fi.innerHTML = `<span>Node · ${esc(D.node.name)} · ${esc(dLabel(dayOf(D.as_of)))} ${hhmm(D.as_of)}</span><span>raw readings stay here</span>`;
   const L = narrow ? flowLayout(W, IN.length, OUT.length) : null, H = L ? L.H : 500, cx = L ? L.cx : W / 2, cy = L ? L.cy : H / 2, R = L ? L.R : 96;
   const xIn = 300, xOut = W - 340, yAt = (i, n) => 46 + i * ((H - 110) / (n - 1));
   // the centre: the res-6 parent and its 49 res-8 cells, flat and to scale; this node's cell filled. Every hexagon is a real cell.

@@ -1,0 +1,55 @@
+{
+  "_shape": "Home Assistant REST API, GET /api/states/<entity_id> with 'Authorization: Bearer <long-lived token>' (developers.home-assistant.io/docs/api/rest). 200 answers one state object: entity_id, state (always a string), attributes, last_changed, last_updated, context. A bad token answers 401 with a plain-text body; an unknown entity answers 404 {\"message\": \"Entity not found.\"}. Written from the documented shape, not recorded from a house: no house in the fleet has solar in Home Assistant yet (Tomas, 8 Nov 2026).",
+  "states": {
+    "sensor.solar_power": {
+      "entity_id": "sensor.solar_power",
+      "state": "3120",
+      "attributes": {"state_class": "measurement", "unit_of_measurement": "W", "device_class": "power", "friendly_name": "Solar power"},
+      "last_changed": "2026-11-08T05:10:02.418562+00:00",
+      "last_updated": "2026-11-08T05:10:02.418562+00:00",
+      "context": {"id": "01JC3Y0T8H2Z9N4V6K1QW5R7XM", "parent_id": null, "user_id": null}
+    },
+    "sensor.grid_power": {
+      "entity_id": "sensor.grid_power",
+      "state": "400",
+      "attributes": {"state_class": "measurement", "unit_of_measurement": "W", "device_class": "power", "friendly_name": "Grid power"},
+      "last_changed": "2026-11-08T05:10:04.902113+00:00",
+      "last_updated": "2026-11-08T05:10:04.902113+00:00",
+      "context": {"id": "01JC3Y0TB7M3D8F2P5S9H4J6QE", "parent_id": null, "user_id": null}
+    },
+    "sensor.battery_power": {
+      "entity_id": "sensor.battery_power",
+      "state": "unknown",
+      "attributes": {"state_class": "measurement", "unit_of_measurement": "W", "device_class": "power", "friendly_name": "Battery power"},
+      "last_changed": "2026-11-08T04:58:41.006291+00:00",
+      "last_updated": "2026-11-08T04:58:41.006291+00:00",
+      "context": {"id": "01JC3XA1N6C4G7T2V8B5K3M9RD", "parent_id": null, "user_id": null}
+    },
+    "sensor.grid_meter_offline": {
+      "entity_id": "sensor.grid_meter_offline",
+      "state": "unavailable",
+      "attributes": {"state_class": "measurement", "unit_of_measurement": "W", "device_class": "power", "friendly_name": "Grid meter"},
+      "last_changed": "2026-11-08T05:02:17.551870+00:00",
+      "last_updated": "2026-11-08T05:02:17.551870+00:00",
+      "context": {"id": "01JC3XQ5W2E8R4Y6U1I3O7P9AS", "parent_id": null, "user_id": null}
+    },
+    "sensor.inverter_power_kw": {
+      "entity_id": "sensor.inverter_power_kw",
+      "state": "3.12",
+      "attributes": {"state_class": "measurement", "unit_of_measurement": "kW", "device_class": "power", "friendly_name": "Inverter power"},
+      "last_changed": "2026-11-08T05:10:02.418562+00:00",
+      "last_updated": "2026-11-08T05:10:02.418562+00:00",
+      "context": {"id": "01JC3Y0T8H2Z9N4V6K1QW5R7XN", "parent_id": null, "user_id": null}
+    },
+    "sensor.solar_energy_today": {
+      "entity_id": "sensor.solar_energy_today",
+      "state": "11.4",
+      "attributes": {"state_class": "total_increasing", "unit_of_measurement": "kWh", "device_class": "energy", "friendly_name": "Solar energy today"},
+      "last_changed": "2026-11-08T05:10:02.418562+00:00",
+      "last_updated": "2026-11-08T05:10:02.418562+00:00",
+      "context": {"id": "01JC3Y0T8H2Z9N4V6K1QW5R7XP", "parent_id": null, "user_id": null}
+    }
+  },
+  "unauthorized": {"status": 401, "body": "401: Unauthorized"},
+  "not_found": {"status": 404, "body": {"message": "Entity not found."}}
+}

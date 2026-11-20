@@ -11,7 +11,7 @@ status: candidate
 license: US public domain (USGS-authored data)
 api: https://earthquake.usgs.gov/fdsnws/event/1/query
 pilot_relevance: [santiago, bali, global]
-places: [bali, santiago-de-chile]
+places: [bali, santiago-de-chile, charlotte]
 tags: [earthquakes, seismic, hazard, near-real-time, geojson, usgs]
 added: 2026-09-26
 auth: none
@@ -50,3 +50,6 @@ notes: |
   event count is not risk: risk needs exposure, meaning buildings and people, which
   this source does not carry. The ShakeMap and PAGER products do carry them, for
   significant events only.
+
+  CHARLOTTE, read 2026-11-05: fdsnws count, M4.5+, 300 km around 35.227,-80.843: 0 in 2026, 1 since 2000
+  (M5.1, 2020-08-09, Sparta NC, se60324281). Zero is a reading here, not a gap.

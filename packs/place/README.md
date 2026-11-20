@@ -44,6 +44,12 @@ building count and mean height, 2016–2023, into `place_yearly` and onto `place
 the map has (`osm_building_coverage`), and how the count grew. `GET /history?sensor_id=place-point&metric=sat_buildings_yearly`
 is the series; the bot's `history` tool reads it.
 
+The count band of the Temporal dataset sits on a 0.5 m grid, and a building is spread over its pixels as fractions
+that add up to one. Earth Engine serves the band at 4 m as the mean of the 64 pixels under each one, so the node
+multiplies every pixel by its area over 0.25 m² before it adds them. Google's example script on the dataset's catalog
+page does the same with one factor, (scale × 2)². `planetai run place refresh` counts again without waiting for the
+month, and `planetai run place verify` holds the last year against the footprints of the same circle.
+
 ## Fixing the map
 
 ```bash

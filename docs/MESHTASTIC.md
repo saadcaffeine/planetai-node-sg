@@ -1,5 +1,5 @@
 # Radios
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page puts LoRa radios on the node with Meshtastic. Once they are on, a sensor can report from a field or a
 roof with no WiFi, every reading is filed under the radio that measured it, and the node can send an alert to a

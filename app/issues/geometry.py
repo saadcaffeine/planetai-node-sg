@@ -253,7 +253,34 @@ def _pack_claim(lat, lon, settings, fp: dict) -> dict:
                   where=f"packs/{fp['pack']}/pack.yaml", note=(fp.get("note") or "").strip())
 
 
-def claims(lat: float, lon: float, settings, ring: dict | None = None, footprints: list | None = None) -> list[dict]:
+def _own_claim(lat: float, lon: float, own_cells: set[str] | list[str] | tuple[str, ...] | None) -> dict:
+    """The street (`key="yard"`): the node's own res-8 cells (home plus claimed neighbours in node_cells)."""
+    import cells as _cells  # noqa: PLC0415
+    home = _cells.home(lat, lon)
+    own = sorted(_cells.own(home, set(own_cells)) if own_cells else {home})
+    area_m2 = sum(h3.cell_area(c, unit="m^2") for c in own)
+    by_r = _by_res(own)
+    n = len(own)
+    return {
+        "key": "yard",
+        "name": "The street",
+        "what": "this node's own ground",
+        "footprint_m": round(area_m2),
+        "shape": "cells",
+        "declared": f"{n} {'cell' if n == 1 else 'cells'}",
+        "where": "node_cells",
+        "note": "",
+        "native": {"res": _cells.RES, "cells": n, "compact": n, "by_res": dict(by_r), "saving": 1},
+        "drawn": {"base_res": _cells.RES, "cells": n, "compact": n, "by_res": dict(by_r)},
+        "area_km2": round(area_m2 / 1e4) / 100,
+        "cells": list(own),
+        "cells_ll": [_row(cid) for cid in own],
+        "cells_at": {res: cells_at(own, res) for res in range(NAV_MIN, NAV_MAX + 1)},
+    }
+
+
+def claims(lat: float, lon: float, settings, ring: dict | None = None, footprints: list | None = None,
+           own_cells: set[str] | None = None) -> list[dict]:
     """What each source's word covers, as the compacted cell set that covers it. Every footprint is a number a pack or
     a preset already declares; each names the file it came from. Ordered widest first. `ring` is the stations pack
     that is on (packs.stations()); without one there is no ring to claim. `footprints` are the enabled packs' own
@@ -269,9 +296,7 @@ def claims(lat: float, lon: float, settings, ring: dict | None = None, footprint
                   footprint_m=settings.num(rk, 15) * 1000, shape="circle", native_res=None, base_res=8,
                   declared=f"{rk}={settings.num(rk, 15)}", where=f"packs/{ring['pack']}/pack.yaml",
                   note="")] if rk else []),
-        _claim(lat, lon, key="yard", name="The street", what="this node's own ground",
-               footprint_m=settings.num("LOCAL_RADIUS_M", 500), shape="circle", native_res=None, base_res=11,
-               declared=f"LOCAL_RADIUS_M={settings.num('LOCAL_RADIUS_M', 500)}", where=".env", note=""),
+        _own_claim(lat, lon, own_cells),
         _claim(lat, lon, key="room", name="This house", what="the probes in this house",
                footprint_m=pub["metres"], shape="circle", native_res=pub["res"], base_res=pub["res"],
                declared="lat and lon rounded to three decimals", where="app/main.py, GET /health",

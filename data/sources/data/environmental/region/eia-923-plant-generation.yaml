@@ -1,0 +1,40 @@
+name: EIA-923 Power Plant Operations Report (with EIA-860 plant locations)
+url: https://www.eia.gov/electricity/data/eia923/
+description: |
+  Net generation and fuel use for every US power plant above 1 MW, monthly
+  and annual, from the US Energy Information Administration. Joined to
+  EIA-860 for each plant's county.
+pillar: environmental
+scale: region
+status: candidate
+license: "US public domain: EIA states US government publications are in the public domain and not subject to copyright protection."
+api: https://www.eia.gov/electricity/data/eia923/xls/f923_2025.zip
+pilot_relevance: []
+places: [charlotte]
+tags: [electricity, renewable-energy, power-plants, united-states, eia]
+auth: none
+feeds_cells: [Environmental|Region]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. f923_2025.zip (final 2025 data, released 14 Sep
+  2026), sheet Page 1 Generation and Fuel Data, joined to eia8602025.zip
+  2___Plant_Y2025.xlsx for the county. Renewable = fuel codes SUN, WND, WAT
+  (pumped storage excluded), WDS, WDL, BLQ, AB, OBS, OBL, OBG, LFG, MSB,
+  GEO, SLW. 2025 net generation: Mecklenburg County 26.7 GWh renewable (all
+  landfill gas) of 19,532 GWh; the eleven counties of MSA 16740 1,642.9 GWh
+  renewable (solar 753.1, hydro 746.0, landfill gas 143.9) of 49,805.7 GWh;
+  North Carolina 18,577.2 GWh of 134,695.6 GWh.
+
+  LICENCE. eia.gov/about/copyrights_reuse.php: "U.S. government publications
+  are in the public domain and are not subject to copyright protection."
+
+  WHY THIS CELL. Environmental|Region asks for renewable electricity
+  generation in GWh/yr; this is the plant-level record of it, summable to
+  any set of counties.
+
+  WHAT IT DOES NOT CLAIM. Plants under 1 MW and rooftop solar are not
+  reported plant by plant, so Mecklenburg shows no solar at all. It is
+  generation located in the territory, not electricity used there. The state
+  totals were not checked for EIA's state-level imputation rows.

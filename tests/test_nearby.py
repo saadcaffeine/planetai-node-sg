@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 
+import cells
 import sources
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -91,7 +92,7 @@ class _HC:
 s, r = B.ring(_HC({"readings": [ring]}), LAT, LON, 15.0, min_separation_m=10.0)
 assert len(s) == 1 and s[0]["local"] is False, "a station 40 m away is a neighbour, not this node's own kit"
 assert 39 < sources.metres(LAT, LON, ring["latitude"], ring["longitude"]) < 41
-sources.stamp_local(s, LAT, LON, 500.0)
+sources.stamp_local(s, {cells.home(LAT, LON)})
 assert s[0]["local"] is False, "stamp_local only ever narrows: an unclaimed sensor never becomes local"
 assert [m for _, _, m, _ in r] == ["pm25"] and s[0]["meta"]["attribution"].startswith("Bali Air Dispatch")
 

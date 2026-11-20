@@ -9,7 +9,7 @@ status: candidate
 license: "CC BY, version not stated; see notes"
 api: https://data.humdata.org/api/3/action/package_show?id=kontur-population-dataset
 pilot_relevance: [global]
-places: [barcelona, bali]
+places: [barcelona, bali, charlotte]
 tags: [population, density, h3, hexagon, grid, gridded, denominator, hdx]
 added: 2026-10-23
 assisted_by: Claude Code
@@ -46,3 +46,6 @@ notes: |
   WHAT IT DOES NOT CLAIM. A model, not a register. Where it disagrees with the municipal padron, the padron wins.
   A review should sum it inside one real municipal boundary and record the gap to the census. Like any entry, it
   goes live only with a usable review in reviews/ or an adapter.
+
+  CHARLOTTE, read 2026-11-05: kontur_population_US_20231101.gpkg (294 MB). The 1,237 H3 r8 cells whose centres
+  fall in the TIGERweb boundary of place 3712000 sum to 934,495 people, against ACS 903,844.

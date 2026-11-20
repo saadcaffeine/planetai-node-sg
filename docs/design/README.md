@@ -1,9 +1,7 @@
 # docs/design
 
-The September 2026 audit's 207 files of evidence moved to **`planetai-design`, at `design/audit/2026-09/`** — this is a repo households install from, and the pixels of a design review are not theirs to pull. `AUDIT_2026-09.md` and `HANDOFF_audit.md` stay here and read it from there: `HANDOFF_audit.md`'s paths were rewritten, and `AUDIT_2026-09.md` cites evidence as `audit/…`, which now means `planetai-design/design/audit/2026-09/…`.
+`fixtures/` holds the node captures the dashboard is rendered and tested against. `python3 tools/shots.py` writes its screenshots to `shots/` here, which git ignores.
 
-The visual language is not this repo's to edit either. **`planetai-design/planetai-theme.css`** is generated from that repo's `references/planetai-layer.md`, and `app/static/planetai-theme.css` is a byte-for-byte copy of it, held there by `tools/check_theme.py` — which is in `make lint` and fails.
+The design notes that used to sit beside them (the September audit, the UX reviews, LANGUAGE_GAP, the scale spike, the handoffs and prompts) are working records, and they moved on 9 Nov 2026 to the private **`planetai-design`** repo, at `node-docs/design/`, with the audit evidence that went there before them (`design/audit/2026-09/`).
 
-Change a token in the design repo and copy it here. `LANGUAGE_GAP.md` records where this dashboard still disagrees with that language.
-
-`SCALE_SPIKE_2026-09.md` is the other half of that: three real sources from `awesome-fabcity-data`, at city, region and planet scale, picked so the redesign is drawn against the data that is coming and not only against a sensor reading every fifteen minutes.
+The visual language is not this repo's to edit either. **`planetai-design/planetai-theme.css`** is generated from that repo's `references/planetai-layer.md`, and `app/static/planetai-theme.css` is a byte-for-byte copy of it, held there by `tools/check_theme.py`, which is in `make lint` and fails.

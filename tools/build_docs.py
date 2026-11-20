@@ -35,11 +35,12 @@ GITHUB = "https://github.com/fabcity/planetai-node"
 # slug · source (relative to repo root) · group. Order is the sidebar's order.
 NAV = [
     ("Start here", [
+        ("quickstart", "docs/site/quickstart.md", "Quick start"),
         ("introduction", "docs/site/introduction.md"),
         ("how-it-works", "docs/site/how-it-works.md"),
         ("concepts", "docs/site/concepts.md"),
     ]),
-    ("Get started", [
+    ("Install", [
         ("platforms", "docs/PLATFORMS.md"),
         ("install", "docs/site/install.md"),
         ("first-ten-minutes", "docs/site/first-ten-minutes.md"),
@@ -75,6 +76,7 @@ NAV = [
     ("Dashboard", [
         ("dashboard", "docs/site/dashboard.md"),
         ("next-days", "docs/site/next-days.md"),
+        ("place", "docs/site/place.md", "The Place door"),
         ("wall", "docs/site/wall.md"),
         ("design", "docs/site/design.md"),
         ("grafana", "docs/site/grafana.md", "Grafana"),
@@ -358,6 +360,7 @@ TEMPLATE = """<!doctype html>
   <span class="chip version" title="built {built} from {commit}">{version}</span>
   <div class="search"><input id="q" type="search" placeholder="Search the docs" aria-label="Search the docs" autocomplete="off"><kbd>/</kbd><div id="results" hidden></div></div>
   <nav class="links">
+    <a class="start" href="{quickstart}">Quick start</a>
     <a href="https://planetai.fab.city/">planetai.fab.city</a>
     <a href="{github}" rel="noopener">GitHub</a>
     <button class="theme" aria-label="Switch register">Dark</button>
@@ -549,7 +552,7 @@ def main():
                 body_html, toc = rendered[slug]
                 page = TEMPLATE.format(
                     title=html.escape(TITLES[slug][0]), description=first_paragraph(body_html),
-                    assets=f"{base}assets/", home=f"{base}", github=GITHUB, version=ver, built=built, commit=commit,
+                    assets=f"{base}assets/", home=f"{base}", quickstart=f"{base}quickstart/", github=GITHUB, version=ver, built=built, commit=commit,
                     bodyclass="multi", sidebar=sidebar_html(slug, mode, base),
                     articles=article_html(slug, body_html, toc, mode, base, commit, src),
                     toc=toc_html(toc))
@@ -579,7 +582,7 @@ def main():
                                for s in ORDER)
             page = TEMPLATE.format(
                 title="PLANETAI node documentation", description="Everything the node is, on one page.",
-                assets=f"{adir.name}/", home="#" + ORDER[0], github=GITHUB, version=ver, built=built, commit=commit,
+                assets=f"{adir.name}/", home="#" + ORDER[0], quickstart="#quickstart", github=GITHUB, version=ver, built=built, commit=commit,
                 bodyclass="single", sidebar=sidebar_html(None, mode, base), articles=articles,
                 toc="")
             if args.bare:

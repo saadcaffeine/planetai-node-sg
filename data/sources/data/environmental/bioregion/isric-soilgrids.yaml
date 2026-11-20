@@ -15,15 +15,15 @@ added: 2026-09-09
 feeds_cells: []
 upstream_listed_in: []
 notes: |
-  Verified 2026-09-09. REST API IS DEGRADED - do not rely on it. Three
-  calls to rest.isric.org/soilgrids/v2.0/properties/query with different
-  coordinates all returned well-formed JSON with values.mean = null, and
-  ISRIC's own site carries a notice that the REST API is unavailable due
-  to technical issues. Use the file services instead: WCS at
-  maps.isric.org (designed for bounding-box subsetting and the recommended
-  path for modelling pipelines) or WebDAV/VRT at
-  files.isric.org/soilgrids/latest/data/. Full downloads are ~5 GB per map
-  and ~120 GB per property, so WCS subsetting is not optional.
+  Verified 2026-09-09, corrected 2026-11-05. The REST point query at
+  rest.isric.org/soilgrids/v2.0/properties/query works: Collserola,
+  Barcelona (2.10 E, 41.42 N) gave soc 0-5cm mean 713 dg/kg on 5 Nov (it returned only nulls in Sep,
+  with an outage notice on ISRIC's site). A null can also be SoilGrids'
+  own no-data: at Ungasan, Bali
+  (115.165 E, 8.825 S) the VRT pixel is -32768 too, while 300 m east it
+  reads soc 450 dg/kg, pH 5.6. For areas use the WCS at maps.isric.org or
+  the VRTs at files.isric.org/soilgrids/latest/data/; full downloads are
+  ~5 GB per map, so subset.
   METHODOLOGICAL CAVEAT: these are model predictions, not measurements,
   with no time dimension. The framework's 'soil health index' implies
   observed condition and trend; SoilGrids gives a static modelled property

@@ -81,7 +81,8 @@ VIEWS.data = function () {
   $('#dnav').innerHTML = Object.entries(DTABS).map(([id, [t]]) => `<a href="#data/${id}" data-t="${id}"${id === r.tab ? ' class="on" aria-current="page"' : ''}>${t}</a>`).join('');
   for (const [id, [, secs]] of Object.entries(DTABS)) for (const sec of secs) { const el = document.getElementById(sec); if (el) el.hidden = id !== r.tab; }
   DTABS[r.tab][2]();
-  const go = FOCUS ? (FOCUS !== FOCUSED && FOCUS) : r.el;
+  // a tab named in the link lands on the tab bar: the board sits above it (Field Synthesizer variation)
+  const go = FOCUS ? (FOCUS !== FOCUSED && FOCUS) : r.el || (location.hash.includes('/') && 'dnav');
   if (FOCUS) FOCUSED = FOCUS;
   if (go) setTimeout(() => {                                   // after route() has scrolled to the top
     const el = document.querySelector(`.srow[data-sid="${CSS.escape(go)}"]`) || document.getElementById(go);
@@ -129,7 +130,7 @@ function metricTiles() {
   };
   let k = 0;
   /* every figure carries its date and its word (the layer): a tile is the median of the latest 15-minute means */
-  $('#metrics').innerHTML = `<p class="fine mdate">Medians of each source’s latest 15-minute mean, ${esc(wdhm(D.as_of))} ${prov('live')}</p>` + fams.map(([t, ms]) => `<div class="fam"><div class="fh k">${t}<span><b>${ms.length}</b> kind${ms.length === 1 ? '' : 's'}</span></div><div class="tiles">${ms.map(m => {
+  $('#metrics').innerHTML = `<p class="fine mdate">Medians of each source’s latest 15-minute mean, ${esc(wdhm(D.as_of))} ${prov('live')}</p>` + fams.map(([t, ms]) => `<div class="fam" data-fam="${esc(t)}"><div class="fh k">${t}<span><b>${ms.length}</b> kind${ms.length === 1 ? '' : 's'}</span></div><div class="tiles">${ms.map(m => {
     const n = src[m].size, md = now[m] && now[m].length ? d3.median(now[m]) : null, dp = Math.abs(md) >= 100 ? 0 : Math.abs(md) >= 10 ? 1 : 2;
     return `<button type="button" class="mt ${m === METRIC ? 'on' : ''}" data-m="${esc(m)}" aria-pressed="${m === METRIC}" style="--i:${k++}">`
       + `<span class="sym">${esc(SYM[m] || m.slice(0, 4))}</span><span class="mn said">${esc(mWord(m))}</span>${trace(m)}`
@@ -236,11 +237,13 @@ const CADENCE = { PT5M: 'every 5 minutes', PT15M: 'every 15 minutes', PT1H: 'hou
 const MINTERNAL = /^(years_cached|fc_)/;
 const MUNIT = { pm25_model: 'µg/m³', pm10_model: 'µg/m³', o3: 'µg/m³', no2: 'µg/m³', co: 'µg/m³', dust: 'µg/m³', temp_model: '°C', humidity_model: '%',
   pressure_model: 'hPa', wind_speed: 'km/h', wind_direction: '°', precipitation: 'mm', sea_surface_temp: '°C', wave_direction: '°', night_lights: 'nW/cm²/sr',
-  businesses_per_km2: 'per km²', roads_km: 'km', buildings: 'buildings', sat_buildings: 'buildings', sat_buildings_yearly: 'buildings a year' };
+  businesses_per_km2: 'per km²', roads_km: 'km', river_flow_m3s: 'm³/s', river_largest_m3s: 'm³/s', river_upland_km2: 'km²', river_to_sea_km: 'km', basin_up_km2: 'km²', river_order: 'Strahler', buildings: 'buildings', sat_buildings: 'buildings', sat_buildings_yearly: 'buildings' };
 const MWORD = { built_frac: 'built up', crop_frac: 'cropland', tree_frac: 'trees', water_frac: 'water', ndvi_median: 'greenness (NDVI, median)',
   land_change_score: 'land change, score', land_change_since_2017: 'land change since 2017', land_change_yoy: 'land change, last year',
-  sat_buildings: 'buildings, from the satellite', sat_buildings_yearly: 'buildings added, from the satellite', sat_height_m_yearly: 'building height, from the satellite',
-  sat_confidence: 'satellite buildings, confidence', osm_building_coverage: 'buildings mapped in OpenStreetMap' };
+  sat_buildings: 'buildings, from the satellite', sat_buildings_yearly: 'buildings in the yearly count, from the satellite', sat_height_m_yearly: 'building height, from the satellite',
+  sat_confidence: 'satellite buildings, confidence', osm_building_coverage: 'buildings mapped in OpenStreetMap',
+  river_m: 'the nearest river, away', river_flow_m3s: 'its flow, long-term average', river_order: 'its order', river_upland_km2: 'ground that drains into it',
+  river_to_sea_km: 'how far it still runs to the sea', river_largest_m3s: 'the largest river in the square, its flow', basin_up_km2: 'ground upstream of the node’s basin' };
 const mrow = o => {
   const m = o.metric, share = /(_frac|_share|_coverage|_confidence)$/.test(m);
   const unit = share ? '%' : MUNIT[m] ?? (/_m(_yearly)?$/.test(m) ? 'm' : /_s$/.test(m) ? 's' : /^poi_/.test(m) ? 'places' : unitOf(m));
@@ -491,18 +494,22 @@ const dspan = (a, b) => dwhen(a) === dwhen(b) ? dwhen(a) : dayOf(a) === dayOf(b)
 /* consecutive rows (newest first) with the same key become one: [{ a: the newest row, n, first, last }] */
 const runs = (A, key) => A.reduce((o, a) => { const r = o[o.length - 1];
   if (r && key(r.a) === key(a)) { r.n += 1; r.first = a.ts; } else o.push({ a, n: 1, first: a.ts, last: a.ts }); return o; }, []);
+/* what a row answered: an alert's words, or for a drawing the node's own note for it ("drew Rain garden on Garden plan"),
+   without the "(mark 12)" the node keys it by */
+const ledgerWhat = a => a.stage === 'place' ? `${a.choice || ''} ${String(a.note || '').replace(/ \((map|mark) \d+\)$/, '')}`.trim() : plain(a.text) || a.rule || '';
 let LSTAGE = '';
 function ledgerBlock() {
-  const tok = !!DOORS_TOKEN(), all = [...D.actions].sort((a, b) => b.ts.localeCompare(a.ts));
+  /* the drawings' rows (D.placeActions, their own route) join the answers here and nowhere else */
+  const tok = !!DOORS_TOKEN(), all = [...D.actions, ...(D.placeActions || [])].sort((a, b) => b.ts.localeCompare(a.ts));
   const stages = [...new Set(all.map(a => a.stage))];
   if (LSTAGE && !stages.includes(LSTAGE)) LSTAGE = '';
   const A = all.filter(a => !LSTAGE || a.stage === LSTAGE);
-  const R = runs(A, a => [a.stage, a.alert_id, tok ? a.actor : '', tok ? a.text || a.rule : ''].join('|'));
+  const R = runs(A, a => [a.stage, a.alert_id, tok ? a.actor : '', tok ? ledgerWhat(a) : ''].join('|'));
   const stage = r => `${esc(r.a.stage)}${r.n > 1 ? ` <b class="x2">×${r.n}</b>` : ''}`;
   const filt = `<div class="lfilt" role="group" aria-label="Show one stage">${['', ...stages].map(x => `<button type="button" data-st="${esc(x)}" aria-pressed="${x === LSTAGE}">${x ? esc(x) : 'every stage'}${x ? ` <span>${all.filter(a => a.stage === x).length}</span>` : ''}</button>`).join('')}</div>`;
   $('#ledger').innerHTML = `<h2>Every decision, ${all.length}</h2>${filt}`
     + (tok ? `<table class="tbl ledger"><tr><th>when</th><th>stage</th><th class="hide">who</th><th>what it answered</th></tr>`
-      + R.map(r => `<tr><td class="mono tw">${dspan(r.first, r.last)}</td><td class="ts">${stage(r)}</td><td class="hide" title="${esc(r.a.actor || '')}">${esc(actorWord(r.a.actor))}</td><td>${esc(plain(r.a.text) || r.a.rule || '')}</td></tr>`).join('') + `</table>`
+      + R.map(r => `<tr><td class="mono tw">${dspan(r.first, r.last)}</td><td class="ts">${stage(r)}</td><td class="hide" title="${esc(r.a.actor || '')}">${esc(actorWord(r.a.actor))}</td><td>${esc(ledgerWhat(r.a))}</td></tr>`).join('') + `</table>`
       : `<table class="tbl ledger"><tr><th>when</th><th>stage</th></tr>` + R.map(r => `<tr><td class="mono tw">${dspan(r.first, r.last)}</td><td class="ts">${stage(r)}</td></tr>`).join('') + `</table>`
         + `<p class="fine">Who answered, and what each alert said, stay private to this house. Unlock this screen in ${UNLOCK_AT} to see them.</p>`);
   document.querySelectorAll('#ledger [data-st]').forEach(b => b.onclick = () => { LSTAGE = b.dataset.st; ledgerBlock(); });

@@ -4738,7 +4738,7 @@ window.PAI.register({
       { id: 'claims-declared', label: 'Every footprint is declared',
         text: 'Every footprint here is a number a pack or a preset already '
         + 'declares — COAST_MAX_KM, BAD_RADIUS_KM, EARTH_RADIUS_M at 10 m a pixel, PLACE_RADIUS_M, '
-        + 'LOCAL_RADIUS_M, and the three decimals GET /health rounds a coordinate to, which is about '
+        + 'the node\'s own cells, and the three decimals GET /health rounds a coordinate to, which is about '
         + '110 m and the finest resolution anything from this node may be drawn at. Not one '
         + 'radius on this page was chosen by it.' },
       { id: 'claims-order', label: 'Widest ground first',
@@ -7369,6 +7369,7 @@ function cols(ctx) {
 
 window.PAI.register({
   id: 'sgair', pack: 'singapore-nea', stage: 'observe', title: 'Singapore air, wind and rain', order: -10,
+  learn: ['cards', 'prov', 'forecast'],
   reads: ['/observations', '/stats', '/forecast'],
   render(ctx) {
     ensure();
@@ -7477,6 +7478,7 @@ function coastCols(ctx) {
 
 window.PAI.register({
   id: 'sgcoast', pack: 'singapore-beach', stage: 'observe', title: 'Singapore beaches, fires and haze', order: -9,
+  learn: ['cards', 'prov'],
   reads: ['/observations', '/readings'],
   render(ctx) {
     ensure();
@@ -10078,6 +10080,11 @@ function proposal(p, i) {
     return `<div class="card ask" data-component="askProposal"><div class="ch"><span>record what you did</span>`
       + `<span>#${esc(String(id))}</span></div><p class="more">Say it in your own words; the node keeps them `
       + `as yours.</p>${id != null && window.K.didButton ? window.K.didButton(id) : ''}</div>`;
+  }
+  if (p.tool === 'place_report') {
+    return `<div class="card ask" data-component="askProposal"><div class="ch"><span>the place report</span></div>`
+      + `<p class="more">Opens on Place, to print or save as PDF.</p><div class="bt">`
+      + `<a class="pri" href="/?layout=doors#place/report">open the Place report</a></div></div>`;
   }
   if (p.tool !== 'settings_set' || !p.setting) {
     return `<div class="card" data-component="askProposal"><div class="ch"><span>${esc(p.tool)}</span></div>`

@@ -25,7 +25,9 @@ curl -fsSL https://planetai.fab.city/install | bash
 
 Four questions, two minutes. Then `planetai telegram` for the alerts and `planetai ui` for the dashboard.
 Best machine: an old laptop or mini PC with Linux that stays on. A Mac works; Windows through WSL2. The full
-walk-through is [START_HERE.md](START_HERE.md).
+walk-through is the [quick start](https://planetai.fab.city/docs/quickstart/), six steps with a page behind each; if you
+have the sensor kit, [Sensors and sources](https://planetai.fab.city/docs/sensors/) and
+[Radios](https://planetai.fab.city/docs/radios/) are the pages under step 2.
 
 **Confirm you are in:** open **@planetai_exp_bot** on Telegram and send it your name, city and node name. That
 first message is our census, and it proves your channel works.

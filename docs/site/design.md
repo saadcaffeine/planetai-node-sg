@@ -1,5 +1,5 @@
 # Design
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The design language every PLANETAI surface is drawn in: the colours and the one thing each means, the type, the four
 card kinds, the signs and the motion. [The dashboard](dashboard.md), [the Wall](wall.md) and the phone page all follow
@@ -68,7 +68,8 @@ The node's own words are never uppercased, because `µ` uppercases to `M` and `�
 error. Anything the node wrote is drawn inside `.said`, which turns uppercase off. On the classic dashboard
 `tools/check_ui.py` fails a new uppercase rule, and a `µ` written outside `.said`.
 
-The Wall has its own floor, `--wf`: 28 px at 1920×1080, scaled with the screen, and nothing on the Wall is smaller.
+The Wall has its own floor, `--wf`: 20 px at 1920×1080, scaled with the screen, and nothing on the Wall is smaller but
+the size legend on its map, at 16 px.
 
 ## Four card kinds and no fifth
 

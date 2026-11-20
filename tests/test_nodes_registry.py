@@ -40,7 +40,7 @@ class App:
 
 
 ns = {"settings": Settings(), "state": {}, "hc": Client(), "time": time, "datetime": datetime, "timezone": timezone,
-      "app": App(),
+      "app": App(), "identity": type("Identity", (), {"LISTED": []})(),   # app/identity.py: who pins to a listed id
       "_packs": type("P", (), {"shared": staticmethod(lambda level="open": set())})()}   # auth.py adds the packs' paths
 tree = ast.parse((ROOT / "app" / "main.py").read_text() + (ROOT / "app" / "auth.py").read_text())   # _SHARE_OFF is in auth.py
 for node in tree.body:
@@ -74,6 +74,7 @@ hc.answer = Answer(json.dumps(raw))
 ns["check_registry"]()
 first = ns["nodes"]()
 assert hc.asked == 1 and first["read"] and len(first["nodes"]) == 2 and "error" not in first, "the first check reads"
+assert ns["identity"].LISTED == first["nodes"], "the list a parent pins listed names against is the one just read"
 ns["check_registry"]()
 assert hc.asked == 1, "a second check inside REGISTRY_EVERY asks nothing"
 

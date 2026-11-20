@@ -10,6 +10,7 @@ status: candidate
 license: CC-BY-4.0
 api: https://hub.worldpop.org/rest/data
 pilot_relevance: [global]
+places: [charlotte]
 tags: [population, raster, dasymetric, demographics, denominator]
 added: 2026-09-22
 auth: none
@@ -53,3 +54,7 @@ notes: |
   that territory's own published figure for the same year, and records the gap.
   A population denominator nobody has checked against the local census is the
   kind of number that quietly makes every rate wrong.
+
+  CHARLOTTE, read 2026-11-05: the stats service (services/stats?dataset=wpgppop&year=2020) over a simplified
+  city polygon returned 958,417 for 2020. The reply wraps its JSON in PHP deprecation HTML, and the full
+  polygon gets 414, so simplify it first.

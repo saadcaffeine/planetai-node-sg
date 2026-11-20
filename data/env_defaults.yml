@@ -15,10 +15,10 @@ NODE_CITY:
   default: "bali"
   help: "---- who and where ---- pilot key used in Index cells: bali | barcelona | boston | santiago"
 NODE_LAT:
-  default: "-8.8271"
+  default: "-8.8277"
   help: "---- who and where ----"
 NODE_LON:
-  default: "115.15709"
+  default: "115.15418"
   help: "---- who and where ----"
 NODE_TZ:
   default: "Asia/Makassar"
@@ -38,9 +38,6 @@ PURPLEAIR_HOSTS:
 SENSOR_INDOOR:
   default: "0"
   help: "Are the LAN sensors above indoors? 1 = yes. (Smart Citizen carries this itself; AirGradient/PurpleAir don't.)"
-LOCAL_RADIUS_M:
-  default: "500"
-  help: "How far from the node a sensor can be and still count as this node's own measurement. A kit of yours further than this is yours but not here: it stays out of the ambient average and out of every `live` claim."
 OPENMETEO_ENABLED:
   default: "1"
   help: "---- wider-scale sources (city, region, bioregion, planet) — docs/COVERAGE.md ---- Open-Meteo: model point sample at this node's coordinates. Free, no key, works anywhere on earth. Boundary conditions from the planet scale — context, never rolled up into an index cell."
@@ -128,6 +125,9 @@ PARENT_TOKEN:
 AGGREGATE_TOKEN:
   default: ""
   help: "What this node presents to its parent, and what it demands from its own children. Without AGGREGATE_TOKEN this node accepts no children at all (POST /aggregates returns 403)."
+NODE_KEY:
+  default: ""
+  help: "This node's key: 32 random bytes as hex, written by install.sh (update.sh on an older node). Its ID is a short hash of the public key, and it signs everything this node pushes to its parent (docs/SPEC_identity.md). Never share it, never copy it to start another node, and keep a copy of this file somewhere that is not the backup share: a lost key is a new node, which its parent refuses under the old name."
 DECISION_REQUIRED:
   default: "0"
   help: "1 refuses to record an act unless a decision was recorded against the same alert first. Off by default and meant for a node that acts for more than one household: four of the five ways to record an act have no screen to decide on — a LoRa reply, the MCP tool, the terminal, curl — and a node in a house should record \"I opened the window\" whether or not anybody deliberated first."

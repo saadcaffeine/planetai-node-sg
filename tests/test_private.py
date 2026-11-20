@@ -39,6 +39,11 @@ assert "_shows_private(request, authorization, raw=False)" in fn["stats"], "stat
 for q_ in ("SERIES_SQL", "NOW_SQL"):
     body = re.search(rf'{q_} = """(.*?)\n"""', REPORT, re.S).group(1)
     assert "packs.public_sql(" in body, f"report.{q_}: the report is written by a model, so never private"
+# A source that is not open (sensors.meta.licence, REE since 9 Nov 2026) stays out of what is republished as open data.
+assert 'packs.open_sql("r")' in fn["export"], "export: a non-commercial source never goes out as open data"
+for q_ in ("SERIES_SQL", "NOW_SQL"):
+    body = re.search(rf'{q_} = """(.*?)\n"""', REPORT, re.S).group(1)
+    assert "packs.open_sql(" in body, f"report.{q_}: a non-commercial source stays out of the report bundle"
 AGENT = open("app/agent.py").read()
 assert re.search(r'def _get\(path: str\):\n(?:\s*#.*\n)?\s*r = httpx.get\(API \+ path, headers=\{"X-Agent": "agent"\}', AGENT), \
     "every agent read says it is an agent"

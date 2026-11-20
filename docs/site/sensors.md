@@ -1,5 +1,5 @@
 # Sensors and sources
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page connects the things that measure your place to the node. Once a sensor of yours is polled, the rules
 have a room to fire on, and its hourly means can count toward this place's cell in the Fab City Index. Whether
@@ -20,8 +20,10 @@ for any source on this page.
    others carry on. Polling twice never stores a reading twice.
 3. **Check that it is yours and here.** `planetai sensors` prints one line per sensor: id, `kind`, `yours` or
    `reference`, `indoor` or `outdoor`, name. `yours` means `local`: the adapter claimed the kit and it stands
-   within `LOCAL_RADIUS_M` (500 m) of the node. A kit on your account 1.2 km away prints `reference`, because it
-   is not this node's measurement of this place.
+   in one of the node's own cells, the one the node stands in or a neighbour you claimed on
+   [Place](place.md#the-seven-cells). A kit on your account outside them prints `reference`, because it is not this
+   node's measurement of this place. A kit in a cell next to the node's prints `reference` until you claim that
+   cell, and `yours` from the next poll.
 4. **Check that it may be counted.** `planetai sensors --json` carries `"custody": true` on the same row. Every
    cell's claim to `live` depends on that field.
 5. **Watch it become a cell.** `planetai cells` prints `Environmental|Community` with a value, a state and the
@@ -77,10 +79,11 @@ reach it.
 ## Who may be counted
 
 `local` is two facts at once. The adapter says whether a sensor is yours, and the node checks whether it is here:
-`sources.stamp_local` sets `local` to false for any claimed sensor farther than `LOCAL_RADIUS_M` from the node. It
-only ever narrows. A sensor no adapter claimed never becomes local, whatever its coordinates. A claimed sensor with
-no coordinates (a radio reaching the node through your own gateway, a purifier on the LAN) stays local, because
-there is no distance to measure. A node with no coordinates of its own leaves every claim alone.
+`sources.stamp_local` sets `local` to false for any claimed sensor whose resolution-8 cell is not one of the node's
+own, the cell the node stands in and the neighbours claimed on Place (`node_cells`). It does this on every poll, so a
+claim or a release counts from the next one. It only ever narrows. A sensor no adapter claimed never becomes local,
+whatever its coordinates. A claimed sensor with no coordinates (a radio reaching the node through your own gateway, a
+purifier on the LAN) stays local, because there is no point to place in a cell. A node with no coordinates of its own leaves every claim alone.
 
 `custody` is a generated column, `kind = 'child' OR (local AND kind <> 'peer')`. No adapter writes it, so it
 cannot disagree with `local` and `kind`. A child node's hourly means are in custody. A model point, a portal,
@@ -96,17 +99,17 @@ switch: it runs when that switch is on.
 
 | source | turned on by | `kind` | `local` | what it reads |
 |---|---|---|---|---|
-| Smart Citizen | `SC_DEVICES=19880,…` or `SC_USER=name` (every kit on the account; `SC_EXCLUDE` drops some) | `sensor` | yes, then narrowed by `LOCAL_RADIUS_M` | The public API, no key. Metrics are mapped by measurement name, so SCK 2.1 and 2.3 both work. `indoor` comes from each kit's own `exposure`. No humidity correction: the Seeed HM-3301 is not a Plantower, and the EPA correction was not derived for it. |
+| Smart Citizen | `SC_DEVICES=19880,…` or `SC_USER=name` (every kit on the account; `SC_EXCLUDE` drops some) | `sensor` | yes, then narrowed to the node's own cells | The public API, no key. Metrics are mapped by measurement name, so SCK 2.1 and 2.3 both work. `indoor` comes from each kit's own `exposure`. No humidity correction: the Seeed HM-3301 is not a Plantower, and the EPA correction was not derived for it. |
 | Open-Meteo and CAMS | `OPENMETEO_ENABLED=1` (default) | `model` | never | Weather now at the node's coordinates (core), and PM2.5, PM10, O₃, NO₂, dust and UV from the Copernicus model at 11 km, as `cams-point` (the `air-quality` pack, on the same key). Free, no key, anywhere. Never in an ambient average. |
 | NASA POWER | the first-start bootstrap (`BOOTSTRAP=1`) | `model` | never | Forty years of monthly temperature, humidity and rain normals, as `power-point`. |
 | CKAN portals | `CKAN_PORTALS=slug=url,…` (five of the six presets name one; `delhi` leaves it blank) | `portal` | never | A portal's upkeep (datasets in total, the share touched in 90 days) for the `open-data-health` pack's `Governance\|City` cell. Scale from `CKAN_SCALE` (`city`). |
 | Meshtastic radios | `MQTT_HOST` (set by `planetai meshtastic`) | `sensor` | yes | Telemetry from radios through the gateway, on `msh/#`, each reading filed under the radio that measured it. `MESH_INDOOR_NODES=!id,!id` marks the indoor ones. A radio's own temperature, humidity and pressure are its box, not the street. [Radios](radios.md) has the setup and the metrics. DIY pods publish to `planetai/sensors/<id>/<metric>` on the same broker. |
 | DIY nodes, direct | `planetai broker` (the same broker; the `smartcitizen` pack; `SC_FORWARD=<tokens>` passes messages on to smartcitizen.me) | `sensor` | yes (no coordinates, so it stays local) | A Making Sense Bali DIY node with a v4 portal publishes the platform's own topics to this node instead of the cloud: `device/sck/<token>/readings` and a retained `meta` (name, site, height, indoor). Stored with the device's own timestamp. Ids are `sck-<8 hex of the token's hash>`, and the token is never shown. `indoor` comes from `meta`, else outdoor. The parser also reads a Smart Citizen Kit's `readings/raw`, but a kit cannot send a password and this broker refuses anonymous clients, so kits stay on the cloud path. A forwarded device keeps its page on the platform; list its platform id in `SC_EXCLUDE` so the cloud adapter does not read it twice. |
-| Bali Air Dispatch (`bali-air-dispatch` pack) | `BAD_ENABLED=1` (the Bali preset sets it; off elsewhere). Runs without `PACKS_ALLOW_CODE` | `sensor` | never | Other people's public stations within `BAD_RADIUS_KM` (15; the Bali preset says 8), the outdoor reference this node is read against. Drops stations the archive suspects are indoor or broken (`BAD_INCLUDE_INDOOR=1` keeps the indoor ones). Keeps this node's own kit out of its ring: the ids it already polls, anything within `BAD_MIN_SEPARATION_M` (150) of the node, and `BAD_EXCLUDE` by hand. See [Packs that ship](packs-reference.md#bali-air-dispatch). |
+| Bali Air Dispatch (`bali-air-dispatch` pack) | `BAD_ENABLED=1` (the Bali preset sets it; off elsewhere). Runs without `PACKS_ALLOW_CODE` | `sensor` | never | Other people's public stations within `BAD_RADIUS_KM` (15; the Bali preset says 8), the outdoor reference this node is read against. Drops stations the archive suspects are indoor or broken (`BAD_INCLUDE_INDOOR=1` keeps the indoor ones). Keeps this node's own kit out of its ring: the ids it already polls, anything within `BAD_MIN_SEPARATION_M` (150) of the node, and `BAD_EXCLUDE` by hand. Each poll also writes every working outdoor station on the island, with no radius, to `out/wall/island.json` for the Wall's city size. See [Packs that ship](packs-reference.md#bali-air-dispatch). |
 | Xiaomi purifiers (`xiaomi-air` wild pack, listed at [fabcity/planetai-wild-packs](https://github.com/fabcity/planetai-wild-packs)) | `planetai packs add xiaomi-air`, then `XIAOMI_PURIFIERS=Living Room@192.168.4.98=<token>,…` and `planetai packs install` (installs python-miio) | `sensor` | yes (no coordinates, so it stays local) | Mi Home purifiers read on the LAN over miio/MIoT, always `indoor`: `pm25`, `temp`, `humidity`, `filter_life`, and `pm10` where the model reports it. Ids are `xm-<mac6>`. You extract each unit's 32-hex token once with xiaomi-cloud-tokens-extractor; after that nothing talks to the Xiaomi cloud. The pack lists that line under `secrets:`, so Set up shows it masked once saved. No EPA correction, because the sensor is not a Plantower. |
 | ThingData (`thingdata` pack) | `THINGDATA_INSTANCES=slug=url,…` | `portal` | never | A repair-knowledge server's catalogue: things described, guides, stories, and whether anyone is still writing. Scale from `THINGDATA_SCALE` (`city`). |
 | Fab labs (`make` pack) | `MAKE_ENABLED=1` and `PACKS_ALLOW_CODE=1`; `MAKE_ENABLED` ships as `0` | `facility` | never | One row per active fab lab within `MAKE_RADIUS_KM` (50), from the Fab Lab Network directory, with no readings. `meta` holds the slug, capabilities, city, distance and the lab's URL, never an email or a phone number. The directory is not openly licensed; read [the report page](report.md#the-nearest-place-to-make-or-fix) before you turn it on. |
-| Other code packs | the pack's own settings | as declared | as declared | `coast` (Open-Meteo Marine), `forecast` (BMKG, and Open-Meteo, CAMS air and the sea once `FORECAST_OPENMETEO=1`, which ships as `0`), `earth` (AlphaEarth embeddings), `earth-engine` (Dynamic World, Sentinel-2, VIIRS), `place` (OpenStreetMap into PostGIS), `terrain` (Copernicus DEM GLO-30), `fire` (NASA FIRMS, also `FIRE_ENABLED=1`), `surface-heat` (Landsat and MODIS through Planetary Computer). See [Packs that ship](packs-reference.md). |
+| Other code packs | the pack's own settings | as declared | as declared | `coast` (Open-Meteo Marine), `forecast` (BMKG, and Open-Meteo, CAMS air and the sea once `FORECAST_OPENMETEO=1`, which ships as `0`), `earth` (AlphaEarth embeddings), `earth-engine` (Dynamic World, Sentinel-2, VIIRS), `energy` (OpenStreetMap's plants and substations and, where the operator publishes it, the grid's mix; with your own Home Assistant set, the house's roof and grid), `hydro` (HydroSHEDS rivers and basins, fetched once with `planetai run hydro fetch`), `place` (OpenStreetMap into PostGIS), `terrain` (Copernicus DEM GLO-30), `fire` (NASA FIRMS, also `FIRE_ENABLED=1`), `surface-heat` (Landsat and MODIS through Planetary Computer). See [Packs that ship](packs-reference.md). |
 
 **AirGradient and PurpleAir, on the LAN.** The `airgradient` pack reads each host in `AIRGRADIENT_HOSTS` at
 `/measures/current`, and the `purpleair` pack each host in `PURPLEAIR_HOSTS` at `/json?live=true`, never through the

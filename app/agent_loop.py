@@ -444,6 +444,21 @@ PANE_PROPOSES = frozenset(n for n, c in TOOL_CLASS.items() if c in ("act", "admi
 PANE_TOOLS = PANE_RUNS | PANE_PROPOSES
 AUDIT_PANE = "dashboard-chat"
 
+# The pane's own tools, which open a view of the page and run nothing on the node, so they are not on the MCP surface
+# and have no TOOL_CLASS. A call is a `proposal`: the page draws a button and the person presses it. `place_report` is
+# SPEC_place_report §9 step 3, the Tools menu's `place.report` under a name a function call may carry (no dot); the
+# person still presses Print, the model never makes the PDF. When Place's command registry lands, it moves there.
+PANE_PAGES = {
+    "place_report": {
+        "description": "Open the Place report: the map of the ground around the house as a plan, and the pages after it, "
+                       "for the person to print or save as PDF. Use it when they ask for the place report, a PDF or a "
+                       "printout of Place.",
+        "parameters": {"type": "object", "properties": {"register": {
+            "type": "string", "enum": ["paper", "screen"],
+            "description": "paper (light, the default) or screen (the black map), only when the person asks for it"}}},
+    },
+}
+
 PANE_SYSTEM = """You are PLANETAI node '{node}', answering a person reading this node's own dashboard. The page's
 context is below: what the page is showing right now. Use it first; call a tool
 only when the question needs more.
@@ -451,6 +466,9 @@ only when the question needs more.
   {{"changes": {{"KEY": "value"}}}}; nothing changes, the person is shown a card and decides. Say that is what you did.
 - Call act only when the person says they did something about an alert, and only with the alert's id. The
   person writes what they did on the card, in their own words; never write it for them.
+- When the person asks for the place report, a PDF or a printout of Place, and place_report is offered, call it;
+  the person gets a button that opens the report, and prints it themselves. When it is not offered, this screen
+  holds no token: say the report draws the map of the house, so it needs this screen unlocked in Set up, This screen.
 - Never guess a number. Say what you know and what you do not.
 - Answer in {lang}. Plain sentences, no Markdown, under 90 words unless asked for more. One number
   only when it drives the advice.
@@ -490,7 +508,8 @@ def pane_tools(listed) -> list[dict]:
         "description": (t.description or "") + (" (PROPOSAL ONLY: nothing is changed; the person is shown a card)"
                                                 if t.name in PANE_PROPOSES else ""),
         "parameters": getattr(t, "input_schema", None) or getattr(t, "inputSchema", None)
-        or {"type": "object", "properties": {}}}} for t in listed if t.name in PANE_TOOLS]
+        or {"type": "object", "properties": {}}}} for t in listed if t.name in PANE_TOOLS] + [
+        {"type": "function", "function": {"name": n, **f}} for n, f in PANE_PAGES.items()]
 
 
 def local_rung() -> Rung:
@@ -509,7 +528,7 @@ def _text_call(content) -> list[dict]:
         j = json.loads(clean(content or ""))
     except ValueError:
         return []
-    if isinstance(j, dict) and j.get("name") in PANE_TOOLS:
+    if isinstance(j, dict) and (j.get("name") in PANE_TOOLS or j.get("name") in PANE_PAGES):
         return [{"id": "text-call", "function": {"name": j["name"], "arguments": j.get("arguments") or {}}}]
     return []
 
@@ -619,7 +638,10 @@ async def pane(messages: list[dict], system: str, tools: list[dict], call, scrub
                                 args = json.loads(args)
                             except ValueError:
                                 args = {}
-                        if fn in PANE_PROPOSES:
+                        if fn in PANE_PAGES and fn in {t["function"]["name"] for t in tools}:
+                            events.append(("proposal", {"tool": fn, "args": args}))
+                            text = "A button that opens it is in front of the person, who presses it."
+                        elif fn in PANE_PROPOSES:
                             events.append(("proposal", {"tool": fn, "args": args}))
                             text = "Nothing was changed. It is on a card in front of the person, who decides."
                         elif fn in PANE_RUNS:

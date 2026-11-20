@@ -39,4 +39,4 @@ footprint:
     the only source whose own resolution is finer than a household sensor, and the only one whose footprint is a square
 # The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
 share:
-  open: [/earth, /earth/change.png, /earth/year.png]
+  open: [/earth, /earth/change.png, /earth/year.png, /earth/wall.png]

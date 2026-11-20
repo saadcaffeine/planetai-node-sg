@@ -1,5 +1,5 @@
 # Platforms
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 This page says which machines can run a node, the oldest OS each one needs, and what to do with a machine below
 that floor. Linux comes first, macOS second and Windows third. A node's home is a box that stays on, and a laptop

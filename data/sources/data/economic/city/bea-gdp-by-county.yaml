@@ -1,0 +1,40 @@
+name: BEA GDP by County and Metropolitan Area (CAGDP)
+url: https://apps.bea.gov/regional/downloadzip.htm
+description: |
+  The US Bureau of Economic Analysis's gross domestic product for every
+  county, 2001 onwards, current and chained dollars, by industry. Keyless
+  zip downloads; the API needs a UserID.
+pillar: economic
+scale: city
+status: candidate
+license: "US public domain: BEA states its web information is in the public domain unless stated otherwise; a citation is requested."
+api: https://apps.bea.gov/regional/zip/CAGDP1.zip
+pilot_relevance: []
+places: [charlotte]
+tags: [gdp, regional-accounts, county, united-states, bea]
+auth: none
+feeds_cells: [Economic|City]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. CAGDP1.zip (file CAGDP1__ALL_AREAS_2001_2024.csv),
+  GeoFIPS 37119 Mecklenburg County, the county that holds Charlotte:
+  current-dollar GDP $123,644,347k in 2019 and $186,113,840k in 2024; real
+  GDP 117,741,850 and 146,152,496 thousand chained 2017 dollars. CAGDP2.zip
+  (by industry) also downloads keyless.
+
+  LICENCE. bea.gov/help/faq/147: "Unless stated otherwise, the information
+  posted on this web site is in the public domain and may be used or
+  reproduced without specific permission." A citation is requested.
+
+  WHY THIS CELL. Economic|City asks for gross domestic product. GDP stops at
+  the county; there is no city figure, so Mecklenburg stands in for
+  Charlotte (903,844 of the county's 1,154,681 people, ACS 2020-2024).
+
+  WHAT IT DOES NOT CLAIM. It is not the city of Charlotte alone, and it is
+  in current US dollars, not PPP. The metro area (MSA 16740) has no keyless
+  file: MAGDP1.zip returns an HTML page and BEA's download list has no MAGDP
+  table, so the official MSA figure needs the API key. Summing the eleven
+  MSA counties in current dollars gives $277.1 bn for 2024, but that is our
+  sum, not BEA's, and chained dollars do not add.

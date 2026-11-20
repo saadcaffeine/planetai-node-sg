@@ -17,6 +17,10 @@ def SHARE_LEVEL():
     return (settings.get("SHARE_LEVEL", "off") or "off").strip().lower()
 def ACT_TOKEN():
     return settings.get("ACT_TOKEN", "").strip()
+def PARENT():
+    return settings.get("PARENT_API_URL", "").strip()
+def PARENT_TOKEN():
+    return settings.get("PARENT_TOKEN", "").strip()
 
 
 # What a request carrying no token may read at each SHARE_LEVEL: exact paths, plus the prefixes for the two routes that
@@ -44,7 +48,7 @@ def ACT_TOKEN():
 # /nodes is here because it is the programme's public registry.json, the same on every node: it says which nodes
 # exist and nothing about this house.
 # /ground/* is on `open` because every layer under it is a public dataset (OpenStreetMap, OpenAerialMap, Sentinel-2,
-# Open-Meteo) cut around the node, and its centre is no closer than the point /health already rounds. /geo/cell is
+# Open-Meteo) cut around the centre of the res-8 cell /health names, never the house (R25). /geo/cell is
 # there too, but the route drops what it says relative to the node (is_node, cells_from_node, *_polar) for a
 # caller without a token: asked at res 15 cell by cell, those would find the house. The phone's walk needs both
 # (Tomas, 12 Oct 2026: one phone mode, no token, for the person running the node).
@@ -59,6 +63,13 @@ _SHARE_OPEN = (_SHARE_OFF[0] | frozenset({
     "/ask", "/ask/status", "/docs/search", "/geo/cell",
     # What the node learned about the place (outdoor stations' usual hours), never the house's: the Wall reads it.
     "/learned/place",
+    # The Wall's map (app/wall.py), which a kiosk with no token reads. Named here and not left to a pack, because it
+    # reads several packs' results that are private on their own (/hydro is on no list): the route re-cuts each one
+    # around the res-8 cell's centre, so it says nothing finer than the cell /health names. Distances are whole km
+    # from that centre, points are public things' at 3 dp, and the land-change image is placed only by the Wall's
+    # own crop, never by the earth square, which is centred on the house. The exact path only: no prefix opens
+    # whatever is added under it later.
+    "/wall",
 }), ("/static/", "/exports/", "/issues", "/sources/", "/ground/"))
 # A pack's own routes add themselves (pack.yaml `share:`, packs.shared_open()), the forecast and nearby packs first.
 import packs as _packs  # noqa: E402
@@ -75,7 +86,7 @@ def _node_tokens() -> list[str]:
     the Telegram token at /settings/raw.
 
     AGGREGATE_TOKEN is not one of them: every child node holds it, and a child is another household. Until 15 Oct
-    2026 it was, and a child read its parent's sensor rooms, point and building as if it lived there. Its two
+    2026 it was, and a child read its parent's sensor rooms, point and building as if it lived there. Its
     writes pass the middleware by path (_CHILD_WRITES) and check the token themselves."""
     return [t for t in (os.getenv("ADMIN_TOKEN", "").strip(), settings.get("BACKUP_TOKEN", "").strip(),
                         ACT_TOKEN()) if t]
@@ -83,7 +94,8 @@ def _node_tokens() -> list[str]:
 
 # What a child node sends its parent. Each route checks AGGREGATE_TOKEN itself and refuses without it, so letting
 # them past SHARE_LEVEL opens nothing to a request with no token.
-_CHILD_WRITES = frozenset({("POST", "/aggregates"), ("POST", "/events")})
+_CHILD_WRITES = frozenset({("POST", "/aggregates"), ("POST", "/events"), ("POST", "/place/maps/received"),
+                           ("POST", "/place/photos/received")})
 
 
 def _is_local(request: Request) -> bool:

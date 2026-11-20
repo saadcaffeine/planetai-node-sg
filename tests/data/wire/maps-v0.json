@@ -1,0 +1,11 @@
+{
+  "schema": "maps-v0",
+  "source": "app/maps.py::push_maps",
+  "keys": [
+    "geojson",
+    "map_id",
+    "node",
+    "op",
+    "schema"
+  ]
+}

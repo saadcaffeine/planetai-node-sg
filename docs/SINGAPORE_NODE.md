@@ -38,7 +38,7 @@ This folder documents what is specific to this node. The node itself is the upst
   so at `ALERT_LEVEL=act` it ignores quiet hours (22:00 to 06:00); lower it to warn in `packs/singapore-nea/rules.yml` to keep
   it on the dashboard.
 - **A borrowed heat line.** The 35 °C apparent-temperature line was measured indoors at the Bali node. It is kept here
-  until this node has its own data, and its label in `app/issues/heat.yml` says so.
+  until this node has its own data, and the `singapore-nea` pack's heat readouts (its `pack.yaml`) say so.
 - **Beach health.** The `singapore-beach` pack reads NEA's weekly Enterococcus banding (Band 1 Normal, 2 Elevated, 3 High) for East Coast and Changi, and the Coast card shows it, with rules for Band 2, Band 3, NEA's bacteria advisory and heavy rain.
 - **Land and coast for an island city.** The `earth` pack uses a 5 km square (`EARTH_RADIUS_M=5000`); Earth Engine
   reports built and tree cover; the coast row reads the sea off the island.
@@ -48,16 +48,11 @@ This folder documents what is specific to this node. The node itself is the upst
 ```
 planetai-node/
   .env                          node settings (git-ignored; never share it)
-  packs/singapore-nea/          NEA and PUB feeds, rules, README
-  packs/fire-smoke/             NASA FIRMS hotspots and upwind rules
-  packs/singapore-beach/        NEA weekly beach water quality (East Coast, Changi)
-  app/issues/air.yml            Air region row reads NEA PM2.5; PSI, PM10, ozone, wind direction and speed readouts; hero rule to 60
-  app/issues/coast.yml          beach band readouts
-  app/issues/heat.yml           Singapore label on the line; WBGT, temperature, humidity, UV readouts
-  tests/test_singapore_nea.py   offline tests for the NEA adapter
-  tests/test_fire_smoke.py      offline tests for the FIRMS adapter
-  tests/test_singapore_beach.py offline tests for the beach adapter
-  tests/test_singapore_wind_rule.py the south-east wind rule's SQL, in DuckDB
+  packs/singapore-nea/          NEA and PUB feeds, rules, tests; air and heat readouts in its pack.yaml (wild pack)
+  packs/fire-smoke/             NASA FIRMS hotspots and upwind rules (wild pack)
+  packs/singapore-beach/        NEA weekly beach water quality (East Coast, Changi); coast beach bands in its pack.yaml (wild pack)
+  packs/tuya-indoor/            Smart Life room temperature and humidity through the Tuya Cloud API (wild pack)
+  app/static/dashboard.js       the Singapore wall (sgair, sgcoast) on the classic layout, served at /
 ```
 
 Sensor IDs from the NEA pack are stable, one per measure: `nea-pm25`, `nea-psi`, `nea-temp`, `nea-humidity`, `nea-rain`,

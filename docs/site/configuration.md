@@ -1,11 +1,11 @@
 # Configuration
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 A setting is a decision the household makes about its node: which sensors count as its own, what it
 watches first, when it may interrupt somebody, what a stranger on the WiFi may read, whether a question
 may leave the house for an online model. This page lists every setting a node has, where its value comes
-from and what it defaults to, grouped by what the node does with it. At v0.91.0 that is 62 runtime keys,
-20 bootstrap keys, 42 keys declared by packs, and the keys read only from the environment.
+from and what it defaults to, grouped by what the node does with it. At v0.92.0 that is 61 runtime keys,
+20 bootstrap keys, 56 keys declared by packs, and the keys read only from the environment.
 
 ## How a setting is read
 
@@ -71,6 +71,7 @@ An older `.env` may still hold these, and nothing reads them:
 | key | what happened to it |
 |---|---|
 | `BRIEFINGS`, `BRIEF_MORNING`, `BRIEF_EVENING`, `BRIEF_HOUR` | Replaced by the report rhythm. A node that had `BRIEF_MORNING=7` was set once to `REPORT_EVERY=12`, `REPORT_ANCHOR=7`. You can delete them. |
+| `LOCAL_RADIUS_M` | Replaced by the node's own cells, the one it stands in and the neighbours claimed on [Place](place.md#the-seven-cells). The first time an updated node runs, it claims each neighbour where one of its own sensors stood within 500 m of it, whatever this key said. You can delete it. |
 
 ## Reference
 
@@ -86,11 +87,10 @@ from the code's default, both are given.
 | `NODE_KIND` | `home` | `home`, `business`, `community`, `district` | What the node is for, which is not its Index scale. `planetai setup` sets `NODE_SCALE=city` for a district. See [Known gaps](#known-gaps). | runtime · public |
 | `NODE_SCALE` | `community` | `community`, `city`, `region` | The Full Stack Metrics scale: stamped on sensors that declare none, sent to a parent, in `/export`, and the scale of the `Governance\|<Scale>` cell. | bootstrap |
 | `NODE_CITY` | `unknown`; `.env.example` `bali` | pilot key or slug | The city key in Index cells, `/health` and `/export`, and what `planetai sources` filters the registry by. `planetai setup` sets `bali`, `barcelona`, `boston` or `santiago` inside those boxes, else a slug of the place. | bootstrap |
-| `NODE_LAT`, `NODE_LON` | `0`; `.env.example` `-8.8271`, `115.15709` | decimal degrees | The node's position. Published as the centre of its resolution-8 cell in `/health`, `/export` and an untrusted `/sensors` and `/stats`; three decimals to this machine or a token; unrounded in `/forecast`, `/earth` and `/place/geojson`. `install.sh` refuses to start without them. | bootstrap |
+| `NODE_LAT`, `NODE_LON` | `0`; `.env.example` `-8.8277`, `115.15418` | decimal degrees | The node's position. Published as the centre of its resolution-8 cell in `/health`, `/export` and, to a reader without a token, `/earth`, `/forecast`, `/sensors` and `/stats`; three decimals to this machine or a token; unrounded in `/place/geojson` and, to this machine or a token, `/forecast` and `/earth`. `install.sh` refuses to start without them. | bootstrap |
 | `NODE_TZ` | `UTC`; `.env.example` `Asia/Makassar` | IANA name | The database session time zone, so local midnight and local hours in rules, reports, quiet hours and `/shape`. Also the agent container's `TZ`. | bootstrap |
-| `NODE_ISSUES` | blank = every issue; `.env.example` `air,heat,land,coast` | comma list of `air`, `heat`, `land`, `coast`, `water` | What this place watches, most important first. The dashboard starts at the first; the one with something to say takes the top. An unknown name is dropped with a line in the log. Your preset guessed this, so change it. | runtime · public |
+| `NODE_ISSUES` | blank = every issue; `.env.example` `air,heat,land,coast` | comma list of `air`, `heat`, `land`, `coast`, `water`, `energy` | What this place watches, most important first. The dashboard starts at the first; the one with something to say takes the top. An unknown name is dropped with a line in the log. Your preset guessed this, so change it. | runtime · public |
 | `NODE_VERSION` | written by `install.sh` and `update.sh` | string | `git describe`, the `VERSION` file, or `dev`. Shown in `/health`, `/presence` and `/export`. | env only |
-| `LOCAL_RADIUS_M` | `500` | metres | How far from the node a sensor can be and still count as its own. A kit of yours further away stays out of the ambient average and out of every `live` claim. | runtime · public |
 
 ## Who may read it
 
@@ -216,6 +216,7 @@ where, what was said and who said it stay. See [Federation](federation.md).
 | `PARENT_API_URL` | blank = none | `http://<district>:8080` | The parent node. | runtime · outward |
 | `PARENT_TOKEN` | blank | string | What this node presents to its parent. | runtime · secret |
 | `AGGREGATE_TOKEN` | blank | string | What this node demands from its children on `POST /aggregates` and `POST /events`, and all it opens. Without it the node accepts no children (403). | runtime · secret |
+| `NODE_KEY` | blank; `install.sh` makes one, `update.sh` adds one to an older node | 64 hex characters | This node's private key. Its ID is a short hash of the public key, shown in Set up › Sharing, in `planetai status` and in `GET /health`, and everything the node pushes to its parent is signed with it. The parent pins the node's name to the key the first time it hears from it. Keep a copy of `.env` somewhere that is not the backup share: a node that loses the key is a new node. `planetai children` lists the nodes pushing to a parent. See [Federation](federation.md). | env only · secret |
 
 ## Storage
 
@@ -225,7 +226,7 @@ backups and the pictures folder. See [Storage](storage.md).
 | Setting | Default | Values | Meaning | Kind |
 |---|---|---|---|---|
 | `DATA_DIR` | blank = the Docker volume `db` | path | Where the live database lives. A local disk or partition only, never a NAS. | bootstrap |
-| `CAPTURES_DIR` | `./out/captures` | path | Where the household's pictures live. A NAS share is fine. A capture is refused, and the doctor goes red, when the folder is missing or not writable. | bootstrap |
+| `CAPTURES_DIR` | `./out/captures` | path | Where the household's pictures live. A NAS share is fine. A capture is refused, and the doctor goes red, when the folder is missing or the app cannot write to it. | bootstrap |
 | `BACKUP_DIR` | `./backups` | path | Where the nightly dumps go. A mount point must be mounted, or the backup refuses. | bootstrap |
 | `BACKUP_KEEP` | `30` | days | Days of dumps kept. | bootstrap |
 | `BACKUP_REMOTE` | blank | rclone `remote:path` | Off-machine copy after each backup (S3, B2, R2, Drive, SFTP, WebDAV and more). Run `rclone config` once. | bootstrap |
@@ -252,8 +253,8 @@ backups and the pictures folder. See [Storage](storage.md).
 ## Pack keys
 
 Every key a `pack.yaml` declares, with the default it ships. All are kind `pack`. A code pack reads them only with
-`PACKS_ALLOW_CODE=1`, except `bali-air-dispatch`, an official pack with its own switch, which runs on `BAD_ENABLED=1`
-alone.
+`PACKS_ALLOW_CODE=1`, except `bali-air-dispatch` and `index`, official packs with their own switch, which run on
+`BAD_ENABLED=1` and on `INDEX_PLACE` being set, alone.
 
 | Setting | Pack | Default | Meaning |
 |---|---|---|---|
@@ -298,6 +299,16 @@ alone.
 | `TERRAIN_RADIUS_M` | terrain | `5000` | Half-width of the square around the node, in metres. Water from further uphill is not counted. Needs `PACKS_ALLOW_CODE=1`. |
 | `TERRAIN_DEM_PATH` | terrain | blank | A GeoTIFF of your own (a drone survey, a national LiDAR), used instead of Copernicus DEM GLO-30. |
 | `TERRAIN_DEM_LICENCE` | terrain | blank | That file's licence, in words. Blank and the node computes from it and shows nothing. |
+| `ENERGY_REFRESH_DAYS` | energy | `30` | How often the grid's plants and substations are asked of OpenStreetMap again, in days. |
+| `ENERGY_POLL_HOURS` | energy | `6` | How often the grid's fossil share is worked out again. |
+| `ENERGY_HA_URL` | energy | blank | The house's Home Assistant, read every 5 minutes and only read. Blank reads nothing. |
+| `ENERGY_HA_TOKEN` | energy | blank | A long-lived access token from Home Assistant. Masked once saved. |
+| `ENERGY_HA_SOLAR`, `ENERGY_HA_GRID`, `ENERGY_HA_BATTERY` | energy | blank | Entity ids of the panels' power, the power drawn from the grid and the battery's, in W or kW. |
+| `ENERGY_PANEL_KW`, `ENERGY_HOUSE_KWH_DAY`, `ENERGY_PANEL_PR` | energy | `2`, `9`, `0.75` | The Today box's roof size, daily use and performance ratio. Placeholders: set your own. |
+| `HYDRO_RADIUS_KM` | hydro | `25` | Half-width of the square of rivers and basins kept around the node, in km. Needs `PACKS_ALLOW_CODE=1`. |
+| `INDEX_PLACE` | index | blank | The Fab City Index place this node belongs to, a slug from `packs/index/places.json`. The pack runs when it is set. `planetai place` suggests the nearest and `planetai place <slug>` sets it. |
+| `INDEX_URL` | index | `https://index.fab.city` | Where the pack reads the place's file. The request is the slug and nothing about the house. |
+| `INDEX_REFRESH_HOURS` | index | `24` | How often the place's file is read again. |
 | `COAST_MAX_KM` | coast | `30` | Refuses to report if the nearest ocean grid cell is further than this. Also a runtime key (public), and it moves the dashboard's drawn footprint too. |
 
 Two pack settings are read but declared in no `pack.yaml`, so they are env only: `OVERPASS_URL` (default
@@ -329,9 +340,9 @@ decide.
 
 ## Known gaps
 
-> **Gap in v0.91.0.** `REPORT_DEPTH` is declared, validated and offered in Set up, and nothing reads it.
+> **Gap in v0.92.0.** `REPORT_DEPTH` is declared, validated and offered in Set up, and nothing reads it.
 
-> **Gap in v0.91.0.** Three runtime keys are stored and shown as in force when set from the dashboard, and a reader
+> **Gap in v0.92.0.** Three runtime keys are stored and shown as in force when set from the dashboard, and a reader
 > ignores the database value. `/presence`, the only reader of `NODE_KIND`, reads the environment. The Reticulum
 > bridge reads `ACT_TOKEN` and `RETICULUM_ALERT_DESTINATIONS` from its own environment (the app itself does read the
 > `ACT_TOKEN` override). Set these in `.env` and restart.

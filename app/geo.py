@@ -84,6 +84,13 @@ def _here() -> tuple[float, float]:
     return lat, lon
 
 
+def home_cell(res: int) -> str:
+    """The node's own H3 cell at `res`. At res 10 it is the house: the cell a capture's `at_home` and a shared map's
+    warning are both measured against (packs/eyes, app/maps.py), so it is worked out here, once."""
+    import h3  # noqa: PLC0415
+    return h3.latlng_to_cell(*_here(), res)
+
+
 def _floats(text: str, n: int | None, what: str) -> list[float]:
     try:
         out = [float(x) for x in text.split(",")]

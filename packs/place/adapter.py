@@ -175,6 +175,46 @@ def refresh(con, hc, lat: float, lon: float, radius: int) -> int:
     return len(rows)
 
 
+
+YEARLY = ("sat_buildings_yearly", "sat_height_m_yearly")
+
+
+def yearly_readings(years) -> list[tuple]:
+    """The yearly series as readings on `place-point`, dated 1 July of each year: the place's growth as a time series."""
+    out = []
+    for year, count, h in years:
+        ts = datetime(year, 7, 1, tzinfo=timezone.utc)
+        out.append((ts, "place-point", "sat_buildings_yearly", float(count)))
+        if h is not None:
+            out.append((ts, "place-point", "sat_height_m_yearly", float(h)))
+    return out
+
+
+def satellite_refresh(con, lat: float, lon: float, radius: int) -> int:
+    """The satellite's half of a refresh: Open Buildings footprints into place_buildings_sat, the yearly count and
+    height into place_yearly. Returns the years stored. Raises when Earth Engine is not configured.
+
+    The node keeps the first value it files for a reading (app/store.py overwrites only a forecast still to come) and
+    the series is dated 1 July of each year, so the rows filed from an earlier count would outlive every recount.
+    Here they are removed and the recount is written over whatever stands, in the one commit. A poll that read the
+    old count while `planetai run place refresh` was recounting then finds the new rows and changes nothing. A node
+    that has not filed its sensor yet has no rows to correct, and its next poll files the series. Node #1 held a
+    count 64 times low this way (18 Nov 2026)."""
+    import satellite as S
+    ee = S.init_ee()
+    S.footprints(ee, con, lat, lon, radius)
+    years = S.yearly(ee, lat, lon, radius)
+    with con.cursor() as cur:
+        cur.execute("CREATE TABLE IF NOT EXISTS place_yearly (year INT PRIMARY KEY, buildings REAL, height_m REAL, fetched_at TIMESTAMPTZ DEFAULT now())")
+        for year, count, h in years:
+            cur.execute("INSERT INTO place_yearly (year, buildings, height_m) VALUES (%s,%s,%s) ON CONFLICT (year) DO UPDATE SET buildings=EXCLUDED.buildings, height_m=EXCLUDED.height_m, fetched_at=now()", (year, count, h))
+        cur.execute("DELETE FROM readings WHERE sensor_id='place-point' AND metric = ANY(%s)", (list(YEARLY),))
+        for row in yearly_readings(years):
+            cur.execute("INSERT INTO readings (ts, sensor_id, metric, value) SELECT %s, %s, %s, %s WHERE EXISTS (SELECT 1 FROM sensors WHERE sensor_id='place-point') "
+                        "ON CONFLICT (sensor_id, metric, ts) DO UPDATE SET value = EXCLUDED.value", row)
+    con.commit()
+    return len(years)
+
 METRICS_SQL = """
 WITH here AS (SELECT ST_SetSRID(ST_MakePoint(%(lon)s, %(lat)s), 4326)::geography AS g),
 b AS (SELECT count(*) AS n, coalesce(sum(ST_Area(geom::geography)),0) AS area,
@@ -232,14 +272,7 @@ def fetch(hc):
             refresh(con, hc, lat, lon, radius)
             # the satellite's buildings, if Earth Engine is configured; a missing key is logged once, never fatal
             try:
-                import satellite as S
-                ee = S.init_ee()
-                S.footprints(ee, con, lat, lon, radius)
-                with con.cursor() as cur:
-                    cur.execute("CREATE TABLE IF NOT EXISTS place_yearly (year INT PRIMARY KEY, buildings REAL, height_m REAL, fetched_at TIMESTAMPTZ DEFAULT now())")
-                    for year, count, h in S.yearly(ee, lat, lon, radius):
-                        cur.execute("INSERT INTO place_yearly (year, buildings, height_m) VALUES (%s,%s,%s) ON CONFLICT (year) DO UPDATE SET buildings=EXCLUDED.buildings, height_m=EXCLUDED.height_m, fetched_at=now()", (year, count, h))
-                con.commit()
+                satellite_refresh(con, lat, lon, radius)
             except Exception as e:  # noqa: BLE001
                 log.warning("place: Open Buildings skipped (%s: %s)", type(e).__name__, str(e)[:120])
         sat_n, sat_conf, yearly = 0, None, []
@@ -272,10 +305,4 @@ def fetch(hc):
         vals["sat_buildings"] = sat_n; vals["sat_confidence"] = sat_conf
         vals["osm_building_coverage"] = min(1.0, (m["buildings"] or 0) / sat_n)
     readings = [(run_at, "place-point", k, float(v)) for k, v in vals.items() if v is not None]
-    # the yearly series, dated 1 July of each year: the place's growth as a time series on the same sensor
-    for year, count, h in yearly:
-        ts = datetime(year, 7, 1, tzinfo=timezone.utc)
-        readings.append((ts, "place-point", "sat_buildings_yearly", float(count)))
-        if h is not None:
-            readings.append((ts, "place-point", "sat_height_m_yearly", float(h)))
-    return [sensor], readings
+    return [sensor], readings + yearly_readings(yearly)

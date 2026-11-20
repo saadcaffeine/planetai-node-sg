@@ -468,6 +468,8 @@ if [[ $NEWPW -eq 1 ]]; then
   fi
 fi
   [[ -n "$(grep -E "^ADMIN_TOKEN=" .env | cut -d= -f2- | sed "s/[[:space:]]*#.*//" | tr -d " ")" ]] || setenv ADMIN_TOKEN "$(openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"     # unlocks the GUI's settings pages
+  # this node's identity (docs/SPEC_identity.md). Never replaced once set: a new key is a new node.
+  [[ -n "$(grep -E "^NODE_KEY=" .env | cut -d= -f2- | sed "s/[[:space:]]*#.*//" | tr -d " ")" ]] || setenv NODE_KEY "$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 
 step_ok
 

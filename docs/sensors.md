@@ -20,8 +20,9 @@ correct; the rules depend on it. `kind` is `sensor`, `portal`, `model`, `survey`
 `place` pack also writes `map` rows; only `sensor` enters `stats`.
 
 `local` is two facts at once: an adapter says whether a sensor is *yours*, and the node checks whether it is
-*here*. A kit on your account 1.2 km away is yours and is not this node's measurement. `LOCAL_RADIUS_M` (500 m by
-default) is the line. A sensor with no coordinates that arrives over your own gateway stays local.
+*here*. Here means one of the node's own cells: the resolution-8 cell it stands in and the neighbours claimed on
+Place (`GET /place/cells`). A kit on your account outside them is yours and is not this node's measurement. A sensor
+with no coordinates that arrives over your own gateway stays local.
 
 Metrics: `pm25 pm25_raw pm10 pm1 temp humidity pressure bme_iaq iaq gas_resistance noise light eco2 tvoc`. Units: µg/m³, °C, %, kPa.
 

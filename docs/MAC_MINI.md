@@ -1,5 +1,5 @@
 # A Mac mini as an always-on node
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 A laptop is for trying a node, a Mac mini is for leaving one running. It takes an hour, once, with a monitor
 plugged in for the permission dialogs. Any Apple Silicon mini works, the 8 GB base model included. A 2018 Intel
@@ -46,7 +46,7 @@ planetai mesh      # reachable as <name>.<tailnet>.ts.net from anywhere, no open
 From your laptop, over ordinary `ssh` (Remote Login on):
 
 ```bash
-ssh you@bayu-ungasan.local    # or bayu-ungasan.<tailnet>.ts.net over Tailscale
+ssh you@<node-name>.local    # or <node-name>.<tailnet>.ts.net over Tailscale
 planetai status
 ```
 

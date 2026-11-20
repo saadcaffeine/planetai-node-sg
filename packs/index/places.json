@@ -1,0 +1,437 @@
+{
+ "generated": "2026-11-06",
+ "from": [
+  "awesome-fabcity-data places.yaml @ origin/main 8099744",
+  "fci-3-prototype data/coordinates.json @ 65c09ce"
+ ],
+ "note": "centres are approximate (fci-3-prototype v0, from citiesmap) and assert no border",
+ "places": [
+  {
+   "slug": "accra",
+   "name": "Accra",
+   "country": "Ghana",
+   "lat": 5.55602,
+   "lon": -0.1969
+  },
+  {
+   "slug": "amsterdam",
+   "name": "Amsterdam",
+   "country": "Netherlands",
+   "lat": 52.37308,
+   "lon": 4.89245
+  },
+  {
+   "slug": "augsburg",
+   "name": "Augsburg",
+   "country": "Germany",
+   "lat": 48.36903,
+   "lon": 10.89795
+  },
+  {
+   "slug": "auvergne-rhone-alpes",
+   "name": "Auvergne-Rhône-Alpes",
+   "country": "France",
+   "lat": 45.29681,
+   "lon": 4.66048
+  },
+  {
+   "slug": "bali",
+   "name": "Bali",
+   "country": "Indonesia",
+   "lat": -8.22713,
+   "lon": 115.19192
+  },
+  {
+   "slug": "barcelona",
+   "name": "Barcelona",
+   "country": "Spain",
+   "lat": 41.38258,
+   "lon": 2.17707
+  },
+  {
+   "slug": "bas-saint-laurent",
+   "name": "Bas-Saint-Laurent",
+   "country": "Canada",
+   "lat": 48.124,
+   "lon": -68.54608
+  },
+  {
+   "slug": "belo-horizonte",
+   "name": "Belo Horizonte",
+   "country": "Brazil",
+   "lat": -19.92273,
+   "lon": -43.94509
+  },
+  {
+   "slug": "bergisches",
+   "name": "Bergisches",
+   "country": "Germany",
+   "lat": 51.20616,
+   "lon": 7.15747
+  },
+  {
+   "slug": "bhutan",
+   "name": "Bhutan",
+   "country": "Bhutan",
+   "lat": 27.54951,
+   "lon": 90.51193
+  },
+  {
+   "slug": "boston",
+   "name": "Boston",
+   "country": "United States of America",
+   "lat": 42.35543,
+   "lon": -71.06051
+  },
+  {
+   "slug": "brest",
+   "name": "Brest",
+   "country": "France",
+   "lat": 48.39053,
+   "lon": -4.48601
+  },
+  {
+   "slug": "cambridge",
+   "name": "Cambridge",
+   "country": "United States of America",
+   "lat": 42.36563,
+   "lon": -71.104
+  },
+  {
+   "slug": "cape-town",
+   "name": "Cape Town",
+   "country": "South Africa",
+   "lat": -33.92528,
+   "lon": 18.42389
+  },
+  {
+   "slug": "charlotte",
+   "name": "Charlotte",
+   "country": "United States of America",
+   "lat": 35.22694,
+   "lon": -80.84333
+  },
+  {
+   "slug": "cordoba",
+   "name": "Cordoba",
+   "country": "Argentina",
+   "lat": -31.41669,
+   "lon": -64.18342
+  },
+  {
+   "slug": "curitiba",
+   "name": "Curitiba",
+   "country": "Brazil",
+   "lat": -25.4296,
+   "lon": -49.27127
+  },
+  {
+   "slug": "detroit",
+   "name": "Detroit",
+   "country": "United States of America",
+   "lat": 42.33155,
+   "lon": -83.04664
+  },
+  {
+   "slug": "ekurhuleni",
+   "name": "Ekurhuleni",
+   "country": "South Africa",
+   "lat": -26.18476,
+   "lon": 28.32107
+  },
+  {
+   "slug": "georgia",
+   "name": "Georgia",
+   "country": "Georgia",
+   "lat": 41.68087,
+   "lon": 44.02878
+  },
+  {
+   "slug": "goa",
+   "name": "Goa",
+   "country": "India",
+   "lat": 15.40194,
+   "lon": 74.04333
+  },
+  {
+   "slug": "guanajuato",
+   "name": "Guanajuato",
+   "country": "Mexico",
+   "lat": 20.9877,
+   "lon": -101.0
+  },
+  {
+   "slug": "hamburg",
+   "name": "Hamburg",
+   "country": "Germany",
+   "lat": 53.55034,
+   "lon": 10.00065
+  },
+  {
+   "slug": "kamakura",
+   "name": "Kamakura",
+   "country": "Japan",
+   "lat": 35.31928,
+   "lon": 139.54696
+  },
+  {
+   "slug": "kerala",
+   "name": "Kerala",
+   "country": "India",
+   "lat": 10.35287,
+   "lon": 76.51204
+  },
+  {
+   "slug": "kumasi",
+   "name": "Kumasi",
+   "country": "Ghana",
+   "lat": 6.7,
+   "lon": -1.625
+  },
+  {
+   "slug": "linz",
+   "name": "Linz",
+   "country": "Austria",
+   "lat": 48.30591,
+   "lon": 14.2862
+  },
+  {
+   "slug": "ljubljana",
+   "name": "Ljubljana",
+   "country": "Slovenia",
+   "lat": 46.05003,
+   "lon": 14.50693
+  },
+  {
+   "slug": "mexico-city",
+   "name": "Mexico City",
+   "country": "Mexico",
+   "lat": 19.32077,
+   "lon": -99.15147
+  },
+  {
+   "slug": "monterrey",
+   "name": "Monterrey",
+   "country": "Mexico",
+   "lat": 25.68444,
+   "lon": -100.31806
+  },
+  {
+   "slug": "montpellier",
+   "name": "Montpellier",
+   "country": "France",
+   "lat": 43.61124,
+   "lon": 3.87673
+  },
+  {
+   "slug": "montreal",
+   "name": "Montreal",
+   "country": "Canada",
+   "lat": 45.50318,
+   "lon": -73.56981
+  },
+  {
+   "slug": "oakland",
+   "name": "Oakland",
+   "country": "United States of America",
+   "lat": 37.80446,
+   "lon": -122.27136
+  },
+  {
+   "slug": "occitanie",
+   "name": "Occitanie",
+   "country": "France",
+   "lat": 43.64879,
+   "lon": 2.34357
+  },
+  {
+   "slug": "oulu",
+   "name": "Oulu",
+   "country": "Finland",
+   "lat": 65.01179,
+   "lon": 25.4702
+  },
+  {
+   "slug": "papua",
+   "name": "Papua",
+   "country": "Indonesia",
+   "lat": -2.47491,
+   "lon": 138.08485
+  },
+  {
+   "slug": "parepare",
+   "name": "Parepare",
+   "country": "Indonesia",
+   "lat": -4.02025,
+   "lon": 119.66117
+  },
+  {
+   "slug": "paris",
+   "name": "Paris",
+   "country": "France",
+   "lat": 48.85667,
+   "lon": 2.35222
+  },
+  {
+   "slug": "pemkab-bangka-tengah",
+   "name": "Pemkab Bangka Tengah",
+   "country": "Indonesia",
+   "lat": -2.41667,
+   "lon": 106.23333
+  },
+  {
+   "slug": "plymouth",
+   "name": "Plymouth",
+   "country": "United Kingdom",
+   "lat": 50.37141,
+   "lon": -4.14245
+  },
+  {
+   "slug": "puebla",
+   "name": "Puebla",
+   "country": "Mexico",
+   "lat": 18.83333,
+   "lon": -98.0
+  },
+  {
+   "slug": "recife",
+   "name": "Recife",
+   "country": "Brazil",
+   "lat": -8.05849,
+   "lon": -34.88482
+  },
+  {
+   "slug": "renca",
+   "name": "Renca",
+   "country": "Chile",
+   "lat": -33.40352,
+   "lon": -70.73093
+  },
+  {
+   "slug": "rennes",
+   "name": "Rennes",
+   "country": "France",
+   "lat": 48.11134,
+   "lon": -1.68002
+  },
+  {
+   "slug": "sacramento",
+   "name": "Sacramento",
+   "country": "United States of America",
+   "lat": 38.58106,
+   "lon": -121.49389
+  },
+  {
+   "slug": "santiago-de-chile",
+   "name": "Santiago de Chile",
+   "country": "Chile",
+   "lat": -33.43778,
+   "lon": -70.65045
+  },
+  {
+   "slug": "sao-paulo",
+   "name": "Sao Paulo",
+   "country": "Brazil",
+   "lat": -23.55065,
+   "lon": -46.63338
+  },
+  {
+   "slug": "seoul",
+   "name": "Seoul",
+   "country": "Korea, South",
+   "lat": 37.56668,
+   "lon": 126.97829
+  },
+  {
+   "slug": "shenzhen",
+   "name": "Shenzhen",
+   "country": "China",
+   "lat": 22.54457,
+   "lon": 114.05454
+  },
+  {
+   "slug": "somerville",
+   "name": "Somerville",
+   "country": "United States of America",
+   "lat": 42.3876,
+   "lon": -71.0995
+  },
+  {
+   "slug": "sorocaba",
+   "name": "Sorocaba",
+   "country": "Brazil",
+   "lat": -23.50035,
+   "lon": -47.45829
+  },
+  {
+   "slug": "sudburgenland",
+   "name": "Sudburgenland",
+   "country": "Austria",
+   "lat": 47.14372,
+   "lon": 16.28499
+  },
+  {
+   "slug": "sumedang",
+   "name": "Sumedang",
+   "country": "Indonesia",
+   "lat": -6.80987,
+   "lon": 107.98177
+  },
+  {
+   "slug": "tanga",
+   "name": "Tanga",
+   "country": "Tanzania",
+   "lat": -5.20213,
+   "lon": 38.22755
+  },
+  {
+   "slug": "toulouse",
+   "name": "Toulouse",
+   "country": "France",
+   "lat": 43.60446,
+   "lon": 1.44425
+  },
+  {
+   "slug": "valence-romans-agglo",
+   "name": "Valence Romans Agglo",
+   "country": "France",
+   "lat": 45.01443,
+   "lon": 5.07725
+  },
+  {
+   "slug": "veberod",
+   "name": "Veberod",
+   "country": "Sweden",
+   "lat": 55.6335,
+   "lon": 13.49256
+  },
+  {
+   "slug": "velsen",
+   "name": "Velsen",
+   "country": "Netherlands",
+   "lat": 52.45191,
+   "lon": 4.60389
+  },
+  {
+   "slug": "yucatan",
+   "name": "Yucatan",
+   "country": "Mexico",
+   "lat": 20.6846,
+   "lon": -88.87557
+  },
+  {
+   "slug": "zadar",
+   "name": "Zadar",
+   "country": "Croatia",
+   "lat": 44.11686,
+   "lon": 15.23533
+  },
+  {
+   "slug": "zagreb",
+   "name": "Zagreb",
+   "country": "Croatia",
+   "lat": 45.8131,
+   "lon": 15.97728
+  }
+ ]
+}

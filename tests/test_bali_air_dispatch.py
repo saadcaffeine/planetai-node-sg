@@ -12,6 +12,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+os.environ["PACK_OUT"] = tempfile.mkdtemp()   # fetch() writes the Wall's island file here, never to a node's output
 ROOT = Path(__file__).resolve().parent.parent
 _spec = importlib.util.spec_from_file_location("bad_adapter", ROOT / "packs/bali-air-dispatch/adapter.py")
 B = importlib.util.module_from_spec(_spec)

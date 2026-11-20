@@ -11,6 +11,7 @@ status: live
 license: CC-BY-4.0 (data) + custom open (hardware)
 api: https://api.airgradient.com/public/api/v1
 pilot_relevance: [global]
+places: [charlotte]
 tags: [air-quality, citizen-science, open-hardware, indoor-air]
 added: 2026-05-04
 updated: 2026-09-18
@@ -23,3 +24,6 @@ notes: |
   AirGradient kits are commonly deployed in schools, offices, and homes.
   Combined with Smart Citizen they form a complementary indoor + outdoor
   community sensing layer.
+
+  CHARLOTTE, read 2026-11-05: the keyless world/locations/measures/current endpoint lists 2,919 locations; 2
+  report from inside the city, 74055 "Treehouse" (35.181,-80.849) and 58947 "Charlotte" (35.2271,-80.8431).

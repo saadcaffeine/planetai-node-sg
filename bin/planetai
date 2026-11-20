@@ -28,6 +28,7 @@
 #   planetai packs          what is loaded; `packs install` adds code-pack settings to .env and their libraries to the image
 #   planetai packs add <id>  a wild pack from fabcity/planetai-wild-packs; or <owner>/<repo>[/<folder>][@<ref>] from GitHub
 #   planetai packs cron     let Install on the dashboard's Set up › Packs reach this machine (`packs pending` runs it)
+#   planetai place          the Fab City Index place this node belongs to: suggests the nearest; `place <slug>` sets it, `place none` clears it
 #   planetai ui             the dashboard: where it is, and the token that unlocks its settings pages
 #   planetai storage        where the data lives, where backups and copies go, exports, IPFS; `set` to change
 #   planetai backup         dump + export + copy now, instead of waiting for 03:17
@@ -42,6 +43,7 @@
 #   planetai snapshot        one JSON of everything the node answers, for a design round or a bug report (--out FILE)
 #   planetai geocode <place> what the setup wizard would find for a place name
 #   planetai hello          list this node on every node's map: shows what goes public, then opens the pull request (--remove)
+#   planetai children       on a parent: the nodes pushing to it, each pinned to its key; `children forget <name>` after one lost its key
 #   planetai version         the version this folder is at
 #   planetai remove         take this node off the machine; asks twice. --keep-data keeps the readings
 #   planetai stop | start | restart
@@ -435,6 +437,22 @@ print(next((k for k, (a, b, c, d) in boxes.items() if a < lat < b and c < lon < 
   [[ $bad -eq 1 ]] && say "that's Bali: the island's public stations (the bali-air-dispatch pack) will be your outdoor reference." \
                     || say "outdoor reference: the global CAMS model at your coordinates (no key, works everywhere)."
 
+  # the Fab City Index place the node belongs to: a suggestion from the coordinates, the household decides. The pilot
+  # boxes and the city key above stay as they are; this is only INDEX_PLACE, written with the other answers below.
+  local iplace="" inear; inear="$(python3 packs/index/place.py --nearest "$lat" "$lon" 2>/dev/null || echo null)"
+  if [[ "$inear" != null && -n "$inear" ]]; then
+    iplace="$(json 'print(d["slug"])' <<< "$inear")"
+    say "the nearest Fab City Index place is $(json 'print(d["name"] + ", " + d["country"])' <<< "$inear"). Its centre is approximate."
+    while :; do
+      ask iplace "   Index place (Enter keeps it, another slug picks that one, none for none)" "$iplace"
+      [[ "$iplace" == none ]] && { iplace=""; break; }
+      python3 packs/index/place.py --known "$iplace" && break
+      warn "'$iplace' is not an Index place. packs/index/places.json lists them."
+    done
+  else
+    say "no Fab City Index place within 150 km. If this node belongs to one, planetai place <slug> sets it later."
+  fi
+
   # 3. what kind of node — decides defaults, not the Index scale (a house is still a Community-scale observation)
   step "3. What is this node for?"
   local kind_label kind
@@ -459,8 +477,8 @@ print(next((k for k, (a, b, c, d) in boxes.items() if a < lat < b and c < lon < 
 
   # summary
   step "Here's the plan"
-  printf '   name        %s\n   place       %s (%s, %s)\n   time zone   %s\n   city key    %s\n   sensor      %s\n   outside     %s\n' \
-    "$name" "${nm:-$place}" "$lat" "$lon" "$tz" "$city" "${sc:+Smart Citizen $sc}${ag:+AirGradient $ag}${pa:+PurpleAir $pa}${sc:-${ag:-${pa:-none, models only}}}" \
+  printf '   name        %s\n   place       %s (%s, %s)\n   time zone   %s\n   city key    %s\n   Index place %s\n   sensor      %s\n   outside     %s\n' \
+    "$name" "${nm:-$place}" "$lat" "$lon" "$tz" "$city" "${iplace:-none}" "${sc:+Smart Citizen $sc}${ag:+AirGradient $ag}${pa:+PurpleAir $pa}${sc:-${ag:-${pa:-none, models only}}}" \
     "$([[ $bad -eq 1 ]] && echo 'Bali Air Dispatch + CAMS' || echo 'CAMS model')"
   echo
   confirm "Install with these?" || { echo "ok, nothing changed."; exit 0; }
@@ -469,6 +487,8 @@ print(next((k for k, (a, b, c, d) in boxes.items() if a < lat < b and c < lon < 
   # point is that a failure anywhere below this line leaves them on disk, so a re-run can offer them back.
   envset NODE_NAME "$name"; envset NODE_LAT "$lat"; envset NODE_LON "$lon"
   envset NODE_TZ "$tz"; envset NODE_CITY "$city"; envset NODE_KIND "$kind"
+  # the node is not up yet, so the choice goes where first-run answers go; finish_setup puts the pack on the list once it answers
+  [[ -n "$iplace" ]] && envset INDEX_PLACE "$iplace"
   [[ -n "${sc:-}" ]] && envset SC_DEVICES "$sc"; [[ -n "${ag:-}" ]] && envset AIRGRADIENT_HOSTS "$ag"
   [[ -n "${pa:-}" ]] && envset PURPLEAIR_HOSTS "$pa"; [[ $indoor -eq 1 ]] && envset SENSOR_INDOOR 1
 
@@ -498,6 +518,7 @@ finish_setup() {
   spin "starting with your settings" docker compose up -d --force-recreate app || fail "the app container did not restart with your settings"
   spin "waiting for the first answer" bash -c 'for i in $(seq 1 30); do curl -sf "http://localhost:$(grep ^APP_PORT= .env | cut -d= -f2 | sed "s/[[:space:]]*#.*$//" | tr -d " " || echo 8080)/health" >/dev/null && exit 0; sleep 1; done; exit 1' || true
   api /health >/dev/null || fail "the node is not answering on port $(port). Look at: planetai logs"
+  [[ -z "$(envget INDEX_PLACE)" ]] || packs_switch_on index     # a re-run on a node whose packs were chosen in Set up
   cmd_doctor quiet || true
   [[ -f out/ground/vector.mbtiles ]] || offer_map
   what_next
@@ -543,6 +564,7 @@ h=json.load(urllib.request.urlopen('http://localhost:'+p+'/health',timeout=10));
   local h; h="$(api /health)" || { warn "the node isn't answering on port $(port). Try: planetai doctor"; exit 1; }
   echo "$h" | json '
 print("  node      %s   %s   schema %s" % (d["node"], d.get("version","?"), d.get("schema","?")))
+print("  node id   %s" % (d.get("node_id") or "none yet: planetai update writes NODE_KEY to .env"))
 print("  up        %dh %dm   polls %s   readings %s" % (d["uptime_s"]//3600, d["uptime_s"]%3600//60, d["polls"], d["ingested"]))
 print("  last poll %s" % (d.get("last_poll") or "not yet"))
 print("  errors    %s" % (d.get("last_error") or "none"))'
@@ -587,10 +609,13 @@ cmd_doctor() {
   chk "app logs in to the database" "h=\"\$(curl -sf localhost:$p/health)\"; [[ -n \"\$h\" ]] && ! grep -qE '\"schema\": *\"(unreachable|pre-0.4)' <<< \"\$h\""   "the app cannot use the database. planetai logs says which: 'password authentication failed' means the POSTGRES_PASSWORD in .env does not match the database volume, usually after a reinstall over an earlier node's volume — keep the data: restore the earlier .env; start clean: planetai stop && docker volume rm planetai_db && planetai start. No auth error and a schema reading pre-0.4 means the node predates schema_version: ./update.sh applies it"
   chk "coordinates set"          "grep -qE '^NODE_LAT=-?[0-9]' .env"                    "planetai setup"
   chk ".env has no stray spaces" "! grep -qE '^[A-Z_]+=[[:space:]]+[^[:space:]]' .env"   "a space after = makes the shell run the value, and a \`#\` after it hands the container the comment: grep -nE '^[A-Z_]+= +' .env"
+  chk "this node has its key" "grep -qE '^NODE_KEY=[0-9a-f]{64}\\b' .env"   "no NODE_KEY in .env, so this node has no ID and pushes to its parent unsigned. ./update.sh writes one. Then keep a copy of .env somewhere that is not the backup share: a lost key is a new node (docs/SPEC_identity.md)"
   chk "backup destination mounted" "mounted \"\$(envget BACKUP_DIR || echo ./backups)\""   "the NAS or drive in BACKUP_DIR is not mounted; tonight's backup will refuse. Mount it, or: planetai storage set backups <dir>"
   # SPEC_eyes: the folder the household's pictures live in. Unlike DATA_DIR it may be a NAS share — files, not
   # Postgres — so the check is only that it is there and writable; an unmounted share reads as missing, on purpose.
-  chk "captures folder writable" "d=\"\$(envget CAPTURES_DIR)\"; d=\"\${d:-./out/captures}\"; [[ -d \"\$d\" && -w \"\$d\" ]]"   "the folder in CAPTURES_DIR is missing or not writable, so the node refuses every picture. It may be a NAS share (files, not Postgres): mount it, or move them: planetai storage set captures <dir>"
+  # The app writes there, as root in its container. On Linux a folder the container made first is root's, and the
+  # check read red from the keeper's shell while every picture was kept (Omarchy, 15 Nov 2026), so the app is asked too.
+  chk "captures folder writable" "d=\"\$(envget CAPTURES_DIR)\"; d=\"\${d:-./out/captures}\"; [[ -d \"\$d\" ]] && { [[ -w \"\$d\" ]] || docker compose exec -T app test -w /app/captures; }"   "the folder in CAPTURES_DIR is missing or not writable, so the node refuses every picture. It may be a NAS share (files, not Postgres): mount it, or move them: planetai storage set captures <dir>"
   # A tarball node can say whether the code it is running was signed by the key above. A git checkout
   # never fetches a release, so it has no release signature to have checked — no row there, rather than a
   # permanently red one about something that node does not do.
@@ -653,7 +678,8 @@ print("%s|%s|%s" % (r.get("latest", ""), r.get("current", ""), "1" if r.get("new
   local freek; freek="$(df -Pk . 2>/dev/null | awk 'NR==2{print $4}')"; freek="${freek:-0}"
   chk "over 1 GB free on this disk" "[ \"$freek\" -gt 1048576 ]"   "$(( freek / 1024 )) MB free where the node lives. The database and tonight's backup fail when it fills: free space here, or move the backups: planetai storage set backups <dir on another disk>"
   case ",$(envget COMPOSE_PROFILES)," in *,mqtt,*)
-    chk "broker up :1883"        "nc -z localhost 1883"                                 "planetai logs mosquitto"
+    # bash's own /dev/tcp, not nc: Arch (Omarchy) ships without nc, and the check read red with the broker up (15 Nov 2026)
+    chk "broker up :1883"        "bash -c 'exec 3<>/dev/tcp/127.0.0.1/1883'"            "planetai logs mosquitto"
     chk "mesh packets arriving"  "[ \$(mesh_packets) -gt 0 ]"                              "gateway not uplinking yet: planetai meshtastic prints the settings";; esac
   case ",$(envget COMPOSE_PROFILES)," in *,reticulum,*)
     chk "reticulum bridge up"    "curl -sf localhost:4243/health"                       "planetai logs reticulum";; esac
@@ -1368,22 +1394,7 @@ print(e[0].get("source", ""), e[0].get("commit", "-"), e[0].get("status", "liste
   fi
   local why; why="$(packs_refused "$id" | cut -f2-)"
   if [[ -n "$why" ]]; then warn "it will not load on this node: $why."; fi
-  # A node whose packs were chosen in Set up loads only that list, and a pack added after it would stay off without a
-  # word. Asking for the pack is asking for it on, so it joins the list the way update.sh adds a pack, in the database
-  # the dashboard writes, with the token in .env. Empty means every pack and is left alone. With the node down the list
-  # in the database cannot be read, and .env may say nothing while the database names every pack but this one.
-  local cfg on fix; cfg="$(api /settings || true)"
-  if [[ -z "$cfg" ]]; then
-    warn "the node is not answering, so whether Set up limits the packs it loads cannot be read. Once it is up: planetai config get PACKS_ENABLED, and if that is a list without $id, switch it on in Set up → Packs."
-  else
-    on="$(json "print(([r['value'] for r in d['runtime'] if r['key']=='PACKS_ENABLED'] or [''])[0])" <<< "$cfg" | tr -d " ")"
-    fix="planetai config set PACKS_ENABLED $on,$id"; [[ -n "$(envget ADMIN_TOKEN)" ]] || fix="planetai ui (it creates the admin token), then $fix"
-    if [[ -n "$on" && ",$on," != *",$id,"* ]]; then
-      if runtime_set PACKS_ENABLED "$on,$id"; then say "$id joins the packs this node loads (Set up → Packs)"
-      else warn "this node loads only the packs listed in Set up → Packs, and $id is not one of them. Switch it on there, or: $fix"
-      fi
-    fi
-  fi
+  packs_switch_on "$id"
   packs_install "packs/$id/pack.yaml"
   say "planetai restart loads it. To remove it: delete packs/$id and restart."
 }
@@ -1909,6 +1920,64 @@ runtime_set() {
   return 1
 }
 
+# packs_switch_on ID: put a pack on the list Set up limits this node to.
+# A node whose packs were chosen in Set up loads only that list, and a pack added after it would stay off without a
+# word. Asking for the pack is asking for it on, so it joins the list the way update.sh adds a pack, in the database
+# the dashboard writes, with the token in .env. Empty means every pack and is left alone. With the node down the list
+# in the database cannot be read, and .env may say nothing while the database names every pack but this one.
+packs_switch_on() {
+  local id="$1"
+  local cfg on fix; cfg="$(api /settings || true)"
+  if [[ -z "$cfg" ]]; then
+    warn "the node is not answering, so whether Set up limits the packs it loads cannot be read. Once it is up: planetai config get PACKS_ENABLED, and if that is a list without $id, switch it on in Set up → Packs."
+  else
+    on="$(json "print(([r['value'] for r in d['runtime'] if r['key']=='PACKS_ENABLED'] or [''])[0])" <<< "$cfg" | tr -d " ")"
+    fix="planetai config set PACKS_ENABLED $on,$id"; [[ -n "$(envget ADMIN_TOKEN)" ]] || fix="planetai ui (it creates the admin token), then $fix"
+    if [[ -n "$on" && ",$on," != *",$id,"* ]]; then
+      if runtime_set PACKS_ENABLED "$on,$id"; then say "$id joins the packs this node loads (Set up → Packs)"
+      else warn "this node loads only the packs listed in Set up → Packs, and $id is not one of them. Switch it on there, or: $fix"
+      fi
+    fi
+  fi
+}
+
+# ---------------------------------------------------------------- place: which Fab City Index place this node belongs to
+# `place` suggests the nearest one from NODE_LAT/NODE_LON and asks; `place <slug>` sets it; `place none` clears it. The
+# distance and the list live in packs/index/place.py, so nothing here redoes the sums. The choice is INDEX_PLACE, set
+# where Set up sets it (runtime_set), and the index pack joins PACKS_ENABLED when that list is there without it.
+cmd_place() {
+  local arg="${1:-}" slug="" lat lon near name cur
+  if [[ -z "$arg" ]]; then
+    cur="$(setting INDEX_PLACE)"
+    if [[ -n "$cur" ]]; then say "this node belongs to $cur now"; else say "this node belongs to no Index place yet"; fi
+    lat="$(envget NODE_LAT)"; lon="$(envget NODE_LON)"
+    [[ -n "$lat" && -n "$lon" ]] || fail "this node has no coordinates (NODE_LAT, NODE_LON in .env), so there is nothing to suggest from. planetai place <slug> sets one."
+    near="$(python3 packs/index/place.py --nearest "$lat" "$lon")" || fail "could not read packs/index/places.json"
+    if [[ "$near" == null ]]; then
+      say "no Fab City Index place within 150 km of this node. If it belongs to one anyway, planetai place <slug> (the slugs are in packs/index/places.json)."
+      return 0
+    fi
+    slug="$(json 'print(d["slug"])' <<< "$near")"; name="$(json 'print(d["name"] + ", " + d["country"])' <<< "$near")"
+    say "the nearest Fab City Index place is $name ($slug). Its centre is approximate; the house stays with you."
+    if ! ( : </dev/tty ) 2>/dev/null; then echo "  To choose it: planetai place $slug"; return 0; fi
+    confirm "   Does this node belong to $name?" || { echo "  ok, nothing changed. planetai place <slug> picks another, planetai place none clears it."; return 0; }
+  elif [[ "$arg" != none ]]; then
+    python3 packs/index/place.py --known "$arg" || { warn "'$arg' is not an Index place (packs/index/places.json lists them)."; return 2; }
+    slug="$arg"
+  fi
+  # blank = back to the environment, so an INDEX_PLACE left in .env (init writes one) has to go too, or `none` would not
+  [[ -n "$slug" || -z "$(envget INDEX_PLACE)" ]] || envset INDEX_PLACE ""
+  if runtime_set INDEX_PLACE "$slug"; then
+    if [[ -n "$slug" ]]; then say "this node belongs to $slug; the Place door shows its Index row within a day"; packs_switch_on index
+    else say "this node belongs to no Index place"; fi
+  else
+    if [[ -n "$slug" ]]; then warn "the node is not answering (or has no admin token), so nothing was changed. Once it is up: planetai place $slug"
+    else warn "the node is not answering (or has no admin token): INDEX_PLACE is blank in .env now, and the node's own setting is cleared when you run planetai place none once it is up."; fi
+    [[ -n "$(envget ADMIN_TOKEN)" ]] || echo "  planetai ui creates the admin token first."
+    return 1
+  fi
+}
+
 # ---------------------------------------------------------------- the rest
 cmd_update()  {
   # backup.sh runs pg_dump through docker. With no runtime it fails at line 44 with "docker: command not
@@ -2392,6 +2461,27 @@ for key, why in sorted(out["provenance"]["refused"].items()):
   echo "  To render it in the dashboard, copy it into app/issues/fixtures/ on a dev machine and open ?fixture=<name>."
 }
 
+# planetai children                 the nodes pushing to this one, each pinned to the key it first signed with
+# planetai children forget <name>   after a child lost its key (a new machine without its .env): its next push pins again
+# Trust on first use, docs/SPEC_identity.md §5. The parent refuses a changed key with a sentence that names this command.
+cmd_children() {
+  local tok; tok="$(envget ADMIN_TOKEN)"; [[ -n "$tok" ]] || fail "no ADMIN_TOKEN in .env; run planetai ui"
+  if [[ "${1:-}" == forget ]]; then
+    [[ -n "${2:-}" ]] || fail "usage: planetai children forget <name>"
+    local n; n="$(N="$2" python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["N"], safe=""))')"
+    curl -sf -X DELETE "localhost:$(port)/children/$n" -H "Authorization: Bearer $tok" >/dev/null \
+      && say "forgot $2: its readings and events stay, and its next push is pinned to the key it signs with" \
+      || fail "no child called $2 is pinned here (planetai children lists them)"
+    return
+  fi
+  api /children | json '
+if not d:
+    print("  no node has pushed to this one yet")
+for c in d:
+    print("  %-24s %-18s first %s · last %s" % (c["name"], c["node_id"] or "unsigned", c["first_seen"][:10], c["last_seen"][:16].replace("T", " ")))' \
+    || fail "the node did not answer GET /children; planetai doctor says why"
+}
+
 # Saying hello is a pull request to registry.json, the programme's list of nodes (docs/SPEC_hello.md §5). Nothing
 # leaves until the household has read the entry and said yes, and nothing is listed until a person merges it.
 # The point is what /health gives a reader without the token: the centre of the res-8 cell, never the house (R25).
@@ -2401,7 +2491,7 @@ cmd_hello() {
   local entry; entry="$(printf '%s' "$h" | json '
 if d.get("position") != "cell" or not (d.get("cell") or {}).get("id"):
     sys.exit("this node has no cell yet: run planetai setup first")
-print(json.dumps({"name": d["node"], "cell": d["cell"]["id"], "lat": d["lat"], "lon": d["lon"]}))')" || fail "this node has no published cell yet. planetai setup sets its place"
+print(json.dumps({"name": d["node"], "cell": d["cell"]["id"], "lat": d["lat"], "lon": d["lon"], "id": d.get("node_id"), "key": d.get("node_key")}))')" || fail "this node has no published cell yet. planetai setup sets its place"
   local name; name="$(printf '%s' "$entry" | json 'print(d["name"])')"
   local place="" operator="" contact=""
   # already listed? registry.json on main is public, and the entry asked for is about to go there: read the whole of
@@ -2431,6 +2521,7 @@ got |= {n for k, n in (("vector", "openstreetmap"), ("drone", "openaerialmap"), 
 print(json.dumps(sorted(got)))' 2>/dev/null)" || srcs="[]"
     if [[ -n "$lcell" && "$contact" == "$lcontact" && "$place" == "$lplace" && "$operator" == "$loper" \
           && "$(printf '%s' "$entry" | json 'print(d["cell"])')" == "$lcell" \
+          && "$(printf '%s' "$entry" | json 'print(d["key"] or "")')" == "$(printf '%s' "$old" | json 'print(d.get("key") or "")')" \
           && "$srcs" == "$(printf '%s' "$old" | json 'print(json.dumps(sorted(d.get("sources") or [])))')" ]]; then
       say "$name is listed as this already. Nothing to send."; return 0
     fi
@@ -2440,13 +2531,15 @@ old = json.loads(os.environ["OLD"])
 row = {"name": d["name"], "scale": os.environ["S"] or "community", "operator": os.environ["O"] or None,
        "place": os.environ["P"], "cell": d["cell"], "lat": d["lat"], "lon": d["lon"], "sources": json.loads(os.environ["SRC"]),
        "parent": old.get("parent"), "since": old.get("since") or datetime.date.today().strftime("%Y-%m")}
+if d.get("key"):                  # who this node is, provably: the id is the hash of the key (docs/SPEC_identity.md §6)
+    row["id"], row["key"] = d["id"], d["key"]
 if os.environ["C"]:
     row["contact"] = os.environ["C"]
 print(json.dumps(row))')"
     echo
     echo "  This is what the whole programme will see about this node, on GitHub and on every node's map:"
     printf '%s' "$entry" | json '
-for k in ("name", "place", "cell", "lat", "lon", "operator", "contact", "since", "sources"):
+for k in ("name", "id", "place", "cell", "lat", "lon", "operator", "contact", "since", "sources"):
     if d.get(k) is not None:
         print("    %-9s %s" % (k, ", ".join(d[k]) if isinstance(d[k], list) else d[k]))'
     echo "  The point is the centre of the node's cell (about 0.7 km²), not the house."
@@ -2527,6 +2620,7 @@ case "${1:-help}" in
   radio) shift; cmd_radio "$@";;
   homeassistant|ha) cmd_homeassistant;;
   packs) shift; cmd_packs "$@";;
+  place) shift; cmd_place "$@";;
   sources) shift; cmd_sources "$@";;
   ui|dashboard) cmd_ui;;
   storage) shift; cmd_storage "$@";;
@@ -2541,6 +2635,7 @@ case "${1:-help}" in
     esac;;
   run) shift; cmd_run "$@";;
   hello) shift; cmd_hello "$@";;
+  children) shift; cmd_children "$@";;
   version|-v|--version) cmd_version;;
   snapshot) shift; cmd_snapshot "$@";;
   geocode) shift; geocode "$*";;   # try a place name without installing anything

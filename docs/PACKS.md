@@ -1,7 +1,7 @@
 # Packs
 
 A pack is a folder in `packs/`. It carries rules, Index cells, or an adapter for a new source. The core knows nothing
-about air, water or heat; the packs do. Twenty-five ship in `packs/`.
+about air, water or heat; the packs do. Twenty-eight ship in `packs/`.
 
 ```
 packs/<id>/
@@ -517,7 +517,9 @@ reaches no issue and is not named as deliberately outside them fails `tests/test
 | earth-engine | code | — Dynamic World, Sentinel-2, VIIRS | tree cover, built-up, NDVI, night lights (Google Earth Engine) |
 | earth | code | land | this node's own copy of the AlphaEarth embeddings: the land change computed here, and a picture of the place for every year |
 | terrain | code | water | this node's own square of Copernicus elevation, filled and routed: how much ground drains through the node's point, and the next day's rain on it — readouts, no alert, no cell |
+| energy | code | energy | the synchronous grid's fossil share (measured daily from REE where published, estimated as a capacity-factor range elsewhere) and the nearest substation, plants and submarine links from OpenStreetMap — readouts, no alert, no cell |
 | place | code | — the ground, its own band | what is around the node from OpenStreetMap, in PostGIS: buildings, shops, schools, clinics, roads, green, walking distances |
+| index | code | — the Place door's figures, its own row | which Fab City Index place this node belongs to, and what the Index says about it, read once a day from index.fab.city and the source registry — stored and served, no score computed here, no rule, no cell, off until `INDEX_PLACE` is set |
 | thingdata | code | — repair knowledge, its own catalogue | a ThingData server's things, guides and stories, and how much of the catalogue anyone has written down how to fix |
 | make | code | — places, not numbers | the nearest active fab labs and what each can do, from the Fab Lab Network directory — display-only, no metrics, no cell and no alert, by design |
 | fire | code | air | fires near the node from NASA FIRMS, and whether they are upwind; acts only when the air outside rises too — off until `FIRE_ENABLED=1` |

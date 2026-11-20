@@ -1,5 +1,5 @@
 # Command line
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 `planetai` is how the person who keeps a node looks after it from the machine it runs on: install it, check
 it is alive, record what somebody did about an alert, change a setting, update it and keep its data safe.
@@ -12,7 +12,7 @@ has (Apple's 3.9 on a Mac, standard library only). `planetai` on its own prints 
 does not know gets "there is no `planetai <word>` in this node", the node's version, and the advice to run
 `planetai update`, because new commands arrive with releases.
 
-> **Gap in v0.91.0.** The list `planetai` prints leaves out four commands that exist: `preflight`, `sources`,
+> **Gap in v0.92.0.** The list `planetai` prints leaves out four commands that exist: `preflight`, `sources`,
 > `config unset` and `agent local pull`. The tables below are complete.
 
 Only three things ask for `sudo`: `mesh` (to install and join Tailscale), `agent local` on a machine with
@@ -34,13 +34,13 @@ Docker. The installer says what each `sudo` is for before it asks.
 
 | command | what it does |
 |---|---|
-| `planetai status [--json]` | Version, uptime, last poll and error, sensors, the last three alerts and ρ. |
+| `planetai status [--json]` | Version, this node's ID, uptime, last poll and error, sensors, the last three alerts and ρ. |
 | `planetai doctor [quiet\|--guide\|--json]` | Every check, each failure with its fix, then the node's data sources. |
 | `planetai logs [service]` | Follows a container's log: `app` by default, or `db`, `agent`, `reticulum`, `mosquitto`. |
 | `planetai start` · `stop` · `restart` | `docker compose up -d`; `down`, data kept; recreate the app container, which is how a change in `.env` takes effect. |
 
 The doctor checks that Docker runs, the containers are up, the database answers, the node answers on its port and
-can log in to the database, the coordinates are set, `.env` has no space after an `=`, the backup folder is mounted,
+can log in to the database, the coordinates are set, `.env` has no space after an `=`, `.env` holds the node's key, the backup folder is mounted,
 the captures folder is writable, the crontab line that lets Install on Set up › Packs reach the node is there, a nightly
 backup is scheduled and more than 1 GB is free. With the `mqtt` profile
 it checks the broker and that mesh packets arrive; with `reticulum`, the bridge. A few rows state a fact rather than
@@ -118,6 +118,9 @@ file, `snapshot-<node>-<YYYY-MM-DDTHHMM>.json` by default, holds no raw readings
 | `planetai report every N` | Hours between reports (`REPORT_EVERY`): 3, 4, 6, 8, 12 or 24. |
 | `planetai report at H` | The local hour the report rhythm counts from (`REPORT_ANCHOR`), 0 to 23. |
 | `planetai report level act\|warn\|info` | What interrupts you between reports (`ALERT_LEVEL`). |
+| `planetai place` | Suggests the Fab City Index place nearest to this node's coordinates (within 150 km) and asks. The centre is approximate. Only the place's slug is saved, as `INDEX_PLACE`, and the index pack joins the packs this node loads. It says first which place the node belongs to now. Setup asks the same at install, and says so when nothing is within 150 km. |
+| `planetai place <slug>` | Sets it to that place, a slug from `packs/index/places.json`; anything else exits 2 with "not an Index place". With the node down nothing changes and the command to run later is printed. |
+| `planetai place none` | Clears it, so the Place door's Index row says **not chosen**. With the node down it blanks `INDEX_PLACE` in `.env` and says the node's own setting is cleared when you run it again once the node answers. |
 | `planetai ui` (`dashboard`) | The dashboard's addresses, the `#wall` one included, the sharing level and the admin, backup and act tokens. Creates `ADMIN_TOKEN` and `ACT_TOKEN` if missing. |
 | `planetai test-alert` | Fires one act-level alert through every channel and waits up to 90 seconds for it. It adds a rule that fires within a minute and removes it as soon as its alert appears, so one message arrives. |
 
@@ -127,7 +130,7 @@ The settings themselves, and what each one does, are on [Configuration](configur
 
 | command | what it does |
 |---|---|
-| `planetai update` | Backs up, fetches the release, checks its checksum and signature, migrates, rebuilds and verifies. Refuses at once when no container runtime is running. See [Updating](updating.md). |
+| `planetai update` | Backs up, fetches the release (each download is tried up to three times), checks its checksum and signature, migrates, rebuilds, waits up to a minute for the app to answer and verifies. Refuses at once when no container runtime is running. See [Updating](updating.md). |
 | `planetai backup` | Dump, export, remote copy and IPFS now, the job cron runs nightly at 03:17. |
 | `planetai restore <dump.sql.gz>` | Asks for the node's name, takes a safety backup, replaces the database with the dump and re-applies `init.sql`. Settings saved from Set up are not in a dump, so the node goes back to `.env`. With no file, lists the newest dumps. |
 | `planetai storage` | Where the database, backups, pictures, remote copy and exports are, and their state. |
@@ -150,7 +153,8 @@ Where the data lives, and why never on a network mount: [Storage](storage.md).
 | `planetai homeassistant` (`ha`) | Starts the broker if there is none, sets `HA_DISCOVERY=1`, and prints what to enter in Home Assistant's MQTT integration. On a node that lists its packs in `PACKS_ENABLED`, add `home-assistant` there too. | no |
 | `planetai mesh [up\|status\|down]` | Installs Tailscale and joins your tailnet under the node's name, then prints how to reach it. `TS_AUTHKEY` in the environment joins without a browser. Records `MESH_NAME`. | yes |
 | `planetai reticulum` | Downloads the LXMF bridge from fabcity/planetai-reticulum at the commit `RETICULUM_REF` pins, builds it, starts it (profile `reticulum`), and prints the node's address and how to reach it from Sideband. | no |
-| `planetai hello [--remove]` | Lists this node on every node's map. It shows the entry a stranger would see (name, the centre of its cell, the place, who runs it, an optional contact) and opens the pull request to `registry.json` with `gh`, or prints the entry and the edit link. It first brings your fork's `main` up to fabcity's with `gh repo sync`, so an old fork does not undo other entries, and stops with that command to run if your `main` has commits of its own. A node already listed sends `registry: update <name>`. Once merged, nodes see it within the hour. `--remove` takes the node off. | no |
+| `planetai hello [--remove]` | Lists this node on every node's map. It shows the entry a stranger would see (name, its ID, the centre of its cell, the place, who runs it, an optional contact) and opens the pull request to `registry.json` with `gh`, or prints the entry and the edit link. It first brings your fork's `main` up to fabcity's with `gh repo sync`, so an old fork does not undo other entries, and stops with that command to run if your `main` has commits of its own. A node already listed sends `registry: update <name>`. Once merged, nodes see it within the hour. `--remove` takes the node off. | no |
+| `planetai children [forget <name>]` | On a parent, the nodes pushing to it, each with its ID or `unsigned`, and when it was first and last seen. Each name is pinned to the key it first signed with. `forget <name>` drops one pin, after that child lost its key; its readings stay and its next push is pinned again. | no |
 
 See [Channels](channels.md) and [Federation](federation.md).
 
@@ -188,10 +192,10 @@ there; it prints the exact line for your Python when they are missing. See [Radi
 
 Each line is a slug, status, licence, the pilots it matters to, and the code that reads it (`core:ckan`, `pack:coast`,
 or blank when nothing on this node does). The counts below the list cover the whole registry, or one cell with
-`--cell`. With the snapshot v0.91.0 carries (`awesome-fabcity-data` at `7bf12a4`, 284 entries, synced 2026-11-04):
+`--cell`. With the snapshot v0.92.0 carries (`awesome-fabcity-data` at `d106bb8`, 296 entries, synced 2026-11-19):
 
 ```
-  across 19 cells: capable 12 / reviewed 17 / candidate 55
+  across 19 cells: capable 12 / reviewed 17 / candidate 63
   capable = live with an adapter. reviewed = live, backed by an adapter or a usable review. candidate = verified, unread.
 ```
 

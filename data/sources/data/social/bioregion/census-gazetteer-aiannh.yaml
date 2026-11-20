@@ -1,0 +1,37 @@
+name: US Census Gazetteer, American Indian / Alaska Native / Native Hawaiian Areas
+url: https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html
+description: |
+  Land and water area and an internal point for every federally and
+  state-recognised American Indian, Alaska Native and Native Hawaiian
+  area, from the Census Bureau's TIGER geography.
+pillar: social
+scale: bioregion
+status: candidate
+license: "No named licence. US federal work, no domestic copyright; the Bureau names no licence of its own (same position as us-census-acs)."
+api: https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2025_Gazetteer/2025_Gaz_aiannh_national.zip
+pilot_relevance: []
+places: [charlotte]
+tags: [indigenous-lands, tiger, gazetteer, united-states, census]
+auth: none
+feeds_cells: [Social|Bioregion]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. 2025_Gaz_aiannh_national.zip (the 2024 file gives the
+  same values): GEOID 0525, Catawba Reservation and Off-Reservation Trust
+  Land, ALAND 4,176,988 m2 (4.18 km2), AWATER 0, internal point 34.907982,
+  -80.881111, near Rock Hill SC, about 35 km south of central Charlotte in
+  the shared Catawba-Wateree basin. The LandMark v202509 polygon layer
+  agrees: "Catawba", acknowledged by government, 417.59 ha, from BIA.
+
+  LICENCE. As us-census-acs: no licence statement from the Bureau; US
+  federal works carry no domestic copyright.
+
+  WHY THIS CELL. Social|Bioregion asks for recognised indigenous or
+  community land area in km2. Charlotte's bioregion is read as the Catawba-
+  Wateree basin, which runs from the Blue Ridge across the NC-SC line.
+
+  WHAT IT DOES NOT CLAIM. It counts the recognised land base only, not the
+  Catawba Nation's traditional territory. Which basin is Charlotte's
+  bioregion is a reading, not a fact in the source.

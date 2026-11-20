@@ -10,7 +10,7 @@ status: candidate
 license: US public domain (Census Bureau work, 17 USC 105)
 api: null
 pilot_relevance: [boston]
-places: [boston]
+places: [boston, charlotte]
 tags: [trade, exports, value, metro, msa, boston, census, xlsx]
 added: 2026-09-26
 auth: none
@@ -26,3 +26,8 @@ notes: |
   WHY THIS CELL. Economic|Region's external-trade row, exports half.
 
   WHAT IT DOES NOT CLAIM. Exports only: no imports are published at metro level. Exports are attributed to the exporter of record's location, not to where goods were made. The state series (`intltrade/*/statehs`, imports and exports by HS code) needs a free API key, which the harvest pipeline does not hold; it redirects to `missing_key.html` without one. No Massachusetts state dataset was found, since MOITI republishes the federal figures.
+
+  CHARLOTTE, read 2026-11-05: "Charlotte-Concord-Gastonia, NC-SC", exports 13,892.4 M USD in 2019
+  (metroq42019.xlsx; 13,862.8 revised in the 2020 edition) and 10,234.4 M USD in 2024 (metroq42024.xlsx).
+  metrohistory.xlsx has 2021-2023. Charlotte is absent from metroq42025 and metroq12026, which list about 60
+  metros, so there is no 2025 value.

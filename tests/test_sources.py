@@ -1,5 +1,6 @@
 """Offline adapter tests against saved payload shapes. Run: PACKS_DIR=packs PYTHONPATH=/tmp/stub:app python3 tests/test_sources.py
 (stub httpx first: mkdir -p /tmp/stub && echo "class Client: pass" > /tmp/stub/httpx.py)"""
+import cells
 import sources
 
 class R:
@@ -42,20 +43,22 @@ assert round(sources.metres(-8.8190516, 115.1644423, -8.8271, 115.15709)) == 120
 assert sources.metres(-8.8190516, 115.1644423, -8.8190516, 115.1644423) == 0.0
 
 NODE = (-8.8190516, 115.1644423)
+HOME = cells.home(*NODE)
+OWN = cells.own(HOME, {cells.cell_of(-8.81983, 115.16657)})
 here     = {"sensor_id": "sc-19236", "local": True,  "lat": -8.81983, "lon": 115.16657}
 far      = {"sensor_id": "sc-19880", "local": True,  "lat": -8.8271,  "lon": 115.15709}
 theirs   = {"sensor_id": "bad-x",    "local": False, "lat": -8.81985, "lon": 115.16650}
 nocoords = {"sensor_id": "msh-abc",  "local": True,  "lat": None,     "lon": None}
-sources.stamp_local([here, far, theirs, nocoords], *NODE, 500)
-assert here["local"] is True,  "250 m inside a 500 m radius stays local"
-assert far["local"] is False,  "1.2 km away is ours but not here"
+sources.stamp_local([here, far, theirs, nocoords], OWN)
+assert here["local"] is True,  "in an own cell (adopted neighbour) stays local"
+assert far["local"] is False,  "1.2 km away in an unclaimed cell is ours but not here"
 assert theirs["local"] is False, "a public station next door is still not ours"
 assert nocoords["local"] is True, "a mesh pod on our own gateway has no coordinates and stays local"
 
 # A node that does not know where it is must not decide that nothing is local. With no coordinates stamp_local
 # leaves every claim alone: blanking the fleet on a half-configured node is worse than trusting the adapter.
 unset = [{"sensor_id": "sc-19236", "local": True, "lat": -8.81983, "lon": 115.16657}]
-sources.stamp_local(unset, None, None, 500)
+sources.stamp_local(unset, None)
 assert unset[0]["local"] is True, "no node coordinates means no narrowing, not narrowing everything away"
 
 print("all adapter tests pass")

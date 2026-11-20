@@ -1,9 +1,9 @@
 # How it works
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 A node is two containers on one machine. `db` is Postgres with PostGIS, reachable only from the machine itself.
-`app` is one Python process that answers the HTTP API on port 8080 and runs thirteen loops in the background, a
-fourteenth when the Reticulum bridge is on. Five more containers are optional: the Mosquitto broker for radios and
+`app` is one Python process that answers the HTTP API on port 8080 and runs fifteen loops in the background, a
+sixteenth when the Reticulum bridge is on. Five more containers are optional: the Mosquitto broker for radios and
 DIY sensors, the `agent` container for the Telegram bot, the Reticulum bridge, an IPFS node for the export and
 Grafana, with a one-shot `grafana-role` that makes its login. Everything a node
 does is one of those loops or one of the API's answers, and this page follows a reading through all of it.
@@ -32,8 +32,8 @@ Every adapter (a Smart Citizen kit, the ring of Bali Air Dispatch stations, a CK
 model sampled at your coordinates, a pack's own `adapter.py`) returns the same two things: a list of sensors
 and a list of readings `(ts, sensor_id, metric, value)`. The poll loop asks every enabled adapter every
 `POLL_SECONDS` (300) and upserts what comes back. The core does not know what `pm25` means. It stores rows,
-and each sensor row says how its number was produced (`kind`), whether it is yours and within
-`LOCAL_RADIUS_M` (500 m) of the node (`local`), and whether it may be counted (`custody`). See
+and each sensor row says how its number was produced (`kind`), whether it is yours and in one of
+the node's own cells (`local`), and whether it may be counted (`custody`). See
 [Concepts](concepts.md).
 
 ### Observe
@@ -111,6 +111,8 @@ A pack's `cells.yml` computes the other Index cells the node has the data to fil
 | usual for the hour | hourly | rebuilds `usual_by_hour`, each room's usual for each local hour over the fourteen complete days before today, which the event rules read |
 | push aggregates | hourly | if `PARENT_API_URL` is set, posts the last two hours of hourly means to the parent's `/aggregates` |
 | push events | hourly | if `PARENT_API_URL` is set, posts this node's alert timestamps of the last 36 hours to the parent's `/events` |
+| shared maps | 60 s | if `PARENT_API_URL` is set, sends each shared Place map that changed since it last went up, and the picture of a photo somebody here pressed Send on, to the parent's `/place/maps/received` and `/place/photos/received` |
+| drawings counted | hourly | once a local day, writes how many drawings the household has made and how much ground they cover to the private sensor `place-gis`. Nothing is written until something is drawn |
 | release check | hourly | unless `UPDATE_CHECK=off`, asks planetai.fab.city which version is current and says so in `/health`, the page's top bar and once per version on Telegram. It installs nothing |
 | node list | hourly | unless `UPDATE_CHECK=off`, reads the programme's `registry.json` from GitHub and serves it at `/nodes`, each other node's point to one decimal and no contact |
 | wild packs | hourly | unless `UPDATE_CHECK=off`, reads the list of wild packs from GitHub and tells the household once about a pack that is new on it |
@@ -153,13 +155,13 @@ see [The source registry](sources.md).
 ## What leaves the machine, and what never does
 
 Raw readings stay. What travels is a summary: hourly means and alert timestamps to a parent node, if
-`PARENT_API_URL` names one; the daily [export](storage.md), with hourly means, your own sensors named by role
+`PARENT_API_URL` names one, and the Place maps the household chooses to share with it; the daily [export](storage.md), with hourly means, your own sensors named by role
 (`indoor-1`, `outdoor-2`), the Index cells, each alert's first line, ρ, the household's offers and its res-8 cell's centre, never its
 point, under CC BY 4.0. The export is readable at every [sharing level](sharing.md).
 
 ![What leaves the machine, to whom, and which are off by default](img/what-leaves.svg "Raw readings stay. A dashed line leaves only when somebody here turns it on.")
 
-Exact coordinates and a household's own sentences never leave in a push or the export. The events push carries
+Exact coordinates and a household's own sentences never leave in the hourly pushes or the export. A Place map the household shares is the one thing that carries them, after a plain warning. The events push carries
 rule, level and timestamps, and no alert text, actor, note or sensor id. Your own sensor ids leave only in the
 hourly means pushed to a parent you chose. Nothing finer than the node's resolution-8 cell (about 500 m to an
 edge) reaches a reader the node does not know: `/health`, `/export`, and the household's own sensors in
@@ -182,6 +184,7 @@ Everything else leaves only when somebody here turns it on:
 | species names | Name species with GBIF (`SPECIES_MATCH=on`) | a finding's scientific name; the weekly reads tell GBIF the country and the shapes of the seven cells |
 | offers | the household marks a thing to lend or give | its class, name, condition and count at the node's cell, public at `GET /offers` and in the export |
 | a detailed basemap | somebody types `planetai run place basemap` or `planetai run earth-engine basemap` | Protomaps, OpenAerialMap or Earth Engine learn once which square the node is in; after that the map is read from the node |
+| grid, rivers and Index place | the `energy` pack on, `planetai run hydro fetch`, `INDEX_PLACE` set | Overpass learns the bounding box of the node's grid, HydroSHEDS that somebody asked for a region's files, index.fab.city the place's slug |
 | Smart Citizen forwarding | a device token listed in `SC_FORWARD` | smartcitizen.me gets that device's messages exactly as the device sent them |
 | IPFS | `IPFS_PUBLISH=1` (`planetai ipfs` sets it and starts the container) | the daily export, added to IPFS; never the dump |
 | an off-machine backup | `BACKUP_REMOTE` names an rclone remote | the whole backup, the database dump included, goes to the remote you named |
@@ -213,13 +216,12 @@ by aggregation. No agent dispatches without a human row in `actions`. No layer r
 function. No scale is skipped: a city aggregator is built from nodes, not declared from above. The longer
 form, with the staging from one node to a bioregion, is [Architecture](architecture.md).
 
-> **Gap in v0.91.0.** Some of that staging is not built. The Act layer in `ARCHITECTURE.md` ends in a
+> **Gap in v0.92.0.** Some of that staging is not built. The Act layer in `ARCHITECTURE.md` ends in a
 > fabrication ticket when a decision is physical; there is no such ticket and no `fabricate` stage, and no job
 > has been handed to a workshop. The `make` pack, off until `MAKE_ENABLED=1`, only names the nearest fab lab.
-> Nodes finding each other (`docs/SPEC_discovery.md`) is not built. A node as a key rather than a name
-> (`docs/SPEC_identity.md`) and the second ρ, which would ask whether the reading recovered
-> (`docs/SPEC_rho.md`), are Phase 1 with nothing built. A decision on the dashboard is one person deciding for
-> one node; how several households' decisions become a street's is not on a node at all.
+> Nodes finding each other (`docs/SPEC_discovery.md`) is not built. The second ρ, which would ask whether the
+> reading recovered (`docs/SPEC_rho.md`), is Phase 1 with nothing built. A decision on the dashboard is one
+> person deciding for one node; how several households' decisions become a street's is not on a node at all.
 
 ## Where this leads
 

@@ -38,7 +38,7 @@ TTL = 20
 RUNTIME = {
     # basics — what this place is, what it watches, and how its page opens. What matters here is decided by the people who live here.
     "NODE_ISSUES":        ("basics", "What this place watches, in order", False, False,
-                           "The issues this node reports, most important first: air, heat, land, coast, water. The first "
+                           "The issues this node reports, most important first: air, heat, land, coast, water, energy. The first "
                            "one is where the page starts, and the one with something to say takes the top of it. A "
                            "name nothing declares is ignored with a line in the log; blank means every issue there "
                            "is, in the packs' own order. Your preset guessed for this place \u2014 change it: what "
@@ -180,7 +180,6 @@ RUNTIME = {
                            "forwarded. A token is a credential: it is masked here and never appears in a sensor id."),
     "PARENT_API_URL":     ("sharing", "Parent node", False, False, "http://<district>:8080 — hourly means go here. Empty = none."),
     # system — tuning numbers, and the layout Arrange mode writes. Not "advanced": that is a page mode, and the header has its switch.
-    "LOCAL_RADIUS_M":     ("system", "Local radius, m", False, False, "how far from the node a sensor can be and still count as this node's own, in metres"),
     "STATIONS_SHOWN":     ("system", "Other people's stations listed", False, False,
                            "How many of the neighbourhood's stations the dashboard lists, nearest first. Default 3; "
                            "0 lists every one. This node's own hardware is always listed and is never counted here \u2014 "
@@ -198,7 +197,7 @@ RUNTIME = {
 # are not secrets, but they are the household's, and GET /settings answers anyone on the WiFi (found 6 Sep 2026).
 PUBLIC = {"REPORT_EVERY", "REPORT_ANCHOR", "REPORT_DEPTH", "LEARN_PUSH", "ALERT_LEVEL", "QUIET_HOURS", "QUIET_FROM", "QUIET_TO", "ALERT_LOCALE",
           "MESH_ALERTS", "HA_DISCOVERY", "PACKS_ENABLED", "PACKS_ALLOW_CODE", "OPENMETEO_ENABLED",
-          "LOCAL_RADIUS_M", "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "EYES_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "UI_GROUND", "MAP_TILES", "UPDATE_CHECK", "SPECIES_MATCH", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
+          "SENSOR_INDOOR", "COAST_MAX_KM", "AGENT_PREFER", "AGENT_REMOTE_MODEL", "AGENT_ONLINE_MODEL", "EYES_MODEL", "UI_LAYOUT", "UI_MODE", "UI_ASK", "UI_GROUND", "MAP_TILES", "UPDATE_CHECK", "SPECIES_MATCH", "STATIONS_SHOWN", "NODE_KIND", "SHARE_LEVEL", "NODE_ISSUES",
           "RETICULUM_PRESENCE", "RETICULUM_PRESENCE_RES"}
 # Which Set up tab shows each bootstrap key, read-only. The place itself is Basics; the machinery is System.
 BOOTSTRAP_GROUP = {k: "basics" for k in ("NODE_NAME", "NODE_CITY", "NODE_LAT", "NODE_LON", "NODE_TZ", "NODE_SCALE")}
@@ -264,10 +263,10 @@ OUTWARD = {
 # before an OUTWARD key, and quotes the key's own help to say what will run.
 RUNS_CODE = {"PACKS_ALLOW_CODE"}
 
-# Keys the reports release retired. Rows for them are left in `settings` and in .env, and nothing reads them: a
+# Keys that were retired. Rows for them are left in `settings` and in .env, and nothing reads them: a
 # household that updates does not have a value it chose deleted out from under it. BRIEF_HOUR was the agent
-# container's own third clock and is gone from the compose file.
-RETIRED = ("BRIEFINGS", "BRIEF_MORNING", "BRIEF_EVENING", "BRIEF_HOUR")
+# container's own third clock and is gone from the compose file; LOCAL_RADIUS_M was replaced by node_cells.
+RETIRED = ("BRIEFINGS", "BRIEF_MORNING", "BRIEF_EVENING", "BRIEF_HOUR", "LOCAL_RADIUS_M")
 
 
 def _rows() -> dict:

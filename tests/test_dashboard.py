@@ -661,7 +661,9 @@ for _h in _heads:
     _sid = re.search(r"\bid:\s*'([^']+)'", _h).group(1)
     _r = re.search(r"\breads:\s*\[([^\]]*)\]", _h)
     assert _r and re.findall(r"'(/[^']*)'", _r.group(1)), f"section '{_sid}' does not say which routes it reads"
-assert re.search(r'<span class="routes">\$\{s\.reads\.map\(r => `<a href="\$\{esc\(r\)\}">GET \$\{esc\(r\)\}</a>`\)', _js_raw), \
+# singapore-node: routes open beside the dashboard (target=_blank) through routeLink(), not inline.
+assert re.search(r'<span class="routes">\$\{s\.reads\.map\(routeLink\)', _js_raw) and \
+    re.search(r'`<a href="\$\{esc\(r\)\}" target="_blank" rel="noopener">GET \$\{esc\(r\)\}</a>`', _js_raw), \
     "the shell no longer prints a band's routes as links beside its kicker"
 assert re.search(r"\.band > \.k \.routes \{[^}]*text-transform: none", (ROOT / "app/static/dashboard.css").read_text()), \
     "a band's routes inherit the kicker's uppercase, and a route uppercased cannot be typed back"
@@ -700,7 +702,7 @@ if shutil.which("node"):
     _ev = "\n".join((
         re.search(r"const esc = s => .*?\);\n", _js_raw, re.S).group(0),
         re.search(r"const fmt = .*?\n", _js_raw).group(0),
-        re.search(r"const sign = \(id, cls = ''\) =>\n.*?;\n", _js_raw).group(0),
+        re.search(r"const sign = \(id, cls = ''(?:, tip = '')?\) =>\n.*?;\n", _js_raw).group(0),
         re.search(r"const TOKEN_FINE = .*?</p>`;", _js_raw, re.S).group(0),
         re.search(r"function evState\(\) \{.*?\n\}", _js_raw, re.S).group(0),
         re.search(r"const evOpen = .*?\n", _js_raw).group(0),
@@ -829,7 +831,7 @@ console.log(JSON.stringify(out));""")
         and "go.parentElement.querySelector('form.did')" in _js_raw, "the I did this handlers moved: update this check"
     assert re.search(r'<div class="ask">\$\{window\.K\.didButton\(a\.id\)\}</div>', _card), \
         "card() must wrap didButton in an element with class ask, or the button opens nothing and is unstyled"
-    assert re.search(r'const didButton = id =>\s*`<button type="button" class="go" .*?<form class="did"', _js_raw, re.S), \
+    assert re.search(r'const didButton = (?:id|\(id, seen\)) =>.*?`<button type="button" class="go" .*?<form class="did"', _js_raw, re.S), \
         "didButton is a .go button with a form.did, the pair the handler reads"
     assert 'id="evrows-' in _js_raw and "older than the 200 alerts this page reads" in _js_raw, \
         "evCard links to #evrows-<id>, so rowsOf must draw it"
@@ -839,7 +841,7 @@ console.log(JSON.stringify(out));""")
     # do first (DECISION_REQUIRED) — the one sentence the person at the screen needed.
     _did = "\n".join((
         re.search(r"async function nodeSaid\(r\) \{.*?\n\}", _js_raw, re.S).group(0),
-        re.search(r"async function didThis\(form\) \{.*?\n\}", _js_raw, re.S).group(0),
+        re.search(r"async function didThis\(form(?:, force)?\) \{.*?\n\}", _js_raw, re.S).group(0),
     ))
     _409 = ("this node is set to DECISION_REQUIRED, so an act needs a decision recorded against the same "
             "alert first. Decide on the dashboard, then record what you did.")
@@ -854,7 +856,8 @@ console.log(JSON.stringify(out));""")
     _t = _node(_did + "\nconst C = " + json.dumps(_cases) + r""";
 const auth_ = () => ({}); let said = null; const say = (m, bad) => { said = [m, !!bad]; };
 const refresh = async () => {};
-const form = { querySelector: () => ({ disabled: false }), getAttribute: () => '7',
+const localStorage = { getItem: () => null, setItem() {}, removeItem() {} };  // singapore-node: didThis keeps a typed token
+const form = { querySelector: s => (s === '.tokfield' ? null : { disabled: false }), getAttribute: () => '7', closest: () => null,
   classList: { contains: () => false }, elements: { note: { value: 'shut it' }, actor: { value: 'a' } },
   hidden: false, reset() {} };
 (async () => {

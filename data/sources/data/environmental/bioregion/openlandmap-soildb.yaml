@@ -1,0 +1,40 @@
+name: OpenLandMap-soildb (30 m soil properties, 2000 to 2022)
+url: https://openlandmap.org/
+description: |
+  OpenGeoHub's global soil maps for Land & Carbon Lab: organic carbon, pH, bulk density, texture and soil type at
+  30 m, three depths to 1 m, in five steps from 2000 to 2022. Machine-learned, Cloud-Optimized GeoTIFFs, read anonymously.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: CC-BY-4.0
+api: https://stac.opengeohub.org/v1/cat/openlandmap
+pilot_relevance: []
+places: [bali, barcelona]
+tags: [soil, soil-organic-carbon, ph, texture, bulk-density, openlandmap, opengeohub, raster-30m, modelled, cog, stac]
+added: 2026-11-05
+assisted_by: Claude Code
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05.
+
+  LICENCE. CC-BY-4.0 in the `license` field of each soildb STAC collection (e.g. oc_iso.10694.1995_go) and on the
+  Zenodo record 10.5281/zenodo.15535756 ("cc-by-4.0", v20250204). TRAP: the portal's about text says the data are
+  "CC BY-SA and/or ODbL" and usable "without restrictions". 16 of its 75 collections really are CC-BY-SA-4.0,
+  including the older 250 m and 1 km OLM soil layers, so read the field on each collection, not the paragraph.
+  The "Copyright and License page" it links (opengeohub.org/about-landgis/) is a 404, so the licence rests on
+  OpenGeoHub's own STAC and Zenodo fields.
+
+  ENDPOINT. Collection list at openlandmap.org/api/v1/rasters/collections/ (the trailing slash is needed, 404
+  without). COGs on ceph.opengeohub.org/arco/soildb/, e.g. soildbpc_cdmgcm3_m_30m_bg0..30cm_20200101_20221231_go01
+  _epsg4326_v1.2.0_srl04.tif, read point by point with rasterio, no key.
+
+  READ, 0-30 cm, 30 m mean. Ungasan, Bali (115.165 E, 8.825 S): SOC density 11.2 kg/m3 (2000-05), 9.6 (2020-22);
+  SOC 15.8 g/kg; pH 5.4. Collserola, Barcelona (2.10 E, 41.42 N): SOC density 11.2, SOC 18.6 g/kg, pH 7.5 (2020-22).
+  ISRIC WoSIS holds 0 measured profiles in Bali (WFS, 5 Nov), so the Bali figures rest on no local sample.
+
+  WHAT IT DOES NOT CLAIM. Model predictions, not measurements; every pixel has a value, houses and roads included
+  (SoilGrids leaves the Ungasan pixel blank). The 5-year steps are not a trend at one point: at Ungasan SOC density
+  fell while SOC content rose. Open question for OpenGeoHub: the STAC text says "trained on harmonized EU" data,
+  Zenodo says global.

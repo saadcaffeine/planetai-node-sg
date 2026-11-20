@@ -67,9 +67,20 @@ for path, meth in (("/export", "get"), ("/exports", "get"), ("/readings", "get")
     assert "captures" not in seg, f"{meth.upper()} {path} names captures: a picture must never travel that road"
 # and no module but main.py holds SQL against the table at all in step 1. The bot (15 Oct) is the one exception, and
 # only as a client of the HTTP route, which checks the token and cleans the file like any other upload.
+# app/maps.py is the one other reader since photos on demand (light GIS §14, 5 Nov 2026), and only through its three
+# named lines: the words a shared photo carries upstream, which name no place and no person, the file Send sends, and
+# the folder a parent keeps a child's file in.
 import glob
+MAPS_READS = ("_PHOTO_WORDS = ", "_PHOTO_FILE = ", "_PHOTO_DIR = ")
+for line in open("app/maps.py").read().splitlines():
+    if "captures" in line:
+        assert line.startswith(MAPS_READS), f"app/maps.py names captures outside its three reads: {line.strip()}"
+        if line.startswith("_PHOTO_WORDS"):
+            cols = line.split("SELECT", 1)[1].split("FROM", 1)[0]
+            assert not any(c in cols for c in ("lat", "lon", "cell", "at_home", "outside", "actor", "file", "analysis")), \
+                f"a shared photo's words name a place, a person or the file: {cols}"
 for py in glob.glob("app/**/*.py", recursive=True):
-    if py != "app/main.py":
+    if py not in ("app/main.py", "app/maps.py"):
         src = open(py).read().replace('hc.post(node_url("/captures"), ', "") if py == "app/agent_loop.py" else open(py).read()
         assert "FROM captures" not in src and "captures" not in src, \
             f"{py} names captures: in step 1 the table is main.py's alone"

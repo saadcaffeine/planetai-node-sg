@@ -11,7 +11,7 @@ status: candidate
 license: CC-BY-4.0
 api: https://raw.githubusercontent.com/wri/global-power-plant-database/master/output_database/global_power_plant_database.csv
 pilot_relevance: [barcelona, boston, santiago, bali]
-places: [bali, barcelona, boston, santiago-de-chile]
+places: [bali, barcelona, boston, santiago-de-chile, charlotte]
 tags: [energy, power-plants, installed-capacity, renewable-energy, generation, geospatial, point-data, wri]
 added: 2026-09-29
 assisted_by: Claude Code
@@ -76,3 +76,6 @@ notes: |
   publishes current capacity to compare against), a decision whether a 2019
   vintage can feed a cell or only anchor a baseline, and a look at Global Energy
   Monitor's trackers as the maintained successor for anything built after 2019.
+
+  CHARLOTTE, read 2026-11-05 (v1.3.0, capacity year 2019): McGuire nuclear USA0006038, 2,440.6 MW, and Cowans
+  Ford hydro USA0002722, 350 MW, in Mecklenburg.

@@ -50,7 +50,8 @@ curl -fsSL https://planetai.fab.city/install | bash
 ```
 
 Four questions, two minutes, running. Then `planetai telegram` for the alerts and `planetai ui` for the dashboard.
-Walk-through in [`docs/START_HERE.md`](docs/START_HERE.md).
+Six steps, one sitting: [planetai.fab.city/docs/quickstart](https://planetai.fab.city/docs/quickstart/), each step
+linking to the page that goes deeper. The terminal walk-through is [`docs/START_HERE.md`](docs/START_HERE.md).
 
 ## What it is
 
@@ -67,8 +68,8 @@ satellite sources; water and soil have no pack yet, and no node has handed a job
 
 ## What it does
 
-- **Connects every scale.** Sensors on WiFi (Smart Citizen, and Xiaomi purifiers through a wild pack; the AirGradient and
-  PurpleAir adapters are written and not polled in this version), radios over LoRa where there is no WiFi (Meshtastic),
+- **Connects every scale.** Sensors on WiFi (Smart Citizen, and Xiaomi purifiers through a wild pack, AirGradient and
+  PurpleAir through their packs), radios over LoRa where there is no WiFi (Meshtastic),
   public stations nearby, the city's open-data portal, Copernicus atmosphere and ocean models, Earth Engine's view of the
   land. One schema from the house to the planet.
 - **Turns awareness into action.** Alerts say what is happening, what it means, what to do. Then the node measures
@@ -113,7 +114,7 @@ docs/     getting a node running   START_HERE · PLATFORMS · REVIVE_A_LAPTOP ·
           extending it             PACKS · PACK_IDEAS · SOURCES · DEVELOPING
           testing a beta           BETA_TESTER_GUIDE · FAB26_EXPERIMENT
           releasing it             WORKFLOW · NEXT_RELEASE · SIGNING
-          specs, each with status  SPEC_custody · SPEC_identity · SPEC_rho · SPEC_discovery · SPEC_decide · SPEC_alerts · SPEC_dashboard_events · SPEC_event_led_state · SPEC_dashboard_figures · SPEC_language · SPEC_journeys · SPEC_mobile · SPEC_hello · SPEC_eyes · SPEC_species · SPEC_inventory · SPEC_learn · SPEC_fablab · SPEC_radio · SPEC_place_analyses · SPEC_place_microgis · SPEC_terrain · SPEC_sensors · SPEC_next_days
+          specs, each with status  SPEC_custody · SPEC_identity · SPEC_rho · SPEC_discovery · SPEC_decide · SPEC_alerts · SPEC_dashboard_events · SPEC_event_led_state · SPEC_dashboard_figures · SPEC_language · SPEC_journeys · SPEC_mobile · SPEC_hello · SPEC_eyes · SPEC_species · SPEC_inventory · SPEC_learn · SPEC_fablab · SPEC_radio · SPEC_place_analyses · SPEC_place_microgis · SPEC_place_report · SPEC_terrain · SPEC_sensors · SPEC_next_days · superpowers/specs/2026-11-04-place-light-gis-design
           proposed, then decided   proposals/ · decisions/
           the documentation site   site/ (planetai.fab.city/docs)
           the page's design rounds design/ (not shipped to nodes)

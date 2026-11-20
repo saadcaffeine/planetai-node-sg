@@ -1,45 +1,29 @@
 'use strict';
-/* WALL — a public screen in a living room or a lab, read from about 3 m by people who know nothing about air science
-   (docs/site/dashboard.md, the Wall). Always dark, one viewport, operated by nobody.
-   PLAN (Tomas's review of 14 Oct 2026, built 15 Oct; the walk, 16 Oct):
-   - Type floor: nothing under --wf, 28 px at 1920×1080 and scaled by the viewport (doors.html, the WALL block). What
-     did not survive the floor was cut, not shrunk.
-   - THE WALK (Tomas, 16 Oct: "more interactivity, maybe similar to the phone version and have an automatic change of
-     time and scale"; he picked option A of three, artifact NjPB3GjGuEJeSCZnobCJwM). The map walks out from the house a
-     scale at a time, house → street → ring → region, as the phone's walk does (walk.js SCALES), framed on that scale's
-     own H3 cell; the column beside it is that scale's page: the house's figures and its day; the street's, with its
-     day replayed hour by hour against what the node learned is usual outside (GET /learned/place); the ring's, with
-     the land around as a hundred squares and the places mapped, counted; the region's, with what the satellites see
-     (fires, the ground's heat, the sky, the sea, and floods said to be not watched rather than invented).
-   - Time and scale are stepped, never tweened: one hour of the day every WALL_TIME.HOUR_STEP(24) seconds, and when the
-     day has been replayed, the next scale. Under reduced motion nothing moves: the street is held, at the last hour,
-     the wind one still frame, and the rail's four scales are buttons.
-   - Reading order: the time and the sentence (the hero, as the engine writes it) with what is asked now beside it →
-     the map, its caption saying in words what its red discs mean against the house → the scale's page → the
-     narration, only when there is text. 16 Oct (Tomas): the row of answered alerts is gone, and the rings with it.
-   - Every figure says when it is from and one of the provenance words; a figure from /observations takes the engine's
-     own rule for readouts (kind model is "model", any other is "partial"); what the node learned is derived, "partial".
-   - Chrome (back, chips, the model's note) is .wchrome: invisible until a pointer is over it or the keyboard is in it;
-     always shown on a touch screen, every control a 44 px target there. The back button stays first in keyboard
-     order. The rail is not chrome: it is how a reader knows which scale is drawn. Pressing a scale holds it; pressing
-     it again lets the walk go on.
-   - On a phone, a small or a portrait screen the two columns stack, the map first, and the floor is 12 px.
-   - The narration box sits under the scale's page, collapsed until a model's text arrives, and keeps the last text, in
-     memory, while the next one is written. Its label says these are a model's words. */
-let WVAR = 'pm25';
-/* Every duration on the Wall, in one table named after the datum each one paces (the layer: motion only where the datum
-   has a cadence, stepped, never tweened; nothing moves under reduced motion: the hours hold, the wind is a still frame,
-   the model's text arrives whole). The replay loop itself is the layer's token, --motion-replay-loop. */
+/* WALL, WALKING OUT ON THE SATELLITE (18 Nov 2026; planetai-design node-docs/superpowers/specs/2026-11-18-wall-scales-map
+   -design.md and its mockup). It replaced the Wall as instruments (8 Nov): Tomas, 18 Nov, asked for "more prominence to
+   a satellite map showing the data of the node changing in three scales, from base node, to community node scale, to
+   city node scale". The map is doors-wallmap.js's; this file draws what is around it and keeps the one clock.
+   The Wall's rules hold as they were (tests/test_doors.py): nothing under --wf, now 20 px at 1920×1080; no sensor, room
+   or kit named; every figure with its time and one of the five words; chrome only under a pointer or the keyboard; and
+   "what is asked now" is wallAsk, the same answer Now and the phone read.
+   - THE MAP, left: the base node's seven cells, then the community's, then the city's, a replayed day at each size. The
+     day is split between the size's chapters (wallStory), one layer each; the wind and the swell move on it.
+   - THE COLUMN, right: the time, the lead issue's sentence and what is asked now; the size's name and a row per chapter,
+     the chapter on the map lit with its word and its words; the node thinking aloud, once its model has written.
+   - THE STRIP, under both: fine dust, heat, the swell and the wind at the replayed hour, each with its 24 hours as a thin
+     line, and the clock. Stepped, never tweened: only the camera glides, and that is MapLibre's own.
+   Under reduced motion it is one still frame: the base size at the last hour, which is always the last real slot. */
+/* Every duration on the Wall, named after the datum it paces. The replay loop is the layer's token, --motion-replay-loop. */
 const WALL_TIME = {
-  HOUR_STEP: win => (parseFloat(css('--motion-replay-loop')) || 30) / win,  /* s: one replayed hour, then the next; a scale holds one day of them */
-  WIND_FRAME: 33,                                                           /* ms: one step of the wind's streaks */
+  HOUR_STEP: () => (parseFloat(css('--motion-replay-loop')) || 30) / 24,    /* s: one replayed hour of the last 24 */
   NARR_EVERY: 10 * 60e3,                                                    /* ms: a new reading by the node's model */
   NARR_CHAR: 1000 / 11,                                                     /* ms: one character typed, about two words a second */
   NARR_LINE: 3000,                                                          /* ms: one line of a story longer than its box, rolling */
   STALE: 15 * 60e3,                                                         /* ms: no poll this long and the readings are old */
+  WAIT: 20e3,                                                               /* ms: /wall or /ground/meta unanswered this long has failed */
 };
 /* Never a name on the wall (Tomas, 14 Oct 2026): anyone in the room reads it, and a sensor's name is a room, a kit or an
-   address ("K ROOM - BAYU HOLES"); a kicker's reason names who answered. The house is one mark, a public station a disc;
+   address ("K ROOM - BAYU HOLES"); a kicker's reason names who answered. The house is its cell, a public station a dot;
    what is asked is the engine's own sentence (asking[].says), never the alert's text, which names the room. */
 /* one line that ends on a word: the first sentence, cut at a word under `max` characters ("If somethin…", 14 Oct) */
 const oneLine = (s, max = 90) => {
@@ -54,174 +38,208 @@ function wallAsk(it) {
   const count = a.length === 1 ? 'One thing is asked of this house.' : `${a.length} things are asked of this house.`;
   return `<span class="wsay said">${esc(says || count)}</span><span class="wtel">${says ? count + ' ' : ''}Answer on Telegram, not here.</span>`;
 }
-/* The map's caption: its red discs in words against the house, now, so a clean headline beside red discs is not a
-   contradiction left to the reader; it reads the hour the discs are drawn at ("This house is under the clean-air line now; 3 stations nearby, in red, are over it"). */
-function wallCaption(house, near, line, when = 'now') {
-  if (line == null) return '';
-  const n = near.filter(v => v != null && v > line).length, st = n === 1 ? 'one station nearby, in red, is' : `${n} stations nearby, in red, are`;
-  if (house == null) return n ? `${st[0].toUpperCase() + st.slice(1)} over the clean-air line ${when}.` : `Every station nearby is under the clean-air line ${when}.`;
-  if (house > line) return n ? `This house is over the clean-air line ${when}, and ${st} too.` : `This house is over the clean-air line ${when}; no station nearby is.`;
-  return n ? `This house is under the clean-air line ${when}; ${st} over it.` : `This house and every station nearby are under the clean-air line ${when}.`;
-}
 /* `stale` only when the node's readings are old: no poll in the last 15 minutes (three at the 300 s default), or none
    since the restart. /health's last_error is not read: one failing portal of twenty sets it while the rest are fresh. */
 const wallStale = h => !(Date.now() - Date.parse(h.last_poll || '') < WALL_TIME.STALE);
-/* THE WALK: the four scales, as the phone's walk names them (walk.js SCALES) and the H3 resolution each is framed on */
-const WALL_SCALES = [{ k: 'room', res: 10 }, { k: 'yard', res: 9 }, { k: 'ring', res: 6 }, { k: 'region', res: 3 }];
-const WALK = { sc: null, held: false, t0: 0, hour: null, place: [], placeAt: 0 };
-const wpw = w => `<span class="wpw">${esc(w)}</span>`;
-/* when a figure is from: the hour if today, the day if this year, the month and year if older */
-function wallWhen(ts) {
-  const t = new Date(ts); if (!ts || Number.isNaN(+t)) return '';
-  const f = o => new Intl.DateTimeFormat('en-GB', { timeZone: D.tz, ...o }).format(t), now = new Date();
-  const same = o => f(o) === new Intl.DateTimeFormat('en-GB', { timeZone: D.tz, ...o }).format(now);
-  return same({ year: 'numeric', month: 'numeric', day: 'numeric' }) ? hhmm(ts) : same({ year: 'numeric' }) ? f({ day: 'numeric', month: 'short' }) : f({ month: 'short', year: 'numeric' });
-}
-/* one observation, newest: its value, when, and the engine's provenance word for it */
-function wallObs(sid, metric) {
-  const o = (D.observations || []).filter(r => r.sensor_id === sid && r.metric === metric && r.value != null).sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))[0];
-  return o ? { v: o.value, ts: o.ts, word: o.kind === 'model' ? 'model' : 'partial' } : null;
-}
 /* a source in the Wall's own words, never a sensor's name: a name can be a room, a kit or a point ("Sea, 5 km off
    (-8.79, 115.13)"); a count of sensors is said as it is, a model by the service, anything else as "a model" */
 const wallSrc = s => /^\d+ sensors?$/.test(s || '') ? s : /CAMS/i.test(s || '') ? 'CAMS' : /open-meteo/i.test(s || '') ? 'Open-Meteo' : 'a model';
-/* the day at one distance: the last 24 hours of the air (or of the lead issue), one series, the line dashed red */
-const DAYK = () => (D.issues.air ? 'air' : D.lead);
-function wallDay(d, hi, usual) {
-  const k = DAYK(), it = D.issues[k], v = ((it.series || {})[d] || []).slice(-24); if (!v.some(x => x != null)) return '';
-  const Wd = 900, Hh = 220, line = it.line, all = v.concat(line ?? [], usual || []).filter(x => x != null);
-  const top = Math.max(...all) * 1.1 || 1, x = i => 6 + (Wd - 12) * i / (v.length - 1), y = q => Hh - 8 - (Hh - 20) * q / top;
-  const path = s => s.reduce((a, q, i) => (q == null ? a : a + (i && s[i - 1] != null ? 'L' : 'M') + `${x(i).toFixed(1)},${y(q).toFixed(1)}`), '');
-  let g = usual ? `<path d="${path(usual)}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round"/>` : '';
-  if (line != null) g += `<line x1="0" x2="${Wd}" y1="${y(line)}" y2="${y(line)}" stroke="var(--signal-worse)" stroke-width="2" stroke-dasharray="10 6"/>`;
-  g += `<path d="${path(v)}" fill="none" stroke="var(--ink)" stroke-width="3"/>`;
-  if (hi != null && v[hi] != null) g += `<line x1="${x(hi)}" x2="${x(hi)}" y1="0" y2="${Hh}" stroke="var(--ink)" stroke-width="1"/><circle cx="${x(hi)}" cy="${y(v[hi])}" r="7" fill="var(--ink)"/>`;
-  return `<svg class="wday" viewBox="0 0 ${Wd} ${Hh}" preserveAspectRatio="none" role="img" aria-label="${esc(it.name)}, the last 24 hours, ${esc(D.labels[d] || d)}">${g}</svg>`;
+const wpw = w => `<span class="wpw">${esc(w)}</span>`;
+const COMPASS16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+/* THE DAY IN THE STRIP: the last 24 hours, an hour a row. Dust and heat are the issues' own series at the issue's
+   headline distance; the swell and the wind are /wall's hourly Open-Meteo rows, which a screen with no token may read.
+   ONE TIMELINE (CodeRabbit on #406): the replay's 24 slots are /wall's own hours; without /wall, /issues/days' buckets;
+   without those, 24 whole hours ending at /aggregates' last hour, else at the as-of time's. Every series, /wall's and
+   the issues', is joined to the slots by timestamp: a slot a series has no reading for is not read, never the same
+   index of a window an hour off. A window shorter than 24 is padded before its first hour, so the last hour, 23, is
+   always the last real slot (a new node with three hours). W comes back on the slots too, for the map. */
+function wallDay24(W) {
+  const Hr = (W || {}).hours || {}, rb = (D.raw || {}).buckets || [];
+  const top = rb.length ? Date.parse(rb[rb.length - 1]) : Math.floor(Date.parse(D.as_of) / 3600e3) * 3600e3;
+  const got = ((Hr.buckets || []).length ? Hr.buckets : D.buckets.length ? D.buckets : [new Date(top).toISOString()]).slice(-24);
+  const B = [...Array(24 - got.length)].map((_, i, a) => new Date(Date.parse(got[0]) - (a.length - i) * 3600e3).toISOString()).concat(got);
+  const J = (ts, v) => slotJoin(ts, v, B);
+  const issue = k => {
+    const it = D.issues[k], d = it && (it.hero_distance || 'room'), v = it && it.series && J(D.buckets, it.series[d]);
+    if (!v || !v.some(x => x != null)) return null;
+    const s = (it.stack || {})[d] || {};
+    return { v, ts: B, line: it.line, dp: it.dp ?? 0, word: (it.provenance || {})[d] || s.provenance || 'partial', src: wallSrc(s.source) };
+  };
+  const hr = { buckets: B }; for (const k of Object.keys(Hr)) if (k !== 'buckets') hr[k] = J(Hr.buckets, Hr[k]);
+  const hour = (k, dp) => (hr[k] || []).some(x => x != null) ? { v: hr[k], ts: B, dp, word: 'model', src: 'Open-Meteo' } : null;
+  return { B, W: W ? { ...W, hours: hr, stations: (W.stations || []).map(st => ({ ...st, pm25: J(Hr.buckets, st.pm25) })) } : null,
+    dust: issue('air'), heat: issue('heat'), sea: hour('swell_m', 1), wind: hour('wind_kmh', 0) };
 }
-/* what the node learned is usual outside, at each of the day's hours (GET /learned/place, the place's own) */
-function wallUsual() {
-  const L = (WALK.place || []).find(l => l.issue === DAYK() && l.numbers && l.numbers.by_hour); if (!L) return null;
-  return { L, by: D.buckets.slice(-24).map(b => L.numbers.by_hour[String(hourOf(b))] ?? null) };
+/* s: the size on the map (an index of WALL.story); h: the replayed hour; map: wallMapMount's handle, null when none.
+   W and G are the last good /wall and /ground/meta, kept across redraws; gen is the visit a late answer belongs to;
+   retry and tries pace asking /wall again while there is none; askG is the visit's read of /ground/meta; losses paces
+   mounting a map again after its WebGL context was lost */
+const WALL = { R: null, W: null, G: null, story: [], map: null, s: 0, h: null, t0: 0, still: null, gen: 0, retry: 0, tries: 0, askG: null, losses: 0 };
+/* a thin line for the 24 hours, the hour marked, the red line where the reading has one */
+function wallSpark(r, h) {
+  const ys = r.v.filter(x => x != null); if (!ys.length) return '';
+  const lo = Math.min(...ys, r.line ?? Infinity), hi = Math.max(...ys, r.line ?? -Infinity);
+  const X = i => (i / 23 * 100).toFixed(1), Y = x => (96 - (x - lo) / (hi - lo || 1) * 92).toFixed(1);
+  let d = ''; r.v.forEach((x, i) => { if (x != null) d += `${d && r.v[i - 1] != null ? 'L' : 'M'}${X(i)},${Y(x)}`; });
+  return `<svg class="wsp" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${r.line != null ? `<path class="wl" d="M0,${Y(r.line)} L100,${Y(r.line)}"/>` : ''}<path d="${d}"/><path class="wh" d="M${X(h)},0 L${X(h)},100"/></svg>`;
 }
-const wallFig = (k, s, dp) => `<div class="wfig"><span class="wn">${esc(D.issues[k].name)}</span><b class="numf">${fmt(s.value, dp)}</b><span class="wu">${esc(D.issues[k].unit || '')}</span>`
-  + `<span class="wsrc">${esc(wallSrc(s.source))} · ${hhmm(D.as_of)} ${wpw(s.provenance || 'partial')}</span></div>`;
-function wallFacts(d, only) {
-  const rows = (D.order.length ? D.order : Object.keys(D.issues)).filter(k => D.issues[k] && (!only || only.includes(k)))
-    .map(k => [k, (D.issues[k].stack || {})[d]]).filter(([, s]) => s && s.value != null);
-  return rows.length ? `<div class="wfacts">${rows.map(([k, s]) => wallFig(k, s, D.issues[k].dp ?? 0)).join('')}</div>` : '<p class="wsrc">Nothing is read at this scale here.</p>';
+/* one gauge: its name and source, the figure at the hour with its unit, time and word (or that it is not read), a needle
+   turned to where it goes when it has a "from" bearing, and its day */
+function wallGauge(name, r, h, unit, hue, from) {
+  const v = r && r.v[h];
+  const fig = v == null ? `<b>—</b><span>${r ? `not read at ${hhmm(r.ts[h])}` : 'not read here'}</span>`
+    : `<b class="wnum">${fmt(v, r.dp)}<u>${esc(unit)}</u></b>${from == null ? '' : `<svg class="wdir" viewBox="-10 -10 20 20" aria-hidden="true"><path transform="rotate(${((from + 180) % 360).toFixed(2)})" d="M0,-8 L4,4 L0,1.5 L-4,4 Z"/></svg>`}<span>${hhmm(r.ts[h])} ${wpw(r.word)}</span>`;
+  return `<div class="wg" style="--c:var(${hue})"><div class="wgh"><span>${esc(name)}</span><span>${esc((r && r.src) || '')}</span></div><div class="wrv">${fig}</div>${r ? wallSpark(r, h) : ''}</div>`;
 }
-/* the land within 1 km as a hundred squares, one a hundredth, its kind by fill; the satellite's own, so stroked orange */
-function wallHundred() {
-  const P = [['built', 'built_frac', 'q-built'], ['trees', 'tree_frac', 'q-trees'], ['crops', 'crop_frac', 'q-crops'], ['water', 'water_frac', 'q-water']]
-    .map(([w, m, c]) => ({ w, c, o: wallObs('ee-point', m) })).filter(p => p.o);
-  if (!P.length) return '<p class="wsrc">No land cover from a satellite is read on this node.</p>';
-  P.forEach(p => { p.n = Math.round(p.o.v * 100); });
-  const sq = P.flatMap(p => Array(Math.max(0, p.n)).fill(p.c)), rest = Math.max(0, 100 - sq.length), o = P[0].o;
-  return `<div class="whund" role="img" aria-label="${P.map(p => `${p.w} ${p.n}%`).join(', ')}">${sq.concat(Array(rest).fill('q-rest')).slice(0, 100).map(c => `<i class="${c}"></i>`).join('')}</div>`
-    + `<p class="wkey">${P.filter(p => p.n).map(p => `<span><i class="${p.c}"></i>${p.w} <b>${p.n}%</b></span>`).join('')}${rest ? `<span><i class="q-rest"></i>other <b>${rest}%</b></span>` : ''}`
-    + `<span class="wsrc">land cover, by satellite · ${wallWhen(o.ts)} ${wpw(o.word)}</span></p>`;
+const wallFrom = d => d == null ? '' : ` from ${COMPASS16[Math.round(d / 22.5) % 16]}`;
+/* the size on the map, in the column and over the map. The column: its name and a row for each chapter, the one on the
+   map lit with its word; a size with nothing yet says so in one line and keeps its cells on the map. Over the map, as the
+   approved mockup has them (Tomas, 18 Nov): the size and its cells at the top left, the chapter's words at the bottom
+   left with where they are from, and the three sizes as nested hexagons at the bottom right, this one lit. */
+function wallChapters(h) {
+  const S = WALL.story[WALL.s], el = $('#wscale'), cap = $('#wcap'); if (!el) return;
+  if (!S) { el.innerHTML = $('#wwhere').innerHTML = $('#whex').innerHTML = cap.innerHTML = ''; return; }
+  const n = S.chapters.length, ci = n ? chapterAt(h, n) : -1, ch = S.chapters[ci];
+  el.innerHTML = `<h2>${esc(S.name)} <span>· ${esc(S.what)}</span></h2><ul class="wchap">${S.chapters.map((c, j) =>
+    `<li${j === ci ? ' class="on"' : ''} style="--c:var(${c.hue})"><i></i><div class="wr"><span class="t">${esc(c.title)}</span><b class="n">${esc(c.n[0] ?? '—')}<u>${esc(c.n[1])}</u>${j === ci ? wpw(c.word) : ''}</b></div></li>`).join('')}</ul>`
+    + (n ? '' : '<p class="wnone">The node holds nothing at this size yet.</p>');
+  $('#wwhere').innerHTML = `<b>${esc(S.name)}</b><span>${S.cells.length} cells · res ${S.res} · ${fmt(S.km2, 1)} km²</span>`;
+  cap.hidden = !ch; cap.style && cap.style.setProperty('--c', ch ? `var(${ch.hue})` : 'var(--ink)');
+  cap.innerHTML = ch ? `${esc(ch.says)}<span class="wcs">${esc(ch.src)} · ${esc(ch.word)}</span>` : '';
+  $('#whex').innerHTML = wallHexes();
 }
-/* the places OpenStreetMap maps within 1 km, counted: one square a place; past 40 the figure alone (counted, not sized).
-   The four kinds with the most places, so the page stays one screen wherever the map is dense. */
-function wallPlaces() {
-  const rows = [['food', 'poi_food'], ['shops', 'poi_retail'], ['lodging', 'poi_lodging'], ['services', 'poi_services'], ['schools', 'poi_education'], ['clinics', 'poi_health'], ['worship', 'poi_worship']]
-    .map(([w, m]) => [w, wallObs('place-point', m)]).filter(([, o]) => o && o.v > 0).sort((a, b) => b[1].v - a[1].v).slice(0, 4);
-  if (!rows.length) return '';
-  const b = wallObs('place-point', 'buildings'), c = wallObs('place-point', 'commercial_share'), o = rows[0][1];
-  const said = b && c ? `; it tags ${fmt(Math.round(b.v * c.v), 0)} of ${fmt(b.v, 0)} buildings as shops or offices, too few to tell homes from shops` : '';
-  return `<div class="wplaces">${rows.map(([w, r]) => `<div><span>${w}</span><span class="wsq">${r.v <= 40 ? '<i></i>'.repeat(r.v) : ''}</span><b>${fmt(r.v, 0)}</b></div>`).join('')}</div>`
-    + `<p class="wsrc">places mapped within 1 km, OpenStreetMap${said} · ${wallWhen(o.ts)} ${wpw(o.word)}</p>`;
+/* the three sizes as the seven-cell rule drawn three times, larger each size (the mockup's radii); the size on the map
+   lit, its own cell in the cells' blue */
+function wallHexes() {
+  const R = [3.5, 6, 9.5], hex = (x, y, r, me) => `<polygon${me ? ' class="me"' : ''} points="${[0, 1, 2, 3, 4, 5].map(i => { const a = Math.PI / 180 * (60 * i - 30); return `${(x + r * Math.cos(a)).toFixed(1)},${(y + r * Math.sin(a)).toFixed(1)}`; }).join(' ')}"/>`;
+  return WALL.story.map((S, i) => {
+    const r = R[i] ?? R[2], w = Math.sqrt(3) * r, z = (2 * (w + r) + 4).toFixed(1), at = [[0, 0], [w, 0], [w / 2, -1.5 * r], [-w / 2, -1.5 * r], [-w, 0], [-w / 2, 1.5 * r], [w / 2, 1.5 * r]];
+    return `<div class="s${i === WALL.s ? ' on' : ''}"><svg width="${z}" height="${z}" viewBox="${-z / 2} ${-z / 2} ${z} ${z}" aria-hidden="true">${at.map(([x, y], j) => hex(x, y, r * .92, !j)).join('')}</svg>${esc(S.k)}</div>`;
+  }).join('');
 }
-/* what the satellites and the models see around: each row only where the node reads it; floods said, never invented */
-function wallAround() {
-  const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-  const F = m => wallObs('firms-fires', m), n = F('fires_region_24h'), up = F('fires_region_upwind'), near = F('fires_nearest_km'), br = F('fires_nearest_bearing');
-  const lst = wallObs('surface-cell', 'lst'), night = wallObs('surface-modis', 'lst_night'), sky = wallObs('cams-point', 'pm25_model'), dust = wallObs('cams-point', 'dust'), sea = wallObs('marine-point', 'swell_height_m');
-  const R = [
-    n && ['Fires', 'NASA FIRMS, VIIRS, the last 24 h', n.v ? `<b>${fmt(n.v, 0)}</b> burning within 150 km, ${up && up.v ? `<b>${fmt(up.v, 0)}</b> upwind` : 'none upwind'}${near && br ? `; the nearest ${fmt(near.v, 0)} km ${COMPASS[Math.round(br.v / 22.5) % 16]}` : ''}` : 'none seen within 150 km', n, 'wbysat'],
-    lst && ['Ground', `Landsat 30 m${night ? ', MODIS 1 km at night' : ''}`, `<b>${fmt(lst.v, 1)} °C</b> at the last clear pass${night ? `, ${fmt(night.v, 1)} °C at night` : ''}`, lst, 'wbysat'],
-    sky && ['Sky', 'CAMS, a model', `<b>${fmt(sky.v, 0)} µg/m³</b> fine dust over the region${dust ? `, desert dust ${fmt(dust.v, 0)}` : ''}`, sky, ''],
-    sea && ['Sea', 'Open-Meteo marine, a model', `<b>${fmt(sea.v, 1)} m</b> swell`, sea, ''],
-  ].filter(Boolean);
-  return `<table class="wexp">${R.map(([w, src, v, o, c]) => `<tr class="${c}"><th>${w}</th><td>${v}<span class="wsrc">${src} · ${wallWhen(o.ts)} ${wpw(o.word)}</span></td></tr>`).join('')}`
-    + '<tr class="wnone"><th>Floods</th><td>not watched on this node yet</td></tr></table>';
+/* one replayed hour, drawn whole: the strip, the column's chapters and the map */
+function wallDraw(h) {
+  WALL.h = h; const R = WALL.R; if (!R || !$('#wallv')) return;
+  /* a bearing from the hour's own slot only: a neighbour's would turn the needle under this hour's figure and time */
+  const Hr = (R.W || {}).hours || {}, wd = (Hr.wave_from || [])[h] ?? null, dr = (Hr.wind_from || [])[h] ?? null;
+  $('#wstrip').innerHTML = wallGauge('fine dust', R.dust, h, 'µg/m³', '--d-air') + wallGauge('apparent heat', R.heat, h, '°C', '--d-heat')
+    + wallGauge(`swell${wallFrom(wd)}`, R.sea, h, 'm', '--d-sea', wd) + wallGauge(`wind${wallFrom(dr)}`, R.wind, h, 'km/h', '--d-wind', dr)
+    + `<div class="wclock"><b>${hhmm(R.B[h])}</b>of the last 24 h</div>`;
+  wallChapters(h);
+  if (WALL.map) WALL.map.hour(h);
+  headFit();
 }
-/* the scale's page, at hour hi of the day (0–23) */
-function wallPage(sc, hi) {
-  const d = WALL_SCALES[sc].k, u = wallUsual(), B = D.buckets.slice(-24), k = DAYK(), unit = (D.issues[k] || {}).unit || '';
-  if (sc === 0) return wallFacts(d) + `<h3>The day in the house</h3>${wallDay(d, hi)}`;
-  if (sc === 1) {
-    const at = ['room', 'yard', 'ring'].map(x => { const v = ((D.issues[k].series || {})[x] || []).slice(-24)[hi]; return v != null ? `${esc(D.labels[x] || x)} <b>${fmt(v, D.issues[k].dp ?? 0)}</b>` : ''; }).filter(Boolean);
-    return wallFacts(d) + (at.length ? `<p class="wat">${esc(D.issues[k].name)} at <b>${hhmm(B[hi])}</b>: ${at.join(' · ')} <span class="wu">${esc(unit)}</span></p>` : '')
-      + wallDay(d, hi, u && u.by)
-      + `<p class="wsrc">solid: the street, hour by hour ${wpw('live')}${u ? ` · dotted: what this node learned is usual outside at that hour, over ${u.L.numbers.days} days, checked ${wallWhen(u.L.checked_at)} ${wpw('partial')}` : ''}${D.issues[k].line != null ? ` · red: the line, ${fmt(D.issues[k].line, D.issues[k].dp ?? 0)}` : ''}</p>`;
-  }
-  if (sc === 2) return wallFacts(d) + `<h3>The land within 1 km</h3>${wallHundred()}${wallPlaces()}`;
-  return wallFacts(d, [k]) + `<h3>What the satellites see</h3>${wallAround()}`;
+/* a size on the map: the camera to its cells at the next wallDraw, a cut when asked (a redraw, reduced motion), else
+   MapLibre's glide */
+function wallScale(s, cut) { WALL.s = s; if (WALL.map) WALL.map.go(s, cut); }
+/* the column fits whole: past it the tagline goes first, then the Telegram line (node #1, 10 Nov: a three-line
+   sentence put the ask under the bottom of the screen) */
+function headFit() {
+  const hd = $('.wcol'); if (!hd || !hd.querySelectorAll) return;
+  const drop = [...hd.querySelectorAll('.wtag, .wask .wtel')];
+  drop.forEach(e => { e.hidden = false; });
+  for (const e of drop) { if (hd.scrollHeight <= hd.clientHeight + 1) break; e.hidden = true; }
 }
-const wallRail = () => WALL_SCALES.map((s, i) => `<button data-sc="${i}" class="${i === WALK.sc ? 'on' : ''}" aria-pressed="${i === WALK.sc && WALK.held}">${esc(D.labels[s.k] || s.k)}</button>`).join('');
-/* the day's hour i as an index into the hourly table the map's discs read, or null where this screen has none */
-const rawHour = i => { if (!D.raw || i == null) return null; const t = Date.parse(D.buckets.slice(-24)[i]); const j = D.raw.buckets.findIndex(b => Date.parse(b) === t); return j < 0 ? null : j; };
-function wallScale(i) {
-  WALK.sc = i; WALK.hour = WALK.hour ?? 23;
-  const r = $('#wrail'); if (r) { r.innerHTML = wallRail(); wallRailOn(); }
-  const k = $('#wscale'); if (k) k.textContent = `${D.labels[WALL_SCALES[i].k] || WALL_SCALES[i].k} · scale ${i + 1} of 4`;
-  const p = $('#wpage'); if (p) p.innerHTML = wallPage(i, WALK.hour);
-  wallFit(); WALLMAP.api && WALLMAP.api.scale(i);
-}
-/* the narration takes the room the page leaves; where that is less than its box, it waits for the next scale rather
-   than covering the page or running past the screen (node #1, 16 Oct). A stacked Wall scrolls, so there it always fits. */
-function wallFit() {
-  const n = $('#wnarr'), r = $('.wr'); if (!n || !r) return;
-  n.classList.remove('wnoroom'); if (!n.hidden && r.scrollHeight > r.clientHeight + 1) n.classList.add('wnoroom');
-  else if (!n.hidden && !NARR.typing) narrRoll();        /* a story typed while the box had no room starts rolling when it does */
-}
-function wallHour(i) {
-  WALK.hour = i; const p = $('#wpage'); if (p && (WALK.sc <= 1)) { p.innerHTML = wallPage(WALK.sc, i); wallFit(); }
-  WALLMAP.api && WALLMAP.api.hour(rawHour(i));
-}
-function wallRailOn() {
-  document.querySelectorAll('#wrail button').forEach(b => b.onclick = () => {
-    const i = +b.dataset.sc; WALK.held = CLOCK.reduced() || !(WALK.held && WALK.sc === i); WALK.t0 = performance.now(); wallScale(i);
-  });
-}
-/* the walk's one clock: an hour every HOUR_STEP(24) s; after the 24th, the next scale unless one is held */
+/* the replay's one clock: an hour every HOUR_STEP, a day at each size, then the next size */
 function wallTick(now) {
-  if (view() !== 'wall') return CLOCK.off('wall-walk');
-  const HS = WALL_TIME.HOUR_STEP(24) * 1000; let i = Math.floor((now - WALK.t0) / HS);
-  if (i >= 24) { WALK.t0 = now; i = 0; if (!WALK.held) wallScale((WALK.sc + 1) % WALL_SCALES.length); }
-  if (i !== WALK.hour) wallHour(i);
+  if (view() !== 'wall') return CLOCK.off('wall-replay');
+  if (CLOCK.reduced()) { WALL.still = true; CLOCK.off('wall-replay'); CLOCK.off('wall-fx'); if (WALL.h !== 23 || WALL.s) { wallScale(0, true); wallDraw(23); } return; }   /* motion turned off while it ran */
+  const i = Math.floor((now - WALL.t0) / (WALL_TIME.HOUR_STEP() * 1000)), s = Math.floor(i / 24) % Math.max(1, WALL.story.length), h = i % 24;
+  if (s !== WALL.s) { wallScale(s); wallDraw(h); } else if (h !== WALL.h) wallDraw(h);   /* a size takes effect at its first hour */
+}
+/* a read that hangs is a read that failed: it reaches the retry path after WAIT. AbortSignal.timeout is Chrome 103 and
+   Safari 16; an older TV's browser gets a controller aborted on a timer, and one with neither waits as it always did */
+const wallSignal = ms => { if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) return AbortSignal.timeout(ms);
+  if (typeof AbortController === 'undefined') return undefined; const c = new AbortController(); setTimeout(() => c.abort(), ms); return c.signal; };
+/* with neither, a race against the same wait: the request cannot be stopped, but a hung /wall still reaches the retry */
+const wallGet = p => { const signal = wallSignal(WALL_TIME.WAIT), got = doorsFetch(p, { signal }).then(r => r.ok ? r.json() : null);
+  return (signal ? got : Promise.race([got, new Promise(ok => setTimeout(() => ok(null), WALL_TIME.WAIT))])).catch(() => null); };
+const wallDisk = () => (WALL.G && WALL.G.on_disk) || {};
+/* the visit that asked still owns the page: a later visit, or another door, has not taken it */
+const wallOwns = gen => gen === WALL.gen && view() === 'wall';
+/* the map from the last good /wall, or one line where it would be. A map whose WebGL context is lost is mounted again,
+   still frame or not, while it is still this page's map (a later visit or another door has let it go): after 2 s, then
+   4 s, doubling to a minute, so a GPU that keeps resetting is not asked for a context in a tight loop. A visit starts
+   the pause at 2 s again. */
+function wallMount() {
+  if (WALL.map) { WALL.map.destroy(); WALL.map = null; }
+  const box = $('#wmbox'); if (!box) return;
+  let held = 0;
+  const m = WALL.map = WALL.W ? wallMapMount(box, WALL.R.W, WALL.story, wallDisk(), () => {
+    if (held || WALL.map !== m) return;
+    held = setTimeout(() => { if (WALL.map === m && view() === 'wall') { wallMount(); wallDraw(WALL.h); } }, Math.min(60e3, 2e3 * 2 ** WALL.losses++));
+  }) : null;
+  if (!m) box.innerHTML = `<p class="wnomap">${WALL.W ? 'This screen cannot draw the map.' : 'The node sent no map.'}</p>`;
+  wallScale(WALL.s, true);
+}
+/* /ground/meta, read apart from /wall: the map does not wait for it, and is mounted again when it brings other layers */
+async function wallMeta(gen) {
+  const G = await wallGet('/ground/meta');
+  if (!G || !wallOwns(gen)) return;
+  const was = JSON.stringify(wallDisk()); WALL.G = G;
+  if (WALL.W && JSON.stringify(wallDisk()) !== was) { WALL.story = wallStory(WALL.W, D, wallDisk()); wallMount(); wallDraw(WALL.h); }
+}
+/* a /wall that answered: the story and the strip from it, and the map. The first one starts the replay over at the
+   base size's first hour, so the map gets its whole day (under reduced motion the still frame, the last hour). With no
+   /ground/meta yet, it is read once more once the visit's own read has settled. */
+function wallTake(W, gen) {
+  if (!WALL.W) { WALL.s = 0; WALL.h = CLOCK.reduced() ? 23 : 0; WALL.t0 = performance.now(); }
+  WALL.W = W; WALL.tries = 0; WALL.story = wallStory(W, D, wallDisk()); WALL.R = wallDay24(W);
+  wallMount(); wallDraw(WALL.h);
+  if (!WALL.G) WALL.askG = Promise.resolve(WALL.askG).then(() => WALL.G || !wallOwns(gen) || wallMeta(gen));
+}
+/* no /wall yet (it failed, or is slow): ask again in 30 s, then 60 s, doubling to 5 min, until it answers. A retry is
+   the visit's that set it: a later visit clears it, and it asks nothing and takes nothing once that visit is over. */
+function wallRetry(gen) {
+  if (WALL.retry) return;
+  WALL.retry = setTimeout(async () => {
+    WALL.retry = 0;
+    if (WALL.W || !wallOwns(gen)) return;
+    const W = await wallGet('/wall');
+    if (WALL.W || !wallOwns(gen)) return;
+    if (W) wallTake(W, gen); else wallRetry(gen);
+  }, Math.min(300e3, 30e3 * 2 ** WALL.tries++));
 }
 VIEWS.wall = async function () {
   const k = D.lead, it = D.issues[k], still = CLOCK.reduced();
-  const carried = Object.keys(D.metrics).filter(m => Object.values(D.stats15).some(x => x[m] && x[m][0] != null));
-  const chips = [WVAR, ...carried.filter(m => m !== WVAR)].slice(0, 4);
   const at = new Intl.DateTimeFormat('en-GB', { timeZone: D.tz, hour: '2-digit', minute: '2-digit' }).format(new Date(D.as_of));
-  /* the walk starts on the street at the day's first hour; reduced motion holds it there, at the last */
-  if (WALK.sc == null) { WALK.sc = 1; WALK.held = still; WALK.hour = still ? 23 : 0; WALK.t0 = performance.now(); }
+  /* a redraw on a poll keeps the replay's hour; motion turned on or off since the last draw, even on another door, starts it over */
+  if (WALL.h == null || WALL.still !== still) { WALL.h = still ? 23 : 0; WALL.s = 0; WALL.t0 = performance.now(); }
+  WALL.still = still;
+  if (!WALL.sized) { WALL.sized = true;
+    matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => {           /* still at the last hour, or the replay again */
+      if (view() !== 'wall') { WALL.still = null; return; }   /* changed off the Wall: it starts over when it opens */
+      WALL.still = e.matches;
+      if (e.matches) { CLOCK.off('wall-replay'); CLOCK.off('wall-fx'); wallScale(0, true); wallDraw(23); } else { WALL.t0 = performance.now(); CLOCK.on('wall-replay', wallTick); }
+    }); }
+  /* the column, the strip and the map from the last good /wall first, then one read of /wall and, apart, of
+     /ground/meta; a screen refused either keeps what it had */
+  const gen = ++WALL.gen; clearTimeout(WALL.retry); WALL.retry = 0; WALL.losses = 0;    /* an earlier visit's retry is not this one's */
+  WALL.story = WALL.W ? wallStory(WALL.W, D, wallDisk()) : []; WALL.R = wallDay24(WALL.W);
+  if (WALL.map) { WALL.map.destroy(); WALL.map = null; }
   $('#wallv').innerHTML = `
-    <div class="wtop wchrome"><button class="wback" onclick="location.hash='#now'">← back</button>
-      <span class="wchips">${chips.map(m => `<button class="${m === WVAR ? 'on' : ''}" data-m="${m}">${said(labelOf(m))}</button>`).join('')}</span>
-      <span class="wnote said" id="wnote"></span></div>
-    <div class="whead" data-learn="wall-sentence" data-reads="/issues /health" data-stage="decide" data-pack="core"><div class="wkick"><time>${at}</time>${wallStale(D.health) ? ' · <b>the readings are old</b>' : ''}</div>
-      <p class="wsent">${it.pix ? `<svg class="pix" aria-hidden="true"><use href="${NODE}signs.svg#${it.pix}"/></svg>` : ''}<span class="said">${esc(it.title || it.sentence).replace(/(\d+(?:\.\d+)?)(?=\s*(?:°C|µg|%|m\b))/, m0 => num(`${k}.${it.hero_distance}`, m0, `against the line, ${it.line} ${it.unit}`, `<b class="numf">${m0}</b>`))}</span></p>
-      <div class="wask">${wallAsk(it)}</div></div>
-    <div class="wgrid">
-      <section class="wl" data-kind="row" data-learn="wall-map" data-reads="/sensors /stats /geo/cell /ground/wind" data-stage="observe" data-pack="core"><div id="wfield" role="img" aria-label="The stations around this house on its own map, at one scale, their readings, and the wind now"></div>
-        <div class="wrail" id="wrail" role="group" aria-label="Scale">${wallRail()}</div><p class="wcap said" id="wcap"></p></section>
-      <section class="wr"><p class="wscale" id="wscale" data-learn="wall-walk"></p><div class="wpage" id="wpage" data-learn="wall-page" data-reads="/issues /observations /learned/place" data-stage="observe" data-pack="core"></div>
-        <div class="wnarr" id="wnarr" hidden data-learn="wall-narration" data-reads="/ask/status /ask" data-stage="observe" data-pack="core"></div>
-      </section>
-    </div>`;
-  document.querySelectorAll('.wchips button').forEach(c => c.onclick = () => { WVAR = c.dataset.m; VIEWS.wall(); });
-  if (Date.now() - WALK.placeAt > 6 * 36e5) {          /* the node learns once a local day; a wall runs for weeks */
-    WALK.placeAt = Date.now(); WALK.place = await doorsFetch('/learned/place').then(r => (r.ok ? r.json() : null)).then(j => (j && j.learnings) || []).catch(() => []); }
-  if (view() !== 'wall') return;
-  wallScale(WALK.sc); narrDraw();
+    <div class="wtop wchrome"><button class="wback" onclick="location.hash='#now'">← back</button><span class="wnote said" id="wnote"></span></div>
+    <section class="wmap" id="wmap" data-learn="wall-map" data-reads="/wall /ground/meta /ground/imagery /ground/vector /earth/wall.png" data-stage="observe" data-pack="core">
+      <div class="wmbox" id="wmbox"></div><div class="wover wwhere" id="wwhere"></div><div class="wover wcap" id="wcap" hidden></div><div class="wover whex" id="whex"></div></section>
+    <aside class="wcol">
+      <div class="whead" data-learn="wall-sentence" data-reads="/issues /health" data-stage="decide" data-pack="core">
+        <div class="wkick"><time>${at}</time>${wallStale(D.health) ? ' · <b>the readings are old</b>' : ''}</div>
+        <p class="wsent"><span class="said">${esc(it.title || it.sentence).replace(/(\d+(?:\.\d+)?)(?=\s*(?:°C|µg|%|m\b))/, m0 => num(`${k}.${it.hero_distance}`, m0, `against the line, ${it.line} ${it.unit}`, `<b class="wnum">${m0}</b>`))}</span></p>
+        ${it.title && it.tagline ? `<p class="wtag said">${esc(it.tagline)}</p>` : ''}
+        <div class="wask">${wallAsk(it)}</div></div>
+      <div class="wscale" id="wscale"></div>
+      <section class="wnarr" id="wnarr" hidden data-learn="wall-narration" data-reads="/ask/status /ask" data-stage="observe" data-pack="core"></section>
+    </aside>
+    <footer class="wstrip" id="wstrip" data-learn="wall-strip" data-reads="/issues /wall" data-stage="observe" data-pack="core"></footer>`;
+  if (WALL.W) wallMount(); else wallScale(WALL.s, true);
+  wallDraw(WALL.h); narrDraw(); document.fonts.ready.then(() => view() === 'wall' && headFit());
   if (!NARR.busy && !NARR.typing && (!NARR.next || Date.now() >= NARR.next)) narrate(); else if (NARR.shown.length < NARR.text.length) narrType();
-  if (!still) CLOCK.on('wall-walk', wallTick);          /* a redraw on a poll keeps the walk's clock: the scale and hour go on */
-  /* the map follows the walk, and never holds it up: a slow tile or wind field leaves the pages stepping */
-  wallMap({ el: $('#wfield'), cap: $('#wcap'), scales: WALL_SCALES, sc: WALK.sc, hour: still ? null : rawHour(WALK.hour) }).catch(() => {});
+  if (!still) CLOCK.on('wall-replay', wallTick);
+  WALL.askG = wallMeta(gen);
+  const W = await wallGet('/wall');
+  if (!wallOwns(gen)) return;     /* a later draw, or another door, owns the page now */
+  if (W && !(WALL.map && JSON.stringify(W) === JSON.stringify(WALL.W))) wallTake(W, gen);   /* the same answer: the map stands */
+  else if (!W) { if (!WALL.map) wallMount(); if (!WALL.W) wallRetry(gen); }
 };
 /* THE NODE, THINKING ALOUD (R44, 7 Oct 2026). A reading of the figures by the node's own model, in plain words for
    people who know nothing about air science, units or maps: what is happening inside, how it compares with the street and the
@@ -242,13 +260,13 @@ function narrDraw() {
   const el = $('#wnarr'), note = $('#wnote'); if (!el) return;
   if (note) note.textContent = NARR.err || (NARR.model ? `the words are ${NARR.model}’s${NARR.where ? `, ${NARR.where}` : ''}` : '');
   const t = NARR.shown || NARR.prev;                  /* the text being typed, else the last one whole */
-  el.hidden = !t;
+  const was = el.hidden; el.hidden = !t;
+  if (was !== el.hidden) headFit();   /* the box takes room in the column, or gives it back */
   if (!t) { el.innerHTML = ''; return; }
   el.classList.toggle('busy', NARR.busy || NARR.typing);
   el.innerHTML = `<div class="nh"><span class="nl"><i class="dot" aria-hidden="true"></i>The node, thinking aloud</span>`
     + `<span>a model’s words from the node’s figures, never a reading${NARR.where === 'online' ? ' · written online' : ''}</span></div>`
     + `<div class="nw"><p class="nt said"><span id="ntext">${esc(t)}</span>${NARR.typing ? '<i class="caret" aria-hidden="true"></i>' : ''}</p></div>`;
-  if (typeof wallFit === 'function') wallFit();
   if (!NARR.typing) narrRoll();
 }
 /* a story longer than its box rolls up, a line every NARR_LINE, in a loop with its start coming round again, once it
@@ -258,10 +276,13 @@ function narrRoll() {
   const w = $('#wnarr .nw'), p = w && w.querySelector && w.querySelector('.nt');
   if (!p || w.classList.contains('roll') || p.offsetHeight <= w.clientHeight) return;
   w.classList.add('roll');
+  { const lh = parseFloat(getComputedStyle(p).lineHeight) || 24, pad = parseFloat(getComputedStyle(w).paddingTop) || 0;   /* whole lines, never one cut across */
+    w.style.height = `${pad + Math.max(1, Math.floor((w.clientHeight - pad) / lh)) * lh}px`; }
   const twin = p.cloneNode(true); twin.setAttribute('aria-hidden', 'true'); twin.querySelector('[id]')?.removeAttribute('id'); w.appendChild(twin);
   const cs = getComputedStyle(p), h = p.offsetHeight + parseFloat(cs.marginBottom), line = parseFloat(cs.lineHeight) || 24;
   w.style.setProperty('--roll-h', `${h}px`);
   w.style.setProperty('--roll-s', `${(h / line) * WALL_TIME.NARR_LINE / 1000}s`);
+  w.style.setProperty('--roll-n', String(Math.max(1, Math.round(h / line))));   /* a line a step, never a slide */
 }
 /* the typist: one character at a time over the last text, all at once under reduced motion; then the next in ten minutes */
 function narrType() {

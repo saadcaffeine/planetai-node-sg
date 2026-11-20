@@ -97,6 +97,19 @@ def facts(lat: float, lon: float) -> dict:
 
 
 @lru_cache(maxsize=4)
+def centre(lat: float, lon: float) -> tuple[float, float, float]:
+    """The centre of the res-8 cell (lat, lon) stands in, and the farthest any point of that cell can be from it (its
+    farthest vertex), in metres. What a reader without a token is measured from (R25, main._published_position): a
+    distance from here, or a cut round here narrowed or widened by that last number, comes out the same wherever in
+    the cell the house stands."""
+    if h3 is None:
+        raise RuntimeError("h3 is not installed in this image")
+    cell = h3.latlng_to_cell(lat, lon, 8)
+    c = h3.cell_to_latlng(cell)
+    return c[0], c[1], max(h3.great_circle_distance(c, v, unit="m") for v in h3.cell_to_boundary(cell))
+
+
+@lru_cache(maxsize=4)
 def svg(lat: float, lon: float, variant: str = "dark") -> str:
     """The ground for one point. Cached: NODE_LAT and NODE_LON are bootstrap keys, so a node changes
     them by editing .env and restarting, and the drawing takes about a millisecond either way."""

@@ -1,0 +1,1488 @@
+{
+ "format": "fci-api-v0",
+ "generated": "2026-11-05T05:52:20.275Z",
+ "registry_generated": "2026-11-05",
+ "registry_commit": "8099744c119da4e670d2d677fbf1812f3b44fc21",
+ "tracker_harvested": "2026-09-11",
+ "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/fabcity-index-2019.json",
+ "method": "https://index.fab.city/method#worked",
+ "licence": "Scores: CC BY 4.0, Fab City Foundation. Each input keeps its own licence, named where it is used.",
+ "place": {
+  "slug": "barcelona",
+  "name": "Barcelona",
+  "country": "Spain",
+  "territory": "City"
+ },
+ "score": {
+  "status": "partial",
+  "status_label": "Partial",
+  "status_says": "measured on some cells; the rest are missing data, weighed in DIDO",
+  "fci": 0.454,
+  "fci_range": null,
+  "dido": 0.621,
+  "one_minus_pito": 0.73,
+  "rho": 1,
+  "rho_measured": false,
+  "cells_total": 20,
+  "cells_open": 13,
+  "cells_measured": 1,
+  "scored_in": 2026,
+  "dido_weight": [
+   7.7,
+   12.4
+  ],
+  "pito_weight_measured": [
+   0.6,
+   7.6
+  ]
+ },
+ "actions": [
+  {
+   "kind": "add",
+   "title": "Add a source for the 7 empty cells",
+   "text": "Each empty cell holds Barcelona's DIDO down. An open dataset that covers one lifts it.",
+   "href": "https://github.com/fabcity/awesome-fabcity-data/blob/main/CONTRIBUTING.md"
+  },
+  {
+   "kind": "review",
+   "title": "Review 15 candidate sources",
+   "text": "A candidate counts as open data but has not been checked by a person. A review confirms or drops it.",
+   "href": "https://index.fab.city/operate/source-review"
+  },
+  {
+   "kind": "measure",
+   "title": "Measure more cells",
+   "text": "PITO rests on 8% of its weight. Every cell measured makes the number less of an estimate.",
+   "href": "https://github.com/fabcity/awesome-fabcity-data/issues/42"
+  },
+  {
+   "kind": "use",
+   "title": "Use the data as it is",
+   "text": "Download the scores and sources, print the report, or build on the API. Cite the Fab City Index and each source's licence.",
+   "href": "https://index.fab.city/api/v0/places/barcelona.json"
+  }
+ ],
+ "blocked": null,
+ "cells": [
+  {
+   "cell": "Environmental|Community",
+   "pillar": "Environmental",
+   "scale": "Community",
+   "w_dido": 0.5,
+   "w_pito": 0.5,
+   "sources": [
+    "environmental/community/smart-citizen"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|City",
+   "pillar": "Environmental",
+   "scale": "City",
+   "w_dido": 0.3,
+   "w_pito": 0.7,
+   "sources": [
+    "environmental/city/generalitat-residus-municipals",
+    "environmental/city/openaq",
+    "environmental/city/sensor-community"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Region",
+   "pillar": "Environmental",
+   "scale": "Region",
+   "w_dido": 0.2,
+   "w_pito": 0.8,
+   "sources": [
+    "environmental/city/generalitat-residus-municipals",
+    "environmental/region/generalitat-parcelles-cultius-dun",
+    "environmental/region/global-power-plant-database"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Bioregion",
+   "pillar": "Environmental",
+   "scale": "Bioregion",
+   "w_dido": 0.1,
+   "w_pito": 0.9,
+   "sources": [
+    "environmental/bioregion/open-meteo-marine"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Environmental|Planet",
+   "pillar": "Environmental",
+   "scale": "Planet",
+   "w_dido": 0,
+   "w_pito": 1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Community",
+   "pillar": "Social",
+   "scale": "Community",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [
+    "environmental/community/smart-citizen"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|City",
+   "pillar": "Social",
+   "scale": "City",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [
+    "social/city/eurostat-urban-audit",
+    "social/city/ine-spain",
+    "social/city/kontur-population"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Region",
+   "pillar": "Social",
+   "scale": "Region",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [
+    "social/city/ine-spain"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Bioregion",
+   "pillar": "Social",
+   "scale": "Bioregion",
+   "w_dido": 0.9,
+   "w_pito": 0.1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Social|Planet",
+   "pillar": "Social",
+   "scale": "Planet",
+   "w_dido": 0.8,
+   "w_pito": 0.2,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Community",
+   "pillar": "Economic",
+   "scale": "Community",
+   "w_dido": 0.7,
+   "w_pito": 0.3,
+   "sources": [
+    "economic/community/overture-places"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|City",
+   "pillar": "Economic",
+   "scale": "City",
+   "w_dido": 0.5,
+   "w_pito": 0.5,
+   "sources": [
+    "economic/city/barcelona-cens-activitat-economica",
+    "economic/city/barcelona-pressupost-execucio",
+    "economic/region/oecd-regional-metropolitan"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Region",
+   "pillar": "Economic",
+   "scale": "Region",
+   "w_dido": 0.4,
+   "w_pito": 0.6,
+   "sources": [
+    "economic/region/eurostat-sbs",
+    "economic/region/idescat-comerc-exterior",
+    "economic/region/idescat-eie-destinacio-vendes",
+    "economic/region/metroverse",
+    "economic/region/oecd-regional-metropolitan"
+   ],
+   "measured": {
+    "s": 0.913,
+    "year": 2022,
+    "territory": "Catalonia",
+    "what": "goods self-supply: the share of household goods spending the region's own industry could cover, with its sales abroad taken out (five open sectors)",
+    "caveat": "an upper bound: sales to the rest of Spain still count as local",
+    "source": "Idescat, based on INE's Structural Business Statistics in the Industrial Sector, 2022: https://www.idescat.cat/indicadors/?id=aec&n=15464&lang=en&f=csv&t=202200; Eurostat nama_10_co3_p3 and demo_r_d2jan 2022",
+    "licence": "Idescat reuse conditions: cite the source, do not alter, state the update date. No named licence; open-equivalence not yet confirmed (awesome-fabcity-data#51)",
+    "pipeline": "fabcity/fci-index#24",
+    "series": [
+     {
+      "year": 2019,
+      "s": 0.866
+     },
+     {
+      "year": 2022,
+      "s": 0.913
+     }
+    ]
+   },
+   "freshness": 0.8
+  },
+  {
+   "cell": "Economic|Bioregion",
+   "pillar": "Economic",
+   "scale": "Bioregion",
+   "w_dido": 0.2,
+   "w_pito": 0.8,
+   "sources": [
+    "economic/bioregion/eurostat-circular-material-use-rate",
+    "economic/bioregion/eurostat-municipal-waste",
+    "economic/bioregion/eurostat-waste-trade",
+    "economic/region/eurostat-air-freight-by-airport",
+    "economic/region/eurostat-maritime-goods-by-port",
+    "economic/region/idescat-comerc-exterior",
+    "economic/region/idescat-compte-fluxos-materials"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Economic|Planet",
+   "pillar": "Economic",
+   "scale": "Planet",
+   "w_dido": 0,
+   "w_pito": 1,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Community",
+   "pillar": "Governance",
+   "scale": "Community",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|City",
+   "pillar": "Governance",
+   "scale": "City",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [
+    "governance/city/barcelona-perfil-contractant",
+    "governance/city/open-data-bcn"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Region",
+   "pillar": "Governance",
+   "scale": "Region",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [
+    "governance/region/generalitat-dades-obertes"
+   ],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Bioregion",
+   "pillar": "Governance",
+   "scale": "Bioregion",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  },
+  {
+   "cell": "Governance|Planet",
+   "pillar": "Governance",
+   "scale": "Planet",
+   "w_dido": 1,
+   "w_pito": 0,
+   "sources": [],
+   "measured": null,
+   "freshness": null
+  }
+ ],
+ "indicators": [
+  {
+   "id": "goods-self-supply",
+   "label": "Goods self-supply, sales abroad taken out",
+   "unit": "index, 0-100",
+   "better": "higher",
+   "cell": "Economic|Region",
+   "territory": "Catalonia",
+   "caveat": "an upper bound: sales to the rest of Spain still count as local",
+   "comparable_across_years": true,
+   "source": "Idescat, based on INE's Structural Business Statistics in the Industrial Sector, 2022: https://www.idescat.cat/indicadors/?id=aec&n=15464&lang=en&f=csv&t=202200; Eurostat nama_10_co3_p3 and demo_r_d2jan 2022",
+   "pipeline": "fabcity/fci-index#24",
+   "series": [
+    {
+     "year": 2019,
+     "value": 86.6
+    },
+    {
+     "year": 2022,
+     "value": 91.3
+    }
+   ]
+  },
+  {
+   "id": "residual-waste-city",
+   "label": "Residual municipal waste per person",
+   "unit": "kg per person per year",
+   "better": "lower",
+   "caveat": null,
+   "comparable_across_years": true,
+   "cell": "Environmental|City",
+   "territory": "Barcelona",
+   "counts": "collected municipal waste; recovery = separate collection, which is not the same as recycled",
+   "source": "Generalitat de Catalunya 69zu-w48s",
+   "licence": "Llicència oberta d'ús d'informació – Catalunya",
+   "pipeline": "fabcity/fci-index compute/waste.py",
+   "series": [
+    {
+     "year": 2019,
+     "value": 295.8
+    },
+    {
+     "year": 2024,
+     "value": 258.5
+    }
+   ]
+  },
+  {
+   "id": "recovery-city",
+   "label": "Share collected separately",
+   "unit": "% of municipal waste",
+   "better": "higher",
+   "caveat": null,
+   "comparable_across_years": true,
+   "cell": "Environmental|City",
+   "territory": "Barcelona",
+   "counts": "collected municipal waste; recovery = separate collection, which is not the same as recycled",
+   "source": "Generalitat de Catalunya 69zu-w48s",
+   "licence": "Llicència oberta d'ús d'informació – Catalunya",
+   "pipeline": "fabcity/fci-index compute/waste.py",
+   "series": [
+    {
+     "year": 2019,
+     "value": 38.8
+    },
+    {
+     "year": 2024,
+     "value": 42.1
+    }
+   ]
+  },
+  {
+   "id": "residual-waste-region",
+   "label": "Residual municipal waste per person",
+   "unit": "kg per person per year",
+   "better": "lower",
+   "caveat": null,
+   "comparable_across_years": true,
+   "cell": "Environmental|Region",
+   "territory": "Catalonia",
+   "counts": "sum of 948 municipalities' collected municipal waste; recovery = separate collection",
+   "source": "Generalitat de Catalunya 69zu-w48s, summed",
+   "licence": "Llicència oberta d'ús d'informació – Catalunya",
+   "pipeline": "fabcity/fci-index compute/waste.py",
+   "series": [
+    {
+     "year": 2019,
+     "value": 290.5
+    },
+    {
+     "year": 2024,
+     "value": 253.4
+    }
+   ]
+  },
+  {
+   "id": "recovery-region",
+   "label": "Share collected separately",
+   "unit": "% of municipal waste",
+   "better": "higher",
+   "caveat": null,
+   "comparable_across_years": true,
+   "cell": "Environmental|Region",
+   "territory": "Catalonia",
+   "counts": "sum of 948 municipalities' collected municipal waste; recovery = separate collection",
+   "source": "Generalitat de Catalunya 69zu-w48s, summed",
+   "licence": "Llicència oberta d'ús d'informació – Catalunya",
+   "pipeline": "fabcity/fci-index compute/waste.py",
+   "series": [
+    {
+     "year": 2019,
+     "value": 44.9
+    },
+    {
+     "year": 2024,
+     "value": 49.2
+    }
+   ]
+  },
+  {
+   "id": "material-use",
+   "label": "Domestic material consumption per person",
+   "unit": "t per person per year",
+   "better": "lower",
+   "cell": "Economic|Bioregion",
+   "territory": "Catalonia",
+   "counts": "domestic extraction plus imports minus exports, by weight, abroad and with the rest of Spain",
+   "source": "Idescat, Material Flow Accounts, table 16006: https://www.idescat.cat/indicadors/?id=aec&n=16006&lang=en&f=csv&t=202300",
+   "licence": "Idescat reuse conditions: cite the source, do not alter, state the update date",
+   "pipeline": "fabcity/fci-index compute/trade.py materials()",
+   "caveat": "a floor on the footprint: imports count by their own weight, not the materials used to make them",
+   "series": [
+    {
+     "year": 2019,
+     "value": 7.2
+    },
+    {
+     "year": 2023,
+     "value": 5.51
+    }
+   ]
+  }
+ ],
+ "boundaries": [
+  {
+   "id": "material-use",
+   "boundary": "Resource extraction, a driver of land-system change and biosphere loss",
+   "label": "Material use",
+   "value": 5.51,
+   "year": 2023,
+   "unit": "t per person per year",
+   "territory": "Catalonia",
+   "measure": "domestic material consumption (DMC)",
+   "safe": [
+    6,
+    8
+   ],
+   "safe_source": "UNEP International Resource Panel (2011), Decoupling natural resource use and environmental impacts from economic growth; Bringezu (2015), Resources 4(1)",
+   "value_is": "floor",
+   "reading": "not conclusive: this floor is inside or under the safe range, and the full footprint (raw material equivalents) is not measured here",
+   "source": "Idescat, Material Flow Accounts, table 16006: https://www.idescat.cat/indicadors/?id=aec&n=16006&lang=en&f=csv&t=202300"
+  }
+ ],
+ "country_bracket": {
+  "iso": "ESP",
+  "name": "Spain",
+  "places": 1,
+  "trade": {
+   "reads_as": "The country each place sits in, as the Atlas of Economic Complexity records its goods trade: what the whole country exports and imports, by sector, in current US dollars. Exports over imports is a trade balance written as a ratio, NOT the share of consumption met by local production: a country that exports cars and imports food can sit at 1.00 and feed nobody. Re-exports are inside the figures (a gateway country like the Netherlands most of all). A country's figure says nothing about its cities; it is the bracket a place's own trade sits inside.",
+   "source": "Atlas of Economic Complexity, Growth Lab at Harvard University: International Trade Data (HS 92), doi:10.7910/DVN/T4CHWJ, version 18 (2026-04-22), tables hs92_country_year, hs92_country_product_year_1 and _2; Classifications doi:10.7910/DVN/3BAL1O",
+   "licence": "CC0 1.0 (the Dataverse record); goods trade only, services are a separate Atlas table",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/atlas-country.json",
+   "year": 2024,
+   "exports_usd": 368792425984,
+   "imports_usd": 398198793009,
+   "exports_over_imports": 0.93,
+   "eci": 0.814,
+   "sectors": {
+    "Chemicals and plastics": {
+     "exports_usd": 68503281341,
+     "imports_usd": 64365643379,
+     "exports_over_imports": 1.06
+    },
+    "Electronics": {
+     "exports_usd": 20867202296,
+     "imports_usd": 35880704310,
+     "exports_over_imports": 0.58
+    },
+    "Machinery and instruments": {
+     "exports_usd": 35180114840,
+     "imports_usd": 51430410005,
+     "exports_over_imports": 0.68
+    },
+    "Metals": {
+     "exports_usd": 30282045354,
+     "imports_usd": 27447026650,
+     "exports_over_imports": 1.1
+    },
+    "Minerals, fuels, ores and salts": {
+     "exports_usd": 19271902000,
+     "imports_usd": 54305481428,
+     "exports_over_imports": 0.35
+    },
+    "Other": {
+     "exports_usd": 3615323378,
+     "imports_usd": 12719293384,
+     "exports_over_imports": 0.28
+    },
+    "Stone, glass and ceramics": {
+     "exports_usd": 12638770094,
+     "imports_usd": 7935457291,
+     "exports_over_imports": 1.59
+    },
+    "Textiles, garments, footwear and furniture": {
+     "exports_usd": 26033001604,
+     "imports_usd": 36331716263,
+     "exports_over_imports": 0.72
+    },
+    "Transport vehicles": {
+     "exports_usd": 66899157979,
+     "imports_usd": 45447695402,
+     "exports_over_imports": 1.47
+    },
+    "Vegetables, animals, wood and paper": {
+     "exports_usd": 85501627098,
+     "imports_usd": 62335364897,
+     "exports_over_imports": 1.37
+    }
+   },
+   "imports_in_net_export_chapters_share": 0.3,
+   "hs2_chapters_net_exported": 44,
+   "hs2_chapters_reported": 97,
+   "series": [
+    {
+     "year": 1995,
+     "exports_usd": 87022210683,
+     "imports_usd": 108280587588,
+     "exports_over_imports": 0.8
+    },
+    {
+     "year": 1996,
+     "exports_usd": 96599256453,
+     "imports_usd": 115343765432,
+     "exports_over_imports": 0.84
+    },
+    {
+     "year": 1997,
+     "exports_usd": 100366868506,
+     "imports_usd": 118510797169,
+     "exports_over_imports": 0.85
+    },
+    {
+     "year": 1998,
+     "exports_usd": 104259966350,
+     "imports_usd": 127180680215,
+     "exports_over_imports": 0.82
+    },
+    {
+     "year": 1999,
+     "exports_usd": 104481736315,
+     "imports_usd": 139288393591,
+     "exports_over_imports": 0.75
+    },
+    {
+     "year": 2000,
+     "exports_usd": 107782772821,
+     "imports_usd": 146075065900,
+     "exports_over_imports": 0.74
+    },
+    {
+     "year": 2001,
+     "exports_usd": 108431054050,
+     "imports_usd": 145677524215,
+     "exports_over_imports": 0.74
+    },
+    {
+     "year": 2002,
+     "exports_usd": 118719634485,
+     "imports_usd": 155991044091,
+     "exports_over_imports": 0.76
+    },
+    {
+     "year": 2003,
+     "exports_usd": 147102115978,
+     "imports_usd": 200481487578,
+     "exports_over_imports": 0.73
+    },
+    {
+     "year": 2004,
+     "exports_usd": 172793430549,
+     "imports_usd": 243392314960,
+     "exports_over_imports": 0.71
+    },
+    {
+     "year": 2005,
+     "exports_usd": 183261248756,
+     "imports_usd": 272115745235,
+     "exports_over_imports": 0.67
+    },
+    {
+     "year": 2006,
+     "exports_usd": 201734591823,
+     "imports_usd": 308895603270,
+     "exports_over_imports": 0.65
+    },
+    {
+     "year": 2007,
+     "exports_usd": 236241785742,
+     "imports_usd": 366458620575,
+     "exports_over_imports": 0.64
+    },
+    {
+     "year": 2008,
+     "exports_usd": 264108447114,
+     "imports_usd": 384422843593,
+     "exports_over_imports": 0.69
+    },
+    {
+     "year": 2009,
+     "exports_usd": 206490994184,
+     "imports_usd": 265735767410,
+     "exports_over_imports": 0.78
+    },
+    {
+     "year": 2010,
+     "exports_usd": 232855046621,
+     "imports_usd": 292815476532,
+     "exports_over_imports": 0.8
+    },
+    {
+     "year": 2011,
+     "exports_usd": 280626402131,
+     "imports_usd": 331049536746,
+     "exports_over_imports": 0.85
+    },
+    {
+     "year": 2012,
+     "exports_usd": 268862831630,
+     "imports_usd": 298501598291,
+     "exports_over_imports": 0.9
+    },
+    {
+     "year": 2013,
+     "exports_usd": 288244168426,
+     "imports_usd": 303593726390,
+     "exports_over_imports": 0.95
+    },
+    {
+     "year": 2014,
+     "exports_usd": 293186090127,
+     "imports_usd": 323166647874,
+     "exports_over_imports": 0.91
+    },
+    {
+     "year": 2015,
+     "exports_usd": 256947110933,
+     "imports_usd": 276651946464,
+     "exports_over_imports": 0.93
+    },
+    {
+     "year": 2016,
+     "exports_usd": 263344572139,
+     "imports_usd": 276380921755,
+     "exports_over_imports": 0.95
+    },
+    {
+     "year": 2017,
+     "exports_usd": 289593049908,
+     "imports_usd": 308997638036,
+     "exports_over_imports": 0.94
+    },
+    {
+     "year": 2018,
+     "exports_usd": 306638201271,
+     "imports_usd": 343354113283,
+     "exports_over_imports": 0.89
+    },
+    {
+     "year": 2019,
+     "exports_usd": 297376790592,
+     "imports_usd": 326647822091,
+     "exports_over_imports": 0.91
+    },
+    {
+     "year": 2020,
+     "exports_usd": 281541158504,
+     "imports_usd": 283845152667,
+     "exports_over_imports": 0.99
+    },
+    {
+     "year": 2021,
+     "exports_usd": 345080926507,
+     "imports_usd": 366326370809,
+     "exports_over_imports": 0.94
+    },
+    {
+     "year": 2022,
+     "exports_usd": 379875329875,
+     "imports_usd": 428120800830,
+     "exports_over_imports": 0.89
+    },
+    {
+     "year": 2023,
+     "exports_usd": 380115436887,
+     "imports_usd": 409954858569,
+     "exports_over_imports": 0.93
+    },
+    {
+     "year": 2024,
+     "exports_usd": 368792425984,
+     "imports_usd": 398198793009,
+     "exports_over_imports": 0.93
+    }
+   ]
+  },
+  "food": {
+   "reads_as": "The country each place sits in, as FAO's Food Balance Sheets record its food: for each commodity group, production against production plus imports minus exports, FAO's own self-sufficiency ratio. Above 1 the country grows more than it keeps; below 1 it eats what others grow. The summary weights each group's ratio, capped at 1, by the group's share of the diet's calories, and says how much of the diet the covered groups are. A country figure, never a city's: it is the bracket a place's own food system sits inside.",
+   "source": "FAO, FAOSTAT Food Balance Sheets (2010-), bulk file https://bulks-faostat.fao.org/production/FoodBalanceSheets_E_All_Data.zip (FoodBalanceSheets_E_All_Data_NOFLAG.csv), elements 5511, 5611, 5911 and 664, years [2010, 2023]; country codes from the Atlas classification (M49)",
+   "licence": "CC BY 4.0 (FAO Statistical Database Terms of Use), which also bars use in conjunction with the promotion of a commercial enterprise; cite FAO, FAOSTAT Food Balance Sheets",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/food-country.json",
+   "year": 2023,
+   "kcal_per_person_day": 3377.16,
+   "self_supply_kcal_weighted": 0.65,
+   "kcal_weight_covered_share": 0.99,
+   "groups_measured": 18,
+   "groups": {
+    "Cereals": {
+     "production_kt": 11990,
+     "imports_kt": 26898,
+     "exports_kt": 3131,
+     "kcal_per_person_day": 759.92,
+     "ssr": 0.34,
+     "state": "measured"
+    },
+    "Starchy roots": {
+     "production_kt": 1922,
+     "imports_kt": 2378,
+     "exports_kt": 571,
+     "kcal_per_person_day": 105.28,
+     "ssr": 0.52,
+     "state": "measured"
+    },
+    "Sugar crops": {
+     "production_kt": 2890,
+     "imports_kt": 1,
+     "exports_kt": 1,
+     "kcal_per_person_day": null,
+     "ssr": 1,
+     "state": "measured"
+    },
+    "Sugar and sweeteners": {
+     "production_kt": 1239,
+     "imports_kt": 2553,
+     "exports_kt": 1197,
+     "kcal_per_person_day": 312.13,
+     "ssr": 0.48,
+     "state": "measured"
+    },
+    "Pulses": {
+     "production_kt": 359,
+     "imports_kt": 812,
+     "exports_kt": 32,
+     "kcal_per_person_day": 51.79,
+     "ssr": 0.32,
+     "state": "measured"
+    },
+    "Tree nuts": {
+     "production_kt": 520,
+     "imports_kt": 744,
+     "exports_kt": 512,
+     "kcal_per_person_day": 65.42,
+     "ssr": 0.69,
+     "state": "measured"
+    },
+    "Oilcrops": {
+     "production_kt": 6167,
+     "imports_kt": 4268,
+     "exports_kt": 602,
+     "kcal_per_person_day": 36.1,
+     "ssr": 0.63,
+     "state": "measured"
+    },
+    "Vegetable oils": {
+     "production_kt": 2493,
+     "imports_kt": 3549,
+     "exports_kt": 2143,
+     "kcal_per_person_day": 678.9,
+     "ssr": 0.64,
+     "state": "measured"
+    },
+    "Vegetables": {
+     "production_kt": 13666,
+     "imports_kt": 2195,
+     "exports_kt": 8797,
+     "kcal_per_person_day": 81.87,
+     "ssr": 1.93,
+     "state": "measured"
+    },
+    "Fruits": {
+     "production_kt": 14975,
+     "imports_kt": 3593,
+     "exports_kt": 7374,
+     "kcal_per_person_day": 140,
+     "ssr": 1.34,
+     "state": "measured"
+    },
+    "Stimulants": {
+     "production_kt": null,
+     "imports_kt": 868,
+     "exports_kt": 543,
+     "kcal_per_person_day": 23.31,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Spices": {
+     "production_kt": null,
+     "imports_kt": 107,
+     "exports_kt": 112,
+     "kcal_per_person_day": 1.03,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Alcoholic beverages": {
+     "production_kt": 7407,
+     "imports_kt": 1150,
+     "exports_kt": 3107,
+     "kcal_per_person_day": 159.41,
+     "ssr": 1.36,
+     "state": "measured"
+    },
+    "Miscellaneous": {
+     "production_kt": null,
+     "imports_kt": 447,
+     "exports_kt": 736,
+     "kcal_per_person_day": 0,
+     "ssr": null,
+     "state": "not covered: FAO leaves a value blank"
+    },
+    "Meat": {
+     "production_kt": 7356,
+     "imports_kt": 619,
+     "exports_kt": 3112,
+     "kcal_per_person_day": 404.61,
+     "ssr": 1.51,
+     "state": "measured"
+    },
+    "Offals": {
+     "production_kt": 713,
+     "imports_kt": 35,
+     "exports_kt": 555,
+     "kcal_per_person_day": 11.72,
+     "ssr": 3.69,
+     "state": "measured"
+    },
+    "Animal fats": {
+     "production_kt": 1001,
+     "imports_kt": 288,
+     "exports_kt": 350,
+     "kcal_per_person_day": 75.41,
+     "ssr": 1.07,
+     "state": "measured"
+    },
+    "Milk": {
+     "production_kt": 8714,
+     "imports_kt": 6187,
+     "exports_kt": 2896,
+     "kcal_per_person_day": 348.36,
+     "ssr": 0.73,
+     "state": "measured"
+    },
+    "Eggs": {
+     "production_kt": 880,
+     "imports_kt": 81,
+     "exports_kt": 150,
+     "kcal_per_person_day": 52.31,
+     "ssr": 1.09,
+     "state": "measured"
+    },
+    "Fish and seafood": {
+     "production_kt": 1086,
+     "imports_kt": 2495,
+     "exports_kt": 1717,
+     "kcal_per_person_day": 69.59,
+     "ssr": 0.58,
+     "state": "measured"
+    },
+    "Other aquatic products": {
+     "production_kt": 3,
+     "imports_kt": 14,
+     "exports_kt": 5,
+     "kcal_per_person_day": null,
+     "ssr": 0.25,
+     "state": "measured"
+    }
+   }
+  },
+  "goods": {
+   "reads_as": "The country each place sits in, as the OECD's trade in value added tables read it: of the value added in what the country's households, government and investors buy, the share that was created inside the country, by the industry that created it. 0.38 for manufacturing means 38% of the manufacturing value added embodied in what the country buys was made at home. Value added, not products or tonnes: a car assembled at home from imported parts counts only for the assembly. A country figure, never a city's: it is the bracket a place's own economy sits inside.",
+   "source": "OECD, Trade in Value Added (TiVA) 2025 edition, DSD_TIVA_MAINSH@DF_MAINSH, measure FD_VA_SH with the country as counterpart, 2019-2022: https://sdmx.oecd.org/sti-public/rest/data/OECD.STI.PIE,DSD_TIVA_MAINSH@DF_MAINSH,1.1/",
+   "licence": "OECD Terms and Conditions, Data, Permitted Use (read 2026-10-13): you can extract from, download, copy, adapt, print, distribute, share and embed Data for any purpose, even for commercial use; credit the OECD, and carry the same acknowledgment requirement into any sub-licence. The OECD does not warrant it owns all rights in all Data. Cite: OECD (2025), Trade in Value Added (TiVA) 2025 edition, https://www.oecd.org/en/data/datasets/trade-in-value-added.html (accessed on 2026-10-13)",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/goods-country.json",
+   "year": 2022,
+   "unit": "share of value added in the country's final demand created in the country",
+   "all_activities": 0.72,
+   "agriculture_forestry_fishing": 0.521,
+   "industry_except_construction": 0.411,
+   "manufacturing": 0.381,
+   "food_beverages_tobacco": 0.693,
+   "series": [
+    {
+     "year": 2019,
+     "all_activities": 0.766,
+     "manufacturing": 0.447
+    },
+    {
+     "year": 2020,
+     "all_activities": 0.785,
+     "manufacturing": 0.467
+    },
+    {
+     "year": 2021,
+     "all_activities": 0.758,
+     "manufacturing": 0.436
+    },
+    {
+     "year": 2022,
+     "all_activities": 0.72,
+     "manufacturing": 0.381
+    }
+   ],
+   "industries": {
+    "A": {
+     "name": "Agriculture, forestry and fishing",
+     "domestic_share": 0.521
+    },
+    "A01": {
+     "name": "Crop and animal production, hunting and related service activities",
+     "domestic_share": 0.532
+    },
+    "A01_02": {
+     "name": "Crop and animal production, hunting and related service activities; Forestry and logging",
+     "domestic_share": 0.525
+    },
+    "A02": {
+     "name": "Forestry and logging",
+     "domestic_share": 0.394
+    },
+    "A03": {
+     "name": "Fishing and aquaculture",
+     "domestic_share": 0.469
+    },
+    "B": {
+     "name": "Mining and quarrying",
+     "domestic_share": 0.055
+    },
+    "B05": {
+     "name": "Mining of coal and lignite",
+     "domestic_share": 0.009
+    },
+    "B05_06": {
+     "name": "Mining and extraction of energy producing products",
+     "domestic_share": 0.001
+    },
+    "B06": {
+     "name": "Extraction of crude petroleum and natural gas",
+     "domestic_share": 0
+    },
+    "B07": {
+     "name": "Mining of metal ores",
+     "domestic_share": 0.014
+    },
+    "B07_08": {
+     "name": "Mining and quarrying of non-energy producing products",
+     "domestic_share": 0.302
+    },
+    "B08": {
+     "name": "Other mining and quarrying",
+     "domestic_share": 0.642
+    },
+    "B09": {
+     "name": "Mining support service activities",
+     "domestic_share": 0.071
+    },
+    "BTE": {
+     "name": "Industry (except construction)",
+     "domestic_share": 0.411
+    },
+    "C": {
+     "name": "Manufacturing",
+     "domestic_share": 0.381
+    },
+    "C10T12": {
+     "name": "Manufacture of food products; beverages and tobacco products",
+     "domestic_share": 0.693
+    },
+    "C13T15": {
+     "name": "Manufacture of textiles, wearing apparel, leather and related products",
+     "domestic_share": 0.228
+    },
+    "C16": {
+     "name": "Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials",
+     "domestic_share": 0.552
+    },
+    "C16T18": {
+     "name": "Manufacture of wood and of products of wood and cork, except furniture; manufacture of articles of straw and plaiting materials; manufacture of paper and paper products; printing and reproduction of recorded media",
+     "domestic_share": 0.54
+    },
+    "C17_18": {
+     "name": "Manufacture of paper and paper products; printing and reproduction of recorded media",
+     "domestic_share": 0.535
+    },
+    "C19": {
+     "name": "Manufacture of coke and refined petroleum products",
+     "domestic_share": 0.38
+    },
+    "C19T23": {
+     "name": "Manufacture of chemicals and non-metallic mineral products",
+     "domestic_share": 0.32
+    },
+    "C20": {
+     "name": "Manufacture of chemicals and chemical products",
+     "domestic_share": 0.176
+    },
+    "C20_21": {
+     "name": "Manufacture of chemicals and pharmaceuticals",
+     "domestic_share": 0.219
+    },
+    "C21": {
+     "name": "Manufacture of basic pharmaceutical products and pharmaceutical preparations",
+     "domestic_share": 0.267
+    },
+    "C22": {
+     "name": "Manufacture of rubber and plastics products",
+     "domestic_share": 0.387
+    },
+    "C23": {
+     "name": "Manufacture of other non-metallic mineral products",
+     "domestic_share": 0.599
+    },
+    "C24": {
+     "name": "Manufacture of basic metals",
+     "domestic_share": 0.162
+    },
+    "C241_2431": {
+     "name": "Manufacture of basic iron and steel and of ferro-alloys; of tubes, pipes, hollow profiles, related fittings and other products of first processing of steel; casting of iron and steel",
+     "domestic_share": 0.218
+    },
+    "C242_2432": {
+     "name": "Manufacture of basic precious and other non-ferrous metals; casting of light metals and other non-ferrous metals",
+     "domestic_share": 0.074
+    },
+    "C24_25": {
+     "name": "Manufacture of basic metals and fabricated metal products, except machinery and equipment",
+     "domestic_share": 0.363
+    },
+    "C25": {
+     "name": "Manufacture of fabricated metal products, except machinery and equipment",
+     "domestic_share": 0.508
+    },
+    "C26": {
+     "name": "Manufacture of computer, electronic and optical products",
+     "domestic_share": 0.057
+    },
+    "C26_27": {
+     "name": "Manufacture of computer, electronic and optical products; manufacture of electrical equipment",
+     "domestic_share": 0.111
+    },
+    "C27": {
+     "name": "Manufacture of electrical equipment",
+     "domestic_share": 0.192
+    },
+    "C28": {
+     "name": "Manufacture of machinery and equipment n.e.c.",
+     "domestic_share": 0.222
+    },
+    "C29": {
+     "name": "Manufacture of motor vehicles, trailers and semi-trailers",
+     "domestic_share": 0.351
+    },
+    "C29_30": {
+     "name": "Manufacture of motor vehicles, trailers, semi-trailers and of other transport equipment",
+     "domestic_share": 0.346
+    },
+    "C30": {
+     "name": "Manufacture of other transport equipment",
+     "domestic_share": 0.331
+    },
+    "C301": {
+     "name": "Building of ships and boats",
+     "domestic_share": 0.397
+    },
+    "C302T309": {
+     "name": "Manufacture of railroad equipment, aircraft, military fighting vehicles and other transport equipment n.e.c",
+     "domestic_share": 0.319
+    },
+    "C31T33": {
+     "name": "Manufacture of furniture; jewellery, musical instruments, toys, etc.; repair and installation of machinery and equipment",
+     "domestic_share": 0.53
+    },
+    "D": {
+     "name": "Electricity, gas, steam and air conditioning supply",
+     "domestic_share": 0.808
+    },
+    "D_E": {
+     "name": "Electricity, gas, steam and air conditioning supply; Water supply; sewerage, waste management and remediation activities",
+     "domestic_share": 0.817
+    },
+    "E": {
+     "name": "Water supply; sewerage, waste management and remediation activities",
+     "domestic_share": 0.843
+    },
+    "F": {
+     "name": "Construction",
+     "domestic_share": 0.967
+    },
+    "FTT": {
+     "name": "Total services (incl. construction)",
+     "domestic_share": 0.815
+    },
+    "G": {
+     "name": "Wholesale and retail trade; repair of motor vehicles and motorcycles",
+     "domestic_share": 0.642
+    },
+    "GTI": {
+     "name": "Wholesale and retail trade; repair of motor vehicles and motorcycles; transportation and storage; accommodation and food service activities",
+     "domestic_share": 0.699
+    },
+    "GTN": {
+     "name": "Services of the business economy - sections G to N",
+     "domestic_share": 0.729
+    },
+    "GTT": {
+     "name": "Services (except extra-territorial organisations and bodies)",
+     "domestic_share": 0.802
+    },
+    "H": {
+     "name": "Transportation and storage",
+     "domestic_share": 0.576
+    },
+    "H49": {
+     "name": "Land transport and transport via pipelines",
+     "domestic_share": 0.581
+    },
+    "H50": {
+     "name": "Water transport",
+     "domestic_share": 0.078
+    },
+    "H51": {
+     "name": "Air transport",
+     "domestic_share": 0.442
+    },
+    "H52": {
+     "name": "Warehousing and support activities for transportation",
+     "domestic_share": 0.648
+    },
+    "H53": {
+     "name": "Postal and courier activities",
+     "domestic_share": 0.602
+    },
+    "I": {
+     "name": "Accommodation and food service activities",
+     "domestic_share": 0.934
+    },
+    "INFO": {
+     "name": "Information industries",
+     "domestic_share": 0.44
+    },
+    "J": {
+     "name": "Information and communication",
+     "domestic_share": 0.514
+    },
+    "J58T60": {
+     "name": "Publishing, motion picture, video, television programme production; sound recording, programming and broadcasting activities",
+     "domestic_share": 0.501
+    },
+    "J61": {
+     "name": "Telecommunications",
+     "domestic_share": 0.707
+    },
+    "J62_63": {
+     "name": "Computer programming, consultancy, and information service activities",
+     "domestic_share": 0.44
+    },
+    "JTN": {
+     "name": "Information and communication; Financial intermediation; Real estate; Professional and business suport services",
+     "domestic_share": 0.753
+    },
+    "K": {
+     "name": "Financial and insurance activities",
+     "domestic_share": 0.713
+    },
+    "L": {
+     "name": "Real estate activities",
+     "domestic_share": 0.937
+    },
+    "M": {
+     "name": "Professional, scientific and technical activities",
+     "domestic_share": 0.657
+    },
+    "M_N": {
+     "name": "Professional, scientific and technical activities; administrative and support service activities",
+     "domestic_share": 0.655
+    },
+    "N": {
+     "name": "Administrative and support service activities",
+     "domestic_share": 0.652
+    },
+    "O": {
+     "name": "Public administration and defence; compulsory social security",
+     "domestic_share": 0.971
+    },
+    "OTQ": {
+     "name": "Public administration, defence, education, human health and social work activities",
+     "domestic_share": 0.979
+    },
+    "OTT": {
+     "name": "Public admin, education and health; social and personal services",
+     "domestic_share": 0.973
+    },
+    "P": {
+     "name": "Education",
+     "domestic_share": 0.973
+    },
+    "Q": {
+     "name": "Human health and social work activities",
+     "domestic_share": 0.993
+    },
+    "R": {
+     "name": "Arts, entertainment and recreation",
+     "domestic_share": 0.932
+    },
+    "RTT": {
+     "name": "Arts, entertainment and recreation; Other service activities; Activities of households as employers",
+     "domestic_share": 0.946
+    },
+    "R_S": {
+     "name": "Arts, entertainment and recreation; Other service activities",
+     "domestic_share": 0.932
+    },
+    "S": {
+     "name": "Other service activities",
+     "domestic_share": 0.933
+    },
+    "T": {
+     "name": "Activities of households as employers; undifferentiated goods- and services-producing activities of households for own use",
+     "domestic_share": 1
+    },
+    "_T": {
+     "name": "Total - All activities",
+     "domestic_share": 0.72
+    }
+   }
+  },
+  "energy": {
+   "reads_as": "The country each place sits in, as the World Bank reads its energy: of the energy the country uses, the share it produces itself, which is one minus its net energy imports as a share of use. Above 1 the country produces more than it uses and exports the rest. Net imports are imports less exports, so a country that imports oil and exports gas can read as self-supplied; gross imports are not published here. A country figure, never a city's.",
+   "source": "World Bank WDI API v2, EG.IMP.CONS.ZS (net energy imports, % of energy use) and EG.USE.PCAP.KG.OE (energy use, kg of oil equivalent per person), 2015-2024, database last updated 2026-10-08",
+   "licence": "World Bank World Development Indicators, CC BY-4.0 (the series' own License_Type, read 2026-10-13), compiled by the World Bank from IEA energy statistics; cite The World Bank: World Development Indicators, EG.IMP.CONS.ZS and EG.USE.PCAP.KG.OE",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/energy-country.json",
+   "year": 2024,
+   "net_imports_share_of_use": 0.784,
+   "made_at_home": 0.216,
+   "position": "net importer",
+   "energy_use_kg_oe_per_person": 2306,
+   "energy_use_year": 2024,
+   "series": [
+    {
+     "year": 2015,
+     "net_imports_share_of_use": 0.8,
+     "made_at_home": 0.2
+    },
+    {
+     "year": 2016,
+     "net_imports_share_of_use": 0.789,
+     "made_at_home": 0.211
+    },
+    {
+     "year": 2017,
+     "net_imports_share_of_use": 0.809,
+     "made_at_home": 0.191
+    },
+    {
+     "year": 2018,
+     "net_imports_share_of_use": 0.81,
+     "made_at_home": 0.19
+    },
+    {
+     "year": 2019,
+     "net_imports_share_of_use": 0.829,
+     "made_at_home": 0.171
+    },
+    {
+     "year": 2020,
+     "net_imports_share_of_use": 0.735,
+     "made_at_home": 0.265
+    },
+    {
+     "year": 2021,
+     "net_imports_share_of_use": 0.754,
+     "made_at_home": 0.246
+    },
+    {
+     "year": 2022,
+     "net_imports_share_of_use": 0.827,
+     "made_at_home": 0.173
+    },
+    {
+     "year": 2023,
+     "net_imports_share_of_use": 0.768,
+     "made_at_home": 0.232
+    },
+    {
+     "year": 2024,
+     "net_imports_share_of_use": 0.784,
+     "made_at_home": 0.216
+    }
+   ]
+  },
+  "materials": {
+   "reads_as": "The country each place sits in, as the OECD's material flow accounts read it: of the materials the country consumes, in tonnes, the share it extracted inside its own borders. Above 1 the country extracts more than it keeps and exports the rest. Tonnes weigh sand and copper alike; the four groups in the place's JSON tell them apart. The material footprint beside it counts the raw materials embodied in what the country consumes wherever they were dug. A country figure, never a city's.",
+   "source": "OECD, Material resources: economy-wide material flow accounts, DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES, measures DEU, IMP, EXP, DMC, MF in tonnes, groups TOT, BIO, MET, IND, FUEL, 2019-2025: https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES,1.0/",
+   "licence": "OECD Terms and Conditions, Data, Permitted Use (read 2026-10-13): any purpose including commercial, credit the OECD, same acknowledgment in sub-licences. Cite: OECD (2025), Material resources (economy-wide material flow accounts), https://sdmx.oecd.org/public/rest/dataflow/OECD.ENV.EPI/DSD_MATERIAL_RESOURCES@DF_MATERIAL_RESOURCES/1.0 (accessed on 2026-10-13)",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/materials-country.json",
+   "year": 2025,
+   "made_at_home": 0.839,
+   "position": "net importer",
+   "domestic_extraction_mt": 421.4,
+   "imports_mt": 235,
+   "exports_mt": 154.4,
+   "domestic_material_consumption_mt": 502,
+   "material_footprint_mt": null,
+   "imports_share_of_consumption": 0.468,
+   "footprint_over_consumption": null,
+   "groups": {
+    "biomass": {
+     "made_at_home": 0.921,
+     "domestic_material_consumption_mt": 143.7
+    },
+    "metals": {
+     "made_at_home": 0.547,
+     "domestic_material_consumption_mt": 35.5
+    },
+    "non_metallic_minerals": {
+     "made_at_home": 1.094,
+     "domestic_material_consumption_mt": 246.4
+    },
+    "fossil_energy_materials": {
+     "made_at_home": 0.002,
+     "domestic_material_consumption_mt": 76.4
+    }
+   },
+   "series": [
+    {
+     "year": 2019,
+     "made_at_home": 0.813
+    },
+    {
+     "year": 2020,
+     "made_at_home": 0.857
+    },
+    {
+     "year": 2021,
+     "made_at_home": 0.848
+    },
+    {
+     "year": 2022,
+     "made_at_home": 0.81
+    },
+    {
+     "year": 2023,
+     "made_at_home": 0.822
+    },
+    {
+     "year": 2024,
+     "made_at_home": 0.832
+    },
+    {
+     "year": 2025,
+     "made_at_home": 0.839
+    }
+   ]
+  },
+  "water": {
+   "reads_as": "The country each place sits in, as FAO's AQUASTAT reads its water: of the renewable water the country has in a year, the share that originates inside its own borders (one minus the dependency ratio, the share flowing in from other countries). Beside it, the share of what it has that it withdraws. Water is not bought abroad like goods; this says whose rain it lives on. Resources are long-term averages repeated each year. A country figure, never a city's.",
+   "source": "FAO AQUASTAT dissemination system, BigQuery endpoint with the published query (variables 4192, 4157, 4182, 4188, 4263, years 2018-2022): https://api.data.apps.fao.org/api/v2/bigquery",
+   "licence": "CC BY 4.0 under FAO's Statistical Database Terms of Use, whose Annex 1 names AQUASTAT, with the clause against use in the promotion of a commercial enterprise (decided by Tomas Diez, 2026-10-14; FAO's data catalogue labels the dissemination dataset CC BY-NC-SA 4.0, read as a catalogue default). Cite FAO, AQUASTAT, https://data.apps.fao.org/aquastat/",
+   "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/water-country.json",
+   "year": 2022,
+   "made_at_home": 0.997,
+   "dependency_ratio": 0.003,
+   "internal_renewable_km3": 111.2,
+   "external_renewable_km3": 0.3,
+   "total_renewable_km3": 111.5,
+   "freshwater_withdrawal_km3": 29.02,
+   "withdrawal_year": 2022,
+   "withdrawal_share_of_renewable": 0.26,
+   "symbols": {
+    "dependency_ratio": "I",
+    "internal_renewable_km3": "I",
+    "external_renewable_km3": "I",
+    "total_renewable_km3": "I",
+    "freshwater_withdrawal_km3": "I"
+   }
+  }
+ },
+ "region_bracket": {
+  "reads_as": "For every tracker place: whether a national figure may be split down to it, and why. Refused for a seaport or a national capital (the check says how wrong that would be), not possible without a NUTS2 code, allowed otherwise. The modelled rows are the NUTS2 region that holds the place, not the place: Schwaben for Augsburg, Bretagne for Brest. They are modelled, never measured, and carry the error bar the check measured for a region that makes things.",
+  "registry_commit": "e4684fb34ec5a07ff1020b00604a620c07ed4f9b",
+  "pipeline": "https://github.com/fabcity/fci-index/blob/main/compute/results/downscale-check.json",
+  "not_modelled": "refused: a port's customs trade lands for the whole country (the check: Hamburg 3-5x under)"
+ },
+ "planet": {
+  "source": "Richardson, K. et al. (2023), Earth beyond six of nine planetary boundaries, Science Advances 9(37), eadh2458",
+  "boundaries": [
+   {
+    "label": "Climate change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Biosphere integrity",
+    "status": "transgressed"
+   },
+   {
+    "label": "Land-system change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Freshwater change",
+    "status": "transgressed"
+   },
+   {
+    "label": "Biogeochemical flows (nitrogen, phosphorus)",
+    "status": "transgressed"
+   },
+   {
+    "label": "Novel entities",
+    "status": "transgressed"
+   },
+   {
+    "label": "Ocean acidification",
+    "status": "close to the boundary"
+   },
+   {
+    "label": "Atmospheric aerosol loading",
+    "status": "within, regional exceedances"
+   },
+   {
+    "label": "Stratospheric ozone depletion",
+    "status": "within"
+   }
+  ]
+ },
+ "links": {
+  "page": "https://index.fab.city/city?locality=barcelona",
+  "report": "https://index.fab.city/report?locality=barcelona",
+  "json": "https://index.fab.city/api/v0/places/barcelona.json"
+ }
+}

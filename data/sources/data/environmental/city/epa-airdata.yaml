@@ -1,0 +1,41 @@
+name: US EPA AirData pre-generated files (AQS)
+url: https://aqs.epa.gov/aqsweb/airdata/download_files.html
+description: |
+  Annual and daily summaries from every regulatory air monitor in the US,
+  exported from EPA's Air Quality System as yearly zip files. Keyless.
+pillar: environmental
+scale: city
+status: candidate
+license: "US public domain: EPA data is in the public domain by default under 17 U.S.C. 105 unless otherwise specified."
+api: https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_2025.zip
+pilot_relevance: []
+places: [charlotte]
+tags: [air-quality, pm25, regulatory-monitors, united-states, epa]
+auth: none
+feeds_cells: [Environmental|City]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05. annual_conc_by_monitor_2025.zip and
+  daily_88101_2025.zip (and the 2024 files), state 37, county 119. Three
+  PM2.5 sites: 0041 Garinger High School, 0045 Remount, 0048 Friendship
+  Park. 2025 annual means in ug/m3: Garinger 8.02 (24-hour sampler) and 7.59
+  (24-hr block average of the continuous monitor), Remount 9.30, Friendship
+  Park 7.82. 2024: Garinger 8.00 and 7.53, Remount 9.16, Friendship Park
+  7.44. Days with a 24-hour mean over 15 ug/m3 at any county monitor: 34 in
+  2024, 24 in 2025 (1-hour rows excluded).
+
+  LICENCE. edg.epa.gov/EPA_Data_License.html: "Unless otherwise specified,
+  all data produced by the U.S EPA is by default in the public domain and is
+  not subject to domestic copyright protection under 17 U.S.C. 105."
+
+  WHY THIS CELL. Environmental|City asks for the PM2.5 annual mean and the
+  days over the WHO 24-hour guideline; these are the regulatory monitors
+  that sit in Charlotte. This replaces OpenAQ for Charlotte, which needs a
+  key since v3 (401 without one; v2 answers 410).
+
+  WHAT IT DOES NOT CLAIM. Three sites do not describe exposure across the
+  city, and these are county monitor ids, not a city boundary. Remount's
+  2025 row is the "Events Included" one. Files lag: the 2025 annual file was
+  last modified 13 Jul 2026.

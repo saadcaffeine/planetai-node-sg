@@ -94,6 +94,7 @@ Files under `out/earth/<node>/`, which is the one writable path the app containe
 | `meta.json` | the point, the radius, the tile the index chose per year, the window bounds |
 | `change_<A>_<B>.png` | the map: grey ramp, north up, the node ringed, 1 km scale bar |
 | `change_<A>_<B>.json` | mean, median, p95, the share and hectares over the threshold, bounds, source objects |
+| `change_<A>_<B>_wall.png` | the Wall's image: changed pixels only, inside the community's res-7 cells that fit a square centred on the house's res-8 cell; transparent elsewhere, no ring, no scale bar. Its box and hectares are `wall` in the JSON, and `GET /earth/wall.png` serves it. `wall` is null when no cell fits, or when a tile edge clipped the square read (where the edge cuts would say where the house is). A plain `earth change` rebuilds only the default pair: a pair from before this file gets its image there, and any other with `planetai run earth change <A> <B>`, or `planetai run earth change --all` for every pair. A crop cut round another res-8 cell than the house's now, or whose image is missing, is computed again |
 
 Measured on node #1 (Bali, `EARTH_RADIUS_M=5000`, a 10 km square, 1000 x 1000 px):
 

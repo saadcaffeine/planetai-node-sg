@@ -1,0 +1,26 @@
+id: index
+name: Fab City Index
+description: >-
+  Which Fab City Index place this node belongs to, and what the Index says about it, read once a day from
+  index.fab.city. The node sends nothing about itself: the request is the place's slug, not where the house is.
+author: PLANETAI core (official)
+version: 0.1.0
+requires: { node: ">=0.91.0" }
+kind: code
+domain: place
+scales: [community]
+sources: []
+# On when INDEX_PLACE names a place, as `planetai place <slug>` writes it (docs/PACKS.md, "Code in official
+# packs"). The place list the slug is checked against is places.json, generated from the registry's places.yaml.
+switch: [INDEX_PLACE]
+env:
+  - "# index: the Fab City Index place this node belongs to (a slug from packs/index/places.json), where to read it, and how often"
+  - "INDEX_PLACE="
+  - "INDEX_URL=https://index.fab.city"
+  - "INDEX_REFRESH_HOURS=24"
+# /index/place carries a public place's name and numbers and nothing about the house: the Place door reads it on every screen.
+share:
+  open: [/index/place]
+needs:
+  - index.fab.city
+attribution: "Fab City Index, CC BY 4.0, Fab City Foundation; awesome-fabcity-data"

@@ -1,0 +1,4957 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-08T05:27:36Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 185683916,
+  "center": {
+    "lat": -8.2577390,
+    "lon": 115.1610142
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "BTRTI",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 185683918,
+  "center": {
+    "lat": -8.1970707,
+    "lon": 115.1104826
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Baturiti - Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 186634762,
+  "center": {
+    "lat": -8.7184650,
+    "lon": 115.2109985
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "PSGRN",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 188631469,
+  "center": {
+    "lat": -8.0893890,
+    "lon": 114.4097057
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 192989828,
+  "center": {
+    "lat": -8.1748740,
+    "lon": 114.4416848
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "GLNUK",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 204784332,
+  "center": {
+    "lat": -8.4481405,
+    "lon": 115.5878436
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Amlapura",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "AMPRA",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 239759321,
+  "center": {
+    "lat": -8.7177819,
+    "lon": 115.2112913
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTDG Pesanggaran",
+    "name:en": "Pesanggaran Power Plant",
+    "operator": "Indonesia Power",
+    "operator:wikidata": "Q12486500",
+    "plant:method": "combustion",
+    "plant:output:electricity": "325 MW",
+    "plant:source": "gas",
+    "power": "plant",
+    "source": "Bing;local knowledge",
+    "wikidata": "Q17749821"
+  }
+},
+{
+  "type": "way",
+  "id": 239759322,
+  "center": {
+    "lat": -8.7541246,
+    "lon": 115.1707257
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "GIS Bandara Ngurah Rai",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "BNDRA",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 311862991,
+  "center": {
+    "lat": -8.6748353,
+    "lon": 115.2529902
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Sanur",
+    "operator": "Perusahaan Listrik Negara",
+    "power": "substation",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339506032,
+  "center": {
+    "lat": -8.1753051,
+    "lon": 114.4421489
+  },
+  "tags": {
+    "frequency": "50",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339506034,
+  "center": {
+    "lat": -8.1697938,
+    "lon": 114.4381614
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Gilimanuk - Banyuwangi",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792665,
+  "center": {
+    "lat": -8.6365079,
+    "lon": 115.1827454
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Pemecutan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792667,
+  "center": {
+    "lat": -8.4416901,
+    "lon": 115.2237157
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kapal - Payangan;Payangan - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792670,
+  "center": {
+    "lat": -8.6780131,
+    "lon": 115.1873698
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran;Sambian - Pemecutan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792673,
+  "center": {
+    "lat": -8.5618733,
+    "lon": 115.3346076
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Gianyar",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "GNYAR",
+    "substation": "transmission",
+    "voltage": "150000;20000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792675,
+  "center": {
+    "lat": -8.5125987,
+    "lon": 115.1930531
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kapal - Payangan;Kapal - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792677,
+  "center": {
+    "lat": -8.5683610,
+    "lon": 115.2587694
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Gianyar - Kapal",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792679,
+  "center": {
+    "lat": -8.6183351,
+    "lon": 115.2935435
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Sanur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792680,
+  "center": {
+    "lat": -8.4437349,
+    "lon": 115.2418723
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Payangan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "UBUD/PYGAN",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792681,
+  "center": {
+    "lat": -8.6246032,
+    "lon": 115.1817676
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kapal - Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792684,
+  "center": {
+    "lat": -8.5825929,
+    "lon": 115.1823059
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Kapal",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "KAPAL",
+    "substation": "transmission",
+    "voltage": "150000;20000"
+  }
+},
+{
+  "type": "way",
+  "id": 339792685,
+  "center": {
+    "lat": -8.6667100,
+    "lon": 115.1867200
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Padang Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "PBIAN",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339796951,
+  "center": {
+    "lat": -8.1530625,
+    "lon": 114.3999223
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Cable Head Ketapang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "substation": "transition",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339796954,
+  "center": {
+    "lat": -8.1654608,
+    "lon": 114.4336693
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Cable Head Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339802230,
+  "center": {
+    "lat": -8.1776984,
+    "lon": 114.6474630
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Gilimanuk - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 339802233,
+  "center": {
+    "lat": -8.1362077,
+    "lon": 115.0598573
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "PMRON",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340116509,
+  "center": {
+    "lat": -8.7253129,
+    "lon": 115.1965709
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340116510,
+  "center": {
+    "lat": -8.7252335,
+    "lon": 115.1963689
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340116511,
+  "center": {
+    "lat": -8.7050571,
+    "lon": 115.2004259
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran;Pemecutan - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340116512,
+  "center": {
+    "lat": -8.7050127,
+    "lon": 115.2001477
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pemecutan - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340116513,
+  "center": {
+    "lat": -8.3500217,
+    "lon": 115.1812818
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Payangan - Baturiti;Kapal - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340152020,
+  "center": {
+    "lat": -8.6183892,
+    "lon": 115.2932849
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Sanur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340152021,
+  "center": {
+    "lat": -8.6899883,
+    "lon": 115.1889171
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Pemecutan Kelod",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "PKLOD",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340152023,
+  "center": {
+    "lat": -8.6976656,
+    "lon": 115.2321902
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Sanur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 340935918,
+  "center": {
+    "lat": -7.9011871,
+    "lon": 114.2172652
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 398867611,
+  "center": {
+    "lat": -8.5080477,
+    "lon": 115.4612855
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Gianyar - Amlapura",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 453598220,
+  "center": {
+    "lat": -8.2694736,
+    "lon": 114.5500011
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Antosari - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 453598221,
+  "center": {
+    "lat": -8.4384589,
+    "lon": 114.8375976
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Antosari - Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 453598224,
+  "center": {
+    "lat": -8.3643071,
+    "lon": 114.6604167
+  },
+  "tags": {
+    "barrier": "fence",
+    "location": "outdoor",
+    "name": "Gardu Induk Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "NGARA",
+    "substation": "transmission",
+    "voltage": "150000;20000"
+  }
+},
+{
+  "type": "way",
+  "id": 453601335,
+  "center": {
+    "lat": -8.5163811,
+    "lon": 115.0148094
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "ANTSR",
+    "substation": "transmission",
+    "voltage": "150000;20000"
+  }
+},
+{
+  "type": "way",
+  "id": 493218545,
+  "center": {
+    "lat": -8.1974788,
+    "lon": 114.8536333
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTU Celukan Bawang",
+    "name:en": "Celukan Bawang Thermal Power Station",
+    "operator": "PT General Energy Bali",
+    "plant:method": "combustion",
+    "plant:output:electricity": "380 MW",
+    "plant:source": "coal",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 493218553,
+  "center": {
+    "lat": -8.1983326,
+    "lon": 114.8520655
+  },
+  "tags": {
+    "building": "industrial",
+    "power": "substation"
+  }
+},
+{
+  "type": "way",
+  "id": 561754345,
+  "center": {
+    "lat": -8.4033112,
+    "lon": 115.0171123
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 561754346,
+  "center": {
+    "lat": -8.2022277,
+    "lon": 114.8525615
+  },
+  "tags": {
+    "cables": "12",
+    "circuits": "4",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang;Pemaron - Celukan Bawang;Gilimanuk - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 561754348,
+  "center": {
+    "lat": -8.1740226,
+    "lon": 114.9581835
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Pemaron - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 561794968,
+  "center": {
+    "lat": -8.5517496,
+    "lon": 115.0582195
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Tanah Lot - Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 564749763,
+  "center": {
+    "lat": -8.1749306,
+    "lon": 114.4420497
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTG Gilimanuk",
+    "operator": "Indonesia Power",
+    "operator:wikidata": "Q12486500",
+    "plant:method": "combustion",
+    "plant:output:electricity": "133.8 MW",
+    "plant:source": "gas",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 570847621,
+  "center": {
+    "lat": -8.7974313,
+    "lon": 115.2221986
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "NSDUA",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 641437970,
+  "center": {
+    "lat": -8.6927743,
+    "lon": 115.4686514
+  },
+  "tags": {
+    "power": "line"
+  }
+},
+{
+  "type": "way",
+  "id": 797070548,
+  "center": {
+    "lat": -8.2549683,
+    "lon": 115.5646793
+  },
+  "tags": {
+    "addr:city": "Karangasem",
+    "name": "PLTS Kubu Karangasem Bali",
+    "operator": "PLN",
+    "plant:method": "photovoltaic",
+    "plant:output:electricity": "1 MW",
+    "plant:source": "solar",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 797745630,
+  "center": {
+    "lat": -8.3542304,
+    "lon": 115.3668770
+  },
+  "tags": {
+    "addr:city": "Bangli",
+    "long_name": "Pembangkit Listrik Tenaga Surya Kayubihi Bangli",
+    "name": "PLTS Kayubihi Bangli",
+    "operator": "PLN",
+    "plant:method": "photovoltaic",
+    "plant:output:electricity": "1 MW",
+    "plant:source": "solar",
+    "power": "plant",
+    "start_date": "2012"
+  }
+},
+{
+  "type": "way",
+  "id": 894351135,
+  "center": {
+    "lat": -8.1354153,
+    "lon": 115.0597903
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTG Pemaron",
+    "operator": "Indonesia Power",
+    "operator:wikidata": "Q12486500",
+    "plant:method": "combustion",
+    "plant:output:electricity": "97.6 MW",
+    "plant:source": "gas",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 929209005,
+  "center": {
+    "lat": -8.7707220,
+    "lon": 115.1958254
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 929209006,
+  "center": {
+    "lat": -8.7699109,
+    "lon": 115.1962223
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1039231666,
+  "center": {
+    "lat": -8.5868142,
+    "lon": 115.1019199
+  },
+  "tags": {
+    "building": "no",
+    "name": "Gas Insulated Switchgear Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "TNLOT",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1207218647,
+  "center": {
+    "lat": -8.8199045,
+    "lon": 115.1417640
+  },
+  "tags": {
+    "location": "indoor",
+    "name": "GIS Pecatu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "PCATU",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1270763074,
+  "center": {
+    "lat": -8.7274570,
+    "lon": 115.1892284
+  },
+  "tags": {
+    "name": "PLTS Muara Nusa Dua",
+    "plant:output:electricity": "100 kW",
+    "plant:source": "solar",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1297285206,
+  "center": {
+    "lat": -8.2037849,
+    "lon": 115.4979120
+  },
+  "tags": {
+    "location": "outdoor",
+    "name": "Gardu Induk Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "substation",
+    "ref": "KUBU",
+    "substation": "transmission",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1302450300,
+  "center": {
+    "lat": -8.5920980,
+    "lon": 115.1419517
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kapal - Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1302450302,
+  "center": {
+    "lat": -8.5868437,
+    "lon": 115.1020882
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1302450303,
+  "center": {
+    "lat": -8.5866795,
+    "lon": 115.1019016
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Tanah Lot - Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1302450305,
+  "center": {
+    "lat": -8.5872215,
+    "lon": 115.1021512
+  },
+  "tags": {
+    "name": "Trafo",
+    "power": "substation"
+  }
+},
+{
+  "type": "way",
+  "id": 1302450306,
+  "center": {
+    "lat": -8.5873433,
+    "lon": 115.1020769
+  },
+  "tags": {
+    "name": "Trafo",
+    "power": "substation"
+  }
+},
+{
+  "type": "way",
+  "id": 1303837142,
+  "center": {
+    "lat": -8.7933520,
+    "lon": 115.2175008
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1303900280,
+  "center": {
+    "lat": -8.2575209,
+    "lon": 115.1606399
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Payangan - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1303900739,
+  "center": {
+    "lat": -8.6895227,
+    "lon": 115.1891811
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1303903254,
+  "center": {
+    "lat": -8.6664606,
+    "lon": 115.1863972
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1308364829,
+  "center": {
+    "lat": -8.1984732,
+    "lon": 114.8523895
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1330349516,
+  "center": {
+    "lat": -8.6753622,
+    "lon": 115.5545144
+  },
+  "tags": {
+    "name": "PLTD Kutampi",
+    "plant:method": "combustion",
+    "plant:output:electricity": "11.7 MW",
+    "plant:source": "diesel",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1330349528,
+  "center": {
+    "lat": -8.7132835,
+    "lon": 115.5834966
+  },
+  "tags": {
+    "name": "PLTS Nusa Penida",
+    "plant:method": "photovoltaic",
+    "plant:output:electricity": "3.5 MW",
+    "plant:source": "solar",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1330729068,
+  "center": {
+    "lat": -8.2044748,
+    "lon": 115.4977181
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Amlapura - Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1330729069,
+  "center": {
+    "lat": -8.2044263,
+    "lon": 115.4976700
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Amlapura - Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1330737251,
+  "center": {
+    "lat": -8.7197360,
+    "lon": 115.2119488
+  },
+  "tags": {
+    "name": "PLTG Pesanggaran",
+    "plant:method": "combustion",
+    "plant:output:electricity": "200 MW",
+    "plant:source": "gas",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1355889565,
+  "center": {
+    "lat": -8.3262709,
+    "lon": 115.5568452
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Amlapura - Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1355889566,
+  "center": {
+    "lat": -8.4479936,
+    "lon": 115.5881574
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Amlapura - Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1413971949,
+  "center": {
+    "lat": -8.2105903,
+    "lon": 115.5020993
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Kubu - Medcosolar Bali Timur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902032,
+  "center": {
+    "lat": -8.4479736,
+    "lon": 115.5881060
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Amlapura - Kubu",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902035,
+  "center": {
+    "lat": -8.2044612,
+    "lon": 115.4972725
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kubu - Medcosolar Bali Timur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902036,
+  "center": {
+    "lat": -8.2044030,
+    "lon": 115.4972149
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kubu - Medcosolar Bali Timur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902038,
+  "center": {
+    "lat": -8.2163957,
+    "lon": 115.5074858
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kubu - Medcosolar Bali Timur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902039,
+  "center": {
+    "lat": -8.2163221,
+    "lon": 115.5074870
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kubu - Medcosolar Bali Timur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1416902041,
+  "center": {
+    "lat": -8.2185336,
+    "lon": 115.5085825
+  },
+  "tags": {
+    "name": "PLTS Bali Timur",
+    "operator": "Medco Solar Bali Timur",
+    "plant:method": "photovoltaic",
+    "plant:output:electricity": "25 MW",
+    "plant:source": "solar",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296632,
+  "center": {
+    "lat": -8.7309658,
+    "lon": 115.5313508
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296633,
+  "center": {
+    "lat": -8.7305379,
+    "lon": 115.5298830
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296634,
+  "center": {
+    "lat": -8.7292583,
+    "lon": 115.5360553
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296635,
+  "center": {
+    "lat": -8.7313790,
+    "lon": 115.5364972
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296636,
+  "center": {
+    "lat": -8.7292417,
+    "lon": 115.5299301
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296637,
+  "center": {
+    "lat": -8.7293502,
+    "lon": 115.5314767
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296638,
+  "center": {
+    "lat": -8.7360902,
+    "lon": 115.5256361
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1448296639,
+  "center": {
+    "lat": -8.7347831,
+    "lon": 115.5274558
+  },
+  "tags": {
+    "landuse": "industrial",
+    "name": "PLTB Nusa Penida",
+    "plant:method": "wind_turbine",
+    "plant:output:electricity": "720 kW",
+    "plant:source": "wind",
+    "power": "plant"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729831,
+  "center": {
+    "lat": -8.4487176,
+    "lon": 115.5876125
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Amlapura",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729832,
+  "center": {
+    "lat": -8.4486935,
+    "lon": 115.5875540
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Amlapura",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729834,
+  "center": {
+    "lat": -8.4482525,
+    "lon": 115.5877098
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729835,
+  "center": {
+    "lat": -8.4483011,
+    "lon": 115.5878285
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729837,
+  "center": {
+    "lat": -8.4481992,
+    "lon": 115.5880130
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729838,
+  "center": {
+    "lat": -8.4482390,
+    "lon": 115.5881156
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729839,
+  "center": {
+    "lat": -8.4483298,
+    "lon": 115.5878798
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729840,
+  "center": {
+    "lat": -8.4481801,
+    "lon": 115.5878716
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729841,
+  "center": {
+    "lat": -8.4479966,
+    "lon": 115.5876779
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729843,
+  "center": {
+    "lat": -8.2040838,
+    "lon": 115.4980128
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729844,
+  "center": {
+    "lat": -8.2039839,
+    "lon": 115.4977106
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729845,
+  "center": {
+    "lat": -8.2038931,
+    "lon": 115.4978054
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729846,
+  "center": {
+    "lat": -8.2039808,
+    "lon": 115.4980930
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729847,
+  "center": {
+    "lat": -8.2041081,
+    "lon": 115.4978142
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729848,
+  "center": {
+    "lat": -8.2039041,
+    "lon": 115.4976054
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729849,
+  "center": {
+    "lat": -8.2040177,
+    "lon": 115.4977218
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729850,
+  "center": {
+    "lat": -8.2041878,
+    "lon": 115.4981156
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729851,
+  "center": {
+    "lat": -8.5621875,
+    "lon": 115.3350374
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729853,
+  "center": {
+    "lat": -8.5621983,
+    "lon": 115.3349853
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729854,
+  "center": {
+    "lat": -8.5623078,
+    "lon": 115.3345336
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729855,
+  "center": {
+    "lat": -8.5623217,
+    "lon": 115.3344669
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729856,
+  "center": {
+    "lat": -8.5619850,
+    "lon": 115.3347025
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729857,
+  "center": {
+    "lat": -8.5618294,
+    "lon": 115.3346715
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729858,
+  "center": {
+    "lat": -8.5619210,
+    "lon": 115.3349974
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729859,
+  "center": {
+    "lat": -8.5619419,
+    "lon": 115.3348912
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729860,
+  "center": {
+    "lat": -8.5619641,
+    "lon": 115.3347806
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729861,
+  "center": {
+    "lat": -8.5619898,
+    "lon": 115.3346520
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729862,
+  "center": {
+    "lat": -8.5619377,
+    "lon": 115.3345247
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729863,
+  "center": {
+    "lat": -8.5619626,
+    "lon": 115.3343897
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729864,
+  "center": {
+    "lat": -8.5617888,
+    "lon": 115.3349701
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729866,
+  "center": {
+    "lat": -8.5824143,
+    "lon": 115.1827842
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Payangan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729867,
+  "center": {
+    "lat": -8.5826748,
+    "lon": 115.1827923
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Kapal",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729868,
+  "center": {
+    "lat": -8.5826098,
+    "lon": 115.1828062
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gianyar - Kapal",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729869,
+  "center": {
+    "lat": -8.5823510,
+    "lon": 115.1827977
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729870,
+  "center": {
+    "lat": -8.5828403,
+    "lon": 115.1822074
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729871,
+  "center": {
+    "lat": -8.5827225,
+    "lon": 115.1822270
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729872,
+  "center": {
+    "lat": -8.5825921,
+    "lon": 115.1822558
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729873,
+  "center": {
+    "lat": -8.5824653,
+    "lon": 115.1822828
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729875,
+  "center": {
+    "lat": -8.5822284,
+    "lon": 115.1819015
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729876,
+  "center": {
+    "lat": -8.5821676,
+    "lon": 115.1819150
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729877,
+  "center": {
+    "lat": -8.5823425,
+    "lon": 115.1823040
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729878,
+  "center": {
+    "lat": -8.5822185,
+    "lon": 115.1823309
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729880,
+  "center": {
+    "lat": -8.5818753,
+    "lon": 115.1818239
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729881,
+  "center": {
+    "lat": -8.5818140,
+    "lon": 115.1818366
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729882,
+  "center": {
+    "lat": -8.5819412,
+    "lon": 115.1822371
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729883,
+  "center": {
+    "lat": -8.5820645,
+    "lon": 115.1822114
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729884,
+  "center": {
+    "lat": -8.5825347,
+    "lon": 115.1823015
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729885,
+  "center": {
+    "lat": -8.5825044,
+    "lon": 115.1821531
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729886,
+  "center": {
+    "lat": -8.5828035,
+    "lon": 115.1823566
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729887,
+  "center": {
+    "lat": -8.5830864,
+    "lon": 115.1821522
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729888,
+  "center": {
+    "lat": -8.5833832,
+    "lon": 115.1823390
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729889,
+  "center": {
+    "lat": -8.5868018,
+    "lon": 115.1020374
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Tanah Lot",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489729891,
+  "center": {
+    "lat": -8.5866383,
+    "lon": 115.1018515
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Tanah Lot - Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741683,
+  "center": {
+    "lat": -8.4431891,
+    "lon": 115.2422179
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Payangan - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741684,
+  "center": {
+    "lat": -8.4431870,
+    "lon": 115.2421527
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Payangan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741685,
+  "center": {
+    "lat": -8.4435204,
+    "lon": 115.2420977
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741686,
+  "center": {
+    "lat": -8.4435226,
+    "lon": 115.2422278
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741687,
+  "center": {
+    "lat": -8.4435318,
+    "lon": 115.2418230
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741688,
+  "center": {
+    "lat": -8.4436656,
+    "lon": 115.2418251
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741689,
+  "center": {
+    "lat": -8.4436915,
+    "lon": 115.2419783
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741690,
+  "center": {
+    "lat": -8.4436880,
+    "lon": 115.2418475
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741691,
+  "center": {
+    "lat": -8.4435980,
+    "lon": 115.2415916
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741692,
+  "center": {
+    "lat": -8.2574919,
+    "lon": 115.1607002
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Baturiti",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741693,
+  "center": {
+    "lat": -8.2573974,
+    "lon": 115.1608593
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Baturiti - Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741694,
+  "center": {
+    "lat": -8.2573704,
+    "lon": 115.1609155
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Baturiti - Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741695,
+  "center": {
+    "lat": -8.1366542,
+    "lon": 115.0601729
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Baturiti - Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741696,
+  "center": {
+    "lat": -8.1366693,
+    "lon": 115.0601113
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Baturiti - Pemaron",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741697,
+  "center": {
+    "lat": -8.1362686,
+    "lon": 115.0598869
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741698,
+  "center": {
+    "lat": -8.1361552,
+    "lon": 115.0598573
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741699,
+  "center": {
+    "lat": -8.1362391,
+    "lon": 115.0601547
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741700,
+  "center": {
+    "lat": -8.1360919,
+    "lon": 115.0599839
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741701,
+  "center": {
+    "lat": -8.1361428,
+    "lon": 115.0597192
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741702,
+  "center": {
+    "lat": -8.1361108,
+    "lon": 115.0598401
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741704,
+  "center": {
+    "lat": -8.1360478,
+    "lon": 115.0600990
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741706,
+  "center": {
+    "lat": -8.1367974,
+    "lon": 115.0597015
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pemaron - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741707,
+  "center": {
+    "lat": -8.1367811,
+    "lon": 115.0597652
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pemaron - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741708,
+  "center": {
+    "lat": -8.1363735,
+    "lon": 115.0596668
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741709,
+  "center": {
+    "lat": -8.1364063,
+    "lon": 115.0595407
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741710,
+  "center": {
+    "lat": -8.1984125,
+    "lon": 114.8524024
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741711,
+  "center": {
+    "lat": -8.1983575,
+    "lon": 114.8524139
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1489741712,
+  "center": {
+    "lat": -8.1983063,
+    "lon": 114.8524247
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pemaron - Celukan Bawang",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160922,
+  "center": {
+    "lat": -8.5165774,
+    "lon": 115.0143872
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160923,
+  "center": {
+    "lat": -8.5166159,
+    "lon": 115.0144352
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160924,
+  "center": {
+    "lat": -8.5167351,
+    "lon": 115.0145845
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Tanah Lot - Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160925,
+  "center": {
+    "lat": -8.5167743,
+    "lon": 115.0146334
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Tanah Lot - Antosari",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160926,
+  "center": {
+    "lat": -8.5162843,
+    "lon": 115.0145610
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160927,
+  "center": {
+    "lat": -8.5163615,
+    "lon": 115.0146565
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160928,
+  "center": {
+    "lat": -8.5164483,
+    "lon": 115.0147638
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160929,
+  "center": {
+    "lat": -8.5165268,
+    "lon": 115.0148607
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160930,
+  "center": {
+    "lat": -8.5163108,
+    "lon": 115.0148497
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160931,
+  "center": {
+    "lat": -8.5165058,
+    "lon": 115.0151680
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160932,
+  "center": {
+    "lat": -8.5164275,
+    "lon": 115.0147560
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160933,
+  "center": {
+    "lat": -8.5164370,
+    "lon": 115.0150876
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160934,
+  "center": {
+    "lat": -8.5161374,
+    "lon": 115.0145186
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160936,
+  "center": {
+    "lat": -8.3638864,
+    "lon": 114.6605828
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160937,
+  "center": {
+    "lat": -8.3639032,
+    "lon": 114.6606430
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160938,
+  "center": {
+    "lat": -8.3639571,
+    "lon": 114.6608202
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160939,
+  "center": {
+    "lat": -8.3639731,
+    "lon": 114.6608776
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Negara",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160940,
+  "center": {
+    "lat": -8.3643402,
+    "lon": 114.6608227
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160941,
+  "center": {
+    "lat": -8.3643059,
+    "lon": 114.6607038
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160942,
+  "center": {
+    "lat": -8.3642696,
+    "lon": 114.6605781
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160943,
+  "center": {
+    "lat": -8.3642347,
+    "lon": 114.6604571
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160944,
+  "center": {
+    "lat": -8.3644477,
+    "lon": 114.6604709
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160945,
+  "center": {
+    "lat": -8.3643121,
+    "lon": 114.6605101
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160946,
+  "center": {
+    "lat": -8.3645049,
+    "lon": 114.6609115
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160947,
+  "center": {
+    "lat": -8.3643288,
+    "lon": 114.6600457
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160948,
+  "center": {
+    "lat": -8.3643655,
+    "lon": 114.6601665
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160949,
+  "center": {
+    "lat": -8.3644027,
+    "lon": 114.6602899
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160953,
+  "center": {
+    "lat": -8.1752124,
+    "lon": 114.4413377
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160954,
+  "center": {
+    "lat": -8.1751457,
+    "lon": 114.4413140
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Antosari - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160955,
+  "center": {
+    "lat": -8.1743808,
+    "lon": 114.4418908
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk -",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160956,
+  "center": {
+    "lat": -8.1744401,
+    "lon": 114.4419121
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk -",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160958,
+  "center": {
+    "lat": -8.1748594,
+    "lon": 114.4421986
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160959,
+  "center": {
+    "lat": -8.1747947,
+    "lon": 114.4421829
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk - Celukan Bawang;Pemaron - Gilimanuk",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160960,
+  "center": {
+    "lat": -8.1748566,
+    "lon": 114.4416504
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160961,
+  "center": {
+    "lat": -8.1749162,
+    "lon": 114.4415397
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160962,
+  "center": {
+    "lat": -8.1750541,
+    "lon": 114.4418424
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160963,
+  "center": {
+    "lat": -8.1747859,
+    "lon": 114.4414721
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160964,
+  "center": {
+    "lat": -8.1744264,
+    "lon": 114.4413474
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160965,
+  "center": {
+    "lat": -8.1744854,
+    "lon": 114.4415671
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160966,
+  "center": {
+    "lat": -8.1746039,
+    "lon": 114.4416093
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160967,
+  "center": {
+    "lat": -8.1748501,
+    "lon": 114.4416423
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160968,
+  "center": {
+    "lat": -8.1749611,
+    "lon": 114.4417280
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160969,
+  "center": {
+    "lat": -8.1750925,
+    "lon": 114.4417675
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160970,
+  "center": {
+    "lat": -8.1753287,
+    "lon": 114.4418394
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160971,
+  "center": {
+    "lat": -8.1752143,
+    "lon": 114.4417727
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160975,
+  "center": {
+    "lat": -8.1655368,
+    "lon": 114.4335079
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk - Banyuwangi",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490160976,
+  "center": {
+    "lat": -8.1655469,
+    "lon": 114.4335876
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Gilimanuk - Banyuwangi",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186616,
+  "center": {
+    "lat": -8.2578594,
+    "lon": 115.1610397
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186617,
+  "center": {
+    "lat": -8.2577481,
+    "lon": 115.1609861
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186618,
+  "center": {
+    "lat": -8.2579681,
+    "lon": 115.1606675
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186620,
+  "center": {
+    "lat": -8.2578266,
+    "lon": 115.1607413
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186621,
+  "center": {
+    "lat": -8.2577682,
+    "lon": 115.1608619
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186622,
+  "center": {
+    "lat": -8.2577141,
+    "lon": 115.1609737
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186623,
+  "center": {
+    "lat": -8.2576603,
+    "lon": 115.1610850
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186624,
+  "center": {
+    "lat": -8.2576052,
+    "lon": 115.1612035
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186625,
+  "center": {
+    "lat": -8.2575527,
+    "lon": 115.1613182
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186626,
+  "center": {
+    "lat": -8.5828201,
+    "lon": 115.1826929
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186627,
+  "center": {
+    "lat": -8.5828784,
+    "lon": 115.1826805
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186628,
+  "center": {
+    "lat": -8.6664044,
+    "lon": 115.1865271
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Kapal - Sambian",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186629,
+  "center": {
+    "lat": -8.6666497,
+    "lon": 115.1866982
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186630,
+  "center": {
+    "lat": -8.6667635,
+    "lon": 115.1866938
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186631,
+  "center": {
+    "lat": -8.6668125,
+    "lon": 115.1867448
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186632,
+  "center": {
+    "lat": -8.6666598,
+    "lon": 115.1871354
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186633,
+  "center": {
+    "lat": -8.6668184,
+    "lon": 115.1868711
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186635,
+  "center": {
+    "lat": -8.6666592,
+    "lon": 115.1862603
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186637,
+  "center": {
+    "lat": -8.6666083,
+    "lon": 115.1865097
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186638,
+  "center": {
+    "lat": -8.6667202,
+    "lon": 115.1870064
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186639,
+  "center": {
+    "lat": -8.6668895,
+    "lon": 115.1871266
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186640,
+  "center": {
+    "lat": -8.6670406,
+    "lon": 115.1864655
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pemecutan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186642,
+  "center": {
+    "lat": -8.6668079,
+    "lon": 115.1866282
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186644,
+  "center": {
+    "lat": -8.6667984,
+    "lon": 115.1863814
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186645,
+  "center": {
+    "lat": -8.6670447,
+    "lon": 115.1865897
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186646,
+  "center": {
+    "lat": -8.6899995,
+    "lon": 115.1896963
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pemecutan - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186647,
+  "center": {
+    "lat": -8.6902723,
+    "lon": 115.1889097
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186648,
+  "center": {
+    "lat": -8.6901278,
+    "lon": 115.1889727
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186649,
+  "center": {
+    "lat": -8.6899038,
+    "lon": 115.1884683
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186650,
+  "center": {
+    "lat": -8.6899456,
+    "lon": 115.1885708
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186651,
+  "center": {
+    "lat": -8.6901561,
+    "lon": 115.1890411
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186652,
+  "center": {
+    "lat": -8.6902987,
+    "lon": 115.1893682
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186653,
+  "center": {
+    "lat": -8.6901749,
+    "lon": 115.1888844
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186654,
+  "center": {
+    "lat": -8.6894106,
+    "lon": 115.1885255
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pemecutan",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186657,
+  "center": {
+    "lat": -8.6900035,
+    "lon": 115.1886858
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186658,
+  "center": {
+    "lat": -8.6900569,
+    "lon": 115.1888050
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186659,
+  "center": {
+    "lat": -8.6902582,
+    "lon": 115.1892663
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186660,
+  "center": {
+    "lat": -8.6902068,
+    "lon": 115.1891500
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186661,
+  "center": {
+    "lat": -8.6903393,
+    "lon": 115.1894845
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186662,
+  "center": {
+    "lat": -8.7184156,
+    "lon": 115.2110474
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186664,
+  "center": {
+    "lat": -8.7187096,
+    "lon": 115.2106890
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186665,
+  "center": {
+    "lat": -8.7187079,
+    "lon": 115.2106271
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Sambian - Pesanggaran",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186668,
+  "center": {
+    "lat": -8.7184196,
+    "lon": 115.2113067
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186669,
+  "center": {
+    "lat": -8.7184070,
+    "lon": 115.2110931
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186670,
+  "center": {
+    "lat": -8.7184024,
+    "lon": 115.2109699
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186671,
+  "center": {
+    "lat": -8.7183088,
+    "lon": 115.2108473
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186672,
+  "center": {
+    "lat": -8.7183827,
+    "lon": 115.2107112
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186673,
+  "center": {
+    "lat": -8.7183781,
+    "lon": 115.2105883
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186674,
+  "center": {
+    "lat": -8.7182944,
+    "lon": 115.2103317
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186675,
+  "center": {
+    "lat": -8.7182978,
+    "lon": 115.2104655
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186676,
+  "center": {
+    "lat": -8.6977690,
+    "lon": 115.2322018
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Sanur",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186677,
+  "center": {
+    "lat": -8.7184280,
+    "lon": 115.2115277
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186678,
+  "center": {
+    "lat": -8.7184307,
+    "lon": 115.2116405
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186679,
+  "center": {
+    "lat": -8.7185307,
+    "lon": 115.2117640
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1490186680,
+  "center": {
+    "lat": -8.7183378,
+    "lon": 115.2117703
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110525,
+  "center": {
+    "lat": -8.7973408,
+    "lon": 115.2221735
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110526,
+  "center": {
+    "lat": -8.7974441,
+    "lon": 115.2222675
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110527,
+  "center": {
+    "lat": -8.7975311,
+    "lon": 115.2227082
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "busbar",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110528,
+  "center": {
+    "lat": -8.7973777,
+    "lon": 115.2226848
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110529,
+  "center": {
+    "lat": -8.7975057,
+    "lon": 115.2226295
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110530,
+  "center": {
+    "lat": -8.7976246,
+    "lon": 115.2225844
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110531,
+  "center": {
+    "lat": -8.7973349,
+    "lon": 115.2225488
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110532,
+  "center": {
+    "lat": -8.7975828,
+    "lon": 115.2224528
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110533,
+  "center": {
+    "lat": -8.7976090,
+    "lon": 115.2221349
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110534,
+  "center": {
+    "lat": -8.7974769,
+    "lon": 115.2221871
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110535,
+  "center": {
+    "lat": -8.7973263,
+    "lon": 115.2221569
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110536,
+  "center": {
+    "lat": -8.7971983,
+    "lon": 115.2221969
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110537,
+  "center": {
+    "lat": -8.7970642,
+    "lon": 115.2221883
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110541,
+  "center": {
+    "lat": -8.7932325,
+    "lon": 115.2175432
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110542,
+  "center": {
+    "lat": -8.7890675,
+    "lon": 115.2125467
+  },
+  "tags": {
+    "cables": "6",
+    "circuits": "2",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110543,
+  "center": {
+    "lat": -8.7976546,
+    "lon": 115.2221849
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110544,
+  "center": {
+    "lat": -8.7976085,
+    "lon": 115.2220681
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1491110549,
+  "center": {
+    "lat": -8.7185266,
+    "lon": 115.2114043
+  },
+  "tags": {
+    "cables": "3",
+    "frequency": "50",
+    "line": "bay",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1500628364,
+  "center": {
+    "lat": -8.7419056,
+    "lon": 115.1824251
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1500628365,
+  "center": {
+    "lat": -8.7418087,
+    "lon": 115.1828535
+  },
+  "tags": {
+    "cables": "3",
+    "circuits": "1",
+    "frequency": "50",
+    "name": "Pesanggaran - Nusa Dua",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+},
+{
+  "type": "way",
+  "id": 1500628366,
+  "center": {
+    "lat": -8.7362248,
+    "lon": 115.1823975
+  },
+  "tags": {
+    "power": "line"
+  }
+},
+{
+  "type": "way",
+  "id": 1500628367,
+  "center": {
+    "lat": -8.7328286,
+    "lon": 115.1822595
+  },
+  "tags": {
+    "power": "line"
+  }
+},
+{
+  "type": "way",
+  "id": 1500628368,
+  "center": {
+    "lat": -8.7399342,
+    "lon": 115.1829757
+  },
+  "tags": {
+    "power": "line"
+  }
+},
+{
+  "type": "way",
+  "id": 1567556592,
+  "center": {
+    "lat": -8.1222021,
+    "lon": 114.3909207
+  },
+  "tags": {
+    "cables": "9",
+    "circuits": "3",
+    "frequency": "50",
+    "operator": "Perusahaan Listrik Negara",
+    "operator:short": "PLN",
+    "operator:wikidata": "Q4201636",
+    "power": "line",
+    "voltage": "150000"
+  }
+}
+
+  ]
+}

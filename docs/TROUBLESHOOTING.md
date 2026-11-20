@@ -1,5 +1,5 @@
 # When it goes wrong
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 Each entry starts from what is on your screen, then says how to check it and how to fix it. Many of the faults
 people met early on are fixed in the current release, so the first thing to try is almost always the install line.
@@ -132,6 +132,15 @@ PLANETAI_HOME=~/somewhere bash -c "$(curl -fsSL https://planetai.fab.city/node0/
 The command arrived in a later release than this node runs. The message names the node's version.
 
 **Fix.** `planetai update`.
+
+### `this node has its key` with a cross
+
+There is no `NODE_KEY` in `.env`, so the node has no ID and pushes to its parent unsigned. A node installed before
+v0.92.0 gets its key on the update after the one that brings it to v0.92.0.
+
+**Fix.** `planetai update`. Then keep a copy of `.env` somewhere that is not the backup share, because a node that
+loses its key is a new node. A parent that refuses a push from a name it has pinned to another key says so, and names
+`planetai children forget <name>`, which you run on the parent.
 
 ### `mesh packets arriving` with a cross, or the radios went quiet
 

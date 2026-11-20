@@ -239,11 +239,13 @@ def wind_field(hc, lat: float, lon: float, km: float = WIND_KM, n: int = WIND_N)
 
 
 def write_wind_field(hc, lat: float, lon: float):
-    """Fetch the field and replace out/ground/wind.json whole, or leave the last one standing."""
+    """Fetch the field and replace out/ground/wind.json whole, or leave the last one standing. Round the res-8 cell's
+    centre, not the house: /ground/wind is on the `open` list, and a grid's middle is its centre to 5 dp (R25)."""
     import json
     from pathlib import Path
+    import h3
     out = Path(os.getenv("PACK_OUT", "/app/out")) / "ground"
-    f = wind_field(hc, lat, lon)
+    f = wind_field(hc, *h3.cell_to_latlng(h3.latlng_to_cell(lat, lon, 8)))
     out.mkdir(parents=True, exist_ok=True)
     tmp = out / "wind.json.part"
     tmp.write_text(json.dumps(f))

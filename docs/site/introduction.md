@@ -1,5 +1,5 @@
 # Introduction
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 PLANETAI is hyperlocal compute and intelligence for distributed production, and a node is its
 unit: one computer per place, on hardware the place already owns. It reads your own sensors and the public
@@ -35,8 +35,9 @@ you name one, into the daily open export, and from one city node per pilot to th
 
 Today a node reads air and heat from the sensors in and around the house, and land and coast from public and
 satellite sources. Two packs you turn on yourself read nearby fires and the ground's surface heat from
-satellites, and a third, `terrain`, says where the next day's rain goes on the ground around the node. Soil has
-no pack yet. The `make` pack names the nearest fab lab in a sentence, and no
+satellites, and a third, `terrain`, says where the next day's rain goes on the ground around the node. The `hydro`
+pack keeps the rivers and basins around it, and the `energy` pack says how much of the power on its grid is made from
+fossil fuels. Soil has no pack yet. The `make` pack names the nearest fab lab in a sentence, and no
 node has handed a job to a workshop yet. What runs is the loop from a reading to a person acting and a
 measured result; the loop from a reading to something made nearby is the direction.
 [How it works](how-it-works.md#refusals-that-hold-at-every-stage) lists what the canon describes and the code
@@ -59,8 +60,8 @@ network unless someone here chooses an online one.
 
 ## What stays, and what goes up
 
-Raw readings stay on the machine. A parent node, if you name one, gets hourly means and alert timestamps, and
-the daily open export carries hourly means, the Index cells, the first line of each alert and ρ under CC BY 4.0.
+Raw readings stay on the machine. A parent node, if you name one, gets hourly means and alert timestamps, and any Place map you choose to share. The
+daily open export carries hourly means, the Index cells, the first line of each alert and ρ under CC BY 4.0.
 By default no question goes to a model outside your network (`AGENT_PREFER=private`) and the dashboard fetches
 no live map tiles (`MAP_TILES=off`). Every hour the node asks planetai.fab.city whether a newer version is out
 and reads the programme's lists of nodes and of wild packs from GitHub. Every six hours it refreshes its own copy of
@@ -86,19 +87,19 @@ sensor alive and the alerts correct".
 
 ## What these pages are
 
-This is the reference for the node at v0.91, read from its code. Where a page and the code disagree, the code
+This is the reference for the node at v0.92, read from its code. Where a page and the code disagree, the code
 wins and the page has a bug; the link at the foot of every page opens its source on GitHub. The sidebar follows
 the order a node is built in:
 
 | group | what is in it |
 |---|---|
-| Start here | this page, [How it works](how-it-works.md) and the words the other pages use, in [Concepts](concepts.md) |
-| Get started | the machines it runs on, the install and the first ten minutes |
+| Start here | the [Quick start](quickstart.md), this page, [How it works](how-it-works.md) and the words the other pages use, in [Concepts](concepts.md) |
+| Install | the machines it runs on, the install and the first ten minutes |
 | Run a node | the CLI, settings, updates, backups, networking, sharing and troubleshooting |
 | Sensors and sources | your own sensors, radios, the source registry and what a node reads before it has a sensor |
 | Alerts and ρ | rules and levels, the channels alerts go out on, the report and how ρ is counted |
 | Packs | how to write a pack, every field a pack can declare, and the issues a place watches |
-| Dashboard | the page, the wall screen, the design rules behind both, and Grafana |
+| Dashboard | the page, the next days, the Place door, the wall screen, the design rules behind them, and Grafana |
 | Agents | the ask pane, agents on the node, the MCP tools and the Telegram bot |
 | Reference | the [HTTP API](api.md), the [database](schema.md) and the [federation contracts](federation.md) |
 | Project | the architecture and the spec the rest is measured against, how to develop the node, and the changelog |
@@ -108,6 +109,7 @@ the order a node is built in:
 | you want to | read |
 |---|---|
 | know whether your machine can run it | [Platforms](platforms.md) |
+| put a node up in one sitting | [Quick start](quickstart.md) |
 | install it | [Install](install.md) |
 | get from a running node to a closed loop | [First ten minutes](first-ten-minutes.md) |
 | add a sensor | [Sensors and sources](sensors.md) |

@@ -1,0 +1,40 @@
+name: US Census County Business Patterns (CBP)
+url: https://www.census.gov/programs-surveys/cbp.html
+description: |
+  Annual establishments, mid-March employment and payroll for every US
+  county by NAICS industry, from the Census Bureau's Business Register.
+pillar: economic
+scale: region
+status: candidate
+license: "No named licence. US federal work, no domestic copyright; the Bureau names no licence of its own (same position as us-census-acs)."
+api: https://www2.census.gov/programs-surveys/cbp/datasets/2023/cbp23co.zip
+pilot_relevance: []
+places: [charlotte]
+tags: [establishments, employment, manufacturing, naics, county, united-states]
+auth: none
+feeds_cells: [Economic|Region]
+added: 2026-11-05
+assisted_by: Claude Code
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-05 from the keyless county flat files cbp23co.zip and
+  cbp19co.zip on www2.census.gov (fipstate 37, fipscty 119, Mecklenburg).
+  2023: manufacturing (naics 31----) 29,929 employees in 773 establishments;
+  all industries 732,418 employees in 36,472 establishments. 2019:
+  manufacturing 26,362 in 756; all industries 655,533 in 33,186. 2023 is the
+  latest on www2 (cbp24co.zip is 404).
+
+  ENDPOINT. The CBP API (api.census.gov/data/2023/cbp) redirects to
+  missing_key.html without a key, like the ACS. The flat files need none.
+
+  LICENCE. No licence statement was found on the census.gov pages read. As
+  with us-census-acs, the basis is that US federal works carry no domestic
+  copyright; the Bureau does not say so itself.
+
+  WHY THIS CELL. Economic|Region asks for persons employed in manufacturing
+  and enterprises per 1000 inhabitants; CBP gives both numerators at county
+  level (establishments, with population from the ACS).
+
+  WHAT IT DOES NOT CLAIM. Establishments are not enterprises, employment is
+  a mid-March count, and the self-employed, government and farm work are out
+  of scope.

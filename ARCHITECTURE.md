@@ -1,5 +1,5 @@
 # PLANETAI. Architecture
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The whole system on one page. What exists today is marked. What does not exist yet is drawn anyway, because the
 contracts between layers cannot be added later.
@@ -89,6 +89,8 @@ key, and `tools/check_wire.py` in `make lint` holds their top-level shape agains
 | `report-v0` | `GET /report/latest` | `app/main.py::report_latest` |
 | `aggregates-v0` | the child's hourly push body | `app/main.py::push_aggregates` |
 | `events-v0` | the child's ρ push body | `app/main.py::push_events` |
+| `maps-v0` | a shared Place map, the child's push to its parent (`POST /place/maps/received`) | `app/maps.py::push_maps` |
+| `photos-v0` | a child's answer to the parent's ask for a photo (`POST /place/photos/received`) | `app/maps.py::_answer` |
 | `days-v0` | `GET /issues/days?days=`, the same hourly series over up to 90 days | `app/issues/engine.py::days` |
 | `forecast-v0` | `GET /forecast?hours=`, the forecast pack's next 72 hours, its days and the packs' lines | `packs/forecast/days.py::answer` |
 
@@ -99,7 +101,8 @@ the bump is a `docs/decisions/` entry. (`/health`'s `schema` is older and means 
 database schema version. Nothing else should use the name for two things.)
 
 **Readings**: `(ts, sensor_id, metric, value)` + a `sensors` row `(source, name, lat, lon, indoor, local, meta)`.
-Up: children push hourly means of their own sensors, each row saying whether it is indoors (`POST /aggregates`).
+Up: children push hourly means of their own sensors, each row saying whether it is indoors (`POST /aggregates`). A child
+signs what it pushes with its own key, and the parent pins the child's name to that key (`docs/SPEC_identity.md`).
 A child's peers and models stay with the child, because the parent counts everything it receives as its children's.
 Down: a sensor or a phone the household trusts posts raw
 (`POST /readings`, with the node's admin token: a posted reading counts as one of the house's own). The instance
@@ -206,7 +209,7 @@ Not a roadmap. Each stage names what exists, what it proves, and the trigger for
 **Stage 0: now.** One node, two containers by default (a broker, a Reticulum bridge built from its own repository,
 the local model's loop, IPFS and Grafana are optional profiles), Sense: adapters across sensor, portal, model and map classes, in the core and in packs.
 Observe: Postgres, hourly view, read API. Act: two domain-blind core rules and the three trust rules, plus whatever the loaded packs contribute
-(twenty-five core packs ship, some serving their own routes, and wild packs are added per node), to
+(twenty-eight core packs ship, some serving their own routes, and wild packs are added per node), to
 Telegram, the mesh, and Home Assistant through its pack; `POST /actions` records what a person did.
 Index: `GET /cells` emits `Environmental|Community` live and ρ partial. Compute: one Mac mini. *Proves:* a reading
 becomes a message someone acts on, and the node reports that fact as a cell.

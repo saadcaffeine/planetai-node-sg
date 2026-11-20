@@ -1,11 +1,11 @@
 # Data schema
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 Everything the node knows sits in one Postgres database, `planetai`, on the machine itself. A pack's rules and cells are SQL written against the tables and views on this page, and a person debugging a node at 9 pm reads the same ones with `psql`. The raw readings live in `readings` and stay here: "No raw readings leave the instance that recorded them" (ARCHITECTURE.md). What goes up to a parent is `readings_1h`, the hourly means, and the timestamps in `alerts` and `actions`.
 
 `init.sql` is the whole schema, and it is written to be run twice: `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE … ADD COLUMN IF NOT EXISTS`, and `DROP VIEW` then `CREATE VIEW`. Postgres runs it on its own only when the data volume is first created, so `update.sh` applies the same file to the existing database on every update, and `planetai restore` applies it after a restore. There are no other migration files. Schema changes are additive by rule (SPEC §5): no dropped columns, no renames, no destructive migrations, which is what makes a rollback a `git checkout <tag>` and a restart instead of a restore. The one column ever dropped is `events.cleared_at`, which nothing had written. `schema_version` records where a node is, and `/health` reports it.
 
-`init.sql` holds 18 tables, 4 views, 1 materialized view, 1 trigger and 1 role, and the `place` pack adds four tables of its own.
+`init.sql` holds 26 tables, 4 views, 1 materialized view, 1 trigger and 1 role. The `place` pack adds four tables of its own and the `index` pack one.
 
 ## Tables
 
@@ -20,9 +20,9 @@ One row per thing that produces readings, and per place the node was told about.
 | `name` | text | the place, as the person named it: the `room` when the household set one, else the platform's name |
 | `room` | text | the household's word for where the sensor is, set with `PATCH /sensors/{sid}`; a trigger makes it the `name` whatever writes the row |
 | `source_name` | text | the platform's own name, kept while a `room` stands in for it |
-| `lat`, `lon` | double | position; rounded before it leaves for a reader without a token |
+| `lat`, `lon` | double | position. A reader without a token gets the centre of the node's cell for a sensor in `custody`, and three decimals for any other row |
 | `indoor` | bool | measures a room; never in an ambient average |
-| `local` | bool | the person's own **and** within `LOCAL_RADIUS_M` of the node |
+| `local` | bool | the person's own **and** in one of the node's own cells (`node_cells`), set again on every poll |
 | `kind` | text | `sensor` · `portal` · `model` · `survey` · `child` · `peer` · `facility`, as `init.sql` lists them; the `place` pack also writes `map` |
 | `scale` | text | `community` · `city` · `region` · `bioregion` · `planet` |
 | `cadence` | text | ISO 8601 duration: `PT5M`, `PT1H`, `P1D`, `P30D`, `P1Y` |
@@ -68,12 +68,12 @@ The ρ instrument: what happened after an alert, one row per answer.
 | `ts` | timestamptz | |
 | `alert_id` | bigint → `alerts.id` | null for `settings` rows and for the answers to an alert event |
 | `event_id` | bigint → `alert_events.id` | set only on an answer to an event, from `POST /actions` with an `event_id`; null on every other row |
-| `stage` | text | checked: `acknowledged` · `acted` · `measured` · `settings` · `decided` · `dismissed` |
+| `stage` | text | checked: `acknowledged` · `acted` · `measured` · `settings` · `decided` · `dismissed` · `place` |
 | `actor` | text | who: the name typed on the dashboard, the login name from `planetai act`, `lxmf:<hash>` from the radio bridge, an agent's name, or the `X-Agent` of a settings change |
 | `note` | text | in the person's words |
 | `choice` | text | the `value` of the alert's button that was pressed, from `POST /actions` with a `choice`; null on every other row |
 
-The six stages do different things, and two of them are never posted by a person.
+The seven stages do different things, and three of them are never posted by a person.
 
 | stage | written by | what it moves |
 |---|---|---|
@@ -83,6 +83,7 @@ The six stages do different things, and two of them are never posted by a person
 | `dismissed` | `POST /actions` with an `event_id`, never with an `alert_id` | Nothing. It is *Doesn't fit*, said of an alert event's advice |
 | `measured` | nothing | `POST /actions` refuses it. The node derives `measured` from an `acted` alert whose rule stayed silent on the same sensor for 2880 minutes; see [ρ](rho.md). A `measured` row already in the table still counts |
 | `settings` | `PUT /settings`, `planetai config set`, the `settings_set` tool | Nothing in ρ; it records who changed which keys |
+| `place` | the Place routes, when a drawing, a map or a claimed cell changes | Nothing in ρ; it is the ledger row for the change, with the verb in `choice` |
 
 An `acknowledged` or `acted` row with a `choice` answers a button of the alert's own, one row for each person's choice. An `acknowledged` or `acted` row with an `event_id` answers an alert event. On `ALERT_ENGINE=events`, ρ and its funnel count each event the engine sent at act level once, answered by a row with an `event_id`; the rows of the packs the engine replaced are left out from its first sent message on. `GET /effect` and the push to a parent read only rows with an `alert_id`.
 
@@ -158,7 +159,7 @@ What each `(source, metric)` is, written at every start from `config/channels.ym
 
 ### `schema_version`
 
-`version`, `applied_at`; one row per schema step: 0.4, 0.14, 0.20 to 0.23, 0.50 to 0.52, and 0.54 to 0.61. There is no 0.53 row; the alert-event tables are created without one. An up-to-date node reports `0.61` at `/health`.
+`version`, `applied_at`; one row per schema step: 0.4, 0.14, 0.20 to 0.23, 0.50 to 0.52, and 0.54 to 0.66. There is no 0.53 row; the alert-event tables are created without one. An up-to-date node reports `0.66` at `/health`.
 
 ### `release_notices`
 
@@ -184,6 +185,34 @@ What the node learned: `kind` and `key` (the primary key together), `issue`, `me
 
 What a home keeps ([`docs/SPEC_inventory.md`](../SPEC_inventory.md)): `id`, `added_at`, `class`, `name`, `count`, `used` (`weekly` · `monthly` · `yearly` · `never`), `condition` (`works` · `needs_repair` · `broken`), `offer` (`no` · `lend` · `give`), `capture_id` and `note`. Written by `/things`, the things pack's routes. Revoked from `planetai_ro`, so no pack SQL reads it, and named by no export or push. Its counts per class reach `readings` as the private `stock.<class>`, `idle.<class>` and `repair.<class>`.
 
+### `node_cells`
+
+The node's own resolution-8 cells: `cell` (the primary key), `claimed_at` and `claimed_by`, which is `home` for the cell
+the node stands in, `adopted` for a neighbour claimed on the first run after `LOCAL_RADIUS_M` was retired, `keeper` for one
+claimed on Place, and `agent:<name>` for one an agent claimed. A neighbour not in the table is open. Whether a claimed
+cell is held is worked out from `readings` on every read and never stored here. The `home` and `adopted` rows are
+written the first time the node reads its cells, the others by `POST` and `DELETE /place/cells/{cell}/claim`.
+
+### `place_maps` and `place_marks`
+
+The named maps of the Place door. A map has a `name`, an `owner`, an `agent` when an agent drew it, `shared` with `shared_at`, `share_error`, `pushed_at` and `push_tried_at`, and `held`, which is true while a drawing on the house's own res-10 cell keeps the map from going upstream until somebody presses Share again. A map pulled from a child carries `from_node` and `remote_id`, and both are null on a map drawn here. A mark has a `kind` (`marker` · `line` · `area` · `note`), a PostGIS `geom` in 4326, a `colour` from 1 to 6, a `label` and a `note`, an optional `capture_id`, `length_m` and `area_m2` written by the server from the geometry, `drawn_by`, and `photo`, what the child said about a photo on a received mark. Deleting a map deletes its marks.
+
+### `place_maps_unshared`
+
+A shared map that was unshared or deleted here whose delete the node upstream has not had yet: `map_id`, `at` and `tried_at`. A row goes when the parent has taken the delete.
+
+### `place_photo_asks` and `place_photo_asks_in`
+
+Photos on demand. `place_photo_asks` is this node, as a parent, asking a child for the file behind a photo: `from_node`, `ref` (the child's capture number), `state` (`asked` · `sent` · `no` · `gone`) and, once it came, `file`, `mime` and `bytes`. `place_photo_asks_in` is the node upstream asking this one: `parent`, `ask_id`, `capture_id`, `answer` (`send` · `no` · `gone`), `answered_by`, and `sent_at`, after which the answer never goes again. Both are revoked from `planetai_ro`.
+
+### `place_readings`
+
+One row per time somebody asked a model to write a fuller reading of the place: `state` (`writing` · `written` · `refused`), the `rung`, `model` and `wherefrom` that wrote it, the `facts` it was written from, its `text` and, when refused, why. The node's own reading is never stored, because it is worked out from the facts on every read.
+
+### `children`
+
+On a parent, one row per child name: `name`, `node_id`, `public_key`, `first_seen` and `last_seen`. The name is pinned to the first key that signs under it, and a push signed by another key is refused. `node_id` is null for a child that still pushes unsigned. `DELETE /children/{name}` and `planetai children forget` drop a row and keep the child's readings and events.
+
 ### `readings_1h_done`
 
 The finished hours behind the `readings_1h` view: `bucket, sensor_id, metric, mean, min, max, n`, one row per sensor,
@@ -192,7 +221,7 @@ day. Read `readings_1h`, never this table: the view adds the hours this table ha
 
 ### Pack tables
 
-The `place` pack creates `place_features` (OpenStreetMap features with a PostGIS geometry), `place_runs`, `place_yearly` and `place_buildings_sat` (Open Buildings). Tables a pack creates inherit the read-only role's `SELECT` through default privileges.
+The `place` pack creates `place_features` (OpenStreetMap features with a PostGIS geometry), `place_runs`, `place_yearly` and `place_buildings_sat` (Open Buildings). The `index` pack creates `index_reads`, the last good copy of each file it read from index.fab.city. Tables a pack creates inherit the read-only role's `SELECT` through default privileges.
 
 ## Views
 
@@ -210,7 +239,7 @@ Sensors land in `stats`. Slow sources (portals, models, maps) land in `observati
 
 ## The read-only role
 
-`planetai_ro` is `NOLOGIN`, has `SELECT` on every table except `settings`, `captures`, `things`, `learnings`, `digests` and `household`, and writes nothing. Every rule and every cell runs as it, one statement at a time with `SET LOCAL ROLE`, so a rule cannot read a token into an alert text or change a row. Grafana's login, `planetai_grafana`, is a member of it, made by the `grafana-role` container and not by `init.sql` ([Grafana](grafana.md)).
+`planetai_ro` is `NOLOGIN`, has `SELECT` on every table except `settings`, `captures`, `things`, `learnings`, `digests`, `household`, `place_photo_asks` and `place_photo_asks_in`, and writes nothing. Every rule and every cell runs as it, one statement at a time with `SET LOCAL ROLE`, so a rule cannot read a token into an alert text or change a row. Grafana's login, `planetai_grafana`, is a member of it, made by the `grafana-role` container and not by `init.sql` ([Grafana](grafana.md)).
 
 ## Time and place inside the database
 

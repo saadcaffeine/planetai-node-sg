@@ -614,6 +614,12 @@ def _from_earth(spec: dict, earth: dict | None, obs: list[dict], now: datetime) 
     return cell
 
 
+def day_buckets(buckets, now: datetime) -> list:
+    """The last 24 hourly buckets that have happened, each once and in order: the hours /issues draws, and the
+    Wall's map steps through the same ones (app/wall.py). readings_1h also holds the forecast's hours ahead."""
+    return sorted({b for b in buckets if (_age_minutes(b, now) or 0) >= 0})[-24:]
+
+
 def _age_minutes(ts, now: datetime) -> float | None:
     if not ts:
         return None
@@ -1487,7 +1493,8 @@ def replay(snapshot: dict, settings, decl: dict) -> dict:
                    facilities=facilities, events=body.get("events"), usual=usual, silent=silent)
 
 
-def _geometry(lat: float, lon: float, settings, stations: list[dict], peers) -> dict:
+def _geometry(lat: float, lon: float, settings, stations: list[dict], peers,
+              own_cells: set[str] | None = None) -> dict:
     """The H3 shapes the dashboard's one control — the resolution dial — turns on, computed here so
     the page never has to. The plates alone are a few kB per resolution; the whole object is published
     in one shot because the page turns a dial across eleven resolutions, and asking per stop would be
@@ -1511,22 +1518,23 @@ def _geometry(lat: float, lon: float, settings, stations: list[dict], peers) -> 
         "ladder": geometry.ladder(lat, lon),
         "nav": geometry.plates(lat, lon, stations),
         "grain_table": geometry.grain_table(lat, lon, stations, floor_res=floor, publication_res=pub["res"]),
-        "claims": geometry.claims(lat, lon, settings, ring),
+        "claims": geometry.claims(lat, lon, settings, ring, own_cells=own_cells),
         "radio": geometry.radio(lat, lon, settings, peer_rows),
         "settings": {k: settings.num(k, d) for k, d in (
-            ("LOCAL_RADIUS_M", 500), *([(ring["radius"], 15)] if ring else []), ("EARTH_RADIUS_M", 5000),
+            *([(ring["radius"], 15)] if ring else []), ("EARTH_RADIUS_M", 5000),
             ("PLACE_RADIUS_M", 1000), ("RETICULUM_PRESENCE_RES", 3))} | {"PRESENCE_RES_FLOOR": floor},
         "source": f"h3 {h3.__version__}, computed by this node",
     }
 
 
-def _safe_geometry(lat: float, lon: float, settings, stations: list[dict], peers) -> dict | None:
+def _safe_geometry(lat: float, lon: float, settings, stations: list[dict], peers,
+                   own_cells: set[str] | None = None) -> dict | None:
     """The geometry, or None. One bad number in a setting — a radius, a resolution — reaches h3 through _geometry
     and an h3 exception would otherwise fail the whole /issues response, so the page that draws the air, the asks
     and the stations goes blank over the map. The page's `needs` machinery already prints one honest line for a
     section whose global is absent, which is the true thing to say here."""
     try:
-        return _geometry(lat, lon, settings, stations, peers)
+        return _geometry(lat, lon, settings, stations, peers, own_cells=own_cells)
     except Exception:  # noqa: BLE001 — whatever h3 raises, the rest of the body is still an answer
         log.exception("geometry failed; /issues publishes geometry: null and the page says so")
         return None
@@ -1535,7 +1543,7 @@ def _safe_geometry(lat: float, lon: float, settings, stations: list[dict], peers
 def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime | None = None,
             place: tuple[float, float] | None = None, mesh: dict | None = None,
             peers=(), facilities=(), events: dict | None = None, usual: dict | None = None,
-            silent: list[dict] | None = None) -> dict:
+            silent: list[dict] | None = None, public=None) -> dict:
     """Every declared issue, computed. See the module docstring for what is arithmetic and what is not.
 
     `earth` is `/earth`'s body, passed in rather than re-read here so that the earth pack's record has
@@ -1555,6 +1563,9 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
     fixture captured. None is a node, or a capture, from before events: the page says so (SPEC_dashboard_events §5).
 
     `silent` is the capture's own silent stations, from a replay; None reads them.
+
+    `public(stations, place)` is what a reader without a token may see of the stations (issues/api.py `unplaced`),
+    applied before anything is drawn from them; None shows them as they are.
 
     `usual` maps an issue to the (usual, usual_absent) pair a capture carried; a replay passes it, because a snapshot
     holds the /issues answer and not usual_by_hour. None reads the view, on a savepoint of its own.
@@ -1601,7 +1612,7 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
     # The last 24 hours that have happened. readings_1h also holds the forecast's hours, up to 48 h ahead, and the
     # latest 24 buckets used to be mostly tomorrow's: no sensor reads there, so every series came back empty and
     # every trend "steady" — on node #1 the live title said "holding" whatever the air did (11 Oct 2026).
-    buckets = sorted({r["bucket"] for r in data["hourly"] if (_age_minutes(r["bucket"], now) or 0) >= 0})[-24:]
+    buckets = day_buckets((r["bucket"] for r in data["hourly"]), now)
     hourly: dict = {b: [] for b in buckets}
     for r in data["hourly"]:
         if r["bucket"] in hourly:
@@ -1698,13 +1709,17 @@ def compute(cur, settings, decl: dict, earth: dict | None = None, now: datetime 
             and str(a.get("rule_id") or "").split("/", 1)[0] not in owned]}
     headline_issue = lead["issue"] if lead else None
     stations = _stations(data["stats"], data.get("hourly"), lat, lon, sited, silent_rows)
+    if public is not None:
+        stations = public(stations, (lat, lon))
     # A station that stopped is published for the page's fold under `stations_silent.stations`, never in `stations`:
     # geometry's cell `sensors` are positions in the list it is given, and every existing reader of `stations` (the
     # digest, simple mode's neighbours, the grain table, the page) means the stations heard in the last day
     # (SPEC_dashboard_figures §3.3).
     heard = [s for s in stations if not s.get("last_heard")]
     stopped = [s for s in stations if s.get("last_heard")]
-    geom = _safe_geometry(lat, lon, settings, heard, peers)
+    cell_rows = _optional(cur, "SELECT cell FROM node_cells") if sited else None
+    own_cells = ({r["cell"] for r in cell_rows if r.get("cell")} if cell_rows is not None else None)
+    geom = _safe_geometry(lat, lon, settings, heard, peers, own_cells=own_cells)
     asks = _asks_ledger(data["alerts"], data["actions"], list(facilities or []))
     # ARCHITECTURE.md §3: the one document a client draws says which document it is. A reader that
     # sees a schema it does not know draws what it recognises; it never refuses, and the dashboard's

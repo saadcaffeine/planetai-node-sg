@@ -46,7 +46,7 @@ assert (main.ISSUES_V0, main.EXPORT_V0, main.AGGREGATES_V0, main.EVENTS_V0, main
 
 SRC = open("app/main.py").read()
 for const in ("AGGREGATES_V0", "EVENTS_V0"):
-    assert f'json={{"schema": {const}' in SRC, f"the push body must lead with schema: {const}"
+    assert f'", {{"schema": {const}' in SRC, f"the push body must lead with schema: {const}"   # _post_parent(route, {...})
 assert '"schema": EXPORT_V0' in SRC, "/export carries its version"
 assert '"schema": REPORT_V0' in SRC, "/report/latest carries its version"
 assert '"schema": "issues-v0"' in open("app/issues/engine.py").read(), "the issues document carries its version"

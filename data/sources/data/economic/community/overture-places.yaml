@@ -7,9 +7,9 @@ pillar: economic
 scale: community
 status: candidate
 license: "CDLA-Permissive-2.0 AND Apache-2.0 AND CC0-1.0, per source; see notes"
-api: s3://overturemaps-us-west-2/release/2026-10-21.0/theme=places/type=place/
+api: https://stac.overturemaps.org/catalog.json
 pilot_relevance: [global]
-places: [barcelona, bali]
+places: [barcelona, bali, charlotte]
 tags: [places, poi, businesses, premises, repair, amenities, geoparquet, overture, gers]
 added: 2026-10-23
 assisted_by: Claude Code
@@ -27,7 +27,8 @@ notes: |
   sources[].dataset and sources[].license, and every source row in both boxes read had both. The schema makes
   sources[].license optional, so where it is absent go by the attribution page or ask the provider.
 
-  ENDPOINT. Anonymous S3, us-west-2, no key. Read with DuckDB 1.5.5 over httpfs, filtering on the bbox column.
+  ENDPOINT. Anonymous S3, us-west-2, no key. Only the last two monthly releases stay in the bucket (60 days), so `api`
+  is the STAC catalog, whose `latest` names the current path (release/<id>/theme=places/type=place/). Read with DuckDB 1.5.5 over httpfs, filtering on the bbox column.
   The release notes give 88,418,121 places, up 8.55 % on September.
 
   READ. Barcelona, a 2 x 2 km box round Plaça de Catalunya (2.158-2.182 E, 41.378-41.396 N): 25,821 places,
@@ -45,3 +46,8 @@ notes: |
   WHY THIS CELL. "Businesses per km2 within the radius" and repair access for Economic|Community, with permissive
   licences where OSM's ODbL would bind what a node publishes. WHAT IT DOES NOT CLAIM. A listing is not an open
   door, and no fab lab is identified as one: there is no makerspace category in either box.
+
+  CHARLOTTE, read 2026-11-05 (release 2026-10-21.0, DuckDB over anonymous S3, 22 s): 103,388 places in a box
+  around Mecklenburg County. There is no makerspace category; by name, "MakerSpace Charlotte"
+  (a0d1170b-a306-473f-a1fd-e49441b45115, confidence 0.99) and "Hackerspace Charlotte"
+  (1dc89547-0df2-4996-8ac8-f51c30908aac, 0.98).

@@ -1,5 +1,5 @@
 # Bring your own agent
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 An agent is a guest on the machine, never a part of it. It can read everything the node knows and help the person in
 front of it install, diagnose and run the node in plain language. It drafts and a person dispatches: no agent
@@ -103,7 +103,8 @@ under its alert, with an `alert_id` and a `choice`. No MCP tool writes any of th
 ## Invariants an agent must not break
 
 - Raw readings stay on this machine. Exports and aggregates travel, rows never do.
-- `.env` holds secrets. Never print it, paste it or commit it. A log containing `api.telegram.org/bot` is a leak.
+- `.env` holds secrets. Never print it, paste it or commit it. A log containing `api.telegram.org/bot` is a leak. `NODE_KEY` in it is the node itself
+  ([Federation](federation.md)): never regenerate it, blank it or copy it to another node, because a new key is a new node.
 - The database lives on a local disk, never a network mount. Backups are how data reaches a NAS.
 - A model or a portal is `partial`, whatever its quality. `live` means measured here.
 - Alerts say what to do in one sentence and name the threshold's source. Do not add alerts a household would ignore.
@@ -115,7 +116,9 @@ under its alert, with an `alert_id` and a `choice`. No MCP tool writes any of th
   (`kind='child' OR (local AND kind<>'peer')`), is the only thing a cell may count.
 - State is never upgraded by aggregation. A parent's cell is `partial` if any input was.
 - Exact place never leaves. A coarse cell may, and says how coarse. The Reticulum announce is an H3 cell never finer
-  than resolution 6, roughly 3 km across.
+  than resolution 6, roughly 3 km across. The one exception is a Place map the household chooses to share, which goes to
+  the node upstream with its exact coordinates, labels, notes and measures, after a plain warning, and is held while a
+  drawing touches the cell the house stands in.
 - Exactly one node per pilot writes to the Index's spine.
 - `act` needs the person's own words. It has no default note and refuses a placeholder. ρ is the share of act-level
   alerts a human answered, and a row written without anything a human said is a model measuring itself. If they did

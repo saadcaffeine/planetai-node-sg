@@ -1,0 +1,12 @@
+{
+  "schema": "photos-v0",
+  "source": "app/maps.py::_answer",
+  "keys": [
+    "answer",
+    "ask",
+    "image",
+    "node",
+    "picture",
+    "schema"
+  ]
+}

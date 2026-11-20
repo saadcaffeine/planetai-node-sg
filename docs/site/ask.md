@@ -1,5 +1,5 @@
 # Ask the node
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The dashboard can be asked about what it shows. A pane opens beside the page and talks to the model Set up names for
 this node, the same one the Telegram bot uses, through the same tools. It reads the page and the node, it explains,
@@ -37,7 +37,9 @@ grey, so the page's paper is only ever the data. It asks the same `POST /ask`, w
 and draws only the words of the answer as they arrive. It reads like any chat: the box is at the bottom, each question
 appears as your own line with the answer under it, and the exchanges stay on screen while the tab is open. Only the
 new question is sent, never the ones before it. It shows no ledger line, no list of reads and no cards, so a change the model reaches
-for is not drawn there; make it in Set up. Type in the box and press Enter, or the arrow inside the box; Shift and
+for is not drawn there; make it in Set up. The one button it does draw is the place report's: ask for the place
+report, a PDF or a printout of Place, and under the answer is **Open the Place report**, which opens it on Place for you
+to print. Type in the box and press Enter, or the arrow inside the box; Shift and
 Enter starts a new line, as the line under the box says. Above the box, three questions are offered, written by the
 node from tonight's figures (`digest.prompts` in `GET /issues`), such as "What should I know about the heat today?".
 With learn on, the two that the parts of the door carry come first. Pressing one asks it, and after each answer the
@@ -60,11 +62,14 @@ draws, the routes it reads, the pack that drew it, and a link to the section it 
 | `read` | `status`, `health_check`, `sensors`, `context`, `readings`, `report_latest`, `history`, `alerts`, `packs`, `cells`, `issues`, `series` | run, through `/mcp` as `dashboard-chat` |
 | `act` | `act` | not run: a card with the page's own **I did this** form |
 | `admin` | `settings_set`, `run_pack_script`, `maintenance`, `report_now` | not run: a card, or a sentence naming where it is done |
+| `page` | `place_report` | not run: a button that opens the Place report, Paper unless you asked for Screen |
 
 `settings_get`, `report_bundle` and `export_day` are read tools the pane is never given: it can be open on a wall at
 `SHARE_LEVEL=open`, and the person typing is not always the person who set the node up. `learned` is given only to a
 request carrying the admin or act token, or coming from this machine, and never to the Wall's narration, because what
-the house learned stays with the house.
+the house learned stays with the house. `place_report` is given to the same requests, because the report draws the
+map of the house. It is the pane's own and not on `/mcp`: it opens a view of the page, and the model never makes the
+PDF.
 
 A tool result is cut at 8,000 characters, and when it is cut the model is told so, with the full length. For a count,
 `alerts` takes `since_hours` and answers with the count itself. After a tool result the model answers with

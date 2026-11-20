@@ -4,6 +4,20 @@
 -- Rules: CREATE TABLE IF NOT EXISTS · ALTER TABLE ADD COLUMN IF NOT EXISTS · DROP VIEW then CREATE (column
 -- lists change between versions, and CREATE OR REPLACE VIEW cannot reorder columns).
 
+-- PostGIS first: Place maps (place_maps, place_marks below) store geometry, so a database without the extension must
+-- stop the whole apply here, with a sentence that says why, before anything else is touched. The db image in
+-- docker-compose.yml is PostGIS and its user may create extensions, so on a current node this is a no-op.
+-- update.sh applies this file BEFORE `docker compose up -d` swaps the db image, so "run planetai update" alone would
+-- fail the same way forever: the sentence names the step that brings the db up on the new image first. psql prints
+-- the ERROR and its DETAIL on stderr, which update.sh leaves on the terminal; DETAIL keeps Postgres's own reason, so a
+-- permissions failure is not hidden behind the image.
+DO $$ BEGIN
+  CREATE EXTENSION IF NOT EXISTS postgis;
+EXCEPTION WHEN OTHERS THEN
+  RAISE EXCEPTION 'PostGIS is not in this database, and Place maps need it. Where the node is installed, run docker compose up -d db. That starts the database on the PostGIS image docker-compose.yml names. Then run planetai update again.'
+    USING DETAIL = 'Postgres said: ' || SQLERRM;
+END $$;
+
 CREATE TABLE IF NOT EXISTS sensors (
   sensor_id TEXT PRIMARY KEY,           -- 'sc-19880' | 'bad-pa-46949' | 'ag-<serial>' ...
   source    TEXT NOT NULL,              -- 'smartcitizen' | 'baliairdispatch' | 'airgradient' ...
@@ -11,7 +25,7 @@ CREATE TABLE IF NOT EXISTS sensors (
   lat       DOUBLE PRECISION,
   lon       DOUBLE PRECISION,
   indoor    BOOLEAN NOT NULL DEFAULT FALSE,
-  local     BOOLEAN NOT NULL DEFAULT FALSE,   -- TRUE = this node's own instrument, here. Set by the adapter, narrowed by LOCAL_RADIUS_M.
+  local     BOOLEAN NOT NULL DEFAULT FALSE,   -- TRUE = this node's own instrument, here. Set by the adapter, narrowed by node_cells.
   kind      TEXT NOT NULL DEFAULT 'sensor',   -- sensor | portal | model | survey | child | peer | facility  (how the number was produced,
                                         -- or, for 'facility', that there is no number: a place with a name and a point. packs/make)
   scale     TEXT NOT NULL DEFAULT 'community',-- community | city | region | bioregion | planet  (what the number describes)
@@ -184,7 +198,7 @@ CREATE TABLE IF NOT EXISTS settings (
 -- runs on every apply, so a later pair would have it re-add the five-stage check over rows that already say
 -- `dismissed`, and under ON_ERROR_STOP update.sh would stop with the constraint dropped.
 ALTER TABLE actions DROP CONSTRAINT IF EXISTS actions_stage_check;
-ALTER TABLE actions ADD CONSTRAINT actions_stage_check CHECK (stage IN ('acknowledged','acted','measured','settings','decided','dismissed'));
+ALTER TABLE actions ADD CONSTRAINT actions_stage_check CHECK (stage IN ('acknowledged','acted','measured','settings','decided','dismissed','place'));
 INSERT INTO schema_version (version) VALUES ('0.20') ON CONFLICT DO NOTHING;
 
 -- Pack SQL (rules.yml, cells.yml) runs as planetai_ro: SELECT on every table except settings, no writes. A "data pack,
@@ -509,3 +523,137 @@ END $$;
 DROP TRIGGER IF EXISTS sensors_room ON sensors;
 CREATE TRIGGER sensors_room BEFORE INSERT OR UPDATE ON sensors FOR EACH ROW EXECUTE FUNCTION sensors_room_is_the_name();
 INSERT INTO schema_version (version) VALUES ('0.61') ON CONFLICT DO NOTHING;
+
+-- 0.62: Place maps (4 Nov 2026, planetai-design/node-docs/superpowers/specs/2026-11-04-place-light-gis-design.md §5). Named maps of drawings
+-- on the Place door: a marker, a line, an area or a note, each with a colour 1-6 (a number, so the palette can change
+-- without a migration). `length_m` and `area_m2` are written by the server from geom::geography on every insert and
+-- update. A map with `agent` set is an agent's own. `from_node` and `remote_id` are both NULL for a map drawn here; a
+-- map pulled from another node carries both, and the pair is unique. `run_id`, `alert_id` and `event_id` are plain
+-- columns until the tables they point at are in the schema (the run table arrives with the tool-runs pull request).
+CREATE TABLE IF NOT EXISTS place_maps (
+  id            BIGSERIAL PRIMARY KEY,
+  name          TEXT NOT NULL,
+  owner         TEXT,
+  agent         TEXT,
+  shared        BOOLEAN NOT NULL DEFAULT false,
+  shared_at     TIMESTAMPTZ,
+  share_error   TEXT,
+  pushed_at     TIMESTAMPTZ,
+  push_tried_at TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  from_node     TEXT,
+  remote_id     BIGINT,
+  UNIQUE (from_node, remote_id)
+);
+CREATE TABLE IF NOT EXISTS place_marks (
+  id         BIGSERIAL PRIMARY KEY,
+  map_id     BIGINT NOT NULL REFERENCES place_maps ON DELETE CASCADE,
+  kind       TEXT NOT NULL CHECK (kind IN ('marker','line','area','note')),
+  geom       geometry(Geometry, 4326) NOT NULL,
+  colour     SMALLINT NOT NULL DEFAULT 1 CHECK (colour BETWEEN 1 AND 6),
+  label      TEXT,
+  note       TEXT,
+  capture_id BIGINT REFERENCES captures ON DELETE SET NULL,
+  length_m   REAL,
+  area_m2    REAL,
+  drawn_by   TEXT,
+  run_id     BIGINT,
+  alert_id   BIGINT,
+  event_id   BIGINT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- held: a drawing landed on the house's own res-10 cell while the map was shared, and nothing goes upstream until the
+-- household presses Share again. A flag, never the sentence the page shows: rewording that must not release a hold.
+ALTER TABLE place_maps ADD COLUMN IF NOT EXISTS held BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS place_marks_geom_gist ON place_marks USING GIST (geom);
+CREATE INDEX IF NOT EXISTS place_marks_map ON place_marks (map_id);
+-- A shared map unshared or deleted here, whose delete the node upstream has not had yet. No foreign key: a deleted
+-- map's row is gone and its delete is still owed. `tried_at` is the last failed send; it waits an hour, as a put does.
+CREATE TABLE IF NOT EXISTS place_maps_unshared (
+  map_id   BIGINT PRIMARY KEY,
+  at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  tried_at TIMESTAMPTZ
+);
+INSERT INTO schema_version (version) VALUES ('0.62') ON CONFLICT DO NOTHING;
+-- 0.63: a node is a key, not a string, docs/SPEC_identity.md §5 (0.62 is the place maps of PR #377). On a parent, one
+-- row per child name, pinned to the first key that signs under it: a push signed by another key is refused, and so is
+-- an unsigned push under a name that has signed. node_id is NULL for a child that still pushes unsigned. Forgetting a row (DELETE /children/{name})
+-- keeps the child's readings and events; its next push is pinned again.
+CREATE TABLE IF NOT EXISTS children (
+  name       TEXT PRIMARY KEY,
+  node_id    TEXT UNIQUE,
+  public_key TEXT,
+  first_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+INSERT INTO schema_version (version) VALUES ('0.63') ON CONFLICT DO NOTHING;
+
+-- 0.64: photos on demand (5 Nov 2026, light GIS spec §14). A shared drawing's photo goes upstream as words, never the
+-- file. `photo` is what a child said about the photo on a drawing this node received: {ref, kind, note, meta, taken},
+-- `ref` the child's capture number. place_photo_asks is this node asking a child for a file, and the file once it came
+-- (a name under received/ in the captures folder). place_photo_asks_in is the node upstream asking this one: `answer`
+-- is what somebody here pressed, or 'gone' when the node answered for a photo no longer shared; `sent_at` is when the
+-- parent took the answer, after which it never goes again.
+ALTER TABLE place_marks ADD COLUMN IF NOT EXISTS photo JSONB;
+CREATE TABLE IF NOT EXISTS place_photo_asks (
+  id          BIGSERIAL PRIMARY KEY,
+  from_node   TEXT NOT NULL,
+  ref         BIGINT NOT NULL,
+  label       TEXT,
+  map_name    TEXT,
+  asked_by    TEXT,
+  asked_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  state       TEXT NOT NULL DEFAULT 'asked' CHECK (state IN ('asked','sent','no','gone')),
+  answered_at TIMESTAMPTZ,
+  file        TEXT,
+  mime        TEXT,
+  bytes       BIGINT,
+  UNIQUE (from_node, ref)
+);
+CREATE TABLE IF NOT EXISTS place_photo_asks_in (
+  id          BIGSERIAL PRIMARY KEY,
+  parent      TEXT NOT NULL,                       -- PARENT_API_URL when it came
+  ask_id      BIGINT NOT NULL,                     -- the parent's own number for it
+  node        TEXT,                                -- the parent's name, as it said it
+  asked_by    TEXT,
+  asked_at    TIMESTAMPTZ,
+  capture_id  BIGINT NOT NULL,                     -- no foreign key: a deleted photo is answered 'gone', not lost
+  got_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  answer      TEXT CHECK (answer IN ('send','no','gone')),
+  answered_by TEXT,
+  answered_at TIMESTAMPTZ,
+  sent_at     TIMESTAMPTZ,
+  tried_at    TIMESTAMPTZ,
+  error       TEXT,
+  UNIQUE (parent, ask_id)
+);
+REVOKE ALL ON place_photo_asks, place_photo_asks_in FROM planetai_ro;
+INSERT INTO schema_version (version) VALUES ('0.64') ON CONFLICT DO NOTHING;
+
+-- 0.65: the seven res-8 cells (10 Nov 2026, docs/SPEC_eyes.md §5, §7 step 4). The cell the node stands in ('home') and
+-- any of the six touching it the household or an agent claimed ('adopted', 'keeper', 'agent:<name>'). `held` is derived
+-- on every read from readings in the last 24 h, never stored here.
+CREATE TABLE IF NOT EXISTS node_cells (
+  cell       TEXT PRIMARY KEY,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  claimed_by TEXT NOT NULL          -- 'home' | 'adopted' | 'keeper' | 'agent:<name>'
+);
+INSERT INTO schema_version (version) VALUES ('0.65') ON CONFLICT DO NOTHING;
+
+-- 0.66: a model's reading of the place (17 Nov 2026, docs/SPEC_place_report.md §11). The node's own reading is never
+-- stored: it is computed from the facts on every read, so it cannot disagree with them. A row is one asking: `writing`
+-- until the model answers, then `written` with its text or `refused` with the reason; `facts` is what it was written from.
+CREATE TABLE IF NOT EXISTS place_readings (
+  id        BIGSERIAL PRIMARY KEY,
+  ts        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  state     TEXT NOT NULL,         -- writing | written | refused
+  rung      TEXT,                  -- remote | local: which rung of the ladder wrote
+  model     TEXT,
+  wherefrom TEXT,                  -- 'your network' | 'this machine', as agent_loop.where_of says it
+  facts     JSONB,
+  text      JSONB,                 -- {"sections": {id: paragraph}, "avenues": [...]} when written
+  refused   TEXT
+);
+INSERT INTO schema_version (version) VALUES ('0.66') ON CONFLICT DO NOTHING;

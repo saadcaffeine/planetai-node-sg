@@ -1,0 +1,43 @@
+name: HydroATLAS — RiverATLAS v1.0 (HydroRIVERS)
+url: https://www.hydrosheds.org/hydroatlas
+description: |
+  The world's rivers as 8.5 million reaches, wherever 10 km2 drains or 0.1 m3/s flows, with long-term discharge,
+  Strahler order, upstream area and distance to the sea; RiverATLAS adds 281 attributes per reach. CC-BY 4.0.
+pillar: environmental
+scale: bioregion
+status: candidate
+license: CC-BY-4.0
+api: https://data.hydrosheds.org/file/HydroRIVERS/
+pilot_relevance: [global]
+places: [bali, barcelona]
+tags: [rivers, river-network, discharge, stream-order, hydrosheds, hydroatlas, hydrorivers, vector]
+added: 2026-11-08
+assisted_by: Claude Code
+adapter: pack:hydro
+feeds_cells: []
+auth: none
+upstream_listed_in: []
+notes: |
+  VERIFIED 2026-11-08.
+
+  LICENCE. The HydroATLAS page: "licensed under a Creative Commons Attribution (CC-BY) 4.0 International License";
+  the technical documentation (section 4.1) calls it a Collective Database, CC-BY 4.0 as a whole, each attribute
+  column CC-BY 4.0 or ODbL 1.0. RiverATLAS carries the HydroRIVERS geometry. Cite Linke et al. (2019) Scientific Data
+  6: 283 and Lehner & Grill (2013) Hydrological Processes 27: 2171-2186.
+
+  TRAP. HydroRIVERS' own download (the api above) is "freely available for scientific, educational and commercial
+  use" under the HydroSHEDS v1 licence agreement, which forbids distribution "as a stand-alone product" (TechDoc v1.4,
+  Appendix A). Show and pass on rivers under RiverATLAS's CC-BY 4.0. RiverATLAS itself sits on figshare (several GB)
+  and refused scripted downloads on 2026-11-08, so a node reads the HydroRIVERS geometry and attributes from
+  data.hydrosheds.org and keeps only its own square (Tomas Diez accepted this reading for the basins the same day).
+
+  ENDPOINT. One shapefile zip per region, no key: HydroRIVERS_v10_<af|ar|as|au|eu|gr|na|sa|si>_shp.zip, 49 MB (au)
+  to 108 MB (af). Python's default User-Agent gets 403; a named one (planetai-node/hydro) gets 200. Fields HYRIV_ID,
+  NEXT_DOWN, MAIN_RIV, LENGTH_KM, DIST_DN_KM, UPLAND_SKM, DIS_AV_CMS, ORD_STRA, ORD_FLOW, ENDORHEIC, HYBAS_L12.
+
+  READ. 50 km square round node #1, Ungasan: 25 reaches; nearest 5.0 km away, 0.125 m3/s, order 1, reaching the sea
+  there; largest 23 km away, 10.6 m3/s, 304 km2 upstream. 50 km square round Collserola, Barcelona: 91 reaches; the
+  largest 10.9 km away, 34.8 m3/s from 5,000 km2 (the Llobregat).
+
+  WHAT IT DOES NOT CLAIM. Traced from a 15 arc-second (about 500 m) surface: canals, subak channels and small streams
+  are not in it. DIS_AV_CMS is a model's long-term average (WaterGAP), not a gauge.

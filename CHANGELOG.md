@@ -1,15 +1,198 @@
 # Changelog
 
-## Unreleased
+## v0.92.0 — 2026-11-19 — A node and its place
+
+Most of this release is about the place around the node. Place has a page of its own now, layered as what the ground
+is made of, and you can draw on it and keep your drawings in named maps. It also prints. A node has seven cells, the
+one it stands in and the six round it, and you choose which of the six count as its own. Two new core packs know where
+the node's power comes from and where its rivers run, and the Wall walks out from the house over the satellite.
+Without the token no screen says anything finer than the house's cell. Each node signs what it sends upstream with its
+own key. This release changes the page and the packs together, so if something looks off after you update, tell me
+what you saw and on which screen.
+
+- **The source registry is pinned at `d106bb8`.** awesome-fabcity-data #113 moves a working plan out of the registry
+  repo, and the entries stay at 296.
+
+- **The Wall walks out from the house on the satellite.** The map is now satellite imagery, dimmed, and fills most
+  of the screen. Instead of house, street, ring and region, it walks through the three sizes a node can have: the
+  base node's seven cells round the house, then the community's, then the city's, a replayed day at each size and one
+  thing on the map at a time. At the house that is the air, the roofs, the sun on them today, the ground's heat and
+  the rain to come. Around it, the stations, the land that changed, the nearest fab lab and the rivers. At the city
+  size, how much of the power is burnt fuel and the nearest plant, the basin the house drains with, the swell and the
+  stations across the island, with the government's at Sempidi ringed. The wind moves over the map and the swell's
+  crests over the sea, at the replayed hour and at their own pace. Under the map a strip holds fine dust, heat, the
+  swell and the wind, each with its day as a thin line. The type floor goes from 28 px to 20 px at 1920, with 16 px
+  for the size legend. The map reads the new `GET /wall`, open without a token at `SHARE_LEVEL=open`, so nothing on
+  it is finer than the house's cell and every distance is in whole km. A chapter the node has no data for is left
+  out. docs/wall, docs/api.
+
+- **/earth no longer gives the house away.** A screen without your token got the node's exact point from `/earth`,
+  and the AlphaEarth pictures were centred on the house with an orange ring on it. That screen now gets the centre of
+  the res-8 cell, as `/health` gives it, and the pictures and numbers come from a square centred on that cell, 1 km in
+  from each side of the one the node keeps, with no ring. Your own tokens and this machine see what they saw before.
+  docs/api, docs/sharing.
+- **A screen with no token can no longer find the house.** At SHARE_LEVEL=open, a reader without a token could place
+  the house more finely than its cell: from a lab's distance to 0.1 km, from where the air-station ring's 15 km edge
+  and 150 m hole fall, from which map tiles the node holds, from the energy pack's distances to the nearest
+  substation and large plant (to 10 m, in /readings and the energy issue), on /issues, /ground/wind and /forecast from
+  the house's own point to 5 decimals, and from /forecast's km to BMKG's village and to the sea's grid point, two
+  public points whose circles cross at the house. Those two energy distances are now whole km from the middle of the cell, for
+  everyone. Without a token every distance and every cut now runs from the centre of the house's cell, so the
+  answer is the same wherever in the cell the house stands. A token and the node's own machine read what they read
+  before. The report's line about the nearest lab is measured from the cell for everyone, because anyone can read it.
+  A map fetched before this update keeps its old cut: `planetai run place basemap` and `planetai run earth-engine
+  basemap` fetch it again round the cell.
+- **The yearly building count was 64 times low.** Place and its report showed 128 buildings in 2023 round node #1,
+  where the satellite's footprints count 5,994 in the same circle. The count band of Google's Open Buildings Temporal
+  sits on a 0.5 m grid and the node added it up at 4 m, so it read one pixel where 64 stood. It now weighs each pixel
+  by its area, which is the factor of 64 in Google's own example. A node that already holds the low series gets the
+  right one at its next monthly refresh. `planetai run place refresh` does it at once, because it now counts the
+  satellite's buildings again as well as fetching the map. In Data the series was labelled "buildings added", and it
+  is the count of buildings standing each year. docs/packs-reference.
+- **The Place report reads the place.** Two pages now come before the figures. A reading of this place says what kind
+  of place this is, under five headings, and each sentence rests on a figure the node holds. Ways to improve it lists
+  four to six things worth doing here, each with a first step, the nearest lab, and its layer and key action in the Fab
+  City Full Stack, and it ends with what the reading cannot see. Every node writes this from rules, with no model. With
+  a model on your own network, **Write a fuller reading** asks it, and the node keeps the text only if its numbers are
+  the node's own and it says more than the node's own reading does. Each page says who wrote it and when, and so does the block at the foot of Place. `GET` and `POST /place/reading`, schema 0.66. docs/place,
+  docs/api.
+- **Place shows what can be pressed.** The layer list has a head that says what a press does, and each row's mark is a
+  switch that shows whether the row is on. New map and the species list are drawn as buttons, and the opacity slider
+  stays in view under a row that is on. The drawing keys stand under the word Draw, each with its name and its letter
+  beside the icon, and fold back to icons on a narrow screen. At the foot of Place a block says what the report is and
+  opens it, on Paper or in the dark version. docs/place.
+
+- **An update waits for the app before it checks it.** It used to wait 8 seconds, and on node #1 the app takes about
+  11 to start, so the update ended on "something is off" with the node running fine. It now waits until the app
+  answers, up to a minute.
+
+- **A node has seven cells, and you choose which are its own.** The resolution-8 cell it stands in is always its own,
+  and on Place, at Cell scale, the six touching it are drawn round it. Press one and **Claim this cell**, and a kit of
+  yours in it counts as this node's own from its next poll. A claimed cell is held once one of your sensors has a
+  reading in it in the last 24 hours, and the line under the map says how many of the seven are held. **Release it**
+  gives the cell back, and each claim and release goes in the ledger. `LOCAL_RADIUS_M` is gone, and a `.env` that
+  still sets it is not read. On its first run after the update a node claims each neighbour where one of its sensors
+  stood within 500 m, so nothing that counted before stops counting. Tools › **Pull** asks the node about any cells or
+  any area you drew. It answers with its own sensors in its home and held cells, and with what hydro, eyes and
+  forecast hold there, and says why when a pack has nothing. docs/place, docs/api.
+
+- **Place prints as a report.** Download has one more line, **Report, to print or save as PDF**, and Tools a row,
+  Place report. Both open the place as one A4 landscape sheet: the map in a black frame with a grid in metres, a scale
+  bar and a north arrow, and beside it the layers that are on with their sources, your maps, the node's cell and the
+  credits. Paper draws the map light and is where it starts, Screen draws it black. Up to four A4 pages follow it: the
+  place in figures, what the node holds about its place with the command that fills each empty row, what changed year
+  on year where the node has satellite years, and the sources with a line to cite the report by. The browser's own
+  print makes the PDF, so nothing new runs on the node. On the sheet the house is blurred to its res-10 cell, even with
+  the token, no page says anything closer than the res-8 cell, and without the token there is no map. You can ask for
+  it too: "make me the place report" in Ask gives a button that opens it, on a screen holding the token. docs/place,
+  docs/ask.
+
+- **A node knows where its electricity comes from.** The new `energy` pack finds the node's grid (Bali and the
+  Balearics today), asks OpenStreetMap for its plants, substations and cable heads, and works out how much of its
+  power is made from fossil fuels. Where the operator publishes the mix the share is measured by day (Menorca, from
+  Red Eléctrica, non-commercial, so it never leaves in the export). Where it does not, it is a range from installed
+  capacity (Bali, while the Java cable's share is unpublished). Now gets an Energy row and a panel with the share, the
+  mix, the sources and a Today box with the sun on the cell and what a roof would make with it. Place gets a Power
+  grid row, off at first, with the seven cells and the MW made in each. With Home Assistant connected it reads the
+  house's roof and grid, read only and private, and gives the house its own fossil share. Add `energy` to
+  `PACKS_ENABLED` and `NODE_ISSUES`. Without the token, distances are whole kilometres. docs/packs-reference#energy.
+
+- **The doctor stops saying two things on Linux that were not true.** The broker check used `nc`, which Arch (and
+  so Omarchy) does not ship, so it read red with the broker up. It now opens the port with bash itself. The captures
+  check read red when the folder belonged to root, which is what happens when the container makes it first, while the
+  app kept every picture. It now asks the app too.
+
+- **Now reads from the house outwards, and What to do is one line.** The right column opens with Around the house,
+  then the map of the air around it, then the city's Fab City Index, now titled Local production capacity in the city,
+  with its links to index.fab.city kept. What to do is folded to one line, and **Options to act** opens the answers and
+  the packs' questions. Did it work and Yesterday moved under it, across the page. On Place the open map's table is
+  gone and the place in figures takes the whole band, bigger. Data's board is gone, Now and Place keep theirs.
+- **The installer tries a download again before giving up.** GitHub sometimes answers a release download with a
+  504. `install` and `update.sh` now retry the tarball, its signature and its checksum up to three times, and `install`
+  the preflight script too.
+- **A new node no longer starts at node #1's exact position.** `.env.example` and the `NODE_LAT`/`NODE_LON` defaults
+  held it to the metre until a keeper set their own. They now hold the centre of node #1's resolution-8 cell, the point
+  `/health` already publishes. The working notes that sat in `docs/` (plans, handoffs, reviews, design audits) moved to
+  the private planetai-design repo, and AGENTS.md says they go there from now on.
+
+- **The rivers are in Place's figures.** Once the hydro pack has fetched them, the place in figures has a Rivers row:
+  how far the nearest river is, its flow and how far it still runs to the sea, and the largest river in the square.
+  Its link turns the Rivers and Basins rows on and takes the map out to District, where the rivers are in view. The
+  row needs the screen's token, as the rivers on the map do. Data's Models table names the seven hydro figures and
+  gives them units.
+
+- **A node knows where its rivers are.** The new core pack `hydro` fetches HydroSHEDS once for the node's square
+  (`planetai run hydro fetch`, 50-160 MB downloaded, read and deleted, under 100 KB kept) and keeps the rivers, the
+  basins they drain and the basin the node sits in. Each poll re-sends the nearest river's distance, flow, order,
+  upstream area and distance to the sea, and the largest river's flow. On Place, the water layer gains Rivers and
+  Basins rows, and a tap on a river gives its figures. The level-4 basin is the same bioregion index.fab.city draws.
+  Rivers start where 10 km² drains, so a canal or a subak channel is not in it. Shown under HydroATLAS's CC-BY 4.0.
+  Add `hydro` to `PACKS_ENABLED`. Registry pinned at `a310156`.
+
+- **An alert sent while the internet drops for a moment still arrives.** If the connection to Telegram never opens,
+  the node tries again 3 seconds later and then 10 seconds after that. Node #1's line drops like this several times a
+  day, and an alert sent into one of those drops used to be lost. A send that timed out waiting for an answer is not
+  tried again, because Telegram may already have it, and a second copy of an alert is worse than a late one.
+
+- **A quick start, and Place on a page of its own.** `docs/quickstart` is a node in six steps on one page: install, a
+  sensor and the first alert, let the packs run, a model on the machine, your own agent, the map of your place, each
+  with its commands and the page that goes deeper. It is the first page of the docs and a link in the top bar of every
+  page. `docs/place` is the Place door, moved out of the dashboard page with how to turn the place pack on and what to
+  do when the map is thin. The sidebar's Get started is now Install. The README and the FAB26 page point at the quick
+  start; `START_HERE.md` stays as the terminal walk-through.
+
+- **Each node is a key.** A node now makes its own key when it is installed, `NODE_KEY` in `.env`, and its ID is a
+  short hash of the public key. It shows in Set up › Sharing, in `planetai status` and in `GET /health`. A child signs
+  everything it pushes to its parent, shared maps included (a map's owner is the node's ID), and the parent pins the child's name to its key the first time it hears from it.
+  A push under that name from another key is refused, with a sentence saying what to run. The shared
+  `AGGREGATE_TOKEN` stays. A child with no key yet still pushes as before. Keep a copy of `.env` somewhere that is not
+  the backup share: a node that loses it is a new node. A node updating from an older release gets its key on the
+  update after this one. `planetai children` lists the nodes pushing to a parent. docs/SPEC_identity.md.
+
+- **A photo on a shared map goes up as words, and the picture only when you send it.** The node upstream gets what took
+  the photo, its note, the words you gave it and the day it was taken, and where and who stay home. It can ask for the picture,
+  and the ask reaches you within the hour at the top of your maps on Place, with who asked and for which drawing.
+  **Send** gives them the picture once, **No** keeps it here, and every ask and answer is in the ledger. Unshare the
+  map, take the image off the drawing or delete the photo, and the node upstream deletes its copy. Schema 0.64.
 
 - **Place is drawn as what the ground is made of.** The door has a list on the left with the sky at the top and the
   ground at the bottom, one line a row with a dot for on, off, or not held yet, and a black screen in the middle that
-  stays black on the light page and the dark one. On the right is a column of tools. Rings and distance runs today, and
-  the sun and shade, trees, built form, sealed ground, streets, walking, what changed, where the rain goes and four
-  fitness tools are listed as not yet. Under the screen are a line for what you pressed and the list around the house,
-  and below that, what you selected and the place in figures. The rooms are gone from Place, and the hectare squares
-  view is gone until What changed runs as a tool. On a phone the layers and the tools open as a sheet over the lower
+  stays black on the light page and the dark one. **Tools**, beside the ask line, opens a menu. Rings and distance and
+  From the house run today, and the sun and shade, trees, built form, sealed ground, streets, walking, what changed,
+  where the rain goes and four fitness tools are listed as not yet. Under the screen are a line for what you pressed
+  and the list around the house, then what changed year on year across the whole page, with the satellite then and now
+  side by side, and below that the open map's table and the place in figures. The rooms are gone from Place, and the
+  hectare squares view is gone until What changed runs as a tool. On a phone the layers open as a sheet over the lower
   part of the page.
+
+- **A node can say which Fab City Index place it belongs to.** `planetai place` suggests the nearest of the 61 places the
+  Index tracks, from a centre that asserts no border, and you confirm it or pick another or none; setup asks the same
+  question. With a place chosen, the new `index` pack reads that place's file from index.fab.city once a day, and the
+  source registry at the commit `main` points to, and keeps the last good copy of each. The request is the place's slug
+  and nothing about the house. The figures band on Place has a Fab City Index row: the place and its label, its FCI or
+  its range while no cell is measured, up to three indicators with their year and source, and how many registry sources
+  are filed for it. The node shows the Index's numbers and does not work them out, and marks them `partial`, or `cached`
+  when the last read failed. `GET /index/place` serves it. The city is on Now too, in one row headed **In the city**
+  at the foot of Around the house, and Place's head says it in one line over the map that goes down to its figures.
+- **You can draw on Place now, and keep what you draw in named maps.** With the token, the keys on the screen's left
+  edge drop a marker or a note, draw a line with its length or an area with its surface, and add an image, by press or
+  with the keyboard alone, and PostGIS measures what you keep. The screen downloads as a PNG with its credit and scale,
+  and a map as GeoJSON or KML, or as DXF in metres of the node's UTM zone. Share sends a map to the node upstream, every
+  drawing at its exact place with its labels, notes and measures, where the people holding that node's token can see
+  it. Upstream the node is the map's owner, and who drew each drawing stays here. It goes after a plain warning, and a drawing that touches the cell the house stands
+  in holds it until you press Share again. A drawing
+  tied to an issue on Now, with what you did in your own words, counts as acting on it. The satellite opens first, the
+  yearly change moved under the map, drone flights show as pins when you zoom out, and the layers fold with `[`, with
+  `\` for the map only and F for full screen. The readout is a small chip until you press it for the colours, the keys
+  on the screen are 36 px with a mouse and 44 px on a touch screen, and the controls on the screen keep apart at any
+  window size. The Image key adds a picture, so **+ Add an image** is gone from the top. Place in
+  `docs/site/dashboard.md` says how.
+
+  For whoever runs the node, `init.sql` enables PostGIS and adds `place_maps` and `place_marks`. Every drawing, change,
+  download and share is a `place` row in the ledger, and a private daily count of drawings goes to the sensor
+  `place-gis`, never out and never into an Index cell. A parent takes a child's shared map on
+  `POST /place/maps/received` with its own `AGGREGATE_TOKEN` and keeps it read-only. The routes are in
+  `docs/site/api.md`.
 
 ## v0.91.0 — 2026-11-04 — Now looks ahead
 

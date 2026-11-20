@@ -28,13 +28,16 @@ FIXTURES = ROOT / "tests" / "data" / "wire"
 
 # format -> (file, how to find the dict literal)
 #   ("func", name)  the dict this function returns
-#   ("post", name)  the `json=` keyword of the httpx.post inside this function
+#   ("post", name)  the `json=` keyword of the httpx.post inside this function, or the dict handed to
+#                   _post_parent(route, {...}) or identity.post(parent, route, {...}), which sign the bytes they post
 FORMATS = {
     "issues-v0":     ("app/issues/engine.py", ("func", "compute")),
     "export-v0":     ("app/main.py", ("func", "export")),
     "report-v0":     ("app/main.py", ("func", "report_latest")),
     "aggregates-v0": ("app/main.py", ("post", "push_aggregates")),
     "events-v0":     ("app/main.py", ("post", "push_events")),
+    "maps-v0":       ("app/maps.py", ("post", "push_maps")),        # a shared map, child to parent (§5 of the light GIS)
+    "photos-v0":     ("app/maps.py", ("post", "_answer")),          # an answer to a photo ask, child to parent (§14)
     "days-v0":       ("app/issues/engine.py", ("func", "days")),
     "forecast-v0":   ("packs/forecast/days.py", ("func", "answer")),   # what GET /forecast returns; routes.py reads and hands in
 }
@@ -98,10 +101,16 @@ def _find(path: str, how: tuple[str, str]) -> list[str] | None:
         errs.append(f"{where}: returns no dict literal, so its wire shape cannot be read here")
         return None
     for call in (n for n in ast.walk(fn) if isinstance(n, ast.Call)):
+        if isinstance(call.func, ast.Name) and call.func.id == "_post_parent" and len(call.args) > 1 \
+                and isinstance(call.args[1], ast.Dict):
+            return _keys(call.args[1], where)
+        if isinstance(call.func, ast.Attribute) and call.func.attr == "post" and getattr(call.func.value, "id", "") == "identity" \
+                and len(call.args) > 2 and isinstance(call.args[2], ast.Dict):
+            return _keys(call.args[2], where)          # identity.post(parent, route, {...}, token)
         for kw in call.keywords:
             if kw.arg == "json" and isinstance(kw.value, ast.Dict):
                 return _keys(kw.value, where)
-    errs.append(f"{where}: no `json={{...}}` literal in the post — the push body cannot be read here")
+    errs.append(f"{where}: no `json={{...}}`, `_post_parent(route, {{...}})` or `identity.post(parent, route, {{...}})` literal in the post — the push body cannot be read here")
     return None
 
 

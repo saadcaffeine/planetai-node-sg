@@ -50,8 +50,9 @@ Place. (The 416 m is wrong somewhere on its own account. That gets checked separ
 
 **Non-goals**
 
-- A desktop GIS. There is no ribbon, no toolbox of hundreds of tools, no ModelBuilder, no print layouts, no
-  free-form weighted overlay. Those belong to the fab lab node (SPEC_fablab).
+- A desktop GIS. There is no ribbon, no toolbox of hundreds of tools, no ModelBuilder, no print layout designer, no
+  free-form weighted overlay. Those belong to the fab lab node (SPEC_fablab). Place has one fixed sheet to print
+  (SPEC_place_report, 11 November 2026).
 - Editing the map's geometry. Observations add points and areas; the base maps stay what their sources publish.
 - Explaining McHarg on the page. The method lives in the docs (§10).
 
@@ -102,7 +103,7 @@ one column).
 | region | holds |
 |---|---|
 | header | "The ground around the house", the cell line (id, res, edge, area, point if a token is held), and the **Ask box**: one underlined line that takes a question or `/` to focus |
-| left, 216 px | **the cake** (§5): a section per layer, results on top, each row a dot switch, the name and its source |
+| left, 224 px | **the cake** (§5): a section per layer, results on top, each row a switch, the name and its source |
 | centre | **the screen**: the map in a black bezel, with the hour pill (top centre), the legend (top left), the tool column (select, measure, draw an area, back to the house, export) and zoom apart at the bottom right, the scale rungs (street, block, cell, village, district) at the bottom left, attribution |
 | under the screen | **the hours bar**: 48 h of the outdoor kit's feels-like, a play button, one cursor. The hour it holds is the hour every hour-dependent tool reads ("14:00 from the hours") |
 | status line | pointer coordinates, res, scale, selection count, sources |
@@ -111,7 +112,7 @@ one column).
 
 **Controls**
 
-- Layer switch: an OP-XY dot. Filled with a ring means on, hollow means off, dotted means not yet.
+- Layer switch: a track and a knob. Filled with the knob to the right means on, hollow with the knob to the left means off. A row that cannot switch has a dotted mark and no switch (a dot in all three states until 17 November 2026).
 - Tool list: plain rows. The chosen tool is a filled ink pill showing its id. A tool that does not run yet has a dotted
   "not yet" pill.
 - Settings: small segmented pills (today | solstice | equinox), values in mono, no input boxes where a choice will do.
@@ -133,6 +134,13 @@ builder's.
 **What leaves the page.** The three views become one map: From orbit becomes the satellite base with its year compare,
 and What changed becomes a tool (§6). The species table becomes what the animals and plants rows open into. "Where the
 readings come from" disappears as a block, because each layer row now names its source.
+
+**17 November 2026, by Tomas's ask ("make it more understandable what are buttons, and functions, now it is a bit
+hidden").** The layer list has a head that says what a press does, and a row's mark is a switch: filled with the knob
+to the right when on, hollow with the knob to the left when off. A row that cannot switch has a dotted mark and no
+switch, whatever the reason, and a dashed one where it waits for the token. The opacity of a row that is on is always in view. The column is 224 px, eight
+more than before, for the switch. The drawing keys stand under the word Draw, each with its name and its letter beside
+the icon, and fold back to icons under 760 px of screen. The keys, their order and what they do are unchanged.
 
 ## 5 · The cake
 

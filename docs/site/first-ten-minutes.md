@@ -1,5 +1,5 @@
 # First ten minutes
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The install ends with a node that reads your place and has nobody to tell. In the next ten minutes you add the
 rest of the loop: a channel to your phone, one alert that goes all the way through, a person's answer recorded
@@ -14,6 +14,7 @@ planetai status
 
 ```
   node      <name>   <version>   schema <schema>
+  node id   <the node's ID>
   up        <h>h <m>m   polls <n>   readings <n>
   last poll <time of the last poll>
   errors    none
@@ -23,7 +24,8 @@ planetai status
   rho       not yet measured  (0/0 act-level alerts answered, 30d)
 ```
 
-The angle brackets are this node's own figures. `polls` goes up by one every `POLL_SECONDS` (300), and
+The angle brackets are this node's own figures. The ID is a short hash of the node's key, and a node that has not
+yet got one says `none yet` until `planetai update` writes it. `polls` goes up by one every `POLL_SECONDS` (300), and
 `errors none` means every source answered. With a Smart Citizen kit configured, `sensors` names it.
 
 **Now there is:** sense. The poll loop is running and the models for your coordinates are in the database.
@@ -134,7 +136,9 @@ planetai run place basemap
 
 It cuts OpenStreetMap out of Protomaps' daily build in three rings round the node, down to street level, and
 adds drone imagery where somebody flew. `build.protomaps.com` and OpenAerialMap learn which square it fetched
-(`GROUND_RADIUS_KM`, 12 km by default); after that every tile is read from `out/ground/`. `--dry-run` says what
+(`GROUND_RADIUS_KM`, 12 km by default), centred on the middle of the node's cell and not on the house; after that
+every tile is read from `out/ground/`. A map fetched before v0.92 was cut round the house, and running the command
+again re-centres it. `--dry-run` says what
 it would ask for. Until it has run, `planetai doctor` lists **The map of this place** under what is left to
 set up.
 

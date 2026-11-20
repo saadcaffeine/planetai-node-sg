@@ -1,5 +1,5 @@
 # Channels
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 A channel is how an alert leaves the node and reaches the people it is for. This page connects four of them. Two
 (Telegram and Reticulum) also carry the answer back, which is how an alert becomes a row in `actions` and, from
@@ -43,6 +43,11 @@ Only Telegram carries an act alert's line on who in the house it matters to, and
 
 With the token blank the node logs alerts and sends nothing. The node never logs the Telegram URL, because the
 token is in it, so `api.telegram.org/bot` in `planetai logs` would be a leak.
+
+If the connection to Telegram never opens, the node tries again 3 seconds later and then 10 seconds after that, so an
+alert sent into a short drop of the internet still arrives. A send that timed out waiting for an answer is not tried
+again, because Telegram may already have it and a second copy of an alert is worse than a late one. Once one chat has
+spent its tries, the chats after it get one each.
 
 Answering on Telegram is the [bot](bot.md), which runs in the separate `agent` container. `/act 12 closed the
 windows` records an `acted` row with the actor `<AGENT_NAME>/telegram` (`local-model/telegram` by default) and

@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
+import cells
 import settings
 
 # ---------------------------------------------------------------- helpers
@@ -50,22 +51,22 @@ def metres(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return math.hypot(dx, dy)
 
 
-def stamp_local(sensors: list[dict], lat: float, lon: float, radius_m: float) -> list[dict]:
-    """`local` is ours AND here. The adapter decides ours; distance decides here.
+def stamp_local(sensors: list[dict], own_cells: set[str] | None) -> list[dict]:
+    """`local` is ours AND here. The adapter decides ours; the node's own cells decide here.
 
     Only ever narrows: a sensor an adapter did not claim never becomes local, whatever its coordinates. A public
     reference station across the street is not the node's own measurement. A sensor with no coordinates that an
-    adapter claims (a Meshtastic pod reaching us over our own gateway) stays local, because we cannot measure a
-    distance we do not have and the radio itself is the evidence. If the node itself has no coordinates yet
+    adapter claims (a Meshtastic pod reaching us over our own gateway) stays local, because we cannot place a
+    point we do not have and the radio itself is the evidence. If the node itself has no coordinates yet
     (unset or half-configured), leave every claim alone rather than narrow the whole fleet to nothing."""
-    if lat is None or lon is None:
+    if own_cells is None:
         return sensors
     for s in sensors:
         if not s.get("local"):
             continue
         if s.get("lat") is None or s.get("lon") is None:
             continue
-        s["local"] = metres(lat, lon, float(s["lat"]), float(s["lon"])) <= radius_m
+        s["local"] = cells.cell_of(s["lat"], s["lon"]) in own_cells
     return sensors
 
 

@@ -60,7 +60,7 @@ for p in sorted(glob.glob(os.path.join(ROOT, "app", "*.py")) + glob.glob(os.path
         tail = m.group(1)
         if "ON CONFLICT DO NOTHING" in tail:
             sites += 1
-        else:       # the two that already overwrite on purpose: a child's hourly means and the things pack's counts
+        else:       # the three that already overwrite on purpose: a child's hourly means, the things pack's counts, the day's drawing count
             assert "DO UPDATE SET value = EXCLUDED.value" in tail and "fc" not in tail, (p, tail[:120])
 assert sites >= 4, f"expected the other DO NOTHING sites, found {sites}"
 

@@ -363,7 +363,7 @@ os.environ["COMPOSE_PROFILES"] = "mqtt,agent"
 st = local.get("/ask/status").json()
 check(st["running"] is False and st["model"] == "qwen3.5:4b" and st["stored"] is False and "not answering" in st["why"],
       f"Ollama down should read running:false with the tag: {st}")
-check({t["class"] for t in st["tools"]} == {"read", "act", "admin"} and "settings_get" not in {t["name"] for t in st["tools"]},
+check({t["class"] for t in st["tools"]} == {"read", "act", "admin", "page"} and "settings_get" not in {t["name"] for t in st["tools"]},
       f"/ask/status lists {st['tools']}")
 print("  status: 404 with no loop, running:false with the tag when Ollama is down")
 
@@ -587,7 +587,7 @@ console.log(JSON.stringify(out));
 from types import SimpleNamespace as _NS                                # noqa: E402
 _listed = [_NS(name=n, description="", input_schema=None) for n in ("learned", "issues", "settings_get")]
 _names = lambda house: [t["function"]["name"] for t in ask.menu(_listed, house)]  # noqa: E731
-check(_names(True) == ["learned", "issues"], f"the household's pane reads what the house learned: {_names(True)}")
+check(_names(True) == ["learned", "issues", "place_report"], f"the household's pane reads what the house learned: {_names(True)}")
 check(_names(False) == ["issues"], f"a pane without the household's token must not: {_names(False)}")
 settings._cache["rows"]["ACT_TOKEN"] = "act-tok"
 _req = lambda auth="", host="192.168.4.20": _NS(headers={"authorization": auth}, client=_NS(host=host))  # noqa: E731
@@ -597,6 +597,45 @@ check(ask._house(_req(host="127.0.0.1")), "this machine is the house")
 _src = open("app/ask.py").read()
 check('house = _house(request) and body.prompt != "wall"' in _src, "the Wall is read by whoever walks past: never `learned`")
 print("  house: `learned` only for the household's token or this machine, never the Wall")
+
+# ---------------------------------------------------------------- the place report (SPEC_place_report §9 step 3)
+# A page tool: it runs nothing on the node, it comes back as a button the person presses, and only a screen holding
+# the token is offered it, because the report draws the house's map.
+import asyncio  # noqa: E402
+
+async def _report_chat(hc, rung, messages, tools, final=False, system=None):
+    if not any(m.get("role") == "tool" for m in messages):
+        return {"role": "assistant", "content": "", "tool_calls": [
+            {"id": "r", "function": {"name": "place_report", "arguments": json.dumps({"register": "screen"})}}]}
+    return {"role": "assistant", "content": "Here it is."}
+
+async def _report(tools):
+    called = []
+    async def _call(name, args):
+        called.append(name); return ""
+    out = [e async for e in agent_loop.pane([{"role": "user", "content": "make me the place report"}], "sys", tools,
+                                            _call, lambda t: t, chat_fn=_report_chat, rungs=[agent_loop.local_rung()])]
+    return out, called
+
+_ev, _called = asyncio.run(_report(ask.menu(_listed, True)))
+_rp = next((d for e, d in _ev if e == "proposal"), None)
+check(_rp == {"tool": "place_report", "args": {"register": "screen"}} and not _called,
+      f"place_report must come back as a proposal and run nothing: {_rp}, ran {_called}")
+check(ask._proposal(_rp, "en")["args"] == {"register": "screen"}
+      and ask._proposal({"tool": "place_report", "args": {"register": "sideways"}}, "en")["args"] == {"register": "paper"},
+      "the card carries the register, Paper unless the person asked for Screen")
+_ev, _ = asyncio.run(_report(ask.menu(_listed, False)))
+check(not any(e == "proposal" for e, _ in _ev), "a screen without the token must get no report button")
+check(any(t["name"] == "place_report" and t["class"] == "page" for t in local.get("/ask/status").json().get("tools", [])),
+      "/ask/status must list place_report, so the pane says what it can do")
+_core, _dash = open("app/static/doors-core.js").read(), open("app/static/dashboard.js").read()
+check("data.tool === 'place_report'" in _core and "window.placeReport(reg)" in _core
+      and "window.placeReport = " in open("app/static/doors-place.js").read(),
+      "the doors' pane must draw the report's button and the button must open #place/report")
+check("p.tool === 'place_report'" in _dash and "#place/report" in _dash, "the classic pane must draw it too")
+check("needs this screen unlocked in Set up, This screen" in agent_loop.PANE_SYSTEM,
+      "a pane without the token must be told to say how to unlock the report, not that it lacks a function")
+print("  report: Ask's place_report is a button to #place/report, for the token's screen only; nothing runs")
 
 print("\n".join(f"  x {f}" for f in fails) or "  ask: private context, proposals not changes, nothing kept")
 sys.exit(1 if fails else 0)

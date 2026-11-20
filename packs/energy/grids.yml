@@ -1,0 +1,64 @@
+# Grids the energy pack knows.
+# Polygons are closed [lon, lat] rings. A node outside every grid shows the none sentence and never borrows a
+# neighbour's figure.
+
+- id: bali
+  name: PLN Bali system
+  # Bali main island. Nusa Penida (115.43..115.63, -8.66..-8.82) is an isolated island microgrid with no submarine
+  # link to Bali's 150 kV grid, and Ketapang (114.40, -8.15) is on the Java shore, so both sit outside this ring.
+  polygon:
+    - [114.42, -8.05]
+    - [115.72, -8.05]
+    - [115.72, -8.58]
+    - [115.40, -8.65]
+    - [115.30, -8.88]
+    - [114.42, -8.88]
+    - [114.42, -8.05]
+  rings:
+    # Denpasar and South Badung (Pesanggaran, Bandara Ngurah Rai, Nusa Dua, Pecatu).
+    city:
+      - [115.08, -8.55]
+      - [115.28, -8.55]
+      - [115.28, -8.86]
+      - [115.08, -8.86]
+      - [115.08, -8.55]
+  mix: { kind: estimated, method: capacity-factors }
+  # Coal, gas and oil from Indonesia 2024 generation ÷ capacity in Ember Yearly Electricity Data (CC BY 4.0);
+  # solar and wind assumed from typical utility-scale factors (see README.md).
+  capacity_factors: { coal: 0.70, gas: 0.35, oil: 0.26, solar: 0.18, wind: 0.25 }
+  links:
+    # rated_mw: ~ because no open-licensed primary table (CC BY / public domain) stating the 150 kV Ketapang–Gilimanuk
+    # cable's rated transfer MW was confirmed; fossil_share is Indonesia's 2025 fossil generation share (444.713 /
+    # 528.207 TWh = 0.8419) as a proxy for Java.
+    - { name: Java–Bali cable, at: Cable Head Gilimanuk, rated_mw: ~, fossil_share: 0.8419, ring: beyond,
+        source: "Ember Indonesia 2025, CC BY 4.0" }
+  demand_mw: ~                         # Bali average demand: no open-licensed table confirmed
+
+- id: balearic
+  name: REE Balearic system
+  # Mallorca, Menorca, Ibiza and Formentera.
+  polygon:
+    - [1.15, 38.60]
+    - [4.40, 38.60]
+    - [4.40, 40.15]
+    - [1.15, 40.15]
+    - [1.15, 38.60]
+  rings:
+    # Menorca island.
+    city:
+      - [3.75, 39.78]
+      - [4.35, 39.78]
+      - [4.35, 40.10]
+      - [3.75, 40.10]
+      - [3.75, 39.78]
+    # The Balearic Islands.
+    region:
+      - [1.15, 38.60]
+      - [4.40, 38.60]
+      - [4.40, 40.15]
+      - [1.15, 40.15]
+      - [1.15, 38.60]
+  # geo_ids=8743 is the Balearic system in REE's own selector (ree.js); 8 answers 502 with geo_limit=baleares.
+  mix: { kind: measured, source: ree, geo_limit: baleares, geo_id: 8743 }
+  links:
+    - { name: Mallorca–peninsula link, ring: beyond, mix_from: { source: ree, geo_limit: peninsular, geo_id: 8741 } }

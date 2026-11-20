@@ -1,7 +1,7 @@
 # Packs that ship
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
-The twenty-five core packs in `packs/`, five data and twenty code, hold everything the node knows about a place, and no
+The twenty-eight core packs in `packs/`, five data and twenty-three code, hold everything the node knows about a place, and no
 rule in `app/` says what PM2.5 means for a household or where the nearest fab lab is. For each pack this page
 says what it reads, what it says, its rules and where each threshold comes from, its settings, and what it does
 not know. How a pack is built and loaded is on [Packs](packs.md). Wild packs, such as `xiaomi-air` and
@@ -10,7 +10,7 @@ added with `planetai packs add`.
 
 A pack is `code` when its folder has any `.py` file, and a code pack's adapter and hooks run only with
 `PACKS_ALLOW_CODE=1`; `make` also needs `MAKE_ENABLED=1` and `fire` `FIRE_ENABLED=1`. A pack that names its own
-`switch:` runs on that switch alone: `bali-air-dispatch` on `BAD_ENABLED`, `home-assistant` on `HA_DISCOVERY`,
+`switch:` runs on that switch alone: `bali-air-dispatch` on `BAD_ENABLED`, `home-assistant` on `HA_DISCOVERY`, `index` on `INDEX_PLACE`,
 `smartcitizen`, `airgradient` and `purpleair` whenever their keys are set, and `air-quality` reads the CAMS model on
 `OPENMETEO_ENABLED`, the key that ran it in the core. A pack's `routes.py` is mounted at start and answers 404 while
 the pack is off.
@@ -33,8 +33,11 @@ the pack is off.
 | `surface-heat` | code | heat | none | `ground` | | | `SURFACE_HEAT_*` |
 | `earth` | code | land | none | | 1 | `fetch` `change` `frames` `status` `verify` `similar` | `EARTH_*` |
 | `terrain` | code | water | none | | | `coverage` `fetch` `verify` | `TERRAIN_*` |
+| `hydro` | code | water | none | | | `fetch` `verify` | `HYDRO_RADIUS_KM` |
+| `energy` | code | energy | none | | | | `ENERGY_*` |
 | `earth-engine` | code | land | none | | 1 | `timelapse` `verify` `basemap` | `EE_*`, `GROUND_SAT_WIDE_KM` |
 | `place` | code | place | 1 info | | 1 | `refresh` `gaps` `verify` `basemap` | `PLACE_*`, `GROUND_*` |
+| `index` | code | place | none | | | | `INDEX_*` |
 | `make` | code | make | none | the nearest-lab line | | | `MAKE_*` |
 | `fire` | code | air | 1 act, 1 warn, 1 info | | | | `FIRE_*`, `FIRMS_MAP_KEY` |
 | `open-data-health` | data | governance | 1 warn | | 2 | | `CKAN_PORTALS` (core adapter) |
@@ -197,6 +200,12 @@ The sensor ids are `bad-<station>` and the source is `baliairdispatch`. Its chan
 without naming it. A node inside the `box`, south Bali to north Bali, with the pack off is told to turn it on;
 a node anywhere else is told nothing. On `planetai update`, a node that lists its packs in `PACKS_ENABLED` and
 has `BAD_ENABLED=1` gets `bali-air-dispatch` added to the list.
+
+Each poll it also writes `out/wall/island.json` for the Wall's city size: every fresh, outdoor, working station on the
+island, with no radius, its coordinates to 3 decimals. The node's own kit is left out by identity, separation and
+`BAD_EXCLUDE`, and since the file is public, separation is judged from the middle of the house's res-8 cell and not
+from the house. So a station missing from that file can still be in the archive. A station is marked official when
+the archive's `/stations` list types it Government.
 
 ### Settings
 
@@ -534,10 +543,12 @@ A forecast is often wrong, and the pack keeps it apart from what the node measur
 `fc_lead_hours` beside it. Open-Meteo publishes no model run time, so its rows say `fetched`, not `issued`. With
 both sources on, `forecast-gap` records how far apart they are on temperature and wind for the same hour.
 
-With Open-Meteo on, each fetch also keeps the next day's hourly 10 m wind over the node's square as
-`out/ground/wind.json`, served at `GET /ground/wind` for the map. It asks with `cell_selection=nearest`, because
+With Open-Meteo on, each fetch also keeps the next day's hourly 10 m wind over a square round the middle of the node's
+res-8 cell, not the house, as `out/ground/wind.json`, served at `GET /ground/wind` for the map and open at
+`SHARE_LEVEL=open`. It asks with `cell_selection=nearest`, because
 the default moves a sea point to the nearest land cell, up to 12 km off. The field reaches no cell, alert or
-report.
+report. With `FORECAST_OPENMETEO=1` it also answers Tools › Pull on Place: Open-Meteo's weather now and for the next
+24 hours at the middle of the cells you chose, one call per selection, kept an hour.
 
 ## coast
 
@@ -658,6 +669,13 @@ downloaded on a poll. The directory is matched on the point and radius in its `m
 an earlier `NODE_NAME` is adopted as it stands; `planetai run earth status` names any that no longer match and
 deletes nothing.
 
+The square the pack keeps is centred on the house, so its edges and its numbers would say where the house is. A reader
+without a token is given another: centred on the middle of the res-8 cell, 1 km in from each side of the kept one,
+with no ring, and its own bounds and numbers (`GET /earth`, `/earth/change.png`, `/earth/year.png`). Your own tokens
+and this machine get the full square. For the Wall, `earth change` also writes `change_<A>_<B>_wall.png`, the changed
+pixels inside the community's res-7 cells that fit that smaller square and transparent elsewhere, served at
+`GET /earth/wall.png`.
+
 ### Rules
 
 None. A threshold that fires in Kuta Selatan, where the land is being built on, also fires in Boston every
@@ -750,6 +768,110 @@ every square a wettest tenth. At node #1 the house's own pixel drains 0.09 ha an
 drains 0.6 ha. The AWS copy is the 2021 release; the newer Copernicus Data Space copies are licensed for
 non-commercial use, and the pack does not read them.
 
+## hydro
+
+Where the rivers are around the node and which basins it drains into. It fetches its HydroSHEDS region once, on
+command (the level-1 basins say which region), keeps the rivers and level-12 basins in its square and its own basin
+at levels 12 and 4, and deletes the downloads. Each poll re-sends the nearest river's figures and the largest
+river's flow. The level-4 basin is the one index.fab.city draws as the place's bioregion.
+
+| | |
+|---|---|
+| Kind | code |
+| Domain | `water` |
+| Requires node | `>=0.91` |
+| Metrics | `river_m`, `river_flow_m3s`, `river_order`, `river_upland_km2`, `river_to_sea_km`, `river_largest_m3s`, `basin_up_km2` |
+| Scales | city |
+| Sources | `environmental/bioregion/hydroatlas-basinatlas`, `environmental/bioregion/hydroatlas-riveratlas` |
+| Needs | `PACKS_ALLOW_CODE=1`; `pyshp` (`pip:`); network to `data.hydrosheds.org` on the fetch only, 50-160 MB for a region, unpacked, read and deleted. The node keeps under 100 KB. No key |
+| Cells | none: a model traced at about 500 m is context, never a cell |
+| Attribution | "Rivers and basins: HydroSHEDS (Lehner & Grill 2013), as published in HydroATLAS v1.0 (Linke et al. 2019) under CC-BY 4.0" |
+
+The adapter writes `hydro-point` (`kind='model'`, `scale='city'`, `local=False`), every row stamped with the fetch's
+own time. The Place map draws the rivers, wider with each Strahler order, and the level-12 basins as rows of its
+water layer (`GET /hydro`, token-only). Tapping a river gives its flow, the ground it drains and its distance to
+the sea. Tools › Pull on Place gets the rivers and basins that touch the area you chose, only inside the pack's own
+square.
+
+### Scripts
+
+- `planetai run hydro fetch`: find the region, download its basins and rivers, keep the square in `out/hydro/<node>/hydro.json`. Run it again only when the node moves or the radius changes.
+- `planetai run hydro verify`: four checks, including that the nearest river in the result is the nearest line kept, and that rows from this fetch reached the database.
+
+### Settings
+
+| setting | default | meaning |
+|---|---|---|
+| `HYDRO_RADIUS_KM` | `25` | half-width of the square of rivers and basins kept around the node, in km |
+
+### What it does not know
+
+Rivers are traced from a 15 arc-second surface and start where 10 km² drains or 0.1 m³/s flows, so a canal, a
+subak channel or a small stream is not here; OpenStreetMap's waterways are, on the street map. The discharge is a
+model's long-term average, not a gauge. HydroSHEDS' own download carries its v1 licence agreement, which forbids
+passing the files on "as a stand-alone product"; the pack shows what it keeps under HydroATLAS's CC-BY 4.0, which
+publishes the same rivers and basins. At node #1 the nearest river is 5 km away and carries 0.13 m³/s; the
+largest in the square, 23 km away, carries 10.6 m³/s.
+
+## energy
+
+Where the electricity behind the node's cells comes from. It finds the node's grid in `packs/energy/grids.yml` (Bali
+and the Balearics today), asks OpenStreetMap through Overpass for the grid's plants, substations and cable heads once
+every `ENERGY_REFRESH_DAYS`, and works out how much of the grid's power is made from fossil fuels. Where the grid
+operator publishes its mix the share is measured: Menorca reads Red Eléctrica's Balearic mix by day. Where it does not,
+the share is a range from installed capacity and typical capacity factors. Bali's stays a range while how much of
+its power comes from Java by cable is not published.
+
+| | |
+|---|---|
+| Kind | code |
+| Domain | `energy` |
+| Requires node | `>=0.91.0` |
+| Metrics | `fossil_share_pct`, `fossil_share_low_pct`, `fossil_share_high_pct`, `fossil_share_day_pct`, `substation_km`, `large_plant_km`, `import_share_max_pct`, `grid_months`, and six `home_*` metrics, all private |
+| Scales | region |
+| Needs | `PACKS_ALLOW_CODE=1`; network to Overpass and, for Menorca, `apidatos.ree.es`; with `ENERGY_HA_URL` set, the household's own Home Assistant. No key |
+| Cells | none: a grid is context, never a cell |
+| Attribution | "© OpenStreetMap contributors, ODbL, via Overpass; Ember Yearly Electricity Data, CC BY 4.0; Red Eléctrica de España (REE), apidatos.ree.es" |
+
+Add `energy` to `PACKS_ENABLED` and to `NODE_ISSUES`. Now then has an Energy row in Around the house, and pressing it
+draws the grid where the day figure is: the fossil share, the mix as a bar, the sources with how far each is, and a
+Today box with the sun on the cell, what a roof of panels would make with it, and what the house uses. Place gains a
+Power grid row in its built section, off at first. `GET /energy` serves all of it. `substation_km` and `large_plant_km`
+are whole km from the middle of the house's res-8 cell, for everyone, and a screen without the token gets no plant's
+point beside its distance.
+
+Menorca's figure is Red Eléctrica's under terms that allow its use for information and forbid commercial use, so it
+is shown on the node with REE named and the date of its data, and it never leaves in the open export or reaches the
+Index (each of its readings carries `licence: non-commercial`).
+
+For the house, set `ENERGY_HA_URL`, `ENERGY_HA_TOKEN` and the entity ids of the panels and the grid meter, and the pack
+reads the house's own Home Assistant every 5 minutes, read only. Each hour it adds up the roof's and the grid's kWh and,
+where the grid has one measured figure, the house's own fossil share. An hour with a failed read or a 15-minute gap
+gets no line. Every `home_*` metric is private: the open export, a parent and a public screen never see them.
+
+### Settings
+
+| setting | default | meaning |
+|---|---|---|
+| `ENERGY_REFRESH_DAYS` | `30` | how often the grid's plants and substations are asked of OpenStreetMap again |
+| `ENERGY_POLL_HOURS` | `6` | how often the share is worked out again |
+| `ENERGY_HA_URL` | blank | the house's Home Assistant, for example `http://homeassistant.local:8123`. Blank reads nothing |
+| `ENERGY_HA_TOKEN` | blank | a long-lived access token from Home Assistant. Masked once saved |
+| `ENERGY_HA_SOLAR`, `ENERGY_HA_GRID`, `ENERGY_HA_BATTERY` | blank | the entity ids of the panels' power, the power drawn from the grid and the battery's, in W or kW |
+| `ENERGY_PANEL_KW` | `2` | the size of the roof's panels, for the Today box. A placeholder: set your own |
+| `ENERGY_HOUSE_KWH_DAY` | `9` | what the house uses in a day. A placeholder |
+| `ENERGY_PANEL_PR` | `0.75` | the panels' performance ratio, a typical one |
+
+### What it does not know
+
+- How much of Bali's power comes from Java. PLN publishes neither the cable's flow nor its rating under an open
+  licence, so Bali's share is a range and its low end stays an estimate.
+- The power lines. The pack asks Overpass where each line is and leaves out its shape, so the map draws plants,
+  substations and cable heads, and no lines yet.
+- Any grid not in `grids.yml`. A node elsewhere says it is on no grid the pack knows, and how to add one.
+- A house's solar measured for real. No house in the fleet has panels in Home Assistant yet, so the house's path is
+  proven on Home Assistant's documented answers only.
+
 ## earth-engine
 
 What the land within a kilometre of the node did last year, from Google Earth Engine's public catalog: tree,
@@ -786,7 +908,7 @@ configured the pack logs one line and idles. To set it up:
 
 - `planetai run earth-engine verify`: library, settings, key file, credentials, a real query, the datasets. Names the step that failed.
 - `planetai run earth-engine timelapse [--years a,b,c | --n 4 --gap 5] [--km 2] [--px 1024] [--source landsat|sentinel] [--lat --lon] [--dry-run]`: annual-median frames of clear pixels; Landsat by default (the only archive reaching 2010 with one instrument family), Sentinel-2 from 2016 at 10 m. PNGs and a side-by-side page land in `out/`.
-- `planetai run earth-engine basemap [--months 12] [--dry-run]`: the median of every clear Sentinel-2 pass over the last twelve months, built in the node's own Earth Engine project and kept as tiles at zoom 8 to 15 in `out/ground/imagery.mbtiles`, served at `GET /ground/imagery`. Earth Engine learns the two squares once, and the script says so before it runs.
+- `planetai run earth-engine basemap [--months 12] [--dry-run]`: the median of every clear Sentinel-2 pass over the last twelve months, built in the node's own Earth Engine project and kept as tiles at zoom 8 to 15 in `out/ground/imagery.mbtiles`, served at `GET /ground/imagery`. The squares are centred on the middle of the house's res-8 cell, and a set fetched before 18 November 2026, which was cut round the house, is centred again by fetching it again. Earth Engine learns the two squares once, and the script says so before it runs.
 
 ### Settings
 
@@ -844,10 +966,11 @@ cell says `partial`.
 
 ### Scripts
 
-- `planetai run place refresh`: force a fetch from Overpass, so edits to the map reach the node within minutes.
+- `planetai run place refresh`: force a fetch from Overpass, so edits to the map reach the node within minutes. With the
+  `earth-engine` credentials in place it also counts the satellite's buildings again.
 - `planetai run place gaps`: the mapping briefing, with untyped buildings, empty categories, named places without hours and unnamed streets, written to `out/place-gaps.md` for a mapping afternoon at the lab.
-- `planetai run place verify`: PostGIS, OpenStreetMap, Earth Engine and Open Buildings, each step named; it names the mismatch after a move.
-- `planetai run place basemap [--only vector|drone] [--dry-run]`: keeps a map of the place on the node's disk, in `out/ground/`, served at `GET /ground/*`: OpenStreetMap vector tiles cut from Protomaps' daily build, in three rings to zoom 15, with the label fonts, and any OpenAerialMap drone mosaic (CC BY 4.0) that crosses the drone ring. Protomaps and OpenAerialMap learn the square once, and the script says so before it runs.
+- `planetai run place verify`: PostGIS, OpenStreetMap, Earth Engine and Open Buildings, each step named; it names the mismatch after a move, and fails when the last year's count is more than three times off the footprints of the same circle.
+- `planetai run place basemap [--only vector|drone] [--dry-run]`: keeps a map of the place on the node's disk, in `out/ground/`, served at `GET /ground/*`: OpenStreetMap vector tiles cut from Protomaps' daily build, in three rings to zoom 15, with the label fonts, and any OpenAerialMap drone mosaic (CC BY 4.0) that crosses the drone ring. The rings are centred on the middle of the house's res-8 cell, and a set fetched before 18 November 2026 is centred again by fetching it again. Protomaps and OpenAerialMap learn the square once, and the script says so before it runs.
 
 `planetai run place satellite` also shows in the script list, because `satellite.py` is a non-adapter `.py`
 in the folder. It is a module the adapter imports, not a command.
@@ -872,7 +995,65 @@ nobody has mapped one. If the map is wrong about your place, fix the map, and ne
 imagery. With the `earth-engine` credentials in place, the monthly refresh also
 fetches Google Open Buildings V3 footprints (confidence at or above 0.65) and the Temporal dataset's yearly
 building count and mean height for 2016 to 2023; `GET /history?sensor_id=place-point&metric=sat_buildings_yearly`
-is the series. After a move it takes `planetai restart`, `planetai run place refresh` and a dashboard reload.
+is the series, the buildings standing each year. Until 18 November 2026 the count was added up 64 times low, and a node
+that holds that series gets the right one at its next monthly refresh, or at once with `planetai run place refresh`. After a move it takes `planetai restart`, `planetai run place refresh` and a dashboard reload.
+
+## index
+
+Which Fab City Index place this node belongs to, and what the Index says about it: the place's score or range, a few
+indicators with their year and source, and how many sources the registry files for it. It reads two public files
+once a day and keeps them on the node. It computes no score of its own.
+
+| | |
+|---|---|
+| Kind | code |
+| Domain | `place` |
+| Requires node | `>=0.91.0` |
+| Metrics | none |
+| Scales | community |
+| Needs | `INDEX_PLACE` set (it is the pack's own switch, so `PACKS_ALLOW_CODE` is not needed); network to `index.fab.city`, `api.github.com` and `raw.githubusercontent.com` |
+| Shares | `/index/place` at `SHARE_LEVEL=open` |
+| Rules and cells | none: a place's numbers are the Index's, read and not recomputed |
+| Attribution | Fab City Index, CC BY 4.0, Fab City Foundation; awesome-fabcity-data |
+
+`planetai place` writes `INDEX_PLACE`, one of the 61 slugs in `packs/index/places.json` (generated from the registry's
+`places.yaml`), and, on a node that lists its packs in `PACKS_ENABLED`, adds the pack to that list. The two reads are:
+
+- the place: `INDEX_URL/api/v0/places/<slug>.json`, the Index's own file for the place, format `fci-api-v0`;
+- the registry: GitHub's current commit of awesome-fabcity-data's `main`, then that commit's `index.json`, fetched
+  only when the commit has moved since the last read.
+
+Each lands in one row of `index_reads` (`what`, `sha`, `fetched_at`, `ok`, `error`, `body`). A read that fails, times
+out after 20 seconds, is over 8 MB or is not the format asked for never replaces the stored body. The row keeps the
+last good one and says why in `error`, and a failed read is dated too, so a host that is down is asked once a day and
+not at every poll. The place row's `sha` holds the slug it was read for, on success and on failure, so a node whose
+`INDEX_PLACE` changed reads the new place at the next poll and not a day later, and a failed read keeps the last file
+only for the same slug. A slug the Index does not track is said in the row and nothing is requested. No request
+carries the node's coordinates, its id or its address.
+
+`GET /index/place` reads only those rows, so the dashboard never waits on index.fab.city. It trusts the stored place
+file for the chosen slug and no other, and the pack clears another slug's file on its next read. Its routes follow
+`PACKS_ENABLED` and not the pack's switch, so with `INDEX_PLACE` empty the route still answers, with nothing chosen. When the registry
+copy it read is there, the count of sources filed for the place comes from it. When it is not, the count comes from the
+pinned copy in `data/sources/`, and the answer's `registry.from` says `pinned`.
+
+### Settings
+
+| setting | default | meaning |
+|---|---|---|
+| `INDEX_PLACE` | empty | the Index place this node belongs to, a slug from `places.json`. Empty is off: nothing is read, and the Place door says no place is chosen |
+| `INDEX_URL` | `https://index.fab.city` | where the place file is read from |
+| `INDEX_REFRESH_HOURS` | `24` | how long a read stays good before the poll reads again |
+
+### What it does not know
+
+`places.json` carries an approximate centre for each place, used only to suggest one: a node more than 150 km from
+every centre gets no suggestion and picks by name. A centre is not a border, so the household confirms the place.
+
+The date the Place door shows is the date of the Index's own file (`read.at`), and the node's last attempt is
+`read.tried`, so a file that is two weeks old reads as two weeks old whenever the node tried since. The count of
+filed sources is how many registry entries name the place in their `places` list. It does not say that any code on
+this node reads them, and the pack reads none of them.
 
 ## make
 
@@ -909,7 +1090,9 @@ Nearest place to make or fix something: <lab>, <km> km (<up to three capabilitie
 It is in Indonesian and Spanish too, capability names included (`laser cutting`, `pemotongan laser`, `corte
 láser`). A lab under 0.05 km away prints as `<0.1 km`. The same sentence travels in `GET /issues` as
 `asks.where`, and the dashboard draws it in Act, under the record of what was asked and answered. With the
-pack off, the dashboard shows the help text the node publishes for `MAKE_ENABLED`.
+pack off, the dashboard shows the help text the node publishes for `MAKE_ENABLED`. A reader without a token
+sees each lab's distance from the middle of the house's res-8 cell, so the sentence in the report reads the same
+wherever in the cell the house stands.
 
 ### Settings
 
@@ -1133,7 +1316,8 @@ invasive (GRIIS) and how many open records others have made in the node's seven 
 Core until 24 October 2026. The `captures` table stays in `init.sql` and the pictures stay where they are; the three
 settings stay the core's, because two of them change what leaves the house. With the pack off, the routes answer 404,
 the Data door says so, and the weekly reads do not run. On `planetai update`, a node that lists its packs in
-`PACKS_ENABLED` gets `eyes` added, because every node had it.
+`PACKS_ENABLED` gets `eyes` added, because every node had it. With `SPECIES_MATCH` on it also answers Tools › Pull on
+Place: how many open GBIF records there are of each species in the area you chose, counts only, kept a day.
 
 ## example-cooking-hours
 

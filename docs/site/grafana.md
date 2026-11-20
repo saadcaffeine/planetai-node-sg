@@ -1,5 +1,5 @@
 # Grafana
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 The dashboard draws the node the way this project decided to draw it. Grafana is for the person who keeps the node
 and wants to look at their own data their own way: a month of one room, every sensor on one chart, the hours a sensor
@@ -51,7 +51,8 @@ from a laptop.
 
 Grafana signs in to the database as `planetai_grafana`, a login made by `config/grafana/role.sh` each time Grafana
 starts. It belongs to `planetai_ro`, the role pack rules already run as, which can read every table except
-`settings` and the household's own (`captures`, `things`, `learnings`, `digests`, `household`), and write none. On top of that:
+`settings` and the household's own (`captures`, `things`, `learnings`, `digests`, `household`, `place_photo_asks`,
+`place_photo_asks_in`), and write none. On top of that:
 
 - every session it opens is read-only;
 - a query stops after 30 seconds, so a wide panel cannot slow the node down;

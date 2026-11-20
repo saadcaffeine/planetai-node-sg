@@ -358,11 +358,20 @@ def ramp_indices(dist, masked):
     return ix
 
 
-def write_png(path, ix, texts: dict | None = None) -> int:
+def write_png(path, ix, texts: dict | None = None, palette: bytes | None = None, trns: bytes | None = None) -> int:
+    """png_bytes() written to `path`. Returns the file size."""
+    out = png_bytes(ix, texts, palette, trns)
+    path.write_bytes(out)
+    return len(out)
+
+
+def png_bytes(ix, texts: dict | None = None, palette: bytes | None = None, trns: bytes | None = None) -> bytes:
     """An indexed-colour PNG from a (H, W) uint8 array of palette indices. zlib and struct are enough; the
-    node has no image library and this pack is not going to add one. Returns the file size.
+    node has no image library and this pack is not going to add one.
 
     The attribution travels inside the file as a tEXt chunk, so a PNG that leaves the node still carries it.
+    `palette` replaces the grey ramp, and `trns` is the alpha of the first palette entries (b"\x00": entry 0
+    is transparent).
     """
     import struct
     import zlib
@@ -375,13 +384,98 @@ def write_png(path, ix, texts: dict | None = None) -> int:
         raw += ix[r].tobytes()
     out = b"\x89PNG\r\n\x1a\n"
     out += chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 3, 0, 0, 0))
-    out += chunk(b"PLTE", _palette())
+    out += chunk(b"PLTE", palette or _palette())
+    if trns is not None:
+        out += chunk(b"tRNS", trns)
     for k, v in (texts or {}).items():
         out += chunk(b"tEXt", k.encode("latin-1", "replace") + b"\x00" + v.encode("latin-1", "replace"))
     out += chunk(b"IDAT", zlib.compress(bytes(raw), 6))
     out += chunk(b"IEND", b"")
-    path.write_bytes(out)
-    return len(out)
+    return out
+
+
+# ---------------------------------------------------------------- the image the Wall may show
+
+# The Wall is a screen with no token, and may show nothing finer than the house's res-8 cell (app/wall.py). The
+# square this pack reads is centred on the house's pixel, so its edges, its ring and its hectares all give the house
+# away. The Wall's image is cut from it by the cell instead: the community's res-7 cells (the disk of one around the
+# res-8 cell's parent) that lie wholly inside a square centred on the res-8 cell's centre, whose half-width is the
+# radius less the farthest the house can be from that centre. That square is inside the one read wherever the house
+# stands in its cell, and the pixels are the dataset's own 10 m grid, so the image, its bounds and its hectares are
+# the same for every point in the cell. Changed pixels only, in one colour; everything else is transparent.
+WALL_PALETTE = b"\x00\x00\x00\xff\xbe\x78"          # 0: transparent (with trns=b"\x00"), 1: changed, #FFBE78
+SNAP_M = 10                                             # the square read is snapped to the house's pixel
+
+
+def projection(epsg: int):
+    """(lat, lon) to metres in a UTM EPSG code, by the surface-heat pack's Snyder series: no pyproj on a node.
+    A pure function borrowed from a sibling pack, as app/wall.py does."""
+    spec = importlib.util.spec_from_file_location(
+        "planetai_pack_surface_heat_for_earth", Path(__file__).resolve().parent.parent / "surface-heat" / "adapter.py")
+    sh = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sh)  # type: ignore[union-attr]
+    return sh.projection(epsg)
+
+
+def allowed_raster(bounds: dict, crs: str, shape: tuple[int, int], home: str, radius_m: float, clipped: bool = False):
+    """(H, W) bool over the square read (north up, `bounds` in `crs`): True on the pixels whose centres fall in the
+    community's res-7 cells that lie wholly inside the safe square round `home`'s centre, and inside the raster.
+
+    All False when a tile edge clipped the window: where the edge cuts the square depends on where in the cell the
+    house is, so which cells survive (or whether any does) would say where. All False too when the window was not
+    clipped and still does not hold the safe square: it was read around a point that is not in this cell (a move
+    inside fetch's tolerance), and which edge cells survive would say the same."""
+    import h3
+    import numpy as np
+    fwd = projection(int(str(crs).rsplit(":", 1)[-1]))
+    c = h3.cell_to_latlng(home)
+    circum = max(h3.great_circle_distance(c, v, unit="m") for v in h3.cell_to_boundary(home))
+    cx, cy = fwd(*c)
+    half = int(radius_m) // 10 * 10 - circum - SNAP_M     # the half-width window_px really reads
+    h, w = shape
+    pw, ph = (bounds["east"] - bounds["west"]) / w, (bounds["north"] - bounds["south"]) / h
+    west, east = max(cx - half, bounds["west"]), min(cx + half, bounds["east"])
+    south, north = max(cy - half, bounds["south"]), min(cy + half, bounds["north"])
+    if clipped or (west, east, south, north) != (cx - half, cx + half, cy - half, cy + half):
+        return np.zeros(shape, bool)
+    X = (bounds["west"] + (np.arange(w) + 0.5) * pw)[None, :]
+    Y = (bounds["north"] - (np.arange(h) + 0.5) * ph)[:, None]
+    out = np.zeros(shape, bool)
+    for cell in h3.grid_disk(h3.cell_to_parent(home, 7), 1):
+        ring = [fwd(*v) for v in h3.cell_to_boundary(cell)]
+        if not all(west <= x <= east and south <= y <= north for x, y in ring):
+            continue
+        inside = np.zeros(shape, bool)                  # even-odd rule on the pixel centres
+        for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]):
+            if y1 == y2:
+                continue
+            inside ^= ((y1 > Y) != (y2 > Y)) & (X < x1 + (Y - y1) * (x2 - x1) / (y2 - y1))
+        out |= inside
+    return out
+
+
+def wall_mask(dist, masked, threshold: float, allowed):
+    """(H, W) uint8: 1 where the land changed (over `threshold`, not masked) inside `allowed`, else 0."""
+    return ((dist > threshold) & ~masked & allowed).astype("uint8")
+
+
+def wall_image(dist, masked, bounds: dict, crs: str, home: str, radius_m: float, threshold: float,
+               clipped: bool = False):
+    """The Wall's image and its crop: (ix, {"bounds", "ha"}), the image cut to the allowed cells' box, bounds in
+    `crs`, ha the changed pixels inside the cells. None when no community cell fits the square, when a tile edge
+    clipped the read, or when an unclipped window does not hold it (allowed_raster)."""
+    import numpy as np
+    allowed = allowed_raster(bounds, crs, dist.shape, home, radius_m, clipped)
+    if not allowed.any():
+        return None
+    rows, cols = np.flatnonzero(allowed.any(1)), np.flatnonzero(allowed.any(0))
+    r0, r1, c0, c1 = int(rows[0]), int(rows[-1]) + 1, int(cols[0]), int(cols[-1]) + 1
+    h, w = dist.shape
+    pw, ph = (bounds["east"] - bounds["west"]) / w, (bounds["north"] - bounds["south"]) / h
+    ix = np.ascontiguousarray(wall_mask(dist, masked, threshold, allowed)[r0:r1, c0:c1])
+    box = {"west": bounds["west"] + c0 * pw, "east": bounds["west"] + c1 * pw,
+           "north": bounds["north"] - r0 * ph, "south": bounds["north"] - r1 * ph}
+    return ix, {"bounds": box, "ha": round(int(ix.sum()) * pw * ph / 10000.0, 1)}
 
 
 # A 3x5 digit, so a frame that leaves the node still says which year it is. Ten glyphs is cheaper than a
@@ -460,10 +554,14 @@ def fit_view(years: list[int]) -> dict:
             "fitted_on": sorted(years)}
 
 
-def render_year(year: int, view: dict, node_rc=None):
-    """One year as palette indices: grey where there is data, the ramp shared with every other frame."""
+def render_year(year: int, view: dict, node_rc=None, window=None):
+    """One year as palette indices: grey where there is data, the ramp shared with every other frame. `window`,
+    (r0, c0, r1, c1), draws only that part of the square."""
     import numpy as np
-    raw = np.asarray(np.load(year_file(year), mmap_mode="r"))
+    raw = np.load(year_file(year), mmap_mode="r")
+    if window:
+        raw = raw[:, window[0]:window[2], window[1]:window[3]]
+    raw = np.asarray(raw)
     masked = raw[0] == -128
     v = dequantize(raw.reshape(64, -1))
     mu = np.array(view["mean"], dtype=np.float32)[:, None]
@@ -515,6 +613,171 @@ def changes() -> list[dict]:
     return sorted(out, key=lambda c: (c.get("year_b", 0), c.get("year_a", 0)))
 
 
+def change_stats(dist, masked, threshold: float) -> dict | None:
+    """The numbers a comparison publishes, over whatever square `dist` covers. None when every pixel is masked."""
+    import numpy as np
+    good = dist[~masked]
+    if not good.size:
+        return None
+    over = float((good > threshold).mean())
+    return {"mean": round(float(good.mean()), 5), "median": round(float(np.median(good)), 5),
+            "p95": round(float(np.percentile(good, 95)), 5), "max": round(float(good.max()), 5),
+            "threshold": threshold, "share_over_threshold": round(over, 5),
+            "hectares_over_threshold": round(over * good.size * 100.0 / 10000.0, 1),      # a pixel is 10 m x 10 m
+            "pixels": int(good.size), "pixels_masked": int(masked.sum()),
+            "px": [int(dist.shape[1]), int(dist.shape[0])]}
+
+
+# ---------------------------------------------------------------- the square a stranger sees
+# The cached square is centred on the node's own point. Its centre, the ring drawn there, its size where a tile edge
+# clips it and every number computed over it each place the house to 10 m, and AlphaEarth is public, so whoever holds
+# the numbers can search the cell for the one square they fit. R25 (app/main.py::_published_position) lets nothing
+# finer than the node's res-8 cell leave for a reader the node does not know. That reader gets the public square:
+# centred on the cell's centre, PUBLIC_MARGIN_M in from each side of the cached one, no ring, with its own bounds and
+# its own numbers. Two houses in one cell are handed the same square, byte for byte (tests/test_earth_frames.py).
+PUBLIC_MARGIN_M = 1000      # a res-8 cell's centre is at most ~530 m from a point inside it, plus the move tolerance
+
+
+def public_window(rc, shape, lat: float, lon: float, radius_m: int):
+    """(r0, c0, r1, c1), end-exclusive, of the public square inside a north-up window of `shape` (rows, cols) whose
+    node pixel is `rc`, read around (lat, lon). None when the cached square is too small to cut one from.
+
+    The offset to the cell's centre is in flat-earth metres, so it ignores the UTM grid's convergence: a few metres
+    inside the margin, under one pixel at node #1. A tile edge clips the public square where it clipped the cached
+    one, and that edge is the tile's, not the house's."""
+    import h3
+    clat, clon = h3.cell_to_latlng(h3.latlng_to_cell(float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"]), 8))
+    dr = round((lat - clat) * 111320.0 / 10)                                    # north-up: rows run south
+    dc = round((clon - lon) * 111320.0 * math.cos(math.radians(lat)) / 10)
+    half = (radius_m - PUBLIC_MARGIN_M) // 10
+    if half <= 0 or max(abs(dr), abs(dc)) * 10 > PUBLIC_MARGIN_M:
+        return None
+    r, c = int(rc[0]) + dr, int(rc[1]) + dc
+    return max(0, r - half), max(0, c - half), min(shape[0], r + half), min(shape[1], c + half)
+
+
+def window_bounds(bounds: dict, w) -> dict:
+    """The UTM bounds of window `w` inside a north-up square whose bounds are `bounds`, at 10 m."""
+    return {"west": bounds["west"] + w[1] * 10, "east": bounds["west"] + w[3] * 10,
+            "north": bounds["north"] - w[0] * 10, "south": bounds["north"] - w[2] * 10}
+
+
+def public_dir() -> Path:
+    """Where the public cuts are kept: one directory per res-8 cell, so a node that moves cell cuts again."""
+    import h3
+    return cache() / "public" / h3.latlng_to_cell(float(os.environ["NODE_LAT"]), float(os.environ["NODE_LON"]), 8)
+
+
+def _kept(src: Path, *outs: Path) -> bool:
+    """Whether every cut in `outs` is at least as new as the file it was cut from."""
+    try:
+        return all(o.stat().st_mtime_ns >= src.stat().st_mtime_ns for o in outs)
+    except OSError:
+        return False
+
+
+def _keep(path: Path, data: bytes) -> None:
+    """Write a cut whole or not at all. An out/ that cannot be written still answers; it cuts again next time."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_bytes(data)
+        tmp.replace(path)
+    except OSError:
+        pass
+
+
+def public_change(c: dict):
+    """(numbers, png bytes) of one comparison over the public square, or None when it cannot be cut. Kept on disk
+    beside the comparison until `earth change` rewrites it: a cut takes about 6 s on node #1."""
+    src = change_file(c.get("year_a"), c.get("year_b"), "json")
+    d = public_dir()
+    j, p = d / src.name, d / f"{src.stem}.png"
+    if _kept(src, p, j):
+        return json.loads(j.read_text()), p.read_bytes()
+    try:
+        cut = _cut_change(json.loads(src.read_text()))
+    except OSError:
+        return None
+    if cut:
+        _keep(p, cut[1])
+        _keep(j, json.dumps(cut[0]).encode())
+    return cut
+
+
+def _cut_change(c: dict):
+    import numpy as np
+    try:
+        w = public_window(c["node_rc"], (c["px"][1], c["px"][0]), float(c["lat"]), float(c["lon"]), int(c["radius_m"]))
+        a, b, threshold = int(c["year_a"]), int(c["year_b"]), float(c["threshold"])
+    except (KeyError, IndexError, TypeError, ValueError):                       # a comparison from before node_rc
+        return None
+    if not w:
+        return None
+    X, Y = (np.load(year_file(y), mmap_mode="r")[:, w[0]:w[2], w[1]:w[3]] for y in (a, b))
+    dist, masked = cosine_distance(X, Y)
+    numbers = change_stats(dist, masked, threshold)
+    if not numbers:
+        return None
+    keep = ("node", "year_a", "year_b", "metres_per_pixel", "crs", "tiles", "dataset", "attribution", "computed_at", "png")
+    out = {**{k: c[k] for k in keep if k in c}, **numbers, "radius_m": int(c["radius_m"]) - PUBLIC_MARGIN_M,
+           "bounds": window_bounds(c["bounds"], w) if c.get("bounds") else None, "position": "cell"}
+    ix = ramp_indices(dist, masked)
+    draw_marks(ix)
+    return out, png_bytes(ix, {
+        "Title": f"Land change {a}-{b}, {node()}, around its res-8 cell",
+        "Description": f"1 - cosine similarity of annual AlphaEarth embeddings, {a} to {b}. North up, 10 m per "
+                       f"pixel, centred on the node's res-8 cell, grey ramp 0 to {RAMP_CEILING}. Black is no data.",
+        "Copyright": ATTRIBUTION})
+
+
+def public_year(year: int) -> bytes | None:
+    """One year's frame over the public square, or None. Kept on disk until `earth frames` redraws the full frame,
+    which it does whenever the shared view changes: a cut takes about 15 s on node #1."""
+    src = year_png(year)
+    out = public_dir() / src.name
+    if _kept(src, out):
+        return out.read_bytes()
+    if not src.is_file():
+        return None
+    m = meta()
+    win = (m.get("windows") or {}).get(str(year)) or {}
+    try:
+        w = public_window(win["node_rc"], (win["px"][1], win["px"][0]), float(m["lat"]), float(m["lon"]),
+                          int(m["radius_m"]))
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    if not (w and m.get("view")):
+        return None
+    cut = png_bytes(render_year(year, m["view"], None, w), {
+        "Title": f"{year}, {node()}, around its res-8 cell",
+        "Description": f"AlphaEarth embedding for {year}, first principal component as grey. North up, 10 m per "
+                       f"pixel, centred on the node's res-8 cell. Not a photograph.",
+        "Copyright": ATTRIBUTION})
+    _keep(out, cut)
+    return cut
+
+
+def warm() -> None:
+    """Cut every comparison and frame not cut yet, so a screen without the token is not the one that waits."""
+    try:
+        for c in changes():
+            public_change(c)
+        for y in cached_years():
+            public_year(y)
+    except Exception as e:                                                      # noqa: BLE001
+        log.warning("earth: could not cut the public square (%s: %s)", type(e).__name__, str(e)[:120])
+
+
+def wall_cell() -> str | None:
+    """The res-8 cell the Wall's crop is cut round: NODE_LAT/NODE_LON's, None before the node has a place."""
+    if not (os.getenv("NODE_LAT") and os.getenv("NODE_LON")):
+        return None
+    import h3
+    lat, lon, _ = aoi()
+    return h3.latlng_to_cell(lat, lon, 8)
+
+
 def latest_pair() -> tuple[int, int] | None:
     """The two most recent consecutive cached years. A gap is not a year-over-year comparison."""
     ys = cached_years()
@@ -533,6 +796,11 @@ def fetch(hc):                                                                  
             log.info("earth: nothing cached yet — planetai run earth fetch, then planetai run earth change")
             _state["warned"] = True
         return [], []
+    # The public square's cuts, in the background: 6 s a comparison and 15 s a frame on node #1, once each.
+    if not (_state.get("warm") and _state["warm"].is_alive()):
+        import threading
+        _state["warm"] = threading.Thread(target=warm, name="earth-public-cut", daemon=True)
+        _state["warm"].start()
     from datetime import datetime, timezone
     lat, lon, radius = aoi()
     ys = cached_years()

@@ -1,0 +1,38 @@
+id: energy
+name: Energy
+description: "Where the grid's power comes from, how much of it is fossil, and what sources and cables feed this cell."
+kind: code
+version: 0.1.0
+requires: { node: ">=0.91.0" }
+domain: energy
+scales: [region]
+metrics: [fossil_share_pct, fossil_share_low_pct, fossil_share_high_pct, fossil_share_day_pct, substation_km, large_plant_km, import_share_max_pct, grid_months,
+          home_roof_w, home_grid_w, home_battery_w, home_roof_kwh, home_grid_kwh, home_fossil_pct]
+needs: "PACKS_ALLOW_CODE=1; network to Overpass API and the grid's mix source (apidatos.ree.es where applicable); with ENERGY_HA_URL set, the household's own Home Assistant"
+attribution: "© OpenStreetMap contributors, ODbL, via Overpass; Ember Yearly Electricity Data, CC BY 4.0; Red Eléctrica de España (REE), apidatos.ree.es"
+env:
+  - "# Energy pack: OSM refresh cadence (days) and grid mix poll cadence (hours)"
+  - ENERGY_REFRESH_DAYS=30
+  - ENERGY_POLL_HOURS=6
+  - "# Energy pack: the house, read every 5 minutes from its own Home Assistant. Read only. Blank reads nothing"
+  - "# Home Assistant's address, e.g. http://homeassistant.local:8123"
+  - ENERGY_HA_URL=
+  - "# A long-lived access token from Home Assistant (your profile, Security). Masked once saved"
+  - ENERGY_HA_TOKEN=
+  - "# The entity id of what the panels make now, in W or kW"
+  - ENERGY_HA_SOLAR=
+  - "# The entity id of the power drawn from the grid now, in W or kW, positive when drawing"
+  - ENERGY_HA_GRID=
+  - "# Optional: the entity id of the battery's power, in W or kW"
+  - ENERGY_HA_BATTERY=
+  - "# Energy pack: the Today box. Placeholders until you set your own. Blank leaves the line out"
+  - "# The size of the roof's panels, in kW"
+  - ENERGY_PANEL_KW=2
+  - "# What the household uses in a day, in kWh"
+  - ENERGY_HOUSE_KWH_DAY=9
+  - "# The share of the panels' rated output the roof really gives (heat, dust, inverter)"
+  - ENERGY_PANEL_PR=0.75
+secrets: [ENERGY_HA_TOKEN]
+# The paths this pack's routes.py serves that a household on SHARE_LEVEL=open shares with its own WiFi (app/auth.py).
+share:
+  open: [/energy]

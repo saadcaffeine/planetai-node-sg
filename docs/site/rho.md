@@ -1,5 +1,5 @@
 # ρ: the loop closed
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 ρ (rho) is the share of the node's act-level asks (alerts and events it sent, and its children's alerts) that a
 person answered within 24 hours. It is the node's
@@ -35,7 +35,7 @@ third row adds nothing.
 
 ![ρ: of the act-level asks sent, the share that got an answer within 24 hours](img/rho.svg "The first acknowledged or acted answer stops the clock. The figures are an example.")
 
-> **Gap in v0.91.0.** A child pushes every `alerts` row to its parent, the unsent ones included, and none of its
+> **Gap in v0.92.0.** A child pushes every `alerts` row to its parent, the unsent ones included, and none of its
 > events. A parent's pooled ρ therefore counts a child on `ALERT_ENGINE=events` the old way.
 
 `GET /rho` on node #1, an events node:
@@ -51,7 +51,7 @@ Of 157 asks in 30 days, 13 were answered within 24 hours, and among those 13 the
 after the ask. `rho` and `median_minutes` are `null` when there is nothing to divide. `days_ago` moves the whole
 window back; the report's bundle uses 7 to carry what ρ was a week ago.
 
-`planetai status` and `planetai act` print ρ, and the `status` MCP tool carries it. The dashboard's *Whether it
+`planetai status` and `planetai act` print ρ, and the `status` MCP tool carries it. The classic dashboard's *Whether it
 worked* section draws it as "{closed} of {total} alerts answered · median {n} min", and the classic wall as its
 row of rings. The doors' Wall does not show it.
 
@@ -69,16 +69,17 @@ row of rings. The doors' Wall does not show it.
 
 ## Stages
 
-`actions.stage` is one of six:
+`actions.stage` is one of seven:
 
 | stage | meaning | written by | in ρ |
 |---|---|---|---|
 | `acknowledged` | somebody saw it | `POST /actions`, the bot's Not now | yes |
 | `decided` | somebody said what would be done | the dashboard's Decide form, `POST /actions` | no |
-| `acted` | somebody did the thing | the dashboard's *I did this* and Done, `planetai act`, `/act` on Telegram, `act <id>` over LXMF, the MCP `act` tool, `POST /actions` | yes |
+| `acted` | somebody did the thing | the dashboard's *I did this* and Done, a drawing on Place tied to an issue, `planetai act`, `/act` on Telegram, `act <id>` over LXMF, the MCP `act` tool, `POST /actions` | yes |
 | `measured` | the condition stopped | derived in the funnel (below); `POST /actions` refuses it | no |
 | `settings` | a setting was changed, with no alert | the node, on `PUT /settings` | no |
 | `dismissed` | *Doesn't fit*, said of an event's advice | `POST /actions` with an `event_id` | no |
+| `place` | a drawing, a change, a download or a share on Place, one line in the ledger | the node, from Place | no |
 
 An event's three answers (`acted`, `acknowledged`, `dismissed`) carry an `event_id` and no `alert_id`. ρ and the
 funnel count them; `GET /effect` joins `actions` to `alerts` on `alert_id`, so no event's answer is in it. See

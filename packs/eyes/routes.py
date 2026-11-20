@@ -36,11 +36,6 @@ NODE_TZ = os.getenv("NODE_TZ", "").strip() or "UTC"
 router = APIRouter()
 
 
-def _here() -> tuple[float, float]:
-    from geo import _here as here    # noqa: PLC0415 — the node's point, as the map workbench reads it
-    return here()
-
-
 # ---------------------------------------------------------------- introduced or invasive (docs/SPEC_species.md §3)
 # GRIIS, the Global Register of Introduced and Invasive Species, publishes one checklist per country on GBIF under CC BY
 # 4.0, all from one publisher (ISSG). The node finds its own country's by title, offline from NODE_TZ, and keeps a map
@@ -218,9 +213,8 @@ def _node_cells() -> tuple[set, str]:
     """The node's seven res-8 cells (its own and the six touching it, SPEC_eyes §5) and its own res-10 cell —
     the yardsticks `outside` and `at_home` are measured with once, on arrival."""
     import h3  # noqa: PLC0415
-    lat, lon = _here()
-    home8 = h3.latlng_to_cell(lat, lon, 8)
-    return set(h3.grid_disk(home8, 1)), h3.latlng_to_cell(lat, lon, 10)
+    from geo import home_cell  # noqa: PLC0415
+    return set(h3.grid_disk(home_cell(8), 1)), home_cell(10)
 
 
 def _clean_picture(raw: bytes) -> tuple[bytes, str, str | None, tuple[float, float] | None]:
@@ -396,6 +390,10 @@ def species(request: Request, authorization: str = Header(""), cell: str | None 
     return {"cell": cell, "species": [{**x, "images": len(x["images"]), "cells": len(x["cells"])} for x in rows]}
 
 
+# A map that carries this photo has changed: its words, or the photo itself, are part of what a shared map sends.
+_MAPS_WITH = "UPDATE place_maps SET updated_at = now() WHERE id IN (SELECT map_id FROM place_marks WHERE capture_id = %s)"
+
+
 @router.patch("/captures/{cid}")
 def capture_patch(cid: int, body: dict, request: Request, authorization: str = Header("")):
     """The household edits an image's words: `note`, `kind`, and `meta` (an object of short strings, replaced whole).
@@ -430,6 +428,7 @@ def capture_patch(cid: int, body: dict, request: Request, authorization: str = H
     if not sets:
         raise HTTPException(422, "nothing to change: note, kind, meta, findings or confirm")
     with _db.db() as con, con.cursor() as cur:
+        cur.execute(_MAPS_WITH, (cid,))   # a shared map says the new words upstream on its next put (light GIS §14)
         cur.execute(f"UPDATE captures SET {', '.join(sets)} WHERE id = %s RETURNING *", (*vals, cid))
         row = cur.fetchone()
     if not row:
@@ -444,6 +443,7 @@ def capture_delete(cid: int, request: Request, authorization: str = Header("")):
     if not _is_local(request):
         _admin(authorization)
     with _db.db() as con, con.cursor() as cur:
+        cur.execute(_MAPS_WITH, (cid,))   # before the foreign key clears it: the next put says the photo is gone
         cur.execute("DELETE FROM captures WHERE id = %s RETURNING file", (cid,))
         row = cur.fetchone()
         if row:   # a thing added from this photo stays, without a link to a picture that is gone

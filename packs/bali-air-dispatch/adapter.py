@@ -14,7 +14,13 @@ read by packs/nearby and by GET /nearby?audit=1, so the audit can never drift fr
 """
 from __future__ import annotations
 
+import json
+import logging
+import os
 import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 
 sys.path.insert(0, "/app")
 import settings  # noqa: E402
@@ -29,6 +35,7 @@ ATTRIBUTION = "Bali Air Dispatch, baliairdispatch.com"
 # IQAir station mirrored by AQICN. The archive dedupes OpenAQ against some networks but not against AirGradient,
 # so the ring has to. These prefixes lose a tie: the network that owns the device is kept, the mirror is dropped.
 MIRROR_PREFIXES = ("oq-", "oaq-", "aq-")
+ROUNDED_M = 80          # app/wall.py's: how far a point at 3 dp can stand from where it is
 
 
 def _ids(key: str) -> set[str]:
@@ -78,8 +85,8 @@ def verdicts(rows: list[dict], node_lat: float, node_lon: float, radius_km: floa
     Ownership is not the test: a kit of the operator's at another address is a legitimate neighbour. The test is
     whether this node already measures that device.
 
-    Distance from the node stands in for distance from each local sensor: every local sensor is inside
-    LOCAL_RADIUS_M (500 m) of it by definition. A local sensor near the edge of that radius with a station 150 m
+    Distance from the node stands in for distance from each local sensor: every local sensor stands in
+    this node's own res-8 cells by definition. A local sensor near the edge of those cells with a station 150 m
     beyond it on the far side would be missed; BAD_EXCLUDE is the answer if that ever happens.
     """
     own, byhand = own_ids or set(), exclude_ids or set()
@@ -129,13 +136,16 @@ def verdicts(rows: list[dict], node_lat: float, node_lon: float, radius_km: floa
 
 def ring(hc, node_lat: float, node_lon: float, radius_km: float,
          skip_station_ids: set[str] | None = None, exclude_ids: set[str] | None = None,
-         min_separation_m: float = 150.0, include_indoor: bool = False):
+         min_separation_m: float = 150.0, include_indoor: bool = False, rows: list[dict] | None = None):
     """The ring: other people's stations around this node. Never `local` — at any distance, whatever the
-    coordinates say. See verdicts() for which stations are dropped and why."""
+    coordinates say. See verdicts() for which stations are dropped and why. `rows` is /latest when the caller
+    already has it."""
     sensors, readings = [], []
-    r = hc.get(LATEST)
-    r.raise_for_status()
-    for row, verdict in verdicts(r.json().get("readings", []), node_lat, node_lon, radius_km,
+    if rows is None:
+        r = hc.get(LATEST)
+        r.raise_for_status()
+        rows = r.json().get("readings", [])
+    for row, verdict in verdicts(rows, node_lat, node_lon, radius_km,
                                  skip_station_ids, exclude_ids, min_separation_m, include_indoor):
         if verdict != "included":
             continue
@@ -156,6 +166,113 @@ def ring(hc, node_lat: float, node_lon: float, radius_km: float,
     return sensors, readings
 
 
+def island(rows: list[dict], stations: dict[str, dict], here: tuple[float, float] | None = None,
+           own_ids: set[str] | None = None, exclude_ids: set[str] | None = None,
+           min_separation_m: float = 150.0) -> list[dict]:
+    """Every fresh, outdoor, working station on the island, for the Wall's city scale. Pure: /latest rows and the
+    /stations rows by id in, items out. No radius (the ring has one), no node: the Wall draws what it can see.
+    One device, one item: stations naming each other in `same_device_as` (either side, and through a stale station or
+    one /latest no longer lists, which still links its neighbours) are one, and its item is one of its fresh, outdoor,
+    working stations: the government's, then the direct network over a mirror, then the lower id. `official` is read
+    from /stations' `type`; with no list, nothing is official. Given `here`, the node's own kit is never drawn: identity
+    (`own_ids`), by hand (`exclude_ids`) and proximity drop the whole device when any station of it is the node's, so
+    an archive alias of a kit the node polls is not drawn as a peer. Proximity here is judged from the middle of
+    `here`'s res-8 cell, within min_separation_m plus the farthest the house can be from that middle plus ROUNDED_M,
+    never from the point itself: the file is public (GET /wall), and a linked twin kilometres away that comes and goes
+    with a station 150 m from the exact point would say where in the cell the house is. That holds everything
+    verdicts()' exact-point proximity drops, which stays the ring's. Without `here`, no such filter."""
+    owned: set[str] = set()
+    if here:
+        import h3  # noqa: PLC0415 — the app's own dependency; the pack runs in its container
+        home = h3.latlng_to_cell(*here, 8)
+        mid = h3.cell_to_latlng(home)
+        near_m = max(h3.great_circle_distance(mid, v, unit="m") for v in h3.cell_to_boundary(home)) \
+            + min_separation_m + ROUNDED_M
+        # identity and by hand name ids that need not be in /latest at all
+        owned = {str(i) for i in (own_ids or set()) | (exclude_ids or set())} | {
+            str(r.get("station_id")) for r in rows if r.get("latitude") is not None and r.get("longitude") is not None
+            and h3.great_circle_distance(mid, (float(r["latitude"]), float(r["longitude"])), unit="m") <= near_m}
+    live = {}
+    for r in rows:
+        if (r.get("stale") or r.get("suspected_indoor") or r.get("suspected_malfunctioning") or r.get("pm25") is None
+                or r.get("latitude") is None or r.get("longitude") is None
+                or sources._iso(r.get("observed_at")) is None):
+            continue
+        live[str(r["station_id"])] = r
+    official = lambda i: "Government" in ((stations.get(i) or {}).get("type") or "")  # noqa: E731
+    twin: dict[str, set] = {}
+    for i, s in stations.items():
+        for j in (s or {}).get("same_device_as") or []:
+            twin.setdefault(str(i), set()).add(str(j)); twin.setdefault(str(j), set()).add(str(i))
+    items, seen = [], set()
+    for i in live:
+        if i in seen:
+            continue
+        group, todo = set(), [i]
+        while todo:
+            k = todo.pop()
+            if k not in group:
+                group.add(k); todo.extend(twin.get(k, ()))
+        seen |= group
+        if group & owned:
+            continue
+        best = min(group & live.keys(), key=lambda k: (not official(k), k.startswith(MIRROR_PREFIXES), k))
+        r = live[best]
+        items.append({"lat": round(float(r["latitude"]), 3), "lon": round(float(r["longitude"]), 3),
+                      "pm25": float(r["pm25"]), "at": sources._iso(r["observed_at"]).isoformat(),
+                      "network": r.get("source"), "official": official(best),
+                      "place": r.get("name") if official(best) else None})
+    return items
+
+
+def _wall() -> Path:
+    return Path(os.getenv("PACK_OUT", "/app/out")) / "wall"
+
+
+def _write(name: str, obj) -> None:
+    d = _wall()
+    d.mkdir(parents=True, exist_ok=True)
+    tmp = d / f"{name}.part"
+    tmp.write_text(json.dumps(obj))
+    tmp.replace(d / name)
+
+
+def _stations(hc) -> dict[str, dict]:
+    """/stations by id, read at most once a day into out/wall/bad-stations.json. A failed read keeps yesterday's
+    file; with none, {} and nothing is official."""
+    f = _wall() / "bad-stations.json"
+    try:
+        have = json.loads(f.read_text())
+        if time.time() - f.stat().st_mtime < 86400:
+            return have
+    except (OSError, ValueError):
+        have = {}
+    try:
+        r = hc.get(STATIONS)
+        r.raise_for_status()
+        new = {str(s["station_id"]): {"type": s.get("type"), "same_device_as": s.get("same_device_as") or []}
+               for s in r.json().get("stations", [])}
+        if not new:
+            raise ValueError("an empty station list")
+        _write("bad-stations.json", new)
+        return new
+    except Exception as e:  # noqa: BLE001 — yesterday's list stands, and the next try is a day off
+        logging.getLogger("planetai").warning("bali air dispatch /stations failed: %s", e)
+        try:
+            f.stat()
+            os.utime(f)
+        except OSError:
+            _write("bad-stations.json", have)
+    return have
+
+
+def write_island(hc, rows: list[dict], here: tuple[float, float] | None = None, own_ids: set[str] | None = None,
+                 exclude_ids: set[str] | None = None, min_separation_m: float = 150.0) -> None:
+    """Replace out/wall/island.json whole: {"at": now, "items": island(...)}. The Wall treats `at` over 3 h old as missing."""
+    _write("island.json", {"at": datetime.now(timezone.utc).isoformat(),
+                           "items": island(rows, _stations(hc), here, own_ids, exclude_ids, min_separation_m)})
+
+
 def _here() -> tuple[float, float] | None:
     lat, lon = settings.get("NODE_LAT", ""), settings.get("NODE_LON", "")
     return (float(lat), float(lon)) if lat and lon else None
@@ -166,7 +283,15 @@ def fetch(hc):
     c, here = cfg(), _here()
     if not c["on"] or not here:
         return [], []
-    return ring(hc, *here, c["radius_km"], own_ids(hc), c["exclude"], c["min_separation_m"], c["include_indoor"])
+    r = hc.get(LATEST)
+    r.raise_for_status()
+    rows = r.json().get("readings", [])
+    own = own_ids(hc)
+    try:
+        write_island(hc, rows, here, own, c["exclude"], c["min_separation_m"])
+    except Exception as e:  # noqa: BLE001 — the ring still works without the Wall's file
+        logging.getLogger("planetai").warning("bali air dispatch island file failed: %s", e)
+    return ring(hc, *here, c["radius_km"], own, c["exclude"], c["min_separation_m"], c["include_indoor"], rows)
 
 
 def audit(hc) -> list[dict]:

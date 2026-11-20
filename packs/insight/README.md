@@ -22,7 +22,7 @@ tracks indoor air at r = −0.18. The street peaked at 18:00 and 06:00 WITA; the
 r = 0.55 above is a pooled figure: every indoor kit averaged together, every outdoor sensor averaged together,
 then the two averages correlated. It is not a reading of any one house against any one street.
 
-Measured pairwise instead, `sc-19880` (indoor, Kuta Selatan, -8.8271, 115.15709) against `sc-19874` (outdoor,
+Measured pairwise instead, `sc-19880` (indoor, Kuta Selatan) against `sc-19874` (outdoor,
 Ungasan, -8.82008, 115.16669) gives r = 0.20 over 134 overlapping hours for the same seven-day window. The two
 sites are 1.3 km apart — one house against one street, a different question from the pooled figure, not a smaller
 version of it.
@@ -44,7 +44,7 @@ clean hours. Pearson r between PM2.5 and noise across 169 hourly buckets is nega
 The 06:00-07:00 peak is consistent with the 9 am burn peak `docs/sensors.md` already documents for Bali — the
 timing lines up, though that document is about the UTC/local day boundary, not about this node. The 18:00 peak is
 not covered by `docs/sensors.md` at all: it is this node's own finding, supported by its own noise and light
-channels. See `docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md` for the readings behind it. An evening pollution peak
+channels. See `planetai-design/node-docs/archive/reviews/INSIGHTS_DESIGN_2026-09.md` for the readings behind it. An evening pollution peak
 arriving as the street quiets down and the light goes is not what traffic looks like. `rhythm` now says that and
 stops naming a cause its own data argued against.
 

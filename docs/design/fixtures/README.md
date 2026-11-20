@@ -52,5 +52,5 @@ table. `/alerts` is asked for 200 rows rather than 50, because that is what the 
 Before v0.67 it fetched twelve paths, neither `actions` nor `readings_1h` was among them, and a missing table
 read as an empty one — so every snapshot taken between the 06 fixture and v0.67 replayed with no act ledger,
 no stages, no series and no barcode, and said nothing about it. That was gap J in
-`docs/design/PICK_2026-09-20.md`. If you are holding a snapshot from that window, it is a wire-shape fixture
+`planetai-design/node-docs/design/PICK_2026-09-20.md`. If you are holding a snapshot from that window, it is a wire-shape fixture
 whether or not it was meant to be one.

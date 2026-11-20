@@ -96,6 +96,7 @@ async function setupLoad() {
   [SETUP.storage, SETUP.machine] = await Promise.all(['storage', 'machine'].map(r => doorsFetch('/' + r).then(x => x.ok ? x.json() : null).catch(() => null)));
   SETUP.history = tok ? await doorsFetch('/actions?stage=settings&limit=40').then(r => r.ok ? r.json() : null).catch(() => null) : null;
   SETUP.sources = tok ? await doorsFetch('/health/sources').then(r => r.ok ? r.json() : null).catch(() => null) : null;
+  SETUP.children = tok ? await doorsFetch('/children').then(r => r.ok ? r.json() : null).catch(() => null) : null;
   const hash = location.hash.split('/')[1];
   if (hash && SECTIONS().includes(hash)) SETUP.group = hash;
   if (!SETUP.group || !SECTIONS().includes(SETUP.group)) SETUP.group = SETUP.desc && SETUP.desc.unlocked ? (sGroups(SETUP.desc)[0] || 'screen') : 'screen';
@@ -263,6 +264,7 @@ function sGroup(g, unlocked) {
   const d = SETUP.desc, rows = (d.runtime || []).filter(r => r.group === g), mine = rows.filter(r => !r.pack);
   const gate = unlocked ? '' : `<p class="gate">This screen reads the settings the node makes public and cannot change any of them. <a href="#setup/screen" data-go="screen">Unlock it with the admin token</a> to change them.</p>`;
   let body = mine.map(r => sRow(r, unlocked)).join('');
+  if (g === 'sharing') body = sIdentity() + body;
   if (g === 'packs') {
     const on = ((d.runtime || []).find(r => r.key === 'PACKS_ENABLED') || {}).value || '', only = on ? on.split(',').map(x => x.trim()) : null;
     body = `<div class="packs">${SETUP.packs.map(p => { const live = !only || only.includes(p.id);
@@ -334,6 +336,18 @@ async function sUnlock(ev) {
    lasts at the last seven days' rate. */
 const sBytes = b => b == null ? '—' : b < 1e3 ? `${b} B` : b >= 1e12 ? `${(b / 1e12).toFixed(2)} TB` : b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(0)} MB` : `${Math.round(b / 1e3)} kB`;
 const sDays = d => d >= 730 ? `${Math.round(d / 365)} years` : d >= 60 ? `${Math.round(d / 30)} months` : `${d} days`;
+/* Who this node is (docs/SPEC_identity.md): its ID from GET /health, and on a parent the children pinned to their keys
+   (GET /children, admin). The node signs every push to its parent with the key behind the ID. */
+function sIdentity() {
+  const id = D.health.node_id, C = SETUP.children || [];
+  const me = `<div class="srow"><div class="sl"><label>This node’s ID</label></div><div class="sc txt">`
+    + (id ? `<span class="mono">${esc(id)}</span><small>A short hash of this node’s own key. It signs everything this node sends its parent, so nobody else can send in its name. The key is NODE_KEY in .env: keep a copy of .env somewhere that is not the backup share, because a lost key is a new node.</small>`
+      : `none yet<small>This node has no key, so it sends its parent unsigned. <code>./update.sh</code> writes NODE_KEY to .env.</small>`) + `</div></div>`;
+  const kids = C.length ? `<div class="srow"><div class="sl"><label>Children</label></div><div class="sc txt">${C.map(c => `${esc(c.name)} · <span class="mono">${c.node_id ? esc(c.node_id) : 'unsigned'}</span> · since ${esc(String(c.first_seen).slice(0, 10))}`).join('<br>')}`
+    + `<small>Each name is pinned to the key it first signed with, and a push signed by another key is refused. After a child lost its key, on this node: <code>planetai children forget &lt;name&gt;</code>.</small></div></div>` : '';
+  return me + kids;
+}
+
 /* Machine: the machine under the node (GET /machine), the node on it (GET /health), and its storage (GET /storage).
    All three are the node's answers; the page only lays them out. */
 function sMachine() {

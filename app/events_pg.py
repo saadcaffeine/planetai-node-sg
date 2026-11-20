@@ -148,6 +148,19 @@ def run(cur, cands: list[E.Candidate], mode: str, now: dt.datetime) -> list[tupl
 EVENT_STAGES = ("acknowledged", "acted", "dismissed")
 
 
+def decision_first(cur, alert_id) -> str | None:
+    """DECISION_REQUIRED's refusal for an act on this alert, or None when the act may be recorded. POST /actions and a
+    drawing tied to an issue (app/maps.py) both ask it, so the Done button and the map refuse in the same sentence. Here
+    and not in app/main.py because a router must never import main (it starts a second MQTT client)."""
+    if not settings.num("DECISION_REQUIRED", 0):
+        return None
+    cur.execute("SELECT 1 FROM actions WHERE alert_id = %s AND stage = 'decided' LIMIT 1", (alert_id,))
+    if cur.fetchone():
+        return None
+    return ("this node is set to DECISION_REQUIRED, so an act needs a decision recorded "
+            "against the same alert first. Decide on the dashboard, then record what you did.")
+
+
 def answer(cur, event_id, stage, actor, note) -> None:
     """A button pressed on an event, from the dashboard or (Plan 2) the bot: one actions row with event_id and no
     alert_id. ρ and its funnel count an acknowledged or acted answer to an event sent at act level (index.rho());

@@ -97,4 +97,20 @@ os.environ.pop("GRAFANA_ADMIN_PASSWORD")
 assert {b["key"]: b for b in settings.describe()["bootstrap"]}["GRAFANA_ADMIN_PASSWORD"]["value"] == ""
 print("settings: Grafana's address and port are shown, its password only as set or not")
 
+# --- LOCAL_RADIUS_M is retired: own cells in node_cells replace the circle (SPEC_eyes §5) --------------------
+assert "LOCAL_RADIUS_M" not in settings.RUNTIME, "LOCAL_RADIUS_M must leave settings.RUNTIME"
+assert "LOCAL_RADIUS_M" not in settings.PUBLIC, "LOCAL_RADIUS_M must leave settings.PUBLIC"
+assert "LOCAL_RADIUS_M" in settings.RETIRED, "LOCAL_RADIUS_M is recorded in settings.RETIRED"
+assert "LOCAL_RADIUS_M" not in open(".env.example").read(), "LOCAL_RADIUS_M must leave .env.example"
+os.environ["LOCAL_RADIUS_M"] = "500"
+settings._cache["rows"]["LOCAL_RADIUS_M"] = "750"
+for _unlocked in (False, True):
+    _desc = settings.describe(unlocked=_unlocked)
+    _keys = {r["key"] for r in _desc["runtime"]} | {r["key"] for r in _desc["bootstrap"]}
+    assert "LOCAL_RADIUS_M" not in _keys, "a node whose .env or DB still sets LOCAL_RADIUS_M ignores it"
+assert not settings.writable("LOCAL_RADIUS_M"), "retired LOCAL_RADIUS_M is not writable"
+os.environ.pop("LOCAL_RADIUS_M", None)
+settings._cache["rows"].pop("LOCAL_RADIUS_M", None)
+print("settings: LOCAL_RADIUS_M is retired and ignored when still present in .env or settings table")
+
 print("all settings tests pass")

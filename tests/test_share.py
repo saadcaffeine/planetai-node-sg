@@ -316,11 +316,104 @@ main.q = lambda sql, *a: ([dict(FACILITY, meta=dict(FACILITY["meta"]))] if "FROM
 f0 = lan.get("/sensors").json()[0]
 for k in ("distance_km", "capabilities", "url", "snapshot", "city", "registry_slug", "attribution"):
     assert k in f0["meta"], f"open: a facility cannot say its own {k}, so the page cannot draw it"
-assert f0["meta"]["distance_km"] == 3.3, "the distance is the one figure the ask needs"
+import h3  # noqa: E402
+_c = main.ground.centre(-8.6478291, 115.1385412)
+assert f0["meta"]["distance_km"] == round(h3.great_circle_distance(_c[:2], (-8.793, 115.15), unit="km"), 1) != 3.3, \
+    "the distance is the one figure the ask needs, and a stranger's is from the cell's centre, not the house (R25)"
+assert local.get("/sensors").json()[0]["meta"]["distance_km"] == 3.3, "this machine keeps the pack's own distance"
 assert "host" not in f0["meta"], \
     "the facility allowlist is not an amnesty: a key that describes a network is still cut"
 main.q = _sensors
 print("open: a facility publishes its own public facts, and still not a hostname")
+
+# R25 reaches the cuts (18 Nov 2026). A stranger who reads /sensors, /issues or /ground and holds the public lists
+# they come from (fablabs.io, the island's air stations, the tile grid) could place the house from a lab's distance
+# to 0.1 km, from where the ring's 15 km edge and 150 m hole fall, or from which edge tiles exist. So two house
+# points in one res-8 cell, near opposite corners, must give a stranger the same answer, and this machine a different
+# one (or the check proves nothing).
+import json as _json  # noqa: E402
+import runpy  # noqa: E402
+_cid = h3.latlng_to_cell(-8.6478291, 115.1385412, 8)
+_cc, _vs = h3.cell_to_latlng(_cid), h3.cell_to_boundary(_cid)
+A, B = [tuple(round(_cc[i] + 0.9 * (_vs[k][i] - _cc[i]), 7) for i in (0, 1)) for k in (0, 3)]
+assert h3.latlng_to_cell(*A, 8) == h3.latlng_to_cell(*B, 8) == _cid and h3.great_circle_distance(A, B, unit="m") > 600
+
+def at(p):
+    os.environ.update(NODE_LAT=str(p[0]), NODE_LON=str(p[1]))
+
+def ring_rows(house):
+    """A lab and the island's stations round the cell, every 100 m out to 16 km on six bearings, each row carrying the
+    pack's own house-measured fields, as the database would hold them for a house at `house`."""
+    rows = [dict(FACILITY, meta=dict(FACILITY["meta"], distance_km=round(
+        h3.great_circle_distance(house, (FACILITY["lat"], FACILITY["lon"]), unit="km"), 1)))]
+    for b in range(6):
+        for k in range(1, 161):
+            la = _cc[0] + k * 0.1 / 110.574 * [1, 0.5, -0.5, -1, -0.5, 0.5][b]
+            lo = _cc[1] + k * 0.1 / 110.0 * [0, 0.87, 0.87, 0, -0.87, -0.87][b]
+            d = h3.great_circle_distance(house, (la, lo), unit="m")
+            if 150 < d <= 15000:          # what packs/bali-air-dispatch keeps for that house
+                rows.append({"sensor_id": f"bad-{b}-{k}", "source": "baliairdispatch", "name": f"s{b}{k}", "lat": la,
+                             "lon": lo, "indoor": False, "local": False, "custody": False, "kind": "sensor",
+                             "scale": "community", "cadence": "PT1H", "meta": None})
+    return rows
+
+_stations0, _sensors0, _module0 = main.packs.stations, main.q, main.packs.module
+main.packs.stations = lambda: [{"source": "baliairdispatch", "radius": "BAD_RADIUS_KM", "pack": "bali-air-dispatch",
+                                "prefix": "bad-"}]
+# its settings must read: a station pack whose cfg() does not is withheld whole (wall._ring_limits), and PACKS_DIR is
+# not this checkout's here
+main.packs.module = lambda p, *a, **k: type("cfg", (), {"cfg": staticmethod(lambda: {"min_separation_m": 150.0})}) \
+    if p == "bali-air-dispatch" else _module0(p, *a, **k)
+seen, mine = {}, {}
+for name, p in (("A", A), ("B", B)):
+    at(p)
+    main.q = lambda sql, *a, p=p: ring_rows(p) if "FROM sensors" in sql else []
+    seen[name] = _json.dumps(lan.get("/sensors").json(), sort_keys=True)
+    mine[name] = _json.dumps(local.get("/sensors").json(), sort_keys=True)
+assert seen["A"] == seen["B"], "a stranger's /sensors moves with where the house stands in its cell (R25)"
+assert mine["A"] != mine["B"], "this machine's /sensors should follow the house; the check above then proves nothing"
+_n = len(_json.loads(seen["A"]))
+assert 1 < _n < len(ring_rows(A)), f"a stranger's ring should be cut narrower than the pack's, got {_n}"
+print(f"open: /sensors' ring and lab distance are the same wherever in its cell the house is ({_n} rows)")
+
+# /issues: its stations measured from the cell's centre, the house's own at the published point, and its lab line.
+from issues import api as _iapi, engine as _eng  # noqa: E402
+said = {}
+for name, p in (("A", A), ("B", B)):
+    at(p)
+    stats = [{**r, "metric": "pm25", "mean_15m": 9.0} for r in ring_rows(p)[1:]] + [
+        {**ROW, "lat": p[0], "lon": p[1], "metric": "pm25", "mean_15m": 9.0}]
+    place = main.ground.centre(*p)[:2]
+    st = _iapi.unplaced(_eng._stations(stats, [], *place), place)
+    lab = main._public_rows(ring_rows(p)[:1])
+    said[name] = _json.dumps([st, lab], sort_keys=True, default=str)
+assert said["A"] == said["B"], "a stranger's /issues stations or lab line move with the house within its cell (R25)"
+assert all(s["km"] <= 0.1 for s in _json.loads(said["A"])[0] if s["local"]), "the house's own sensors stand at the cell"
+_api, _rep = open("app/issues/api.py").read(), open("app/report.py").read()
+assert "place=place, public=public" in _api and "main._public_rows(facilities)" in _api, \
+    "/issues must hand the engine the cell's centre, `unplaced` and the public labs for a reader without a token"
+assert "main._public_rows(index.run_ro(" in _rep, "/report/latest's lab line must be measured from the cell's centre"
+print("open: /issues' stations, own sensors and lab line are the same wherever in its cell the house is")
+
+# /ground: the vector, drone and imagery sets are cut round the cell's centre, and the wind grid's middle is it.
+for f in ("packs/place/basemap.py", "packs/earth-engine/basemap.py"):
+    cuts = []
+    for p in (A, B):
+        at(p)
+        g = runpy.run_path(f, run_name="basemap_check")
+        cuts.append(sorted(g["tiles_around"](g["LAT"], g["LON"], 12.0, 15)))
+    assert cuts[0] == cuts[1], f"{f}: which z15 tiles exist says where in its cell the house is (R25)"
+_fc = runpy.run_path("packs/forecast/adapter.py", run_name="forecast_check")
+_got = []
+_fc["write_wind_field"].__globals__["wind_field"] = lambda hc, la, lo: _got.append((la, lo)) or {}
+import tempfile  # noqa: E402
+_fc["os"].environ["PACK_OUT"] = tempfile.mkdtemp()
+for p in (A, B):
+    _fc["write_wind_field"](None, *p)
+assert _got[0] == _got[1] == tuple(_cc), "the wind grid on /ground/wind is centred on the house, to 5 dp"
+print("open: /ground's tile sets and wind grid are cut round the cell's centre")
+main.packs.stations, main.q, main.packs.module = _stations0, _sensors0, _module0
+at((-8.6478291, 115.1385412))
 
 # How far back this node's own record goes is not private: it is the length of the line the page
 # already draws. It is on the open allowlist so a wall screen with no token can say that the

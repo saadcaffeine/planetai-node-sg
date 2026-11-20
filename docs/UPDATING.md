@@ -1,5 +1,5 @@
 # Updating
-<!-- checked: v0.91.0 -->
+<!-- checked: v0.92.0 -->
 
 One command brings the node to the published release. Your settings, readings, backups, exports and the packs you
 added stay.
@@ -12,19 +12,23 @@ planetai update
 
 1. **Backs up the database**, and stops if that fails. It also copies `.env` and `config/rules.yml` aside with
    `.before-update` on the end.
-2. **Gets the new code.** A node installed from the tarball downloads it from `planetai.fab.city/node0/get`, checks
-   its checksum and signature, and unpacks it over the folder. A git checkout fetches tags and pulls. If the new
+2. **Gets the new code.** A node installed from the tarball downloads it from `planetai.fab.city/node0/get`, trying
+   the tarball, its checksum and its signature up to three times each, checks the checksum and the signature, and
+   unpacks it over the folder. A git checkout fetches tags and pulls. If the new
    version ships a core pack with the same id as a wild pack on the node (one `planetai packs add` fetched), it
    stops here and names it; delete the wild copy with `rm -rf packs/<id>` and update again.
 3. **Applies `init.sql`**, which is idempotent.
-4. **Adds new settings** from `.env.example` to `.env` with their defaults, under a dated marker. Nothing you set is
+4. **Adds new settings** from `.env.example` to `.env` with their defaults, under a dated marker. A node with no
+   `NODE_KEY` gets one at the start of the update, before the backup; an update never replaces a key that is there,
+   because a new key is a new node (docs/SPEC_identity.md). The script that runs is the one already on the node, so
+   a node updating from an older release gets its key on the update after this one. Nothing you set is
    overwritten, with one exception: on a node that lists its packs in `PACKS_ENABLED` (in `.env` or in Set up), it
    adds each pack that took over something the node already did, so nothing is lost: `home-assistant`,
    `smartcitizen`, `airgradient`, `purpleair`, `air-quality` and `bali-air-dispatch` where their switch is on, the
-   pack of each issue `NODE_ISSUES` names (`water` brings `terrain`), and `things` and `eyes` always. It takes `trust`
+   pack of each issue `NODE_ISSUES` names (`water` brings `terrain`, `energy` brings `energy`), and `things` and `eyes` always. It takes `trust`
    out, since it is core now, unless it was the only pack listed. An empty list is every pack and is left alone.
 5. **Rebuilds and restarts**, and on a node with the Reticulum bridge on, fetches the bridge at the commit this
-   release pins and rebuilds it; a bridge that does not build keeps running the one it had. Then it checks the database, the app, the readings, the views and the packs, prints the schema
+   release pins and rebuilds it; a bridge that does not build keeps running the one it had. Then it waits until the app answers, up to a minute, and checks the database, the app, the readings, the views and the packs, prints the schema
    before and after, and ends on `updated. Nothing was lost:` with the counts of readings, alerts and actions. On the way it adds, once, the
 crontab line that Install on Set up › Packs needs (`planetai packs cron`).
 6. **Runs `planetai doctor`**, ending with **To finish setting up**. In a terminal it offers to do the first item,
@@ -65,6 +69,8 @@ unsigned tarball and says so in red; it is for a throwaway test tarball, never a
 
 **The backup failed, so it stopped.** On purpose. `planetai backup` alone shows why, and `planetai storage` where it
 is writing.
+
+**`PostGIS is not in this database`**, from the schema step: the database is still on an image without PostGIS, which Place maps need. Run `docker compose up -d db`, which starts it on the image `docker-compose.yml` names, then `planetai update` again.
 
 **`git pull failed`** on a git checkout: local changes. It names the changed files and any commits that exist only
 here. `git stash`, then update again. The node's own files (`.planetai-*`, `.env.before-*`) are in `.gitignore`;
